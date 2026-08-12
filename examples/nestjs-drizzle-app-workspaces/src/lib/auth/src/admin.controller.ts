@@ -94,6 +94,9 @@ export class AdminController {
         phone: body.phone === null ? null : optionalString(body.phone),
         username: body.username === null ? null : optionalString(body.username),
         photo: body.photo === null ? null : optionalString(body.photo),
+        dob: body.dob === null ? null : optionalString(body.dob),
+        gender: body.gender === null ? null : optionalString(body.gender),
+        joinedDate: optionalString(body.joinedDate),
       },
       req.auth!.sub,
     );
@@ -197,6 +200,8 @@ export class AdminController {
         name: optionalString(body.name),
         displayName: optionalString(body.displayName),
         description: optionalString(body.description) ?? null,
+        isDefault: typeof body.isDefault === "boolean" ? body.isDefault : undefined,
+        isActive: typeof body.isActive === "boolean" ? body.isActive : undefined,
       },
       req.auth!.sub,
     );
@@ -216,6 +221,7 @@ export class AdminController {
         name: optionalString(body.name),
         displayName: optionalString(body.displayName),
         description: body.description === null ? null : optionalString(body.description),
+        isDefault: typeof body.isDefault === "boolean" ? body.isDefault : undefined,
         isActive: typeof body.isActive === "boolean" ? body.isActive : undefined,
       },
       req.auth!.sub,

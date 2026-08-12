@@ -15,7 +15,7 @@
 // external/URL use, since a sequential integer id should never appear in a URL.
 import { randomUUID } from "node:crypto";
 import { relations } from "drizzle-orm";
-import { type AnyPgColumn, bigint, bigserial, boolean, index, integer, jsonb, pgTable, primaryKey, text, timestamp, uniqueIndex, varchar } from "drizzle-orm/pg-core";
+import { type AnyPgColumn, bigint, bigserial, boolean, date, index, integer, jsonb, pgTable, primaryKey, text, timestamp, uniqueIndex, varchar } from "drizzle-orm/pg-core";
 
 /** Prisma's `@db.Timestamptz(6)`. Spelled once so no table can disagree with another about it. */
 const timestamptz = (name: string) => timestamp(name, { withTimezone: true, precision: 6 });
@@ -91,6 +91,9 @@ export const users = pgTable(
     phone: text("phone"),
     username: text("username"),
     photo: text("photo"),
+    dob: date("dob"),
+    gender: varchar("gender", { length: 10 }),
+    joinedDate: date("joined_date").defaultNow().notNull(),
     lastLogin: timestamptz("last_login"),
     passwordHash: text("password_hash"), // nullable: users created via OAuth-only signup have no password
     // Two independent reasons an account can't authenticate, tracked separately so an admin can see

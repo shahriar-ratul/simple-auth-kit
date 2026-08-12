@@ -4,8 +4,7 @@ import { z } from "zod";
  * Shared between the create and edit forms — everything `CreateCustomerInput` and
  * `UpdateCustomerInput` have in common. Dates live in the form as `Date` objects (what the
  * DatePicker emits) and are serialized to date strings only at submit time. The verified flags
- * and `isActive` are deliberately not form fields — they're toggled from the list/detail
- * screens, mirroring how the users pages treat status.
+ * are deliberately not form fields — they're toggled from the list/detail screens.
  */
 const customerFieldsSchema = z.object({
   firstName: z.string().optional(),
@@ -16,6 +15,7 @@ const customerFieldsSchema = z.object({
   gender: z.string().optional(),
   joinedDate: z.date().optional(),
   photo: z.string().nullable().optional(),
+  isActive: z.boolean(),
 });
 
 export const createCustomerSchema = customerFieldsSchema.extend({

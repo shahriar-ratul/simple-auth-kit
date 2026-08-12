@@ -47,6 +47,35 @@ export function createAdminRouter(deps: AdminRouterDeps): RequestHandler {
     }
   });
 
+  // No invitation email — the account is usable immediately with the password given here.
+  admin.route("post", "/users", ability("users:manage"), async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const body = req.body as Record<string, unknown>;
+      res.status(201).json(
+        await auth.createUser(
+          {
+            email: requireString(body.email, "email"),
+            password: requireString(body.password, "password"),
+            firstName: optionalString(body.firstName),
+            lastName: optionalString(body.lastName),
+            displayName: optionalString(body.displayName),
+            phone: optionalString(body.phone),
+            username: optionalString(body.username),
+            photo: optionalString(body.photo),
+            dob: optionalString(body.dob),
+            gender: optionalString(body.gender),
+            joinedDate: optionalString(body.joinedDate),
+            isActive: typeof body.isActive === "boolean" ? body.isActive : undefined,
+            roles: Array.isArray(body.roles) ? body.roles.filter((role): role is string => typeof role === "string") : undefined,
+          },
+          req.auth!.sub,
+        ),
+      );
+    } catch (err) {
+      next(err);
+    }
+  });
+
   admin.route("get", "/users/:userId", ability("users:read"), async (req: Request, res: Response, next: NextFunction) => {
     try {
       res.status(200).json(await auth.getUser(requireString(req.params.userId, "userId")));
@@ -70,6 +99,9 @@ export function createAdminRouter(deps: AdminRouterDeps): RequestHandler {
             phone: body.phone === null ? null : optionalString(body.phone),
             username: body.username === null ? null : optionalString(body.username),
             photo: body.photo === null ? null : optionalString(body.photo),
+            dob: body.dob === null ? null : optionalString(body.dob),
+            gender: body.gender === null ? null : optionalString(body.gender),
+            joinedDate: optionalString(body.joinedDate),
           },
           req.auth!.sub,
         ),
@@ -150,6 +182,8 @@ export function createAdminRouter(deps: AdminRouterDeps): RequestHandler {
             name: optionalString(body.name),
             displayName: optionalString(body.displayName),
             description: optionalString(body.description) ?? null,
+            isDefault: typeof body.isDefault === "boolean" ? body.isDefault : undefined,
+            isActive: typeof body.isActive === "boolean" ? body.isActive : undefined,
           },
           req.auth!.sub,
         ),
@@ -170,6 +204,7 @@ export function createAdminRouter(deps: AdminRouterDeps): RequestHandler {
             name: optionalString(body.name),
             displayName: optionalString(body.displayName),
             description: body.description === null ? null : optionalString(body.description),
+            isDefault: typeof body.isDefault === "boolean" ? body.isDefault : undefined,
             isActive: typeof body.isActive === "boolean" ? body.isActive : undefined,
           },
           req.auth!.sub,

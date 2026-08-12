@@ -13,6 +13,9 @@ export interface UserSummary {
   phone: string | null;
   username: string | null;
   photo: string | null;
+  dob: string | null;
+  gender: string | null;
+  joinedDate: string;
   lastLogin: string | null;
   blocked: boolean;
   roles: string[];
@@ -163,6 +166,9 @@ export class RbacRepository {
         phone: row.phone,
         username: row.username,
         photo: row.photo,
+        dob: row.dob?.toISOString() ?? null,
+        gender: row.gender,
+        joinedDate: row.joinedDate.toISOString(),
         lastLogin: row.lastLogin?.toISOString() ?? null,
         blocked: row.blocked,
         roles: row.roles.map((r) => r.role.slug).sort(),
@@ -187,6 +193,9 @@ export class RbacRepository {
       phone: row.phone,
       username: row.username,
       photo: row.photo,
+      dob: row.dob?.toISOString() ?? null,
+      gender: row.gender,
+      joinedDate: row.joinedDate.toISOString(),
       lastLogin: row.lastLogin?.toISOString() ?? null,
       blocked: row.blocked,
       roles: row.roles.map((r) => r.role.slug).sort(),
@@ -194,17 +203,92 @@ export class RbacRepository {
     };
   }
 
+  /**
+   * An administrator provisioning an account directly, as distinct from `/auth/signup` — the row
+   * is otherwise identical, right down to which roles a bare account gets by default.
+   */
+  async createUser(
+    input: {
+      email: string;
+      passwordHash: string;
+      firstName?: string;
+      lastName?: string;
+      displayName?: string;
+      phone?: string;
+      username?: string;
+      photo?: string;
+      dob?: string;
+      gender?: string;
+      joinedDate?: string;
+      isActive?: boolean;
+      roles?: string[];
+    },
+    actorUserId: string | null,
+  ): Promise<UserSummary> {
+    const existing = await this.prisma.user.findUnique({ where: { email: input.email } });
+    if (existing) throw new HttpError(409, "email already registered");
+
+    const user = await this.prisma.user.create({
+      data: {
+        email: input.email,
+        passwordHash: input.passwordHash,
+        firstName: input.firstName,
+        lastName: input.lastName,
+        displayName: input.displayName,
+        phone: input.phone,
+        username: input.username,
+        photo: input.photo,
+        dob: input.dob ? new Date(input.dob) : undefined,
+        gender: input.gender,
+        joinedDate: input.joinedDate ? new Date(input.joinedDate) : undefined,
+        isActive: input.isActive,
+        createdBy: toIdOrNull(actorUserId),
+      },
+    });
+
+    if (input.roles && input.roles.length > 0) {
+      const roles = await this.prisma.role.findMany({ where: { slug: { in: input.roles }, isActive: true, isDeleted: false }, select: { id: true } });
+      if (roles.length > 0) {
+        await this.prisma.roleUser.createMany({ data: roles.map((role) => ({ userId: user.id, roleId: role.id })), skipDuplicates: true });
+        await this.cache.invalidateSubject(user.id.toString());
+      }
+    } else {
+      await this.assignDefaultRoles(user.id);
+    }
+
+    return this.getUser(user.id.toString());
+  }
+
   // Profile fields only — email is the login identifier and stays out of this endpoint to avoid
   // uniqueness/re-verification concerns a general "edit profile" screen shouldn't have to handle.
   async updateUser(
     userId: string,
-    input: { firstName?: string | null; lastName?: string | null; displayName?: string | null; phone?: string | null; username?: string | null; photo?: string | null },
+    input: {
+      firstName?: string | null;
+      lastName?: string | null;
+      displayName?: string | null;
+      phone?: string | null;
+      username?: string | null;
+      photo?: string | null;
+      dob?: string | null;
+      gender?: string | null;
+      joinedDate?: string;
+    },
     actorUserId: string | null,
   ): Promise<UserSummary> {
     const userIdBig = toId(userId);
     const existing = await this.prisma.user.findUnique({ where: { id: userIdBig, isDeleted: false }, select: { id: true } });
     if (!existing) throw new HttpError(404, `user "${userId}" not found`);
-    await this.prisma.user.update({ where: { id: userIdBig }, data: { ...input, updatedBy: toIdOrNull(actorUserId) } });
+    await this.prisma.user.update({
+      where: { id: userIdBig },
+      data: {
+        ...input,
+        // Date columns need Date values; `undefined` leaves them alone, like every other field here.
+        dob: input.dob === undefined ? undefined : input.dob === null ? null : new Date(input.dob),
+        joinedDate: input.joinedDate === undefined ? undefined : new Date(input.joinedDate),
+        updatedBy: toIdOrNull(actorUserId),
+      },
+    });
     return this.getUser(userId);
   }
 
@@ -224,7 +308,7 @@ export class RbacRepository {
 
   async updateRole(
     roleId: string,
-    input: { name?: string; displayName?: string; description?: string | null; isActive?: boolean },
+    input: { name?: string; displayName?: string; description?: string | null; isDefault?: boolean; isActive?: boolean },
     actorUserId: string | null,
   ): Promise<RoleSummary> {
     const roleIdBig = toId(roleId);
@@ -312,7 +396,7 @@ export class RbacRepository {
   }
 
   async createRole(
-    input: { slug: string; name?: string; displayName?: string; description?: string | null },
+    input: { slug: string; name?: string; displayName?: string; description?: string | null; isDefault?: boolean; isActive?: boolean },
     actorUserId: string | null,
   ): Promise<RoleSummary> {
     const role = await this.prisma.role.create({
@@ -321,6 +405,8 @@ export class RbacRepository {
         name: input.name ?? input.displayName ?? input.slug,
         displayName: input.displayName ?? input.slug,
         description: input.description ?? null,
+        isDefault: input.isDefault,
+        isActive: input.isActive,
         createdBy: toIdOrNull(actorUserId),
         updatedBy: toIdOrNull(actorUserId),
       },

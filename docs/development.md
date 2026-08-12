@@ -108,12 +108,14 @@ rendering live data, one create through a real form, logout). The 2026-08-12 par
 walkthrough found two real bugs that typecheck and unit tests missed (BigInt list
 serialization; docker-internal URL split — see `AUTH_API_INTERNAL_URL` in getting-started.md).
 
-## Known state / gaps (as of 2026-08-12)
+## Known state / gaps (as of 2026-08-13)
 
-- The parity feature set (content domains, WS feed, throttling, NextAuth console flow) lives in
-  **nestjs-prisma base + admin-nextjs** only. The other 3 combos and 3 consoles have the
-  pre-parity feature set (auth, users, roles, permissions, audit); port from the reference pair.
-- The other 7 `examples/*` are pre-parity snapshots of their own combos.
+- The **content domains, WS feed, throttling, and NextAuth console flow** live in
+  **nestjs-prisma base + admin-nextjs** (the reference pair). The **reference form recipe and
+  the user/role profile fields** (dob/gender/joinedDate, role isDefault/isActive) are rolled out
+  wider — all 4 admin apps and all 4 combo pairs (see brief.md decision 28).
+- Changes land combo-first (`registry/combos/*`, gated by prove-cycle); examples are regenerated
+  or back-ported to agree. An example that's ahead of its combo is a bug, not a feature.
 - Mobile apps: verified by typecheck/bundling/Metro boot, not by a recent device run;
   `mobile-bare-rn` needs a one-time manual Xcode step for `react-native-config`.
 - Docker consoles run `next dev`, not production builds (deliberate — see the Dockerfile note).

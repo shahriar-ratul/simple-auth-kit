@@ -264,7 +264,17 @@ export class AuthService {
 
   async updateUser(
     userId: string,
-    input: { firstName?: string | null; lastName?: string | null; displayName?: string | null; phone?: string | null; username?: string | null; photo?: string | null },
+    input: {
+      firstName?: string | null;
+      lastName?: string | null;
+      displayName?: string | null;
+      phone?: string | null;
+      username?: string | null;
+      photo?: string | null;
+      dob?: string | null;
+      gender?: string | null;
+      joinedDate?: string;
+    },
     actorUserId: string | null,
   ): Promise<UserSummary> {
     return this.rbac.updateUser(userId, input, actorUserId);
@@ -288,13 +298,16 @@ export class AuthService {
     return { roles: await this.rbac.listRoles() };
   }
 
-  async createRole(input: { slug: string; name?: string; displayName?: string; description?: string | null }, actorUserId: string | null): Promise<RoleSummary> {
+  async createRole(
+    input: { slug: string; name?: string; displayName?: string; description?: string | null; isDefault?: boolean; isActive?: boolean },
+    actorUserId: string | null,
+  ): Promise<RoleSummary> {
     return this.rbac.createRole(input, actorUserId);
   }
 
   async updateRole(
     roleId: string,
-    input: { name?: string; displayName?: string; description?: string | null; isActive?: boolean },
+    input: { name?: string; displayName?: string; description?: string | null; isDefault?: boolean; isActive?: boolean },
     actorUserId: string | null,
   ): Promise<RoleSummary> {
     return this.rbac.updateRole(roleId, input, actorUserId);

@@ -86,6 +86,12 @@ export class CreateRoleDto {
 
   @ApiProperty({ type: String, required: false, nullable: true })
   description?: string | null;
+
+  @ApiProperty({ type: Boolean, required: false, description: "Given to every newly signed-up user. Defaults to false." })
+  isDefault?: boolean;
+
+  @ApiProperty({ type: Boolean, required: false, description: "Defaults to true." })
+  isActive?: boolean;
 }
 
 export class UpdateRoleDto {
@@ -97,6 +103,9 @@ export class UpdateRoleDto {
 
   @ApiProperty({ type: String, required: false, nullable: true })
   description?: string | null;
+
+  @ApiProperty({ type: Boolean, required: false, description: "Given to every newly signed-up user." })
+  isDefault?: boolean;
 
   @ApiProperty({ type: Boolean, required: false, description: "false suspends the role without deleting it — it stops granting immediately." })
   isActive?: boolean;
@@ -127,6 +136,18 @@ export class CreateUserDto {
   @ApiProperty({ type: String, required: false, description: "A data URI or an externally-hosted URL — stored as-is, never processed server-side." })
   photo?: string;
 
+  @ApiProperty({ type: String, required: false, description: "Date of birth, ISO date (yyyy-mm-dd)." })
+  dob?: string;
+
+  @ApiProperty({ type: String, required: false })
+  gender?: string;
+
+  @ApiProperty({ type: String, required: false, description: "ISO date (yyyy-mm-dd). Defaults to today." })
+  joinedDate?: string;
+
+  @ApiProperty({ type: Boolean, required: false, description: "Defaults to true — false creates the account already deactivated." })
+  isActive?: boolean;
+
   @ApiProperty({ type: [String], required: false, description: "Role slugs to assign. Defaults to whichever roles are flagged isDefault, same as a self-signup." })
   roles?: string[];
 }
@@ -149,6 +170,15 @@ export class UpdateUserDto {
 
   @ApiProperty({ type: String, required: false, nullable: true })
   photo?: string | null;
+
+  @ApiProperty({ type: String, required: false, nullable: true, description: "Date of birth, ISO date (yyyy-mm-dd)." })
+  dob?: string | null;
+
+  @ApiProperty({ type: String, required: false, nullable: true })
+  gender?: string | null;
+
+  @ApiProperty({ type: String, required: false, description: "ISO date (yyyy-mm-dd). Not nullable — omit to leave unchanged." })
+  joinedDate?: string;
 }
 
 export class DeleteReasonDto {

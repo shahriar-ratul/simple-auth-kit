@@ -15,6 +15,9 @@ export interface UserSummary {
   phone: string | null;
   username: string | null;
   photo: string | null;
+  dob: string | null;
+  gender: string | null;
+  joinedDate: string;
   lastLogin: string | null;
   blocked: boolean;
   roles: string[];
@@ -229,6 +232,9 @@ export class RbacRepository {
         phone: row.phone,
         username: row.username,
         photo: row.photo,
+        dob: row.dob,
+        gender: row.gender,
+        joinedDate: row.joinedDate,
         lastLogin: row.lastLogin?.toISOString() ?? null,
         blocked: row.blocked,
         roles: (rolesByUser.get(row.id.toString()) ?? []).sort(),
@@ -259,6 +265,9 @@ export class RbacRepository {
       phone: row.phone,
       username: row.username,
       photo: row.photo,
+      dob: row.dob,
+      gender: row.gender,
+      joinedDate: row.joinedDate,
       lastLogin: row.lastLogin?.toISOString() ?? null,
       blocked: row.blocked,
       roles: assignments.map((a) => a.slug).sort(),
@@ -272,7 +281,17 @@ export class RbacRepository {
    */
   async updateUser(
     userId: string,
-    input: { firstName?: string | null; lastName?: string | null; displayName?: string | null; phone?: string | null; username?: string | null; photo?: string | null },
+    input: {
+      firstName?: string | null;
+      lastName?: string | null;
+      displayName?: string | null;
+      phone?: string | null;
+      username?: string | null;
+      photo?: string | null;
+      dob?: string | null;
+      gender?: string | null;
+      joinedDate?: string;
+    },
     actorUserId: string | null,
   ): Promise<UserSummary> {
     const userIdBig = toId(userId);
@@ -379,7 +398,10 @@ export class RbacRepository {
     return rows.map(asRoleSummary);
   }
 
-  async createRole(input: { slug: string; name?: string; displayName?: string; description?: string | null }, actorUserId: string | null): Promise<RoleSummary> {
+  async createRole(
+    input: { slug: string; name?: string; displayName?: string; description?: string | null; isDefault?: boolean; isActive?: boolean },
+    actorUserId: string | null,
+  ): Promise<RoleSummary> {
     const actorId = toIdOrNull(actorUserId);
     const [role] = await this.db
       .insert(roles)
@@ -388,6 +410,8 @@ export class RbacRepository {
         name: input.name ?? input.displayName ?? input.slug,
         displayName: input.displayName ?? input.slug,
         description: input.description ?? null,
+        isDefault: input.isDefault,
+        isActive: input.isActive,
         createdBy: actorId,
         updatedBy: actorId,
       })
@@ -397,7 +421,7 @@ export class RbacRepository {
 
   async updateRole(
     roleId: string,
-    input: { name?: string; displayName?: string; description?: string | null; isActive?: boolean },
+    input: { name?: string; displayName?: string; description?: string | null; isDefault?: boolean; isActive?: boolean },
     actorUserId: string | null,
   ): Promise<RoleSummary> {
     const roleIdBig = toId(roleId);

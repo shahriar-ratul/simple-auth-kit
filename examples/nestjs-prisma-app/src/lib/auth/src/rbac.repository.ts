@@ -27,6 +27,9 @@ export function toUserSummary(row: UserRow): UserSummary {
     phone: row.phone,
     username: row.username,
     photo: row.photo,
+    dob: row.dob?.toISOString() ?? null,
+    gender: row.gender,
+    joinedDate: row.joinedDate.toISOString(),
     lastLogin: row.lastLogin?.toISOString() ?? null,
     blocked: row.blocked,
     isActive: row.isActive,
@@ -56,6 +59,9 @@ export interface UserSummary {
   phone: string | null;
   username: string | null;
   photo: string | null;
+  dob: string | null;
+  gender: string | null;
+  joinedDate: string;
   lastLogin: string | null;
   blocked: boolean;
   isActive: boolean;
@@ -219,6 +225,10 @@ export class RbacRepository {
       phone?: string;
       username?: string;
       photo?: string;
+      dob?: string;
+      gender?: string;
+      joinedDate?: string;
+      isActive?: boolean;
       roles?: string[];
     },
     actorUserId: string | null,
@@ -236,6 +246,10 @@ export class RbacRepository {
         phone: input.phone,
         username: input.username,
         photo: input.photo,
+        dob: input.dob ? new Date(input.dob) : undefined,
+        gender: input.gender,
+        joinedDate: input.joinedDate ? new Date(input.joinedDate) : undefined,
+        isActive: input.isActive,
         createdBy: toIdOrNull(actorUserId),
       },
     });
@@ -257,13 +271,32 @@ export class RbacRepository {
   // uniqueness/re-verification concerns a general "edit profile" screen shouldn't have to handle.
   async updateUser(
     userId: string,
-    input: { firstName?: string | null; lastName?: string | null; displayName?: string | null; phone?: string | null; username?: string | null; photo?: string | null },
+    input: {
+      firstName?: string | null;
+      lastName?: string | null;
+      displayName?: string | null;
+      phone?: string | null;
+      username?: string | null;
+      photo?: string | null;
+      dob?: string | null;
+      gender?: string | null;
+      joinedDate?: string;
+    },
     actorUserId: string | null,
   ): Promise<UserSummary> {
     const userIdBig = toId(userId);
     const existing = await this.prisma.user.findUnique({ where: { id: userIdBig, isDeleted: false }, select: { id: true } });
     if (!existing) throw new NotFoundException(`user "${userId}" not found`);
-    await this.prisma.user.update({ where: { id: userIdBig }, data: { ...input, updatedBy: toIdOrNull(actorUserId) } });
+    await this.prisma.user.update({
+      where: { id: userIdBig },
+      data: {
+        ...input,
+        // Date columns need Date values; `undefined` leaves them alone, like every other field here.
+        dob: input.dob === undefined ? undefined : input.dob === null ? null : new Date(input.dob),
+        joinedDate: input.joinedDate === undefined ? undefined : new Date(input.joinedDate),
+        updatedBy: toIdOrNull(actorUserId),
+      },
+    });
     return this.getUser(userId);
   }
 
@@ -283,7 +316,7 @@ export class RbacRepository {
 
   async updateRole(
     roleId: string,
-    input: { name?: string; displayName?: string; description?: string | null; isActive?: boolean },
+    input: { name?: string; displayName?: string; description?: string | null; isDefault?: boolean; isActive?: boolean },
     actorUserId: string | null,
   ): Promise<RoleSummary> {
     const roleIdBig = toId(roleId);
@@ -365,7 +398,7 @@ export class RbacRepository {
   }
 
   async createRole(
-    input: { slug: string; name?: string; displayName?: string; description?: string | null },
+    input: { slug: string; name?: string; displayName?: string; description?: string | null; isDefault?: boolean; isActive?: boolean },
     actorUserId: string | null,
   ): Promise<RoleSummary> {
     const role = await this.prisma.role.create({
@@ -374,6 +407,8 @@ export class RbacRepository {
         name: input.name ?? input.displayName ?? input.slug,
         displayName: input.displayName ?? input.slug,
         description: input.description ?? null,
+        isDefault: input.isDefault,
+        isActive: input.isActive,
         createdBy: toIdOrNull(actorUserId),
         updatedBy: toIdOrNull(actorUserId),
       },

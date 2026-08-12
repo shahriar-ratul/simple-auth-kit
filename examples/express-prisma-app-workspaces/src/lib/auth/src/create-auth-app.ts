@@ -75,7 +75,7 @@ export function createAuthApp(options: CreateAuthAppOptions = {}): Express {
   app.get("/docs-json", (_req, res) => res.json(openApiSpec));
   // Mounted before /auth so `/auth/admin/*` reaches the admin router rather than falling
   // through to the identity router's 404.
-  app.use("/auth/admin", createAdminRouter({ auth: authService, authentication, workspaceScope }));
+  app.use("/auth/admin", createAdminRouter({ auth: authService, workspaces, authentication, workspaceScope }));
   app.use("/auth", createAuthRouter({ auth: authService, config, authentication, authorization }));
   app.use("/workspaces", createWorkspaceRouter({ workspaces, rbac, authentication, authorization, workspaceScope }));
   // Mounted last so it catches errors forwarded via `next(err)` from every route above.
