@@ -47,12 +47,24 @@ export function toAuditLogEntry(row: AuditLogRow): AuditLogEntry {
   };
 }
 
+type AuditLogListener = (entry: AuditLogEntry) => void;
+
 @Injectable()
 export class AuditLogRepository {
+  // How the WS gateway hears about writes without this repository knowing sockets exist —
+  // the gateway depends on SessionRepository, which depends on this class, so injecting the
+  // gateway here would close a dependency cycle.
+  private readonly listeners = new Set<AuditLogListener>();
+
   constructor(@Inject(PrismaClient) private readonly prisma: PrismaClient) {}
 
+  /** Fires after every successful write, with the same wire shape the REST list endpoint returns. */
+  onAppend(listener: AuditLogListener): void {
+    this.listeners.add(listener);
+  }
+
   async append(event: AuditEvent, opts: { remarks?: string } = {}): Promise<void> {
-    await this.prisma.auditLog.create({
+    const row = await this.prisma.auditLog.create({
       data: {
         action: event.type,
         name: humanizeAction(event.type),
@@ -61,6 +73,14 @@ export class AuditLogRepository {
         remarks: opts.remarks ?? null,
       },
     });
+    const entry = toAuditLogEntry(row);
+    for (const listener of this.listeners) {
+      try {
+        listener(entry);
+      } catch {
+        // A broken broadcast must never fail the operation being audited.
+      }
+    }
   }
 
   /** Newest-first, page-paginated. Returns raw rows — shaping is the caller's job, see `toAuditLogEntry`. */

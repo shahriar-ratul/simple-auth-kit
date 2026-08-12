@@ -1,8 +1,10 @@
 import { PrismaPg } from "@prisma/adapter-pg";
 import { DynamicModule, Module } from "@nestjs/common";
-import { APP_FILTER, APP_INTERCEPTOR } from "@nestjs/core";
+import { APP_FILTER, APP_GUARD, APP_INTERCEPTOR } from "@nestjs/core";
+import { ThrottlerGuard, ThrottlerModule } from "@nestjs/throttler";
 import { AbilityGuard } from "./ability.guard.js";
 import { AdminController } from "./admin.controller.js";
+import { AuditLogGateway } from "./audit-log.gateway.js";
 import { AuditLogRepository } from "./audit-log.repository.js";
 import { AuthCoreErrorFilter } from "./auth-core-error.filter.js";
 import { AUTH_CONFIG, AuthConfig, defaultAuthConfig } from "./auth.config.js";
@@ -11,7 +13,10 @@ import { AuthGuard } from "./auth.guard.js";
 import { AuthService } from "./auth.service.js";
 import { AuthzGuard } from "./authz.guard.js";
 import { PrismaClient } from "../generated/prisma/client.js";
+import { CountryRepository } from "./country.repository.js";
+import { CustomerRepository } from "./customer.repository.js";
 import { KeyProviderService } from "./key-provider.js";
+import { LanguageRepository } from "./language.repository.js";
 import { OAuthRepository } from "./oauth.repository.js";
 import { PasswordResetRepository } from "./password-reset.repository.js";
 import { InMemoryPermissionCacheStore, PERMISSION_CACHE_STORE, PermissionCache } from "./permission-cache.js";
@@ -33,19 +38,25 @@ export class AuthModule {
     // client or a port, so a failed boot leaves nothing behind.
     assertEveryRouteDeclaresATier(AUTH_CONTROLLERS, { authentication: AuthGuard, ability: AbilityGuard });
 
+    const resolved: AuthConfig = { ...defaultAuthConfig, ...config };
     const adapter = new PrismaPg({ connectionString: process.env["DATABASE_URL"] });
     return {
       module: AuthModule,
+      imports: resolved.throttle === false ? [] : [ThrottlerModule.forRoot(resolved.throttle)],
       controllers: AUTH_CONTROLLERS,
       providers: [
-        { provide: AUTH_CONFIG, useValue: { ...defaultAuthConfig, ...config } },
+        { provide: AUTH_CONFIG, useValue: resolved },
         { provide: PrismaClient, useValue: new PrismaClient({ adapter }) },
         // Swap for a Redis-backed store by passing `permissionCacheStore` to forRoot.
         { provide: PERMISSION_CACHE_STORE, useValue: config.permissionCacheStore ?? new InMemoryPermissionCacheStore() },
         PermissionCache,
         { provide: APP_FILTER, useClass: AuthCoreErrorFilter },
         { provide: APP_INTERCEPTOR, useClass: ResponseInterceptor },
+        // Registered from here rather than the consumer's root module so throttling ships with
+        // the combo. Runs before the route-level guards, exactly like every other APP_GUARD.
+        ...(resolved.throttle === false ? [] : [{ provide: APP_GUARD, useClass: ThrottlerGuard }]),
         AuditLogRepository,
+        AuditLogGateway,
         SessionRepository,
         KeyProviderService,
         InMemoryRateLimitStore,
@@ -53,6 +64,9 @@ export class AuthModule {
         TwoFactorRepository,
         OAuthRepository,
         PasswordResetRepository,
+        CountryRepository,
+        LanguageRepository,
+        CustomerRepository,
         AuthService,
         AuthGuard,
         AuthzGuard,

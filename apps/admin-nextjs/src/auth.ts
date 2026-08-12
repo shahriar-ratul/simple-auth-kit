@@ -1,7 +1,7 @@
 import NextAuth, { CredentialsSignin, type NextAuthConfig } from "next-auth";
 import Credentials from "next-auth/providers/credentials";
 import { AuthClient } from "@easy-auth/auth-client";
-import { AUTH_API_URL } from "@/lib/env";
+import { AUTH_API_INTERNAL_URL } from "@/lib/env";
 import { serverCookieTokenStorage } from "@/lib/server-token-storage";
 
 declare module "next-auth" {
@@ -33,7 +33,7 @@ export class TwoFactorRequiredError extends CredentialsSignin {
 // Server-side AuthClient sharing the browser client's cookie (name + JSON shape), so a login
 // completed here is immediately visible to every existing client-side call site.
 const serverAuthClient = new AuthClient({
-  baseUrl: AUTH_API_URL,
+  baseUrl: AUTH_API_INTERNAL_URL,
   storage: serverCookieTokenStorage,
 });
 

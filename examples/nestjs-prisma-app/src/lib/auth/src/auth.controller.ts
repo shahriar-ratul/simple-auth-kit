@@ -1,7 +1,8 @@
 import { BadRequestException, Body, Controller, Get, Inject, Ip, Param, Patch, Post, Query, Req, UseGuards } from "@nestjs/common";
 import { ApiBearerAuth, ApiBody, ApiOperation, ApiParam, ApiQuery, ApiResponse, ApiTags } from "@nestjs/swagger";
+import { SkipThrottle } from "@nestjs/throttler";
 import type { Request } from "express";
-import { AUTH_CONFIG, AuthConfig } from "./auth.config.js";
+import { AUTH_CONFIG, AuthConfig, defaultThrottleBuckets } from "./auth.config.js";
 import { AuthGuard } from "./auth.guard.js";
 import { AuthService } from "./auth.service.js";
 import { AuthzGuard } from "./authz.guard.js";
@@ -108,6 +109,9 @@ export class AuthController {
 
   @Get("me")
   @Authenticated()
+  // Clients hit this on every navigation to verify the token is still live — identity checks
+  // must not consume the abuse budget. Metadata only in variants that don't register the guard.
+  @SkipThrottle(Object.fromEntries(defaultThrottleBuckets.map((bucket) => [bucket.name, true])))
   @ApiBearerAuth()
   @UseGuards(AuthGuard, AuthzGuard)
   @ApiOperation({

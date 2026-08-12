@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
-import { AUTH_API_URL } from "@/lib/env";
+import { AUTH_API_INTERNAL_URL } from "@/lib/env";
 import { apiAuthPrefix, authRoutes, DEFAULT_LOGIN_REDIRECT, publicRoutes } from "@/routes";
 
 const TOKEN_COOKIE = "easy_auth_tokens";
@@ -45,7 +45,7 @@ export default auth(async (req) => {
   }
 
   try {
-    const verify = await fetch(`${AUTH_API_URL}/auth/me`, {
+    const verify = await fetch(`${AUTH_API_INTERNAL_URL}/auth/me`, {
       headers: { authorization: `Bearer ${accessToken}` },
     });
     // 401 alone isn't a verdict — the access token may merely need the refresh rotation the
