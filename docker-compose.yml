@@ -28,10 +28,8 @@ services:
       # an already-set process env var, so this wins.
       DATABASE_URL: postgresql://postgres@postgres:5432/example_nestjs_prisma?schema=public
       PORT: "3001"
-      # Fixed per-service secret for this local reference deployment (same convenience
-      # tradeoff as postgres's trust auth above) — generate your own for anything real:
-      # openssl rand -base64 32
-      AUTH_JWT_SECRET: ms4RNzoPac7X1/OM1w2ooPI1cVsuWcghDb0XbDsM6x8=
+      # From the repo-root .env (copy .env.example and fill in with `openssl rand -base64 32`).
+      AUTH_JWT_SECRET: ${AUTH_JWT_SECRET_NESTJS_PRISMA:?set AUTH_JWT_SECRET_NESTJS_PRISMA in .env}
     ports:
       - "3001:3001"
     depends_on:
@@ -45,7 +43,7 @@ services:
     environment:
       DATABASE_URL: postgresql://postgres@postgres:5432/example_nestjs_drizzle?schema=public
       PORT: "3002"
-      AUTH_JWT_SECRET: YIB1qdLNcAGWu3ta3gVfd4BWKwoNxmCpMEaF25cH4B0=
+      AUTH_JWT_SECRET: ${AUTH_JWT_SECRET_NESTJS_DRIZZLE:?set AUTH_JWT_SECRET_NESTJS_DRIZZLE in .env}
     ports:
       - "3002:3002"
     depends_on:
@@ -59,7 +57,7 @@ services:
     environment:
       DATABASE_URL: postgresql://postgres@postgres:5432/example_express_prisma?schema=public
       PORT: "3003"
-      AUTH_JWT_SECRET: HEbya7VhkJWO9fnWDj/AAgNQcTXWSzPz7R33p/yv7Gk=
+      AUTH_JWT_SECRET: ${AUTH_JWT_SECRET_EXPRESS_PRISMA:?set AUTH_JWT_SECRET_EXPRESS_PRISMA in .env}
     ports:
       - "3003:3003"
     depends_on:
@@ -73,7 +71,7 @@ services:
     environment:
       DATABASE_URL: postgresql://postgres@postgres:5432/example_express_drizzle?schema=public
       PORT: "3004"
-      AUTH_JWT_SECRET: 80MyNoClzMesH5RVKfxPH+XL0CLuZcEdXBKBX9UTEKw=
+      AUTH_JWT_SECRET: ${AUTH_JWT_SECRET_EXPRESS_DRIZZLE:?set AUTH_JWT_SECRET_EXPRESS_DRIZZLE in .env}
     ports:
       - "3004:3004"
     depends_on:
@@ -89,7 +87,7 @@ services:
     environment:
       DATABASE_URL: postgresql://postgres@postgres:5432/example_nestjs_prisma_workspaces?schema=public
       PORT: "3005"
-      AUTH_JWT_SECRET: qVOU5GsqVy/z7O/EGbynu5ZSnfhjDo51K7NJS6zKluA=
+      AUTH_JWT_SECRET: ${AUTH_JWT_SECRET_NESTJS_PRISMA_WORKSPACES:?set AUTH_JWT_SECRET_NESTJS_PRISMA_WORKSPACES in .env}
     ports:
       - "3005:3005"
     depends_on:
@@ -103,7 +101,7 @@ services:
     environment:
       DATABASE_URL: postgresql://postgres@postgres:5432/example_nestjs_drizzle_workspaces?schema=public
       PORT: "3006"
-      AUTH_JWT_SECRET: 440w8Vb/bObhUV03izgK53/2Feo/6S9mN5rtOjOL/Cw=
+      AUTH_JWT_SECRET: ${AUTH_JWT_SECRET_NESTJS_DRIZZLE_WORKSPACES:?set AUTH_JWT_SECRET_NESTJS_DRIZZLE_WORKSPACES in .env}
     ports:
       - "3006:3006"
     depends_on:
@@ -117,7 +115,7 @@ services:
     environment:
       DATABASE_URL: postgresql://postgres@postgres:5432/example_express_prisma_workspaces?schema=public
       PORT: "3007"
-      AUTH_JWT_SECRET: kG3VqOdGYVn5A9Z7s0yemKjy335r4MnH7k7YyXuWFZk=
+      AUTH_JWT_SECRET: ${AUTH_JWT_SECRET_EXPRESS_PRISMA_WORKSPACES:?set AUTH_JWT_SECRET_EXPRESS_PRISMA_WORKSPACES in .env}
     ports:
       - "3007:3007"
     depends_on:
@@ -131,7 +129,7 @@ services:
     environment:
       DATABASE_URL: postgresql://postgres@postgres:5432/example_express_drizzle_workspaces?schema=public
       PORT: "3008"
-      AUTH_JWT_SECRET: /4KBg5sEYyQx/MJu/smoigzLnyNoWQoPIxfO1baEkro=
+      AUTH_JWT_SECRET: ${AUTH_JWT_SECRET_EXPRESS_DRIZZLE_WORKSPACES:?set AUTH_JWT_SECRET_EXPRESS_DRIZZLE_WORKSPACES in .env}
     ports:
       - "3008:3008"
     depends_on:
@@ -155,9 +153,8 @@ services:
       # Server-side calls (NextAuth authorize, proxy token verify) run inside this container,
       # where localhost:3001 is the container itself — name the backend by its service DNS.
       AUTH_API_INTERNAL_URL: http://nestjs-prisma-app:3001
-      # NextAuth session-JWT signing secret. Fixed dev-only value for this local reference
-      # deployment — generate a real one (`openssl rand -base64 32`) for anything shared.
-      AUTH_SECRET: local-reference-deployment-dev-secret
+      # NextAuth session-JWT signing secret, from the repo-root .env.
+      AUTH_SECRET: ${AUTH_SECRET:?set AUTH_SECRET in .env}
     ports:
       - "3000:3000"
     depends_on:
@@ -180,6 +177,7 @@ services:
       dockerfile: apps/admin-nextjs-workspaces/Dockerfile
     environment:
       NEXT_PUBLIC_AUTH_API_URL: http://localhost:3005
+      AUTH_API_INTERNAL_URL: http://nestjs-prisma-app-workspaces:3005
     ports:
       - "3010:3010"
     depends_on:

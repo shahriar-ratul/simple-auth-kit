@@ -1,4 +1,4 @@
-import { BadRequestException, Body, Controller, Get, Inject, Ip, Param, Post, Query, Req, UseGuards } from "@nestjs/common";
+import { BadRequestException, Body, Controller, Get, Inject, Ip, Param, Patch, Post, Query, Req, UseGuards } from "@nestjs/common";
 import { ApiBearerAuth, ApiBody, ApiOperation, ApiParam, ApiQuery, ApiResponse, ApiTags } from "@nestjs/swagger";
 import type { Request } from "express";
 import { AUTH_CONFIG, AuthConfig } from "./auth.config.js";
@@ -8,6 +8,7 @@ import { AuthzGuard } from "./authz.guard.js";
 import { Authenticated, Public } from "./route-tiers.js";
 import {
   AuthTokensDto,
+  ChangePasswordDto,
   ConfirmTwoFactorResponseDto,
   CurrentUserDto,
   EnrollTwoFactorResponseDto,
@@ -19,16 +20,20 @@ import {
   RefreshDto,
   RefreshResponseDto,
   ResetPasswordDto,
+  SelfProfileDto,
   SessionSummaryDto,
   SignupDto,
   TwoFactorChallengeDto,
   TwoFactorCodeDto,
+  UpdateUserDto,
 } from "./dto/auth.dto.js";
 
 function requireString(value: unknown, field: string): string {
   if (typeof value !== "string" || value.length === 0) throw new BadRequestException(`${field} is required`);
   return value;
 }
+
+const optionalString = (value: unknown): string | undefined => (typeof value === "string" ? value : undefined);
 
 /**
  * Identity endpoints — everything that is about *a user*, never about a group of them.
@@ -51,6 +56,11 @@ export class AuthController {
     return this.auth.signup({
       email: requireString(body.email, "email"),
       password: requireString(body.password, "password"),
+      firstName: optionalString(body.firstName),
+      lastName: optionalString(body.lastName),
+      displayName: optionalString(body.displayName),
+      phone: optionalString(body.phone),
+      username: optionalString(body.username),
       userAgent: req.headers["user-agent"],
       ip,
     });
@@ -58,12 +68,15 @@ export class AuthController {
 
   @Post("login")
   @Public()
-  @ApiOperation({ summary: "Log in with email + password", description: "Returns tokens directly, or a 2FA challenge if the account has 2FA enabled." })
+  @ApiOperation({
+    summary: "Log in with email, username, or phone + password",
+    description: "identifier is matched against email, username, and phone, in that order. Returns tokens directly, or a 2FA challenge if the account has 2FA enabled.",
+  })
   @ApiBody({ type: LoginDto })
   @ApiResponse({ status: 201, schema: { oneOf: [{ $ref: "#/components/schemas/AuthTokensDto" }, { $ref: "#/components/schemas/TwoFactorChallengeDto" }] } })
   async login(@Body() body: Record<string, unknown>, @Req() req: Request, @Ip() ip: string) {
     return this.auth.login({
-      email: requireString(body.email, "email"),
+      identifier: requireString(body.identifier, "identifier"),
       password: requireString(body.password, "password"),
       userAgent: req.headers["user-agent"],
       ip,
@@ -108,7 +121,7 @@ export class AuthController {
   @ApiResponse({ status: 200, type: CurrentUserDto })
   async me(@Req() req: Request) {
     const { sub, sessionId } = req.auth!;
-    const { twoFactorEnabled } = await this.auth.getTwoFactorStatus(sub);
+    const [{ twoFactorEnabled }, profile] = await Promise.all([this.auth.getTwoFactorStatus(sub), this.auth.getProfile(sub)]);
     // The same `req.authz` AbilityGuard's ability was built from — not re-resolved here.
     return {
       sub,
@@ -116,6 +129,13 @@ export class AuthController {
       roles: req.authz?.roles ?? [],
       permissions: req.authz?.permissions ?? [],
       twoFactorEnabled,
+      email: profile.email,
+      firstName: profile.firstName,
+      lastName: profile.lastName,
+      displayName: profile.displayName,
+      phone: profile.phone,
+      username: profile.username,
+      photo: profile.photo,
     };
   }
 
@@ -163,6 +183,45 @@ export class AuthController {
   async logoutOthers(@Req() req: Request, @Ip() ip: string) {
     await this.auth.logoutOthers(req.auth!.sub, req.auth!.sessionId, { userId: req.auth!.sub, ip });
     return { ok: true };
+  }
+
+  @Post("password/change")
+  @Authenticated()
+  @ApiBearerAuth()
+  @UseGuards(AuthGuard)
+  @ApiOperation({
+    summary: "Change the current password",
+    description: "Requires the current password. Every other session is revoked; the one making this call is left alone.",
+  })
+  @ApiBody({ type: ChangePasswordDto })
+  @ApiResponse({ status: 201, type: OkResponseDto })
+  async changePassword(@Body() body: Record<string, unknown>, @Req() req: Request) {
+    await this.auth.changePassword(req.auth!.sub, req.auth!.sessionId, {
+      currentPassword: requireString(body.currentPassword, "currentPassword"),
+      newPassword: requireString(body.newPassword, "newPassword"),
+    });
+    return { ok: true };
+  }
+
+  @Patch("me")
+  @Authenticated()
+  @ApiBearerAuth()
+  @UseGuards(AuthGuard)
+  @ApiOperation({
+    summary: "Update the current user's own profile",
+    description: "Self-service — no admin permission required. Updates the caller's own row directly; unrelated to any workspace.",
+  })
+  @ApiBody({ type: UpdateUserDto })
+  @ApiResponse({ status: 200, type: SelfProfileDto })
+  async updateMe(@Body() body: Record<string, unknown>, @Req() req: Request) {
+    return this.auth.updateProfile(req.auth!.sub, {
+      firstName: body.firstName === null ? null : optionalString(body.firstName),
+      lastName: body.lastName === null ? null : optionalString(body.lastName),
+      displayName: body.displayName === null ? null : optionalString(body.displayName),
+      phone: body.phone === null ? null : optionalString(body.phone),
+      username: body.username === null ? null : optionalString(body.username),
+      photo: body.photo === null ? null : optionalString(body.photo),
+    });
   }
 
   @Post("2fa/enroll")

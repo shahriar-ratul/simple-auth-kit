@@ -38,6 +38,11 @@ export const openApiSpec: Record<string, unknown> = {
         properties: {
           email: { type: "string", example: "alice@example.com" },
           password: { type: "string", example: "correct-horse-battery-staple" },
+          firstName: { type: "string", description: "Unique across the deployment.", example: "Alice" },
+          lastName: { type: "string", description: "Unique across the deployment.", example: "Nguyen" },
+          displayName: { type: "string", example: "Alice Nguyen" },
+          phone: { type: "string", description: "Unique across the deployment." },
+          username: { type: "string", description: "Unique across the deployment." },
         },
       },
       LoginRequest: {

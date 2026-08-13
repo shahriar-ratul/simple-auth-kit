@@ -1,3 +1,5 @@
+"use client";
+
 import { type ColumnDef, type PaginationState, type Table as ReactTable, flexRender } from "@tanstack/react-table";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "./button";
@@ -12,7 +14,7 @@ interface DataTableProps<TData> {
   onPaginationChange: (updater: PaginationState | ((old: PaginationState) => PaginationState)) => void;
 }
 
-export function DataTable<TData>({ data, total, table, onPaginationChange }: DataTableProps<TData>) {
+export function DataTable<TData>({ columns, data, total, table, onPaginationChange }: DataTableProps<TData>) {
   return (
     <div className="overflow-hidden rounded-lg border border-border">
       <Table>

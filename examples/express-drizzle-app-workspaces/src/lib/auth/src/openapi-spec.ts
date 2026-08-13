@@ -39,13 +39,18 @@ export const openApiSpec: Record<string, unknown> = {
         properties: {
           email: { type: "string", example: "alice@example.com" },
           password: { type: "string", example: "correct-horse-battery-staple" },
+          firstName: { type: "string", description: "Unique across the deployment.", example: "Alice" },
+          lastName: { type: "string", description: "Unique across the deployment.", example: "Nguyen" },
+          displayName: { type: "string", example: "Alice Nguyen" },
+          phone: { type: "string", description: "Unique across the deployment." },
+          username: { type: "string", description: "Unique across the deployment." },
         },
       },
       LoginDto: {
         type: "object",
-        required: ["email", "password"],
+        required: ["identifier", "password"],
         properties: {
-          email: { type: "string", example: "alice@example.com" },
+          identifier: { type: "string", description: "Email, username, or phone — whichever the account has set.", example: "alice@example.com" },
           password: { type: "string", example: "correct-horse-battery-staple" },
         },
       },
@@ -86,6 +91,14 @@ export const openApiSpec: Record<string, unknown> = {
           newPassword: { type: "string" },
         },
       },
+      ChangePasswordDto: {
+        type: "object",
+        required: ["currentPassword", "newPassword"],
+        properties: {
+          currentPassword: { type: "string", description: "The caller's current password, re-checked server-side before anything changes." },
+          newPassword: { type: "string" },
+        },
+      },
       AuthTokensDto: {
         type: "object",
         properties: {
@@ -116,6 +129,27 @@ export const openApiSpec: Record<string, unknown> = {
           roles: { type: "array", items: { type: "string" } },
           permissions: { type: "array", items: { type: "string" } },
           twoFactorEnabled: { type: "boolean" },
+          email: { type: "string" },
+          firstName: { type: "string", nullable: true },
+          lastName: { type: "string", nullable: true },
+          displayName: { type: "string", nullable: true },
+          phone: { type: "string", nullable: true },
+          username: { type: "string", nullable: true },
+          photo: { type: "string", nullable: true, description: "A data URI or an externally-hosted URL — stored as-is, never processed server-side." },
+        },
+      },
+      SelfProfileDto: {
+        type: "object",
+        properties: {
+          id: { type: "string" },
+          email: { type: "string" },
+          firstName: { type: "string", nullable: true },
+          lastName: { type: "string", nullable: true },
+          displayName: { type: "string", nullable: true },
+          phone: { type: "string", nullable: true },
+          username: { type: "string", nullable: true },
+          photo: { type: "string", nullable: true, description: "A data URI or an externally-hosted URL — stored as-is, never processed server-side." },
+          createdAt: { type: "string", format: "date-time" },
         },
       },
       SessionSummaryDto: {
@@ -182,8 +216,9 @@ export const openApiSpec: Record<string, unknown> = {
     "/auth/login": {
       post: {
         tags: ["auth"],
-        summary: "Log in with email + password",
-        description: "Returns tokens directly, or a 2FA challenge if the account has 2FA enabled.",
+        summary: "Log in with email, username, or phone + password",
+        description:
+          "identifier is matched against email, username, and phone, in that order. Returns tokens directly, or a 2FA challenge if the account has 2FA enabled.",
         requestBody: {
           required: true,
           content: { "application/json": { schema: { $ref: "#/components/schemas/LoginDto" } } },
@@ -249,6 +284,23 @@ export const openApiSpec: Record<string, unknown> = {
             description: "Current user",
             content: { "application/json": { schema: { $ref: "#/components/schemas/CurrentUserDto" } } },
           },
+        },
+      },
+      patch: {
+        tags: ["auth"],
+        summary: "Update the current user's own profile",
+        description: "Self-service — no admin permission required. Updates the caller's own row directly; unrelated to any workspace.",
+        security: [{ bearerAuth: [] }],
+        requestBody: {
+          required: true,
+          content: { "application/json": { schema: { $ref: "#/components/schemas/UpdateUserRequest" } } },
+        },
+        responses: {
+          "200": {
+            description: "Updated profile",
+            content: { "application/json": { schema: { $ref: "#/components/schemas/SelfProfileDto" } } },
+          },
+          "401": { description: "Missing or invalid access token" },
         },
       },
     },
@@ -379,6 +431,24 @@ export const openApiSpec: Record<string, unknown> = {
         requestBody: {
           required: true,
           content: { "application/json": { schema: { $ref: "#/components/schemas/ResetPasswordDto" } } },
+        },
+        responses: {
+          "200": {
+            description: "OK",
+            content: { "application/json": { schema: { $ref: "#/components/schemas/OkResponseDto" } } },
+          },
+        },
+      },
+    },
+    "/auth/password/change": {
+      post: {
+        tags: ["auth"],
+        summary: "Change the current user's password",
+        description: "Verifies currentPassword server-side, then revokes every other session for the user — the calling session is left alone.",
+        security: [{ bearerAuth: [] }],
+        requestBody: {
+          required: true,
+          content: { "application/json": { schema: { $ref: "#/components/schemas/ChangePasswordDto" } } },
         },
         responses: {
           "200": {

@@ -110,6 +110,26 @@ export class WorkspaceRepository {
   }
 
   /**
+   * Resolves the roles a new membership should get: the named slugs if any were given, else
+   * whichever of this workspace's roles are flagged `isDefault` — not a slug spelled in code.
+   * Shared by `addMember` (an existing account) and `createMember` (a brand-new one), so both
+   * fail the same way against an unknown role slug.
+   */
+  private async resolveMemberRoles(workspaceIdBig: bigint, roleSlugs?: string[]): Promise<Array<{ id: bigint; slug: string }>> {
+    const granted = await this.db
+      .select({ id: roles.id, slug: roles.slug })
+      .from(roles)
+      .where(
+        roleSlugs
+          ? and(eq(roles.workspaceId, workspaceIdBig), inArray(roles.slug, roleSlugs))
+          : and(eq(roles.workspaceId, workspaceIdBig), eq(roles.isDefault, true), eq(roles.isActive, true)),
+      );
+    const unknown = (roleSlugs ?? []).filter((slug) => !granted.some((role) => role.slug === slug));
+    if (unknown.length) throw new HttpError(404, `role(s) not defined in this workspace: ${unknown.join(", ")}`);
+    return granted;
+  }
+
+  /**
    * Adds an existing user by email — there is no invite/email flow in this library, that is the
    * consuming app's job. With no roles named, the new membership gets whichever of this
    * workspace's roles are flagged `isDefault`, not a slug spelled in code.
@@ -126,16 +146,7 @@ export class WorkspaceRepository {
       .limit(1);
     if (existing) throw new HttpError(409, "already a member of this workspace");
 
-    const granted = await this.db
-      .select({ id: roles.id, slug: roles.slug })
-      .from(roles)
-      .where(
-        roleSlugs
-          ? and(eq(roles.workspaceId, workspaceIdBig), inArray(roles.slug, roleSlugs))
-          : and(eq(roles.workspaceId, workspaceIdBig), eq(roles.isDefault, true), eq(roles.isActive, true)),
-      );
-    const unknown = (roleSlugs ?? []).filter((slug) => !granted.some((role) => role.slug === slug));
-    if (unknown.length) throw new HttpError(404, `role(s) not defined in this workspace: ${unknown.join(", ")}`);
+    const granted = await this.resolveMemberRoles(workspaceIdBig, roleSlugs);
 
     const member = await this.db.transaction(async (tx) => {
       const [created] = await tx.insert(workspaceMembers).values({ workspaceId: workspaceIdBig, userId: user.id }).returning();
@@ -149,6 +160,59 @@ export class WorkspaceRepository {
       email: user.email,
       roles: granted.map((role) => role.slug).sort(),
       createdAt: member.createdAt.toISOString(),
+    };
+  }
+
+  /**
+   * An administrator provisioning a brand-new account and adding it to this workspace in one
+   * step — as distinct from `addMember`, which only ever attaches an account that already
+   * exists. No invite/email flow in this library either way: the password is usable immediately.
+   */
+  async createMember(
+    workspaceId: string,
+    input: {
+      email: string;
+      passwordHash: string;
+      firstName?: string;
+      lastName?: string;
+      displayName?: string;
+      phone?: string;
+      username?: string;
+      roles?: string[];
+    },
+    actorUserId: string | null,
+  ): Promise<MembershipSummary> {
+    const workspaceIdBig = toId(workspaceId);
+    const [existing] = await this.db.select({ id: users.id }).from(users).where(eq(users.email, input.email)).limit(1);
+    if (existing) throw new HttpError(409, "email already registered");
+
+    const granted = await this.resolveMemberRoles(workspaceIdBig, input.roles);
+
+    const member = await this.db.transaction(async (tx) => {
+      const [user] = await tx
+        .insert(users)
+        .values({
+          email: input.email,
+          passwordHash: input.passwordHash,
+          firstName: input.firstName,
+          lastName: input.lastName,
+          displayName: input.displayName,
+          phone: input.phone,
+          username: input.username,
+          createdBy: actorUserId ? toId(actorUserId) : null,
+        })
+        .returning();
+      const [created] = await tx.insert(workspaceMembers).values({ workspaceId: workspaceIdBig, userId: user.id }).returning();
+      if (granted.length) await tx.insert(roleMember).values(granted.map((role) => ({ memberId: created.id, roleId: role.id })));
+      return { member: created, user };
+    });
+
+    return {
+      memberId: member.member.id.toString(),
+      userId: member.user.id.toString(),
+      email: member.user.email,
+      roles: granted.map((role) => role.slug).sort(),
+      createdAt: member.member.createdAt.toISOString(),
     };
   }
 

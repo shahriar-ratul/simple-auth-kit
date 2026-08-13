@@ -8,7 +8,7 @@ import { useWorkspaceStore } from "@/stores/store-context";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Dialog } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -211,55 +211,56 @@ function DefinePermissionDialog({
   }
 
   return (
-    <Dialog
-      open={open}
-      onClose={handleClose}
-      title={permission ? "Edit permission" : "New permission"}
-      description={
-        permission
-          ? "Slug is the stable identifier grants and roles are keyed on — it can't change."
-          : "Upserted on slug: reusing an existing one edits it instead of creating a duplicate."
-      }
-    >
-      <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-        <div className="flex flex-col gap-1.5">
-          <Label htmlFor="permission-slug">Slug</Label>
-          <Input
-            id="permission-slug"
-            value={slug}
-            onChange={(e) => setSlug(e.target.value)}
-            placeholder="e.g. reports:export"
-            disabled={permission !== null}
-            required
-          />
-        </div>
-        <div className="flex flex-col gap-1.5">
-          <Label htmlFor="permission-display-name">Display name</Label>
-          <Input
-            id="permission-display-name"
-            value={displayName}
-            onChange={(e) => setDisplayName(e.target.value)}
-            placeholder="Defaults to the slug"
-          />
-        </div>
-        <div className="flex flex-col gap-1.5">
-          <Label htmlFor="permission-group">Group</Label>
-          <Input id="permission-group" value={group} onChange={(e) => setGroup(e.target.value)} placeholder='Defaults to "Custom"' />
-        </div>
-        <div className="flex flex-col gap-1.5">
-          <Label htmlFor="permission-description">Description</Label>
-          <Input id="permission-description" value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Optional" />
-        </div>
-        {error ? <p className="text-sm text-destructive">{error}</p> : null}
-        <div className="flex gap-2">
-          <Button type="submit" disabled={submitting}>
-            {submitting ? "Saving…" : permission ? "Save changes" : "Create permission"}
-          </Button>
-          <Button type="button" variant="outline" onClick={handleClose}>
-            Cancel
-          </Button>
-        </div>
-      </form>
+    <Dialog open={open} onOpenChange={(next) => !next && handleClose()}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>{permission ? "Edit permission" : "New permission"}</DialogTitle>
+          <DialogDescription>
+            {permission
+              ? "Slug is the stable identifier grants and roles are keyed on — it can't change."
+              : "Upserted on slug: reusing an existing one edits it instead of creating a duplicate."}
+          </DialogDescription>
+        </DialogHeader>
+        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="permission-slug">Slug</Label>
+            <Input
+              id="permission-slug"
+              value={slug}
+              onChange={(e) => setSlug(e.target.value)}
+              placeholder="e.g. reports:export"
+              disabled={permission !== null}
+              required
+            />
+          </div>
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="permission-display-name">Display name</Label>
+            <Input
+              id="permission-display-name"
+              value={displayName}
+              onChange={(e) => setDisplayName(e.target.value)}
+              placeholder="Defaults to the slug"
+            />
+          </div>
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="permission-group">Group</Label>
+            <Input id="permission-group" value={group} onChange={(e) => setGroup(e.target.value)} placeholder='Defaults to "Custom"' />
+          </div>
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="permission-description">Description</Label>
+            <Input id="permission-description" value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Optional" />
+          </div>
+          {error ? <p className="text-sm text-destructive">{error}</p> : null}
+          <div className="flex gap-2">
+            <Button type="submit" disabled={submitting}>
+              {submitting ? "Saving…" : permission ? "Save changes" : "Create permission"}
+            </Button>
+            <Button type="button" variant="outline" onClick={handleClose}>
+              Cancel
+            </Button>
+          </div>
+        </form>
+      </DialogContent>
     </Dialog>
   );
 }

@@ -10,6 +10,7 @@ import {
   AssignRoleDto,
   AttachPermissionDto,
   CreateRoleDto,
+  CreateUserDto,
   DefinePermissionDto,
   DeleteReasonDto,
   GrantPermissionDto,
@@ -56,11 +57,36 @@ export class AdminController {
   @CheckAbility("users:read")
   @ApiOperation({ summary: "[admin] List users" })
   @ApiQuery({ name: "search", required: false, description: "Email substring match" })
-  @ApiQuery({ name: "limit", required: false })
-  @ApiQuery({ name: "cursor", required: false })
+  @ApiQuery({ name: "page", required: false, description: "1-indexed. Defaults to 1." })
+  @ApiQuery({ name: "limit", required: false, description: "Defaults to 25, capped at 100." })
   @ApiResponse({ status: 200, type: UserListResponseDto })
-  async listUsers(@Query("search") search?: string, @Query("limit") limit?: string, @Query("cursor") cursor?: string) {
-    return this.auth.listUsers({ search, limit: limit ? Number(limit) : undefined, cursor });
+  async listUsers(@Query("search") search?: string, @Query("page") page?: string, @Query("limit") limit?: string) {
+    return this.auth.listUsers({ search, page: page ? Number(page) : undefined, limit: limit ? Number(limit) : undefined });
+  }
+
+  @Post("users")
+  @CheckAbility("users:manage")
+  @ApiOperation({ summary: "[admin] Create a user directly", description: "No invitation email — the account is usable immediately with the password given here." })
+  @ApiBody({ type: CreateUserDto })
+  @ApiResponse({ status: 201, type: UserSummaryDto })
+  async createUser(@Body() body: Record<string, unknown>, @Req() req: Request) {
+    return this.auth.createUser(
+      {
+        email: requireString(body.email, "email"),
+        password: requireString(body.password, "password"),
+        firstName: optionalString(body.firstName),
+        lastName: optionalString(body.lastName),
+        displayName: optionalString(body.displayName),
+        phone: optionalString(body.phone),
+        username: optionalString(body.username),
+        dob: optionalString(body.dob),
+        gender: optionalString(body.gender),
+        joinedDate: optionalString(body.joinedDate),
+        isActive: typeof body.isActive === "boolean" ? body.isActive : undefined,
+        roles: Array.isArray(body.roles) ? body.roles.filter((role): role is string => typeof role === "string") : undefined,
+      },
+      req.auth!.sub,
+    );
   }
 
   @Get("users/:userId")
@@ -118,18 +144,18 @@ export class AdminController {
   @ApiQuery({ name: "action", required: false, description: "AuditEvent discriminant, e.g. 'role_assigned'" })
   @ApiQuery({ name: "since", required: false, description: "ISO 8601 timestamp" })
   @ApiQuery({ name: "until", required: false, description: "ISO 8601 timestamp" })
-  @ApiQuery({ name: "limit", required: false })
-  @ApiQuery({ name: "cursor", required: false })
+  @ApiQuery({ name: "page", required: false, description: "1-indexed. Defaults to 1." })
+  @ApiQuery({ name: "limit", required: false, description: "Defaults to 25, capped at 100." })
   @ApiResponse({ status: 200, type: AuditLogListResponseDto })
   async listAuditLog(
     @Query("userId") userId?: string,
     @Query("action") action?: string,
     @Query("since") since?: string,
     @Query("until") until?: string,
+    @Query("page") page?: string,
     @Query("limit") limit?: string,
-    @Query("cursor") cursor?: string,
   ) {
-    return this.auth.listAuditLog({ userId, action, since, until, limit: limit ? Number(limit) : undefined, cursor });
+    return this.auth.listAuditLog({ userId, action, since, until, page: page ? Number(page) : undefined, limit: limit ? Number(limit) : undefined });
   }
 
   @Get("permissions")
@@ -306,6 +332,30 @@ export class AdminController {
   @ApiResponse({ status: 201, type: OkResponseDto })
   async unblock(@Param("userId") userId: string, @Req() req: Request) {
     await this.auth.unblock(userId, { userId: req.auth!.sub, ip: req.ip });
+    return { ok: true };
+  }
+
+  @Post("users/:userId/deactivate")
+  @CheckAbility("users:block")
+  @ApiOperation({
+    summary: "[admin] Deactivate a user, revoking all their sessions immediately",
+    description: "Distinct from block/unblock — a routine administrative toggle, not a security action. Both independently deny login.",
+  })
+  @ApiParam({ name: "userId" })
+  @ApiResponse({ status: 201, type: OkResponseDto })
+  async deactivate(@Param("userId") userId: string, @Req() req: Request) {
+    if (userId === req.auth!.sub) throw new ForbiddenException("cannot deactivate your own account");
+    await this.auth.deactivate(userId, { userId: req.auth!.sub, ip: req.ip });
+    return { ok: true };
+  }
+
+  @Post("users/:userId/activate")
+  @CheckAbility("users:block")
+  @ApiOperation({ summary: "[admin] Reactivate a user" })
+  @ApiParam({ name: "userId" })
+  @ApiResponse({ status: 201, type: OkResponseDto })
+  async activate(@Param("userId") userId: string, @Req() req: Request) {
+    await this.auth.activate(userId, { userId: req.auth!.sub, ip: req.ip });
     return { ok: true };
   }
 }

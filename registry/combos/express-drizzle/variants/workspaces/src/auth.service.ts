@@ -84,12 +84,33 @@ export class AuthService {
   ) {}
 
   /** Creates the user and nothing else. Joining or creating a workspace is a separate, explicit call — see WorkspaceController. */
-  async signup(input: { email: string; password: string; userAgent?: string; ip?: string }): Promise<AuthTokens> {
+  async signup(input: {
+    email: string;
+    password: string;
+    firstName?: string;
+    lastName?: string;
+    displayName?: string;
+    phone?: string;
+    username?: string;
+    userAgent?: string;
+    ip?: string;
+  }): Promise<AuthTokens> {
     const [existing] = await this.db.select().from(users).where(eq(users.email, input.email)).limit(1);
     if (existing) throw new HttpError(409, "email already registered");
 
     const passwordHash = await hashPassword(input.password);
-    const [user] = await this.db.insert(users).values({ email: input.email, passwordHash }).returning();
+    const [user] = await this.db
+      .insert(users)
+      .values({
+        email: input.email,
+        passwordHash,
+        firstName: input.firstName,
+        lastName: input.lastName,
+        displayName: input.displayName,
+        phone: input.phone,
+        username: input.username,
+      })
+      .returning();
     return this.issueSessionTokens(user, { userAgent: input.userAgent, ip: input.ip });
   }
 

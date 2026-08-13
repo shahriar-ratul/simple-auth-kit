@@ -2,7 +2,7 @@ import { type FormEvent, useState } from "react";
 import { AuthApiError } from "@easy-auth/auth-client";
 import { useWorkspaceStore } from "@/stores/store-context";
 import { Button } from "@/components/ui/button";
-import { Dialog } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
@@ -39,27 +39,28 @@ export function CreateWorkspaceDialog({ open, onClose }: { open: boolean; onClos
   }
 
   return (
-    <Dialog
-      open={open}
-      onClose={close}
-      title="Create workspace"
-      description="You become its administrator straight away, and it becomes the active workspace."
-    >
-      <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-        <div className="flex flex-col gap-1.5">
-          <Label htmlFor="workspace-name">Workspace name</Label>
-          <Input id="workspace-name" value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Acme" autoFocus required />
-        </div>
-        {error ? <p className="text-sm text-destructive">{error}</p> : null}
-        <div className="flex gap-2">
-          <Button type="submit" disabled={submitting}>
-            {submitting ? "Creating…" : "Create workspace"}
-          </Button>
-          <Button type="button" variant="outline" onClick={close}>
-            Cancel
-          </Button>
-        </div>
-      </form>
+    <Dialog open={open} onOpenChange={(next) => !next && close()}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Create workspace</DialogTitle>
+          <DialogDescription>You become its administrator straight away, and it becomes the active workspace.</DialogDescription>
+        </DialogHeader>
+        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="workspace-name">Workspace name</Label>
+            <Input id="workspace-name" value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Acme" autoFocus required />
+          </div>
+          {error ? <p className="text-sm text-destructive">{error}</p> : null}
+          <div className="flex gap-2">
+            <Button type="submit" disabled={submitting}>
+              {submitting ? "Creating…" : "Create workspace"}
+            </Button>
+            <Button type="button" variant="outline" onClick={close}>
+              Cancel
+            </Button>
+          </div>
+        </form>
+      </DialogContent>
     </Dialog>
   );
 }

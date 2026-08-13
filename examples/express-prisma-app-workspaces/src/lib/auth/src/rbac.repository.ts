@@ -1,13 +1,15 @@
 import { resolvePermissions } from "@/lib/auth/core/rbac.js";
-import { PrismaClient } from "../generated/prisma/client.js";
+import { Prisma, PrismaClient } from "../generated/prisma/client.js";
 import type { AuthzContext } from "./authz.middleware.js";
 import { HttpError } from "./http-error.js";
+import { buildPageMeta, normalizeLimit, normalizePage, type Paginated } from "./pagination.js";
 import { PermissionCache } from "./permission-cache.js";
 import { toId, toIdOrNull } from "./id.helper.js";
 
 export interface MemberSummary {
   memberId: string;
   userId: string;
+  uuid: string;
   email: string;
   firstName: string | null;
   lastName: string | null;
@@ -15,24 +17,53 @@ export interface MemberSummary {
   phone: string | null;
   username: string | null;
   photo: string | null;
-  dob: string | null;
-  gender: string | null;
-  joinedDate: string;
   lastLogin: string | null;
   blocked: boolean;
+  isActive: boolean;
+  twoFactorEnabled: boolean;
   roles: string[];
+  createdBy: string | null;
+  updatedBy: string | null;
   createdAt: string;
+  updatedAt: string;
 }
 
 export interface MemberListFilter {
   search?: string;
+  page?: number;
   limit?: number;
-  cursor?: string;
 }
 
-export interface MemberListResult {
-  users: MemberSummary[];
-  nextCursor: string | null;
+export type MemberListResult = Paginated<MemberSummary>;
+
+const MEMBER_INCLUDE = { user: true, roles: { select: { role: { select: { slug: true } } } } } as const;
+
+/** A `WorkspaceMember` row as `findUnique`/`findMany` return it, joined with its user and roles. */
+export type MemberRow = Prisma.WorkspaceMemberGetPayload<{ include: typeof MEMBER_INCLUDE }>;
+
+/** Shapes a raw row into the wire DTO. Exported so `listMembers`'s collection can be shaped by the caller. */
+export function toMemberSummary(row: MemberRow): MemberSummary {
+  return {
+    memberId: row.id.toString(),
+    userId: row.userId.toString(),
+    uuid: row.user.uuid,
+    email: row.user.email,
+    firstName: row.user.firstName,
+    lastName: row.user.lastName,
+    displayName: row.user.displayName,
+    phone: row.user.phone,
+    username: row.user.username,
+    photo: row.user.photo,
+    lastLogin: row.user.lastLogin?.toISOString() ?? null,
+    blocked: row.user.blocked,
+    isActive: row.user.isActive,
+    twoFactorEnabled: row.user.twoFactorEnabled,
+    roles: row.roles.map((r) => r.role.slug).sort(),
+    createdBy: row.user.createdBy?.toString() ?? null,
+    updatedBy: row.user.updatedBy?.toString() ?? null,
+    createdAt: row.createdAt.toISOString(),
+    updatedAt: row.user.updatedAt.toISOString(),
+  };
 }
 
 /** A `Permission` row as the catalog endpoints return it. */
@@ -92,9 +123,6 @@ const ROLE_SELECT = { id: true, slug: true, name: true, displayName: true, isDef
  * must not need the guard.
  */
 export const memberCacheKey = (userId: string, workspaceId: string) => `${userId}:${workspaceId}`;
-
-const MAX_PAGE_SIZE = 100;
-const DEFAULT_PAGE_SIZE = 25;
 
 export class RbacRepository {
   constructor(
@@ -195,45 +223,31 @@ export class RbacRepository {
     return member;
   }
 
-  /** Newest-first, cursor-paginated (cursor = the last-seen membership's `id`); `search` matches an email substring. */
-  async listMembers(workspaceId: string, filter: MemberListFilter = {}): Promise<MemberListResult> {
-    const limit = Math.min(filter.limit ?? DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE);
+  /**
+   * Newest-first, page-paginated; `search` matches an email substring. Returns raw rows —
+   * shaping the collection is the caller's job, see `toMemberSummary`.
+   */
+  async listMembers(workspaceId: string, filter: MemberListFilter = {}): Promise<Paginated<MemberRow>> {
+    const page = normalizePage(filter.page);
+    const limit = normalizeLimit(filter.limit);
     const workspaceIdBig = toId(workspaceId);
-
-    const rows = await this.prisma.workspaceMember.findMany({
-      where: {
-        workspaceId: workspaceIdBig,
-        user: { isDeleted: false, email: filter.search ? { contains: filter.search, mode: "insensitive" } : undefined },
-      },
-      include: { user: true, roles: { select: { role: { select: { slug: true } } } } },
-      orderBy: [{ createdAt: "desc" }, { id: "desc" }],
-      take: limit + 1,
-      ...(filter.cursor ? { cursor: { id: toId(filter.cursor) }, skip: 1 } : {}),
-    });
-
-    const hasMore = rows.length > limit;
-    const page = hasMore ? rows.slice(0, limit) : rows;
-    return {
-      users: page.map((row) => ({
-        memberId: row.id.toString(),
-        userId: row.userId.toString(),
-        email: row.user.email,
-        firstName: row.user.firstName,
-        lastName: row.user.lastName,
-        displayName: row.user.displayName,
-        phone: row.user.phone,
-        username: row.user.username,
-        photo: row.user.photo,
-        dob: row.user.dob?.toISOString() ?? null,
-        gender: row.user.gender,
-        joinedDate: row.user.joinedDate.toISOString(),
-        lastLogin: row.user.lastLogin?.toISOString() ?? null,
-        blocked: row.user.blocked,
-        roles: row.roles.map((r) => r.role.slug).sort(),
-        createdAt: row.createdAt.toISOString(),
-      })),
-      nextCursor: hasMore ? page[page.length - 1].id.toString() : null,
+    const where = {
+      workspaceId: workspaceIdBig,
+      user: { isDeleted: false, email: filter.search ? { contains: filter.search, mode: "insensitive" as const } : undefined },
     };
+
+    const [rows, total] = await this.prisma.$transaction([
+      this.prisma.workspaceMember.findMany({
+        where,
+        include: MEMBER_INCLUDE,
+        orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+        take: limit,
+        skip: (page - 1) * limit,
+      }),
+      this.prisma.workspaceMember.count({ where }),
+    ]);
+
+    return { items: rows, meta: buildPageMeta(page, limit, total) };
   }
 
   // Scoped by workspace via `requireMember` — an admin can only fetch a profile belonging to a
@@ -244,57 +258,21 @@ export class RbacRepository {
     const member = await this.requireMember(workspaceId, userId);
     const row = await this.prisma.workspaceMember.findFirst({
       where: { id: member.id, user: { isDeleted: false } },
-      include: { user: true, roles: { select: { role: { select: { slug: true } } } } },
+      include: MEMBER_INCLUDE,
     });
     if (!row) throw new HttpError(404, `user "${userId}" not found`);
-    return {
-      memberId: row.id.toString(),
-      userId: row.userId.toString(),
-      email: row.user.email,
-      firstName: row.user.firstName,
-      lastName: row.user.lastName,
-      displayName: row.user.displayName,
-      phone: row.user.phone,
-      username: row.user.username,
-      photo: row.user.photo,
-      dob: row.user.dob?.toISOString() ?? null,
-      gender: row.user.gender,
-      joinedDate: row.user.joinedDate.toISOString(),
-      lastLogin: row.user.lastLogin?.toISOString() ?? null,
-      blocked: row.user.blocked,
-      roles: row.roles.map((r) => r.role.slug).sort(),
-      createdAt: row.createdAt.toISOString(),
-    };
+    return toMemberSummary(row);
   }
 
   // Profile fields only — email is the login identifier and stays out of this endpoint.
   async updateMember(
     workspaceId: string,
     userId: string,
-    input: {
-      firstName?: string | null;
-      lastName?: string | null;
-      displayName?: string | null;
-      phone?: string | null;
-      username?: string | null;
-      photo?: string | null;
-      dob?: string | null;
-      gender?: string | null;
-      joinedDate?: string;
-    },
+    input: { firstName?: string | null; lastName?: string | null; displayName?: string | null; phone?: string | null; username?: string | null; photo?: string | null },
     actorUserId: string | null,
   ): Promise<MemberSummary> {
     await this.requireMember(workspaceId, userId);
-    await this.prisma.user.update({
-      where: { id: toId(userId) },
-      data: {
-        ...input,
-        // Date columns need Date values; `undefined` leaves them alone, like every other field here.
-        dob: input.dob === undefined ? undefined : input.dob === null ? null : new Date(input.dob),
-        joinedDate: input.joinedDate === undefined ? undefined : new Date(input.joinedDate),
-        updatedBy: toIdOrNull(actorUserId),
-      },
-    });
+    await this.prisma.user.update({ where: { id: toId(userId) }, data: { ...input, updatedBy: toIdOrNull(actorUserId) } });
     return this.getMember(workspaceId, userId);
   }
 
@@ -314,7 +292,7 @@ export class RbacRepository {
   async updateRole(
     workspaceId: string,
     roleId: string,
-    input: { name?: string; displayName?: string; description?: string | null; isDefault?: boolean; isActive?: boolean },
+    input: { name?: string; displayName?: string; description?: string | null; isActive?: boolean },
     actorUserId: string | null,
   ): Promise<RoleSummary> {
     const workspaceIdBig = toId(workspaceId);
@@ -411,7 +389,7 @@ export class RbacRepository {
 
   async createRole(
     workspaceId: string,
-    input: { slug: string; name?: string; displayName?: string; description?: string | null; isDefault?: boolean; isActive?: boolean },
+    input: { slug: string; name?: string; displayName?: string; description?: string | null },
     actorUserId: string | null,
   ): Promise<RoleSummary> {
     const role = await this.prisma.role.create({
@@ -421,8 +399,6 @@ export class RbacRepository {
         name: input.name ?? input.displayName ?? input.slug,
         displayName: input.displayName ?? input.slug,
         description: input.description ?? null,
-        isDefault: input.isDefault,
-        isActive: input.isActive,
         createdBy: toIdOrNull(actorUserId),
         updatedBy: toIdOrNull(actorUserId),
       },

@@ -1,5 +1,15 @@
 import { Link, NavLink, useLocation } from "react-router-dom";
-import { ChevronRightIcon, LayoutDashboardIcon, ScrollTextIcon, ShieldCheckIcon, UserPlusIcon, UsersIcon } from "lucide-react";
+import {
+  ChevronRightIcon,
+  ContactIcon,
+  GlobeIcon,
+  LanguagesIcon,
+  LayoutDashboardIcon,
+  ScrollTextIcon,
+  ShieldCheckIcon,
+  UserPlusIcon,
+  UsersIcon,
+} from "lucide-react";
 import { canAny, PERMISSIONS, useAbility, type PermissionKey } from "@/lib/ability";
 import { NavUser } from "@/components/nav-user";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
@@ -55,6 +65,36 @@ const NAV_ITEMS: NavItem[] = [
   },
   { to: "/permissions", label: "Permissions", icon: ShieldCheckIcon, requires: [PERMISSIONS.permissionsRead] },
   { to: "/audit-log", label: "Audit log", icon: ScrollTextIcon, requires: [PERMISSIONS.auditLogRead] },
+  {
+    to: "/customers",
+    label: "Customers",
+    icon: ContactIcon,
+    requires: [PERMISSIONS.customersRead],
+    children: [
+      { to: "/customers", label: "All customers", requires: [PERMISSIONS.customersRead] },
+      { to: "/customers/new", label: "Add customer", requires: [PERMISSIONS.customersManage] },
+    ],
+  },
+  {
+    to: "/countries",
+    label: "Countries",
+    icon: GlobeIcon,
+    requires: [PERMISSIONS.countriesRead],
+    children: [
+      { to: "/countries", label: "All countries", requires: [PERMISSIONS.countriesRead] },
+      { to: "/countries/new", label: "Add country", requires: [PERMISSIONS.countriesManage] },
+    ],
+  },
+  {
+    to: "/languages",
+    label: "Languages",
+    icon: LanguagesIcon,
+    requires: [PERMISSIONS.languagesRead],
+    children: [
+      { to: "/languages", label: "All languages", requires: [PERMISSIONS.languagesRead] },
+      { to: "/languages/new", label: "Add language", requires: [PERMISSIONS.languagesManage] },
+    ],
+  },
 ];
 
 export function AppSidebar() {

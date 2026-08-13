@@ -15,6 +15,13 @@
       "when": 1786461175054,
       "tag": "0001_add_is_active_field",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1786593624911,
+      "tag": "0002_colossal_true_believers",
+      "breakpoints": true
     }
   ]
 }

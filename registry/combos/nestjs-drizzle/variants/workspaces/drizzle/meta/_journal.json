@@ -15,6 +15,13 @@
       "when": 1786461179055,
       "tag": "0001_add_is_active_field",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1786593633464,
+      "tag": "0002_calm_tyger_tiger",
+      "breakpoints": true
     }
   ]
 }

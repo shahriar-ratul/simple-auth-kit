@@ -85,6 +85,18 @@ export class WorkspaceRepository {
     }));
   }
 
+  private async resolveMemberRoles(workspaceIdBig: bigint, roleSlugs?: string[]) {
+    const roles = await this.prisma.role.findMany({
+      where: roleSlugs
+        ? { workspaceId: workspaceIdBig, slug: { in: roleSlugs }, isDeleted: false }
+        : { workspaceId: workspaceIdBig, isDefault: true, isActive: true, isDeleted: false },
+      select: { id: true, slug: true },
+    });
+    const unknown = (roleSlugs ?? []).filter((slug) => !roles.some((role) => role.slug === slug));
+    if (unknown.length) throw new HttpError(404, `role(s) not defined in this workspace: ${unknown.join(", ")}`);
+    return roles;
+  }
+
   /**
    * Adds an existing user by email — there is no invite/email flow in this library, that is the
    * consuming app's job. With no roles named, the new membership gets whichever of this
@@ -98,15 +110,7 @@ export class WorkspaceRepository {
     const existing = await this.prisma.workspaceMember.findUnique({ where: { userId_workspaceId: { userId: user.id, workspaceId: workspaceIdBig } } });
     if (existing) throw new HttpError(409, "already a member of this workspace");
 
-    const roles = await this.prisma.role.findMany({
-      where: roleSlugs
-        ? { workspaceId: workspaceIdBig, slug: { in: roleSlugs }, isDeleted: false }
-        : { workspaceId: workspaceIdBig, isDefault: true, isActive: true, isDeleted: false },
-      select: { id: true, slug: true },
-    });
-    const unknown = (roleSlugs ?? []).filter((slug) => !roles.some((role) => role.slug === slug));
-    if (unknown.length) throw new HttpError(404, `role(s) not defined in this workspace: ${unknown.join(", ")}`);
-
+    const roles = await this.resolveMemberRoles(workspaceIdBig, roleSlugs);
     const member = await this.prisma.workspaceMember.create({
       data: { workspaceId: workspaceIdBig, userId: user.id, roles: { create: roles.map((role) => ({ roleId: role.id })) } },
     });
@@ -134,11 +138,6 @@ export class WorkspaceRepository {
       displayName?: string;
       phone?: string;
       username?: string;
-      photo?: string;
-      dob?: string;
-      gender?: string;
-      joinedDate?: string;
-      isActive?: boolean;
       roles?: string[];
     },
     actorUserId: string | null,
@@ -147,15 +146,7 @@ export class WorkspaceRepository {
     const existing = await this.prisma.user.findUnique({ where: { email: input.email } });
     if (existing) throw new HttpError(409, "email already registered");
 
-    const roles = await this.prisma.role.findMany({
-      where: input.roles
-        ? { workspaceId: workspaceIdBig, slug: { in: input.roles }, isDeleted: false }
-        : { workspaceId: workspaceIdBig, isDefault: true, isActive: true, isDeleted: false },
-      select: { id: true, slug: true },
-    });
-    const unknown = (input.roles ?? []).filter((slug) => !roles.some((role) => role.slug === slug));
-    if (unknown.length) throw new HttpError(404, `role(s) not defined in this workspace: ${unknown.join(", ")}`);
-
+    const roles = await this.resolveMemberRoles(workspaceIdBig, input.roles);
     const user = await this.prisma.user.create({
       data: {
         email: input.email,
@@ -165,11 +156,6 @@ export class WorkspaceRepository {
         displayName: input.displayName,
         phone: input.phone,
         username: input.username,
-        photo: input.photo,
-        dob: input.dob ? new Date(input.dob) : undefined,
-        gender: input.gender,
-        joinedDate: input.joinedDate ? new Date(input.joinedDate) : undefined,
-        isActive: input.isActive,
         createdBy: actorUserId ? toId(actorUserId) : null,
       },
     });

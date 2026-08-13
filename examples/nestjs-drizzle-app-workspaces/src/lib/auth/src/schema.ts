@@ -96,7 +96,13 @@ export const users = pgTable(
     joinedDate: date("joined_date").defaultNow().notNull(),
     lastLogin: timestamptz("last_login"),
     passwordHash: text("password_hash"), // nullable: users created via OAuth-only signup have no password
+    // Two independent reasons an account can't authenticate, tracked separately so an admin can see
+    // *why*: `blocked` is a security/moderation action (see `block()`/`unblock()`); `isActive` is a
+    // routine administrative on/off toggle (see `activate()`/`deactivate()`) — e.g. paused while an
+    // employee is on leave, with no implication of wrongdoing. Both deny login on their own; neither
+    // implies the other, and unblocking a blocked-but-inactive account still leaves it inactive.
     blocked: boolean("blocked").notNull().default(false),
+    isActive: boolean("is_active").notNull().default(true),
     twoFactorEnabled: boolean("two_factor_enabled").notNull().default(false),
     twoFactorSecret: text("two_factor_secret"), // base32 TOTP secret; plaintext-at-rest, same accepted tradeoff already made for AUTH_JWT_SECRET (see key-provider.ts)
     createdBy: bigint("created_by", { mode: "bigint" }).references((): AnyPgColumn => users.id, { onDelete: "set null" }),

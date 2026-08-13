@@ -2,7 +2,7 @@ import { useState, type FormEvent } from "react";
 import { EyeIcon, EyeOffIcon } from "lucide-react";
 import { AuthApiError } from "@easy-auth/auth-client";
 import { Button } from "@/components/ui/button";
-import { Dialog } from "@/components/ui/dialog";
+import { Modal } from "@/components/ui/modal";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { authClient } from "@/lib/auth-client";
@@ -81,7 +81,7 @@ export function ChangePasswordDialog({ open, onClose }: { open: boolean; onClose
   }
 
   return (
-    <Dialog open={open} onClose={handleClose} title="Change password" description="Every other session gets signed out — this one doesn't.">
+    <Modal isOpen={open} onClose={handleClose} title="Change password" description="Every other session gets signed out — this one doesn't.">
       <form onSubmit={handleSubmit} className="flex flex-col gap-4">
         {error ? <p className="text-sm text-destructive">{error}</p> : null}
         {notice ? <p className="text-sm text-emerald-600">{notice}</p> : null}
@@ -97,6 +97,6 @@ export function ChangePasswordDialog({ open, onClose }: { open: boolean; onClose
           </Button>
         </div>
       </form>
-    </Dialog>
+    </Modal>
   );
 }

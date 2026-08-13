@@ -50,6 +50,34 @@ export class AuthStore {
     });
   }
 
+  /**
+   * Re-verifies the session is still live server-side — `AuthClient.me()` already retries once
+   * via a token refresh on a bare 401 internally, so an `AuthApiError` reaching here means that
+   * recovery path is exhausted (a stale/revoked/blocked session), not a transient hiccup. A
+   * network/parse error instead means the backend is unreachable, not that the session is
+   * invalid — same distinction the base admin-nextjs app's `proxy.ts` makes — so it's treated as
+   * "still fine" rather than forcing a logout.
+   *
+   * Returns false only when the session is confirmed dead, so callers know to redirect.
+   */
+  async verifySession(): Promise<boolean> {
+    try {
+      const user = await this.#client.me();
+      runInAction(() => {
+        this.currentUser = user;
+      });
+      return true;
+    } catch (err) {
+      if (err instanceof AuthApiError) {
+        runInAction(() => {
+          this.currentUser = null;
+        });
+        return false;
+      }
+      return true;
+    }
+  }
+
   async signup(input: { email: string; password: string }): Promise<void> {
     await this.#client.signup(input);
     await this.refreshCurrentUser();

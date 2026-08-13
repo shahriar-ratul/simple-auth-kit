@@ -40,8 +40,31 @@ export function createAdminRouter(deps: AdminRouterDeps): RequestHandler {
 
   admin.route("get", "/users", ability("users:read"), async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const { search, limit, cursor } = req.query as Record<string, string | undefined>;
-      res.status(200).json(await auth.listUsers({ search, limit: limit ? Number(limit) : undefined, cursor }));
+      const { search, page, limit } = req.query as Record<string, string | undefined>;
+      res.status(200).json(await auth.listUsers({ search, page: page ? Number(page) : undefined, limit: limit ? Number(limit) : undefined }));
+    } catch (err) {
+      next(err);
+    }
+  });
+
+  admin.route("post", "/users", ability("users:manage"), async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const body = req.body as Record<string, unknown>;
+      res.status(201).json(
+        await auth.createUser(
+          {
+            email: requireString(body.email, "email"),
+            password: requireString(body.password, "password"),
+            firstName: optionalString(body.firstName),
+            lastName: optionalString(body.lastName),
+            displayName: optionalString(body.displayName),
+            phone: optionalString(body.phone),
+            username: optionalString(body.username),
+            roles: Array.isArray(body.roles) ? body.roles.filter((role): role is string => typeof role === "string") : undefined,
+          },
+          req.auth!.sub,
+        ),
+      );
     } catch (err) {
       next(err);
     }
@@ -68,9 +91,6 @@ export function createAdminRouter(deps: AdminRouterDeps): RequestHandler {
             phone: body.phone === null ? null : optionalString(body.phone),
             username: body.username === null ? null : optionalString(body.username),
             photo: body.photo === null ? null : optionalString(body.photo),
-            dob: body.dob === null ? null : optionalString(body.dob),
-            gender: body.gender === null ? null : optionalString(body.gender),
-            joinedDate: optionalString(body.joinedDate),
           },
           req.auth!.sub,
         ),
@@ -94,8 +114,10 @@ export function createAdminRouter(deps: AdminRouterDeps): RequestHandler {
 
   admin.route("get", "/audit-log", ability("audit-log:read"), async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const { userId, action, since, until, limit, cursor } = req.query as Record<string, string | undefined>;
-      res.status(200).json(await auth.listAuditLog({ userId, action, since, until, limit: limit ? Number(limit) : undefined, cursor }));
+      const { userId, action, since, until, page, limit } = req.query as Record<string, string | undefined>;
+      res.status(200).json(
+        await auth.listAuditLog({ userId, action, since, until, page: page ? Number(page) : undefined, limit: limit ? Number(limit) : undefined }),
+      );
     } catch (err) {
       next(err);
     }
@@ -150,8 +172,6 @@ export function createAdminRouter(deps: AdminRouterDeps): RequestHandler {
             name: optionalString(body.name),
             displayName: optionalString(body.displayName),
             description: optionalString(body.description) ?? null,
-            isDefault: typeof body.isDefault === "boolean" ? body.isDefault : undefined,
-            isActive: typeof body.isActive === "boolean" ? body.isActive : undefined,
           },
           req.auth!.sub,
         ),
@@ -171,7 +191,6 @@ export function createAdminRouter(deps: AdminRouterDeps): RequestHandler {
             name: optionalString(body.name),
             displayName: optionalString(body.displayName),
             description: body.description === null ? null : optionalString(body.description),
-            isDefault: typeof body.isDefault === "boolean" ? body.isDefault : undefined,
             isActive: typeof body.isActive === "boolean" ? body.isActive : undefined,
           },
           req.auth!.sub,
@@ -258,6 +277,26 @@ export function createAdminRouter(deps: AdminRouterDeps): RequestHandler {
   admin.route("post", "/users/:userId/unblock", ability("users:block"), async (req: Request, res: Response, next: NextFunction) => {
     try {
       await auth.unblock(requireString(req.params.userId, "userId"), { userId: req.auth!.sub, ip: req.ip });
+      res.status(201).json({ ok: true });
+    } catch (err) {
+      next(err);
+    }
+  });
+
+  admin.route("post", "/users/:userId/deactivate", ability("users:block"), async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const userId = requireString(req.params.userId, "userId");
+      if (userId === req.auth!.sub) throw new HttpError(403, "cannot deactivate your own account");
+      await auth.deactivate(userId, { userId: req.auth!.sub, ip: req.ip });
+      res.status(201).json({ ok: true });
+    } catch (err) {
+      next(err);
+    }
+  });
+
+  admin.route("post", "/users/:userId/activate", ability("users:block"), async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      await auth.activate(requireString(req.params.userId, "userId"), { userId: req.auth!.sub, ip: req.ip });
       res.status(201).json({ ok: true });
     } catch (err) {
       next(err);

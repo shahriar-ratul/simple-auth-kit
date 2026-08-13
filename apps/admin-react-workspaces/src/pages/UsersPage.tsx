@@ -1,19 +1,21 @@
-import { useMemo, useState } from "react";
-import type { UserSummary } from "@easy-auth/auth-client";
+import { useEffect, useMemo, useState } from "react";
+import type { RoleSummary, UserSummary } from "@easy-auth/auth-client";
 import { AuthApiError, userIdOf } from "@easy-auth/auth-client";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { type ColumnDef, type PaginationState, type SortingState, getCoreRowModel, getSortedRowModel, useReactTable } from "@tanstack/react-table";
 import { observer } from "mobx-react-lite";
 import { Link } from "react-router-dom";
 import { useDebounce } from "use-debounce";
-import { ChevronDownIcon, EyeIcon, PlusIcon } from "lucide-react";
+import { ChevronDownIcon, EyeIcon, PlusIcon, Trash2Icon } from "lucide-react";
 import { toast } from "sonner";
 import { PERMISSIONS, useAbility } from "@/lib/ability";
 import { authClient } from "@/lib/auth-client";
-import { useWorkspaceStore } from "@/stores/store-context";
+import { useAuthStore, useWorkspaceStore } from "@/stores/store-context";
 import { cn } from "@/lib/cn";
 import { AlertModal } from "@/components/alert-modal";
+import { Breadcrumb } from "@/components/breadcrumb";
 import { TableSkeletonLoader } from "@/components/loader/table-skeleton-loader";
+import { RoleMultiSelect } from "@/components/role-multi-select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button, buttonVariants } from "@/components/ui/button";
@@ -43,20 +45,24 @@ function initialsOf(user: UserSummary): string {
 export const UsersPage = observer(function UsersPage() {
   const ability = useAbility();
   const workspaceStore = useWorkspaceStore();
+  const authStore = useAuthStore();
   const activeWorkspaceId = workspaceStore.activeWorkspaceId;
   const workspaceName = workspaceStore.activeWorkspace?.name ?? "this workspace";
   const canBlock = ability.can(PERMISSIONS.usersBlock, "permission");
   const canManage = ability.can(PERMISSIONS.usersManage, "permission");
+  const canReadRoles = ability.can(PERMISSIONS.rolesManage, "permission");
 
   const [search, setSearch] = useState("");
   const [searchKey] = useDebounce(search, 500);
   const [status, setStatus] = useState<"" | "active" | "inactive">("");
+  const [roleFilter, setRoleFilter] = useState<string[]>([]);
+  const [roleCatalog, setRoleCatalog] = useState<RoleSummary[]>([]);
   const [sorting, setSorting] = useState<SortingState>([]);
   const [pagination, setPagination] = useState<PaginationState>({ pageIndex: 0, pageSize: 20 });
 
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [pendingUser, setPendingUser] = useState<UserSummary | null>(null);
-  const [pendingAction, setPendingAction] = useState<"block" | "status" | null>(null);
+  const [pendingAction, setPendingAction] = useState<"block" | "status" | "delete" | null>(null);
   const [pendingBusy, setPendingBusy] = useState(false);
 
   // Keyed on the active workspace, same as before: `listUsers` sends it as `X-Workspace-Id`, so
@@ -68,21 +74,35 @@ export const UsersPage = observer(function UsersPage() {
     placeholderData: keepPreviousData,
   });
 
+  // Roles are per workspace, same as `RolesPage`: switching has to re-fetch the catalog this
+  // filter offers, or it could show one workspace's roles against another's membership.
+  useEffect(() => {
+    setRoleCatalog([]);
+    if (!canReadRoles) return;
+    authClient
+      .listRoles({ activeOnly: true })
+      .then(setRoleCatalog)
+      .catch((err) => toast.error(apiErrorMessage(err, "Couldn't load the role catalog.")));
+  }, [canReadRoles, activeWorkspaceId]);
+
   const total = data?.meta.total ?? 0;
   const pageCount = data?.meta.pageCount ?? 0;
 
-  // The backend has no server-side `isActive` filter, so status filters only the already-fetched
-  // page — `total`/`pageCount` (and the pager) stay keyed to the unfiltered count.
+  // The backend has no server-side `isActive` or `roles` filter, so status and role both filter
+  // only the already-fetched page — `total`/`pageCount` (and the pager) stay keyed to the
+  // unfiltered count.
   const users = useMemo(() => {
-    const items = data?.items ?? [];
-    if (status === "active") return items.filter((u) => u.isActive);
-    if (status === "inactive") return items.filter((u) => !u.isActive);
+    let items = data?.items ?? [];
+    if (status === "active") items = items.filter((u) => u.isActive);
+    if (status === "inactive") items = items.filter((u) => !u.isActive);
+    if (roleFilter.length > 0) items = items.filter((u) => u.roles.some((role) => roleFilter.includes(role)));
     return items;
-  }, [data, status]);
+  }, [data, status, roleFilter]);
 
   function clearFilters() {
     setSearch("");
     setStatus("");
+    setRoleFilter([]);
     setPagination((p) => ({ ...p, pageIndex: 0 }));
   }
 
@@ -98,6 +118,12 @@ export const UsersPage = observer(function UsersPage() {
     setConfirmOpen(true);
   }
 
+  function openDeleteConfirm(user: UserSummary) {
+    setPendingUser(user);
+    setPendingAction("delete");
+    setConfirmOpen(true);
+  }
+
   async function confirmPendingAction() {
     if (!pendingUser || !pendingAction) return;
     const userId = userIdOf(pendingUser);
@@ -107,17 +133,20 @@ export const UsersPage = observer(function UsersPage() {
         if (pendingUser.blocked) await authClient.unblockUser(userId);
         else await authClient.blockUser(userId);
         toast.success(pendingUser.blocked ? "User unblocked." : "User blocked.");
-      } else {
+      } else if (pendingAction === "status") {
         if (pendingUser.isActive) await authClient.deactivateUser(userId);
         else await authClient.activateUser(userId);
         toast.success(pendingUser.isActive ? "User deactivated." : "User activated.");
+      } else {
+        await authClient.deleteUser(userId);
+        toast.success("Account deleted.");
       }
       setConfirmOpen(false);
       setPendingUser(null);
       setPendingAction(null);
       await refetch();
     } catch (err) {
-      toast.error(apiErrorMessage(err, "Couldn't change this user's status. Try again."));
+      toast.error(apiErrorMessage(err, pendingAction === "delete" ? "Couldn't delete this account. Try again." : "Couldn't change this user's status. Try again."));
     } finally {
       setPendingBusy(false);
     }
@@ -212,6 +241,7 @@ export const UsersPage = observer(function UsersPage() {
         cell: ({ row }) => {
           const user = row.original;
           const userId = userIdOf(user);
+          const isSelf = userId === authStore.currentUser?.sub;
           return (
             <div className="flex justify-end items-center gap-1.5">
               {user.blocked && <Badge variant="destructive">Blocked</Badge>}
@@ -222,6 +252,16 @@ export const UsersPage = observer(function UsersPage() {
                   </Link>
                 </TooltipTrigger>
                 <TooltipContent>View details</TooltipContent>
+              </Tooltip>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button size="icon" variant="outline" disabled={!canManage || isSelf} onClick={() => openDeleteConfirm(user)}>
+                    <Trash2Icon />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  {!canManage ? "You don't have permission to delete this user." : isSelf ? "You can't delete your own account." : "Delete user"}
+                </TooltipContent>
               </Tooltip>
               <Tooltip>
                 <TooltipTrigger asChild>
@@ -236,7 +276,7 @@ export const UsersPage = observer(function UsersPage() {
         },
       },
     ],
-    [canBlock],
+    [canBlock, canManage, authStore.currentUser?.sub],
   );
 
   const table = useReactTable({
@@ -254,6 +294,8 @@ export const UsersPage = observer(function UsersPage() {
 
   return (
     <div className="flex flex-col gap-6">
+      <Breadcrumb items={[{ title: "Users", href: "/users" }]} />
+
       <AlertModal
         isOpen={confirmOpen}
         onClose={() => setConfirmOpen(false)}
@@ -264,9 +306,11 @@ export const UsersPage = observer(function UsersPage() {
             ? pendingUser?.blocked
               ? "This unblocks the account — they can sign in again immediately."
               : "This blocks the account everywhere, immediately."
-            : pendingUser?.isActive
-              ? "This deactivates the account — they can sign in again once reactivated."
-              : "This reactivates the account, immediately."
+            : pendingAction === "status"
+              ? pendingUser?.isActive
+                ? "This deactivates the account — they can sign in again once reactivated."
+                : "This reactivates the account, immediately."
+              : "This soft-deletes the account: it stops appearing in listings and can no longer sign in, but the row is kept for audit purposes."
         }
       />
 
@@ -290,7 +334,7 @@ export const UsersPage = observer(function UsersPage() {
         <CardContent className="flex flex-col gap-4">
           {isError && <p className="text-sm text-destructive">{apiErrorMessage(error, "Couldn't load users. Try again.")}</p>}
 
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
             <Input
               placeholder="Search by email…"
               value={search}
@@ -309,7 +353,8 @@ export const UsersPage = observer(function UsersPage() {
                 <SelectItem value="inactive">Inactive</SelectItem>
               </SelectContent>
             </Select>
-            <Button variant="outline" disabled={!search && !status} onClick={clearFilters}>
+            {canReadRoles && <RoleMultiSelect roles={roleCatalog} selected={roleFilter} onChange={setRoleFilter} placeholder="Filter by role…" />}
+            <Button variant="outline" disabled={!search && !status && roleFilter.length === 0} onClick={clearFilters}>
               Clear
             </Button>
           </div>
@@ -351,7 +396,7 @@ export const UsersPage = observer(function UsersPage() {
                 { header: "Last login", skeletonType: "text", skeletonWidth: "w-32" },
                 { header: "Created", skeletonType: "text", skeletonWidth: "w-24" },
                 { header: "Updated", skeletonType: "text", skeletonWidth: "w-24" },
-                { header: "Actions", width: "w-[150px]", skeletonType: "actions", skeletonCount: 2 },
+                { header: "Actions", width: "w-[190px]", skeletonType: "actions", skeletonCount: 3 },
               ]}
               rows={pagination.pageSize > 10 ? 10 : pagination.pageSize}
             />

@@ -86,3 +86,11 @@ export async function blockUser(deps: SessionStoreDeps, userId: string, revoker?
   await deps.revokeAllByUser(userId, revoker);
   await deps.appendAuditEvent?.({ type: "user_blocked", userId });
 }
+
+// Same shape as blockUser but a distinct audit trail — deactivation is a routine administrative
+// toggle, not a security action, and the two are tracked independently (see the `isActive` /
+// `blocked` split on `User`). Reactivating, like unblocking, revokes nothing.
+export async function deactivateUser(deps: SessionStoreDeps, userId: string, revoker?: Revoker): Promise<void> {
+  await deps.revokeAllByUser(userId, revoker);
+  await deps.appendAuditEvent?.({ type: "user_deactivated", userId });
+}

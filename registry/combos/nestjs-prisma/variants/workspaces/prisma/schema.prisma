@@ -29,8 +29,11 @@ model Workspace {
   createdAt     DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt     DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
 
-  members WorkspaceMember[]
-  roles   Role[]
+  members   WorkspaceMember[]
+  roles     Role[]
+  countries Country[]
+  languages Language[]
+  customers Customer[]
 
   createdByUser User? @relation("WorkspaceCreatedBy", fields: [createdBy], references: [id], onDelete: SetNull)
   updatedByUser User? @relation("WorkspaceUpdatedBy", fields: [updatedBy], references: [id], onDelete: SetNull)
@@ -121,6 +124,18 @@ model User {
   workspacesCreated  Workspace[]  @relation("WorkspaceCreatedBy")
   workspacesUpdated  Workspace[]  @relation("WorkspaceUpdatedBy")
   workspacesDeleted  Workspace[]  @relation("WorkspaceDeletedBy")
+
+  countriesCreated Country[] @relation("CountryCreatedBy")
+  countriesUpdated Country[] @relation("CountryUpdatedBy")
+  countriesDeleted Country[] @relation("CountryDeletedBy")
+
+  languagesCreated Language[] @relation("LanguageCreatedBy")
+  languagesUpdated Language[] @relation("LanguageUpdatedBy")
+  languagesDeleted Language[] @relation("LanguageDeletedBy")
+
+  customersCreated Customer[] @relation("CustomerCreatedBy")
+  customersUpdated Customer[] @relation("CustomerUpdatedBy")
+  customersDeleted Customer[] @relation("CustomerDeletedBy")
 
   @@index([isDeleted], map: "users_is_deleted_idx")
   @@map("users")
@@ -372,4 +387,120 @@ model DenylistedAccessToken {
   expiresAt DateTime @map("expires_at") @db.Timestamptz(6)
 
   @@map("denylisted_access_tokens")
+}
+
+/// Admin-managed reference data — a workspace's country list. `flag` is a stored image path/URL,
+/// the same string-field convention `User.photo` already uses (no multipart upload in this combo).
+/// Scoped per workspace: `code`/`isoCode` are unique *within* a workspace, not globally — two
+/// workspaces may each define "US".
+model Country {
+  id            BigInt    @id @default(autoincrement())
+  uuid          String    @unique @default(uuid())
+  workspaceId   BigInt    @map("workspace_id")
+  code          String    @db.VarChar(10)
+  name          String    @db.VarChar(100)
+  emoji         String    @db.VarChar(10)
+  phoneCode     String    @map("phone_code") @db.VarChar(10)
+  currency      String    @db.VarChar(10)
+  currencyName  String    @map("currency_name") @db.VarChar(100)
+  isoCode       String    @map("iso_code") @db.VarChar(10)
+  flag          String?
+  isActive      Boolean   @default(true) @map("is_active")
+  createdBy     BigInt?   @map("created_by")
+  updatedBy     BigInt?   @map("updated_by")
+  isDeleted     Boolean   @default(false) @map("is_deleted")
+  deletedAt     DateTime? @map("deleted_at") @db.Timestamptz(6)
+  deletedBy     BigInt?   @map("deleted_by")
+  deletedReason String?   @map("deleted_reason") @db.VarChar(255)
+  createdAt     DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt     DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id])
+
+  createdByUser User? @relation("CountryCreatedBy", fields: [createdBy], references: [id], onDelete: SetNull)
+  updatedByUser User? @relation("CountryUpdatedBy", fields: [updatedBy], references: [id], onDelete: SetNull)
+  deletedByUser User? @relation("CountryDeletedBy", fields: [deletedBy], references: [id], onDelete: SetNull)
+
+  @@unique([workspaceId, code])
+  @@unique([workspaceId, isoCode])
+  @@index([isActive], map: "countries_is_active_idx")
+  @@index([isDeleted], map: "countries_is_deleted_idx")
+  @@map("countries")
+}
+
+/// Admin-managed reference data — a workspace's supported languages. Deliberately no `countryId`
+/// FK: the UI this backend mirrors has no country field on the language form. Scoped per
+/// workspace: `code` is unique *within* a workspace, not globally.
+model Language {
+  id            BigInt    @id @default(autoincrement())
+  uuid          String    @unique @default(uuid())
+  workspaceId   BigInt    @map("workspace_id")
+  code          String    @db.VarChar(10)
+  name          String    @db.VarChar(100)
+  nativeName    String    @map("native_name") @db.VarChar(100)
+  direction     String    @default("ltr") @db.VarChar(3)
+  isDefault     Boolean   @default(false) @map("is_default")
+  isActive      Boolean   @default(true) @map("is_active")
+  createdBy     BigInt?   @map("created_by")
+  updatedBy     BigInt?   @map("updated_by")
+  isDeleted     Boolean   @default(false) @map("is_deleted")
+  deletedAt     DateTime? @map("deleted_at") @db.Timestamptz(6)
+  deletedBy     BigInt?   @map("deleted_by")
+  deletedReason String?   @map("deleted_reason") @db.VarChar(255)
+  createdAt     DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt     DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id])
+
+  createdByUser User? @relation("LanguageCreatedBy", fields: [createdBy], references: [id], onDelete: SetNull)
+  updatedByUser User? @relation("LanguageUpdatedBy", fields: [updatedBy], references: [id], onDelete: SetNull)
+  deletedByUser User? @relation("LanguageDeletedBy", fields: [deletedBy], references: [id], onDelete: SetNull)
+
+  @@unique([workspaceId, code])
+  @@index([isActive], map: "languages_is_active_idx")
+  @@index([isDeleted], map: "languages_is_deleted_idx")
+  @@map("languages")
+}
+
+/// End-users managed by admins within a workspace — no login capability, and deliberately not
+/// related to the RBAC `User` model above (which plays this deployment's "admin"). A `Customer`
+/// never authenticates, so it carries no password/session/role relations at all. Scoped per
+/// workspace: `username`/`email`/`phone` are unique *within* a workspace, not globally.
+model Customer {
+  id              BigInt    @id @default(autoincrement())
+  uuid            String    @unique @default(uuid())
+  workspaceId     BigInt    @map("workspace_id")
+  firstName       String?   @map("first_name") @db.VarChar(100)
+  lastName        String?   @map("last_name") @db.VarChar(100)
+  username        String?   @db.VarChar(100)
+  email           String    @db.VarChar(255)
+  phone           String?   @db.VarChar(100)
+  dob             DateTime? @db.Date
+  gender          String?   @db.VarChar(10)
+  joinedDate      DateTime  @default(now()) @map("joined_date") @db.Date
+  photo           String?
+  isEmailVerified Boolean   @default(false) @map("is_email_verified")
+  isPhoneVerified Boolean   @default(false) @map("is_phone_verified")
+  isActive        Boolean   @default(true) @map("is_active")
+  createdBy       BigInt?   @map("created_by")
+  updatedBy       BigInt?   @map("updated_by")
+  isDeleted       Boolean   @default(false) @map("is_deleted")
+  deletedAt       DateTime? @map("deleted_at") @db.Timestamptz(6)
+  deletedBy       BigInt?   @map("deleted_by")
+  deletedReason   String?   @map("deleted_reason") @db.VarChar(255)
+  createdAt       DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt       DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id])
+
+  createdByUser User? @relation("CustomerCreatedBy", fields: [createdBy], references: [id], onDelete: SetNull)
+  updatedByUser User? @relation("CustomerUpdatedBy", fields: [updatedBy], references: [id], onDelete: SetNull)
+  deletedByUser User? @relation("CustomerDeletedBy", fields: [deletedBy], references: [id], onDelete: SetNull)
+
+  @@unique([workspaceId, username])
+  @@unique([workspaceId, email])
+  @@unique([workspaceId, phone])
+  @@index([isActive], map: "customers_is_active_idx")
+  @@index([isDeleted], map: "customers_is_deleted_idx")
+  @@map("customers")
 }

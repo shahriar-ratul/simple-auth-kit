@@ -62,6 +62,7 @@ export type AuditEvent =
   | { type: "other_sessions_revoked"; userId: string; keepSessionId: string }
   | { type: "refresh_reuse_detected"; sessionId: string; userId: string }
   | { type: "user_blocked"; userId: string }
+  | { type: "user_deactivated"; userId: string }
   | { type: "password_reset_requested"; userId: string }
   | { type: "password_reset_completed"; userId: string }
   | { type: "two_factor_enabled"; userId: string }

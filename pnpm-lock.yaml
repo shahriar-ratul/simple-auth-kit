@@ -201,6 +201,9 @@ importers:
       shadcn:
         specifier: ^4.16.2
         version: 4.16.2(supports-color@8.1.1)(typescript@7.0.2)
+      socket.io-client:
+        specifier: ^4.8.1
+        version: 4.8.3(supports-color@8.1.1)
       sonner:
         specifier: ^2.0.7
         version: 2.0.8(@types/react@19.2.18)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
@@ -289,6 +292,9 @@ importers:
       react-router-dom:
         specifier: ^7.9.5
         version: 7.18.2(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
+      socket.io-client:
+        specifier: ^4.8.1
+        version: 4.8.3(supports-color@8.1.1)
       sonner:
         specifier: ^2.0.7
         version: 2.0.8(@types/react@19.2.18)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
@@ -383,6 +389,9 @@ importers:
       react-router-dom:
         specifier: ^7.9.5
         version: 7.18.2(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
+      socket.io-client:
+        specifier: ^4.8.1
+        version: 4.8.3(supports-color@8.1.1)
       sonner:
         specifier: ^2.0.7
         version: 2.0.8(@types/react@19.2.18)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)

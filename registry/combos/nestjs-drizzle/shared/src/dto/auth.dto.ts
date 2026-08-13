@@ -19,6 +19,21 @@ export class SignupDto {
 
   @ApiProperty({ type: String, example: "correct-horse-battery-staple" })
   password!: string;
+
+  @ApiProperty({ type: String, required: false, description: "Unique across the deployment.", example: "Alice" })
+  firstName?: string;
+
+  @ApiProperty({ type: String, required: false, description: "Unique across the deployment.", example: "Nguyen" })
+  lastName?: string;
+
+  @ApiProperty({ type: String, required: false, example: "Alice Nguyen" })
+  displayName?: string;
+
+  @ApiProperty({ type: String, required: false, description: "Unique across the deployment." })
+  phone?: string;
+
+  @ApiProperty({ type: String, required: false, description: "Unique across the deployment." })
+  username?: string;
 }
 
 export class LoginDto {

@@ -19,9 +19,30 @@ export class SignupDto {
 
   @ApiProperty({ type: String, example: "correct-horse-battery-staple" })
   password!: string;
+
+  @ApiProperty({ type: String, required: false, description: "Unique across the deployment.", example: "Alice" })
+  firstName?: string;
+
+  @ApiProperty({ type: String, required: false, description: "Unique across the deployment.", example: "Nguyen" })
+  lastName?: string;
+
+  @ApiProperty({ type: String, required: false, example: "Alice Nguyen" })
+  displayName?: string;
+
+  @ApiProperty({ type: String, required: false, description: "Unique across the deployment." })
+  phone?: string;
+
+  @ApiProperty({ type: String, required: false, description: "Unique across the deployment." })
+  username?: string;
 }
 
-export class LoginDto extends SignupDto {}
+export class LoginDto {
+  @ApiProperty({ type: String, description: "Email, username, or phone — whichever the account has set.", example: "alice@example.com" })
+  identifier!: string;
+
+  @ApiProperty({ type: String, example: "correct-horse-battery-staple" })
+  password!: string;
+}
 
 export class LoginTwoFactorDto {
   @ApiProperty({ type: String, description: "Returned by POST /auth/login when the account has 2FA enabled" })
@@ -49,6 +70,14 @@ export class ForgotPasswordDto {
 export class ResetPasswordDto {
   @ApiProperty({ type: String, description: "Raw token from the sendPasswordResetEmail hook" })
   token!: string;
+
+  @ApiProperty({ type: String })
+  newPassword!: string;
+}
+
+export class ChangePasswordDto {
+  @ApiProperty({ type: String, description: "The caller's current password, re-checked server-side before anything changes." })
+  currentPassword!: string;
 
   @ApiProperty({ type: String })
   newPassword!: string;
@@ -130,6 +159,44 @@ export class AttachPermissionDto {
 export class AssignRoleDto {
   @ApiProperty({ type: String, description: "Role slug", example: "billing-manager" })
   role!: string;
+}
+
+export class CreateUserDto {
+  @ApiProperty({ type: String, example: "alice@example.com" })
+  email!: string;
+
+  @ApiProperty({ type: String, description: "Set directly — there is no invitation email, the account is usable immediately." })
+  password!: string;
+
+  @ApiProperty({ type: String, required: false, description: "Unique across the deployment." })
+  firstName?: string;
+
+  @ApiProperty({ type: String, required: false, description: "Unique across the deployment." })
+  lastName?: string;
+
+  @ApiProperty({ type: String, required: false })
+  displayName?: string;
+
+  @ApiProperty({ type: String, required: false, description: "Unique across the deployment." })
+  phone?: string;
+
+  @ApiProperty({ type: String, required: false, description: "Unique across the deployment." })
+  username?: string;
+
+  @ApiProperty({ type: String, required: false, description: "Date of birth, ISO date (yyyy-mm-dd)." })
+  dob?: string;
+
+  @ApiProperty({ type: String, required: false })
+  gender?: string;
+
+  @ApiProperty({ type: String, required: false, description: "ISO date (yyyy-mm-dd). Defaults to today." })
+  joinedDate?: string;
+
+  @ApiProperty({ type: Boolean, required: false, description: "Defaults to true — false creates the account already deactivated." })
+  isActive?: boolean;
+
+  @ApiProperty({ type: [String], required: false, description: "Role slugs to assign. Defaults to whichever roles are flagged isDefault, same as a self-signup." })
+  roles?: string[];
 }
 
 /** One `Permission` row — the catalog as the admin endpoints return it. */
@@ -242,6 +309,57 @@ export class CurrentUserDto {
 
   @ApiProperty({ type: Boolean })
   twoFactorEnabled!: boolean;
+
+  @ApiProperty({ type: String })
+  email!: string;
+
+  @ApiProperty({ type: String, nullable: true })
+  firstName!: string | null;
+
+  @ApiProperty({ type: String, nullable: true })
+  lastName!: string | null;
+
+  @ApiProperty({ type: String, nullable: true })
+  displayName!: string | null;
+
+  @ApiProperty({ type: String, nullable: true })
+  phone!: string | null;
+
+  @ApiProperty({ type: String, nullable: true })
+  username!: string | null;
+
+  @ApiProperty({ type: String, nullable: true, description: "A data URI or an externally-hosted URL — stored as-is, never processed server-side." })
+  photo!: string | null;
+}
+
+/** `PATCH /auth/me`'s response — the same shape whether or not the combo has workspaces, since a profile isn't a workspace concept. */
+export class SelfProfileDto {
+  @ApiProperty({ type: String })
+  id!: string;
+
+  @ApiProperty({ type: String })
+  email!: string;
+
+  @ApiProperty({ type: String, nullable: true })
+  firstName!: string | null;
+
+  @ApiProperty({ type: String, nullable: true })
+  lastName!: string | null;
+
+  @ApiProperty({ type: String, nullable: true })
+  displayName!: string | null;
+
+  @ApiProperty({ type: String, nullable: true })
+  phone!: string | null;
+
+  @ApiProperty({ type: String, nullable: true })
+  username!: string | null;
+
+  @ApiProperty({ type: String, nullable: true, description: "A data URI or an externally-hosted URL — stored as-is, never processed server-side." })
+  photo!: string | null;
+
+  @ApiProperty({ type: String, format: "date-time" })
+  createdAt!: string;
 }
 
 /** One live session, as a "your devices" screen would render it. Revoked and expired rows are not returned. */

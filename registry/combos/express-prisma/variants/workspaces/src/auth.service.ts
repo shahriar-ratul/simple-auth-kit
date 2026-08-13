@@ -82,12 +82,32 @@ export class AuthService {
   ) {}
 
   /** Creates the user and nothing else. Joining or creating a workspace is a separate, explicit call — see WorkspaceController. */
-  async signup(input: { email: string; password: string; userAgent?: string; ip?: string }): Promise<AuthTokens> {
+  async signup(input: {
+    email: string;
+    password: string;
+    firstName?: string;
+    lastName?: string;
+    displayName?: string;
+    phone?: string;
+    username?: string;
+    userAgent?: string;
+    ip?: string;
+  }): Promise<AuthTokens> {
     const existing = await this.prisma.user.findUnique({ where: { email: input.email } });
     if (existing) throw new HttpError(409, "email already registered");
 
     const passwordHash = await hashPassword(input.password);
-    const user = await this.prisma.user.create({ data: { email: input.email, passwordHash } });
+    const user = await this.prisma.user.create({
+      data: {
+        email: input.email,
+        passwordHash,
+        firstName: input.firstName,
+        lastName: input.lastName,
+        displayName: input.displayName,
+        phone: input.phone,
+        username: input.username,
+      },
+    });
     return this.issueSessionTokens(user, { userAgent: input.userAgent, ip: input.ip });
   }
 

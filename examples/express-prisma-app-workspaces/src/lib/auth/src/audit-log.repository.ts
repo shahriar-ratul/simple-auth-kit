@@ -1,6 +1,7 @@
 import type { AuditEvent } from "@/lib/auth/core/types.js";
 import { Prisma, PrismaClient } from "../generated/prisma/client.js";
-import { toId, toIdOrNull, toIdOrUndefined } from "./id.helper.js";
+import { buildPageMeta, normalizeLimit, normalizePage, type Paginated } from "./pagination.js";
+import { toIdOrNull, toIdOrUndefined } from "./id.helper.js";
 
 export interface AuditLogEntry {
   id: string;
@@ -21,12 +22,27 @@ export interface AuditLogListFilter {
   action?: string;
   since?: string;
   until?: string;
+  page?: number;
   limit?: number;
-  cursor?: string;
 }
 
-const MAX_PAGE_SIZE = 100;
-const DEFAULT_PAGE_SIZE = 25;
+/** An `AuditLog` row as `findMany` returns it. */
+export type AuditLogRow = Prisma.AuditLogGetPayload<object>;
+
+/** Shapes a raw row into the wire DTO. Applied by the caller (`AuthService.listAuditLog`), not here. */
+export function toAuditLogEntry(row: AuditLogRow): AuditLogEntry {
+  return {
+    id: row.id.toString(),
+    workspaceId: row.workspaceId?.toString() ?? null,
+    userId: row.userId?.toString() ?? null,
+    name: row.name,
+    action: row.action,
+    info: row.info,
+    remarks: row.remarks,
+    createdAt: row.createdAt.toISOString(),
+    updatedAt: row.updatedAt.toISOString(),
+  };
+}
 
 /** "role_assigned" -> "Role assigned". Derived rather than passed in, so core never has to carry display text. */
 export function humanizeAction(action: string): string {
@@ -57,40 +73,30 @@ export class AuditLogRepository {
     });
   }
 
-  /** Newest-first, cursor-paginated (cursor = the last-seen row's `id`). */
-  async list(filter: AuditLogListFilter): Promise<{ entries: AuditLogEntry[]; nextCursor: string | null }> {
-    const limit = Math.min(filter.limit ?? DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE);
-
-    const rows = await this.prisma.auditLog.findMany({
-      where: {
-        workspaceId: toIdOrUndefined(filter.workspaceId),
-        userId: toIdOrUndefined(filter.userId),
-        action: filter.action,
-        createdAt: {
-          gte: filter.since ? new Date(filter.since) : undefined,
-          lte: filter.until ? new Date(filter.until) : undefined,
-        },
+  /** Newest-first, page-paginated. Returns raw rows — shaping is the caller's job, see `toAuditLogEntry`. */
+  async list(filter: AuditLogListFilter): Promise<Paginated<AuditLogRow>> {
+    const page = normalizePage(filter.page);
+    const limit = normalizeLimit(filter.limit);
+    const where = {
+      workspaceId: toIdOrUndefined(filter.workspaceId),
+      userId: toIdOrUndefined(filter.userId),
+      action: filter.action,
+      createdAt: {
+        gte: filter.since ? new Date(filter.since) : undefined,
+        lte: filter.until ? new Date(filter.until) : undefined,
       },
-      orderBy: [{ createdAt: "desc" }, { id: "desc" }],
-      take: limit + 1,
-      ...(filter.cursor ? { cursor: { id: toId(filter.cursor) }, skip: 1 } : {}),
-    });
-
-    const hasMore = rows.length > limit;
-    const page = hasMore ? rows.slice(0, limit) : rows;
-    return {
-      entries: page.map((row) => ({
-        id: row.id.toString(),
-        workspaceId: row.workspaceId?.toString() ?? null,
-        userId: row.userId?.toString() ?? null,
-        name: row.name,
-        action: row.action,
-        info: row.info,
-        remarks: row.remarks,
-        createdAt: row.createdAt.toISOString(),
-        updatedAt: row.updatedAt.toISOString(),
-      })),
-      nextCursor: hasMore ? page[page.length - 1].id.toString() : null,
     };
+
+    const [rows, total] = await this.prisma.$transaction([
+      this.prisma.auditLog.findMany({
+        where,
+        orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+        take: limit,
+        skip: (page - 1) * limit,
+      }),
+      this.prisma.auditLog.count({ where }),
+    ]);
+
+    return { items: rows, meta: buildPageMeta(page, limit, total) };
   }
 }

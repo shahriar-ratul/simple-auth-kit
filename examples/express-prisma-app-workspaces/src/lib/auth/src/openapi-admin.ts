@@ -73,8 +73,6 @@ export const adminSpec: OpenApiFragment = {
         slug: { type: "string", description: "Stable identifier. Grants and assignments are keyed on it.", example: "billing-manager" },
         displayName: { type: "string", description: "Human label for the console. Defaults to the slug.", example: "Billing manager" },
         description: { type: "string", nullable: true },
-        isDefault: { type: "boolean", description: "Given to every newly signed-up user. Defaults to false." },
-        isActive: { type: "boolean", description: "Defaults to true." },
       },
     },
     AttachPermissionRequest: {
@@ -111,17 +109,32 @@ export const adminSpec: OpenApiFragment = {
     },
     MemberSummary: {
       type: "object",
-      required: ["memberId", "userId", "email", "joinedDate", "blocked", "roles", "createdAt"],
+      required: ["memberId", "userId", "uuid", "email", "blocked", "isActive", "twoFactorEnabled", "roles", "createdAt", "updatedAt"],
       properties: {
         memberId: { type: "string" },
         userId: { type: "string" },
+        uuid: { type: "string" },
         email: { type: "string" },
-        dob: { type: "string", format: "date-time", nullable: true, description: "Date of birth, ISO 8601." },
-        gender: { type: "string", nullable: true },
-        joinedDate: { type: "string", format: "date-time", description: "ISO 8601. Defaults to the account's creation day." },
-        blocked: { type: "boolean" },
+        firstName: { type: "string", nullable: true, description: "Unique across the deployment." },
+        lastName: { type: "string", nullable: true, description: "Unique across the deployment." },
+        displayName: { type: "string", nullable: true },
+        phone: { type: "string", nullable: true, description: "Unique across the deployment." },
+        username: { type: "string", nullable: true, description: "Unique across the deployment." },
+        photo: { type: "string", nullable: true },
+        lastLogin: {
+          type: "string",
+          format: "date-time",
+          nullable: true,
+          description: "Set on every successful signup/login/OAuth callback, never on a token refresh.",
+        },
+        blocked: { type: "boolean", description: "Security/moderation block — distinct from isActive, see the model note." },
+        isActive: { type: "boolean", description: "Routine administrative on/off toggle — distinct from blocked, see the model note." },
+        twoFactorEnabled: { type: "boolean" },
         roles: { type: "array", items: { type: "string" }, description: "This member's roles in this workspace" },
-        createdAt: { type: "string", format: "date-time" },
+        createdBy: { type: "string", nullable: true, description: "User id of whoever created this account, if it wasn't a self-signup." },
+        updatedBy: { type: "string", nullable: true, description: "User id of whoever last edited this account's profile." },
+        createdAt: { type: "string", format: "date-time", description: "When this membership was created." },
+        updatedAt: { type: "string", format: "date-time", description: "When the underlying user account was last edited." },
       },
     },
     CreateUserRequest: {
@@ -135,16 +148,7 @@ export const adminSpec: OpenApiFragment = {
         displayName: { type: "string" },
         phone: { type: "string", description: "Unique across the deployment." },
         username: { type: "string", description: "Unique across the deployment." },
-        photo: { type: "string", description: "A data URI or an externally-hosted URL — stored as-is, never processed server-side." },
-        dob: { type: "string", format: "date", description: "Date of birth, ISO date (yyyy-mm-dd)." },
-        gender: { type: "string" },
-        joinedDate: { type: "string", format: "date", description: "ISO date (yyyy-mm-dd). Defaults to today." },
-        isActive: { type: "boolean", description: "Defaults to true — false creates the account already deactivated." },
-        roles: {
-          type: "array",
-          items: { type: "string" },
-          description: "Role slugs to assign. Defaults to whichever roles are flagged isDefault, same as a self-signup.",
-        },
+        roles: { type: "array", items: { type: "string" }, description: "Role slugs to assign. Defaults to whichever roles are flagged isDefault, same as a self-signup." },
       },
     },
     UpdateUserRequest: {
@@ -156,9 +160,6 @@ export const adminSpec: OpenApiFragment = {
         phone: { type: "string", nullable: true, description: "Unique across the deployment." },
         username: { type: "string", nullable: true, description: "Unique across the deployment." },
         photo: { type: "string", nullable: true },
-        dob: { type: "string", format: "date", nullable: true, description: "Date of birth, ISO date (yyyy-mm-dd)." },
-        gender: { type: "string", nullable: true },
-        joinedDate: { type: "string", format: "date", description: "ISO date (yyyy-mm-dd). Not nullable — omit to leave unchanged." },
       },
     },
     UpdateRoleRequest: {
@@ -167,7 +168,6 @@ export const adminSpec: OpenApiFragment = {
         name: { type: "string" },
         displayName: { type: "string" },
         description: { type: "string", nullable: true },
-        isDefault: { type: "boolean", description: "Given to every newly signed-up user." },
         isActive: { type: "boolean", description: "false suspends the role without deleting it — it stops granting immediately." },
       },
     },
@@ -177,12 +177,24 @@ export const adminSpec: OpenApiFragment = {
         reason: { type: "string", description: "Free-text note, for whoever reviews the deletion later." },
       },
     },
+    PageMeta: {
+      type: "object",
+      required: ["page", "limit", "total", "pageCount", "hasPreviousPage", "hasNextPage"],
+      properties: {
+        page: { type: "integer", description: "1-indexed" },
+        limit: { type: "integer" },
+        total: { type: "integer" },
+        pageCount: { type: "integer" },
+        hasPreviousPage: { type: "boolean" },
+        hasNextPage: { type: "boolean" },
+      },
+    },
     UserListResponse: {
       type: "object",
-      required: ["users", "nextCursor"],
+      required: ["items", "meta"],
       properties: {
-        users: { type: "array", items: { $ref: "#/components/schemas/MemberSummary" } },
-        nextCursor: { type: "string", nullable: true, description: "Pass back as `cursor` for the next page; null on the last one" },
+        items: { type: "array", items: { $ref: "#/components/schemas/MemberSummary" } },
+        meta: { $ref: "#/components/schemas/PageMeta" },
       },
     },
     AuditLogEntry: {
@@ -202,10 +214,10 @@ export const adminSpec: OpenApiFragment = {
     },
     AuditLogListResponse: {
       type: "object",
-      required: ["entries", "nextCursor"],
+      required: ["items", "meta"],
       properties: {
-        entries: { type: "array", items: { $ref: "#/components/schemas/AuditLogEntry" } },
-        nextCursor: { type: "string", nullable: true },
+        items: { type: "array", items: { $ref: "#/components/schemas/AuditLogEntry" } },
+        meta: { $ref: "#/components/schemas/PageMeta" },
       },
     },
 
@@ -222,8 +234,8 @@ export const adminSpec: OpenApiFragment = {
         parameters: [
           adminHeaderParameter,
           { name: "search", in: "query", required: false, schema: { type: "string" }, description: "Email substring match" },
-          { name: "limit", in: "query", required: false, schema: { type: "integer" } },
-          { name: "cursor", in: "query", required: false, schema: { type: "string" } },
+          { name: "page", in: "query", required: false, schema: { type: "integer" }, description: "1-indexed. Defaults to 1." },
+          { name: "limit", in: "query", required: false, schema: { type: "integer" }, description: "Defaults to 25, capped at 100." },
         ],
         responses: {
           "200": { description: "OK", content: { "application/json": { schema: { $ref: "#/components/schemas/UserListResponse" } } } },
@@ -243,6 +255,7 @@ export const adminSpec: OpenApiFragment = {
         },
         responses: {
           "201": { description: "Created", content: { "application/json": { schema: { $ref: "#/components/schemas/MemberSummary" } } } },
+          "400": errorResponse("Missing required field"),
           "401": errorResponse("Missing or invalid access token"),
           "403": missingPermission("users:manage", "the request named no workspace you belong to"),
           "409": errorResponse("Email already registered"),
@@ -313,8 +326,8 @@ export const adminSpec: OpenApiFragment = {
           { name: "action", in: "query", required: false, schema: { type: "string" }, description: "AuditEvent discriminant, e.g. 'role_assigned'" },
           { name: "since", in: "query", required: false, schema: { type: "string", format: "date-time" } },
           { name: "until", in: "query", required: false, schema: { type: "string", format: "date-time" } },
-          { name: "limit", in: "query", required: false, schema: { type: "integer" } },
-          { name: "cursor", in: "query", required: false, schema: { type: "string" } },
+          { name: "page", in: "query", required: false, schema: { type: "integer" }, description: "1-indexed. Defaults to 1." },
+          { name: "limit", in: "query", required: false, schema: { type: "integer" }, description: "Defaults to 25, capped at 100." },
         ],
         responses: {
           "200": { description: "OK", content: { "application/json": { schema: { $ref: "#/components/schemas/AuditLogListResponse" } } } },
@@ -539,6 +552,38 @@ export const adminSpec: OpenApiFragment = {
       post: {
         tags: ["auth"],
         summary: "[admin] Unblock a member",
+        description: requiresPermission("users:block"),
+        security: [{ bearerAuth: [] }],
+        parameters: [adminHeaderParameter, { name: "userId", in: "path", required: true, schema: { type: "string" } }],
+        responses: {
+          "201": { description: "Created", content: { "application/json": { schema: { $ref: "#/components/schemas/OkResponse" } } } },
+          "401": errorResponse("Missing or invalid access token"),
+          "403": missingPermission("users:block", "the request named no workspace you belong to"),
+          "404": errorResponse("The user is not a member of this workspace"),
+        },
+      },
+    },
+    "/auth/admin/users/{userId}/deactivate": {
+      post: {
+        tags: ["auth"],
+        summary: "[admin] Deactivate a member, revoking all their sessions immediately",
+        description:
+          requiresPermission("users:block") +
+          " Distinct from block/unblock — a routine administrative toggle, not a security action. Both independently deny login.",
+        security: [{ bearerAuth: [] }],
+        parameters: [adminHeaderParameter, { name: "userId", in: "path", required: true, schema: { type: "string" } }],
+        responses: {
+          "201": { description: "Created", content: { "application/json": { schema: { $ref: "#/components/schemas/OkResponse" } } } },
+          "401": errorResponse("Missing or invalid access token"),
+          "403": missingPermission("users:block", "cannot deactivate your own account", "the request named no workspace you belong to"),
+          "404": errorResponse("The user is not a member of this workspace"),
+        },
+      },
+    },
+    "/auth/admin/users/{userId}/activate": {
+      post: {
+        tags: ["auth"],
+        summary: "[admin] Reactivate a member",
         description: requiresPermission("users:block"),
         security: [{ bearerAuth: [] }],
         parameters: [adminHeaderParameter, { name: "userId", in: "path", required: true, schema: { type: "string" } }],

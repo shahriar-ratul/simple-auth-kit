@@ -1,6 +1,8 @@
+"use client";
+
 import { type ColumnDef, type PaginationState, type Table as ReactTable, flexRender } from "@tanstack/react-table";
-import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Button } from "./button";
 
 const PAGE_SIZE_OPTIONS = [20, 50, 100, 200] as const;
 
@@ -12,9 +14,7 @@ interface DataTableProps<TData> {
   onPaginationChange: (updater: PaginationState | ((old: PaginationState) => PaginationState)) => void;
 }
 
-// `columns` isn't read directly — it's part of the caller-facing shape (mirrors `admin-nextjs`'s
-// `DataTable`) but rendering only ever goes through `table`, which already carries the column defs.
-export function DataTable<TData>({ columns: _columns, data, total, table, onPaginationChange }: DataTableProps<TData>) {
+export function DataTable<TData>({ columns, data, total, table, onPaginationChange }: DataTableProps<TData>) {
   return (
     <div className="overflow-hidden rounded-lg border border-border">
       <Table>

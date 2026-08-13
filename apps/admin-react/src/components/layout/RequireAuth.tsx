@@ -1,5 +1,6 @@
+import { useEffect, useRef } from "react";
 import { observer } from "mobx-react-lite";
-import { Navigate, Outlet, useLocation } from "react-router-dom";
+import { Navigate, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { canAny, useAbility } from "@/lib/ability";
 import { useAuthStore } from "@/stores/store-context";
 
@@ -7,6 +8,24 @@ import { useAuthStore } from "@/stores/store-context";
 export const RequireAuth = observer(function RequireAuth() {
   const store = useAuthStore();
   const location = useLocation();
+  const navigate = useNavigate();
+
+  // A Vite SPA has no server to run middleware on, so there's no equivalent to the base
+  // admin-nextjs app's `proxy.ts`. Re-verify against the backend on every navigation instead of
+  // only trusting in-memory state, so a logout-all/block/deactivate takes effect at the next
+  // click rather than staying invisible until some unrelated API call happens to 401.
+  const pathnameRef = useRef(location.pathname);
+  pathnameRef.current = location.pathname;
+  useEffect(() => {
+    if (store.initializing || !store.isAuthenticated) return;
+    const pathnameAtCheckStart = pathnameRef.current;
+    void store.verifySession().then((stillValid) => {
+      if (!stillValid && pathnameRef.current === pathnameAtCheckStart) {
+        navigate("/login", { replace: true, state: { from: location } });
+      }
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location.pathname]);
 
   if (store.initializing) {
     return (

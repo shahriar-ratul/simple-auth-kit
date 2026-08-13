@@ -7,6 +7,9 @@ export class UserSummaryDto {
   id!: string;
 
   @ApiProperty({ type: String })
+  uuid!: string;
+
+  @ApiProperty({ type: String })
   email!: string;
 
   @ApiProperty({ type: String, nullable: true, description: "Unique across the deployment." })
@@ -39,22 +42,57 @@ export class UserSummaryDto {
   @ApiProperty({ type: String, nullable: true, description: "ISO 8601. Set on every successful signup/login/OAuth callback, never on a token refresh." })
   lastLogin!: string | null;
 
-  @ApiProperty({ type: Boolean })
+  @ApiProperty({ type: Boolean, description: "Security/moderation block — distinct from isActive, see the model note." })
   blocked!: boolean;
+
+  @ApiProperty({ type: Boolean, description: "Routine administrative on/off toggle — distinct from blocked, see the model note." })
+  isActive!: boolean;
+
+  @ApiProperty({ type: Boolean })
+  twoFactorEnabled!: boolean;
 
   @ApiProperty({ type: [String] })
   roles!: string[];
 
+  @ApiProperty({ type: String, nullable: true, description: "User id of whoever created this account, if it wasn't a self-signup." })
+  createdBy!: string | null;
+
+  @ApiProperty({ type: String, nullable: true, description: "User id of whoever last edited this account's profile." })
+  updatedBy!: string | null;
+
   @ApiProperty({ type: String })
   createdAt!: string;
+
+  @ApiProperty({ type: String })
+  updatedAt!: string;
+}
+
+export class PageMetaDto {
+  @ApiProperty({ type: Number, description: "1-indexed" })
+  page!: number;
+
+  @ApiProperty({ type: Number })
+  limit!: number;
+
+  @ApiProperty({ type: Number })
+  total!: number;
+
+  @ApiProperty({ type: Number })
+  pageCount!: number;
+
+  @ApiProperty({ type: Boolean })
+  hasPreviousPage!: boolean;
+
+  @ApiProperty({ type: Boolean })
+  hasNextPage!: boolean;
 }
 
 export class UserListResponseDto {
   @ApiProperty({ type: [UserSummaryDto] })
-  users!: UserSummaryDto[];
+  items!: UserSummaryDto[];
 
-  @ApiProperty({ type: String, nullable: true })
-  nextCursor!: string | null;
+  @ApiProperty({ type: PageMetaDto })
+  meta!: PageMetaDto;
 }
 
 export class AuditLogEntryDto {
@@ -85,8 +123,8 @@ export class AuditLogEntryDto {
 
 export class AuditLogListResponseDto {
   @ApiProperty({ type: [AuditLogEntryDto] })
-  entries!: AuditLogEntryDto[];
+  items!: AuditLogEntryDto[];
 
-  @ApiProperty({ type: String, nullable: true })
-  nextCursor!: string | null;
+  @ApiProperty({ type: PageMetaDto })
+  meta!: PageMetaDto;
 }

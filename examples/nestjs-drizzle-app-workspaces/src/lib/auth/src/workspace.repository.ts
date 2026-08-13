@@ -4,7 +4,7 @@ import { DRIZZLE_DB, type Database } from "./db.js";
 import { provisionDefaultRoles, WORKSPACE_CREATOR_ROLES } from "./rbac.defaults.js";
 import { RbacRepository } from "./rbac.repository.js";
 import { roleMember, roles, users, workspaceMembers, workspaces } from "./schema.js";
-import { toId } from "./id.helper.js";
+import { toId, toIdOrNull } from "./id.helper.js";
 
 export interface WorkspaceSummary {
   id: string;
@@ -111,6 +111,26 @@ export class WorkspaceRepository {
   }
 
   /**
+   * Resolves the roles a new membership should hold, shared by `addMember` and `createMember`.
+   * With no roles named, whichever of this workspace's roles are flagged `isDefault` — not a slug
+   * spelled in code. Named slugs are validated against this workspace: naming one that doesn't
+   * exist here is rejected rather than silently granting nothing.
+   */
+  private async resolveMemberRoles(workspaceIdBig: bigint, roleSlugs?: string[]): Promise<{ id: bigint; slug: string }[]> {
+    const granted = await this.db
+      .select({ id: roles.id, slug: roles.slug })
+      .from(roles)
+      .where(
+        roleSlugs
+          ? and(eq(roles.workspaceId, workspaceIdBig), inArray(roles.slug, roleSlugs))
+          : and(eq(roles.workspaceId, workspaceIdBig), eq(roles.isDefault, true), eq(roles.isActive, true)),
+      );
+    const unknown = (roleSlugs ?? []).filter((slug) => !granted.some((role) => role.slug === slug));
+    if (unknown.length) throw new NotFoundException(`role(s) not defined in this workspace: ${unknown.join(", ")}`);
+    return granted;
+  }
+
+  /**
    * Adds an existing user by email — there is no invite/email flow in this library, that is the
    * consuming app's job. With no roles named, the new membership gets whichever of this
    * workspace's roles are flagged `isDefault`, not a slug spelled in code.
@@ -127,16 +147,60 @@ export class WorkspaceRepository {
       .limit(1);
     if (existing) throw new ConflictException("already a member of this workspace");
 
-    const granted = await this.db
-      .select({ id: roles.id, slug: roles.slug })
-      .from(roles)
-      .where(
-        roleSlugs
-          ? and(eq(roles.workspaceId, workspaceIdBig), inArray(roles.slug, roleSlugs))
-          : and(eq(roles.workspaceId, workspaceIdBig), eq(roles.isDefault, true), eq(roles.isActive, true)),
-      );
-    const unknown = (roleSlugs ?? []).filter((slug) => !granted.some((role) => role.slug === slug));
-    if (unknown.length) throw new NotFoundException(`role(s) not defined in this workspace: ${unknown.join(", ")}`);
+    const granted = await this.resolveMemberRoles(workspaceIdBig, roleSlugs);
+
+    const member = await this.db.transaction(async (tx) => {
+      const [created] = await tx.insert(workspaceMembers).values({ workspaceId: workspaceIdBig, userId: user.id }).returning();
+      if (granted.length) await tx.insert(roleMember).values(granted.map((role) => ({ memberId: created.id, roleId: role.id })));
+      return created;
+    });
+
+    return {
+      memberId: member.id.toString(),
+      userId: user.id.toString(),
+      email: user.email,
+      roles: granted.map((role) => role.slug).sort(),
+      createdAt: member.createdAt.toISOString(),
+    };
+  }
+
+  /**
+   * An administrator provisioning a brand-new account and adding it to this workspace in one
+   * step — as distinct from `addMember`, which only ever attaches an account that already
+   * exists. No invite/email flow in this library either way: the password is usable immediately.
+   */
+  async createMember(
+    workspaceId: string,
+    input: {
+      email: string;
+      passwordHash: string;
+      firstName?: string;
+      lastName?: string;
+      displayName?: string;
+      phone?: string;
+      username?: string;
+      roles?: string[];
+    },
+    actorUserId: string | null,
+  ): Promise<MembershipSummary> {
+    const workspaceIdBig = toId(workspaceId);
+    const [existing] = await this.db.select({ id: users.id }).from(users).where(eq(users.email, input.email)).limit(1);
+    if (existing) throw new ConflictException("email already registered");
+
+    const granted = await this.resolveMemberRoles(workspaceIdBig, input.roles);
+    const [user] = await this.db
+      .insert(users)
+      .values({
+        email: input.email,
+        passwordHash: input.passwordHash,
+        firstName: input.firstName,
+        lastName: input.lastName,
+        displayName: input.displayName,
+        phone: input.phone,
+        username: input.username,
+        createdBy: toIdOrNull(actorUserId),
+      })
+      .returning();
 
     const member = await this.db.transaction(async (tx) => {
       const [created] = await tx.insert(workspaceMembers).values({ workspaceId: workspaceIdBig, userId: user.id }).returning();

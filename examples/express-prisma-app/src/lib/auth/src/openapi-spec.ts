@@ -38,13 +38,18 @@ export const openApiSpec: Record<string, unknown> = {
         properties: {
           email: { type: "string", example: "alice@example.com" },
           password: { type: "string", example: "correct-horse-battery-staple" },
+          firstName: { type: "string", description: "Unique across the deployment.", example: "Alice" },
+          lastName: { type: "string", description: "Unique across the deployment.", example: "Nguyen" },
+          displayName: { type: "string", example: "Alice Nguyen" },
+          phone: { type: "string", description: "Unique across the deployment." },
+          username: { type: "string", description: "Unique across the deployment." },
         },
       },
       LoginRequest: {
         type: "object",
-        required: ["email", "password"],
+        required: ["identifier", "password"],
         properties: {
-          email: { type: "string", example: "alice@example.com" },
+          identifier: { type: "string", description: "Email, username, or phone — whichever the account has set.", example: "alice@example.com" },
           password: { type: "string", example: "correct-horse-battery-staple" },
         },
       },
@@ -85,6 +90,14 @@ export const openApiSpec: Record<string, unknown> = {
           newPassword: { type: "string" },
         },
       },
+      ChangePasswordRequest: {
+        type: "object",
+        required: ["currentPassword", "newPassword"],
+        properties: {
+          currentPassword: { type: "string" },
+          newPassword: { type: "string" },
+        },
+      },
 
       AuthTokens: {
         type: "object",
@@ -113,13 +126,42 @@ export const openApiSpec: Record<string, unknown> = {
       },
       CurrentUser: {
         type: "object",
-        required: ["sub", "sessionId", "roles", "permissions", "twoFactorEnabled"],
+        required: ["sub", "sessionId", "roles", "permissions", "twoFactorEnabled", "email"],
         properties: {
           sub: { type: "string", description: "User id" },
           sessionId: { type: "string" },
           roles: { type: "array", items: { type: "string" } },
-          permissions: { type: "array", items: { type: "string" } },
+          permissions: {
+            type: "array",
+            items: { type: "string" },
+            description:
+              "`defineAbilitiesFor(permissions)` from ability.ts rebuilds, in the client, the very ability the server's own route check just answered with — " +
+              "so the console holds no second copy of the rules and cannot offer an action the API will refuse.",
+            example: ["users:read", "audit-log:read"],
+          },
           twoFactorEnabled: { type: "boolean" },
+          email: { type: "string" },
+          firstName: { type: "string", nullable: true },
+          lastName: { type: "string", nullable: true },
+          displayName: { type: "string", nullable: true },
+          phone: { type: "string", nullable: true },
+          username: { type: "string", nullable: true },
+          photo: { type: "string", nullable: true, description: "A data URI or an externally-hosted URL — stored as-is, never processed server-side." },
+        },
+      },
+      SelfProfile: {
+        type: "object",
+        required: ["id", "email", "createdAt"],
+        properties: {
+          id: { type: "string" },
+          email: { type: "string" },
+          firstName: { type: "string", nullable: true },
+          lastName: { type: "string", nullable: true },
+          displayName: { type: "string", nullable: true },
+          phone: { type: "string", nullable: true },
+          username: { type: "string", nullable: true },
+          photo: { type: "string", nullable: true, description: "A data URI or an externally-hosted URL — stored as-is, never processed server-side." },
+          createdAt: { type: "string", format: "date-time" },
         },
       },
       SessionSummary: {
@@ -193,8 +235,8 @@ export const openApiSpec: Record<string, unknown> = {
     "/auth/login": {
       post: {
         tags: ["auth"],
-        summary: "Log in with email + password",
-        description: "Returns tokens directly, or a 2FA challenge if the account has 2FA enabled.",
+        summary: "Log in with email, username, or phone + password",
+        description: "identifier is matched against email, username, and phone, in that order. Returns tokens directly, or a 2FA challenge if the account has 2FA enabled.",
         requestBody: {
           required: true,
           content: { "application/json": { schema: { $ref: "#/components/schemas/LoginRequest" } } },
@@ -256,6 +298,20 @@ export const openApiSpec: Record<string, unknown> = {
           "401": errorResponse("Missing or invalid access token"),
         },
       },
+      patch: {
+        tags: ["auth"],
+        summary: "Update the current user's own profile",
+        description: "Self-service — no admin permission required. Updates the caller's own row directly; unrelated to any workspace.",
+        security: [{ bearerAuth: [] }],
+        requestBody: {
+          required: true,
+          content: { "application/json": { schema: { $ref: "#/components/schemas/UpdateUserRequest" } } },
+        },
+        responses: {
+          "200": { description: "OK", content: { "application/json": { schema: { $ref: "#/components/schemas/SelfProfile" } } } },
+          "401": errorResponse("Missing or invalid access token"),
+        },
+      },
     },
     "/auth/sessions": {
       get: {
@@ -301,6 +357,23 @@ export const openApiSpec: Record<string, unknown> = {
         responses: {
           "200": { description: "OK", content: { "application/json": { schema: { $ref: "#/components/schemas/OkResponse" } } } },
           "401": errorResponse("Missing or invalid access token"),
+        },
+      },
+    },
+    "/auth/password/change": {
+      post: {
+        tags: ["auth"],
+        summary: "Change the current user's password",
+        description: "Requires the current password. Revokes every other session for the user; the session making this call is left alone.",
+        security: [{ bearerAuth: [] }],
+        requestBody: {
+          required: true,
+          content: { "application/json": { schema: { $ref: "#/components/schemas/ChangePasswordRequest" } } },
+        },
+        responses: {
+          "200": { description: "OK", content: { "application/json": { schema: { $ref: "#/components/schemas/OkResponse" } } } },
+          "400": errorResponse("Missing required field"),
+          "401": errorResponse("Missing/invalid access token, or wrong current password"),
         },
       },
     },

@@ -1,7 +1,7 @@
 import { Pool } from "pg";
 import { drizzle } from "drizzle-orm/node-postgres";
 import { DynamicModule, Module } from "@nestjs/common";
-import { APP_FILTER } from "@nestjs/core";
+import { APP_FILTER, APP_INTERCEPTOR } from "@nestjs/core";
 import { AbilityGuard } from "./ability.guard.js";
 import { AdminController } from "./admin.controller.js";
 import { AuditLogRepository } from "./audit-log.repository.js";
@@ -18,6 +18,7 @@ import { PasswordResetRepository } from "./password-reset.repository.js";
 import { InMemoryPermissionCacheStore, PERMISSION_CACHE_STORE, PermissionCache } from "./permission-cache.js";
 import { InMemoryRateLimitStore } from "./rate-limit.store.js";
 import { RbacRepository } from "./rbac.repository.js";
+import { ResponseInterceptor } from "./response.interceptor.js";
 import { assertEveryRouteDeclaresATier } from "./route-tiers.js";
 import * as schema from "./schema.js";
 import { SessionRepository } from "./session.repository.js";
@@ -55,6 +56,7 @@ export class AuthModule {
         { provide: PERMISSION_CACHE_STORE, useValue: config.permissionCacheStore ?? new InMemoryPermissionCacheStore() },
         PermissionCache,
         { provide: APP_FILTER, useClass: AuthCoreErrorFilter },
+        { provide: APP_INTERCEPTOR, useClass: ResponseInterceptor },
         AuditLogRepository,
         SessionRepository,
         KeyProviderService,

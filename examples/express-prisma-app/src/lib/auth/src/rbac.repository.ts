@@ -1,11 +1,13 @@
 import { resolvePermissions } from "@/lib/auth/core/rbac.js";
-import { PrismaClient } from "../generated/prisma/client.js";
+import { Prisma, PrismaClient } from "../generated/prisma/client.js";
 import { HttpError } from "./http-error.js";
+import { buildPageMeta, normalizeLimit, normalizePage, type Paginated } from "./pagination.js";
 import { PermissionCache } from "./permission-cache.js";
 import { toId, toIdOrNull } from "./id.helper.js";
 
 export interface UserSummary {
   id: string;
+  uuid: string;
   email: string;
   firstName: string | null;
   lastName: string | null;
@@ -13,24 +15,56 @@ export interface UserSummary {
   phone: string | null;
   username: string | null;
   photo: string | null;
-  dob: string | null;
-  gender: string | null;
-  joinedDate: string;
   lastLogin: string | null;
   blocked: boolean;
+  isActive: boolean;
+  twoFactorEnabled: boolean;
   roles: string[];
+  createdBy: string | null;
+  updatedBy: string | null;
   createdAt: string;
+  updatedAt: string;
 }
 
 export interface UserListFilter {
   search?: string;
+  page?: number;
   limit?: number;
-  cursor?: string;
 }
 
-export interface UserListResult {
-  users: UserSummary[];
-  nextCursor: string | null;
+export type UserListResult = Paginated<UserSummary>;
+
+const USER_ROLES_INCLUDE = { roles: { select: { role: { select: { slug: true } } } } } as const;
+
+/** A `User` row as `findUnique`/`findMany` return it with its roles joined in. */
+export type UserRow = Prisma.UserGetPayload<{ include: typeof USER_ROLES_INCLUDE }>;
+
+/**
+ * Shapes a raw row into the wire DTO — bigint id to string, `Date` to ISO, the roles relation
+ * to a flat slug list. Exported so callers that need the collection (paginated `listUsers`) can
+ * apply it themselves at the service layer instead of the repository doing it on their behalf.
+ */
+export function toUserSummary(row: UserRow): UserSummary {
+  return {
+    id: row.id.toString(),
+    uuid: row.uuid,
+    email: row.email,
+    firstName: row.firstName,
+    lastName: row.lastName,
+    displayName: row.displayName,
+    phone: row.phone,
+    username: row.username,
+    photo: row.photo,
+    lastLogin: row.lastLogin?.toISOString() ?? null,
+    blocked: row.blocked,
+    isActive: row.isActive,
+    twoFactorEnabled: row.twoFactorEnabled,
+    roles: row.roles.map((r) => r.role.slug).sort(),
+    createdBy: row.createdBy?.toString() ?? null,
+    updatedBy: row.updatedBy?.toString() ?? null,
+    createdAt: row.createdAt.toISOString(),
+    updatedAt: row.updatedAt.toISOString(),
+  };
 }
 
 /** A `Permission` row as the catalog endpoints return it. */
@@ -79,9 +113,6 @@ const PERMISSION_SELECT = {
 } as const;
 
 const ROLE_SELECT = { id: true, slug: true, name: true, displayName: true, isDefault: true, isActive: true } as const;
-
-const MAX_PAGE_SIZE = 100;
-const DEFAULT_PAGE_SIZE = 25;
 
 export class RbacRepository {
   constructor(
@@ -139,68 +170,40 @@ export class RbacRepository {
     };
   }
 
-  /** Newest-first, cursor-paginated (cursor = the last-seen row's `id`); `search` matches an email substring. */
-  async listUsers(filter: UserListFilter = {}): Promise<UserListResult> {
-    const limit = Math.min(filter.limit ?? DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE);
-
-    const rows = await this.prisma.user.findMany({
-      where: {
-        isDeleted: false,
-        email: filter.search ? { contains: filter.search, mode: "insensitive" } : undefined,
-      },
-      include: { roles: { select: { role: { select: { slug: true } } } } },
-      orderBy: [{ createdAt: "desc" }, { id: "desc" }],
-      take: limit + 1,
-      ...(filter.cursor ? { cursor: { id: toId(filter.cursor) }, skip: 1 } : {}),
-    });
-
-    const hasMore = rows.length > limit;
-    const page = hasMore ? rows.slice(0, limit) : rows;
-    return {
-      users: page.map((row) => ({
-        id: row.id.toString(),
-        email: row.email,
-        firstName: row.firstName,
-        lastName: row.lastName,
-        displayName: row.displayName,
-        phone: row.phone,
-        username: row.username,
-        photo: row.photo,
-        dob: row.dob?.toISOString() ?? null,
-        gender: row.gender,
-        joinedDate: row.joinedDate.toISOString(),
-        lastLogin: row.lastLogin?.toISOString() ?? null,
-        blocked: row.blocked,
-        roles: row.roles.map((r) => r.role.slug).sort(),
-        createdAt: row.createdAt.toISOString(),
-      })),
-      nextCursor: hasMore ? page[page.length - 1].id.toString() : null,
+  /**
+   * Newest-first, page-paginated; `search` matches an email substring. Returns raw rows, not
+   * `UserSummary` — shaping each row is the caller's job (`AuthService.listUsers` does it via
+   * `toUserSummary`), so this method's only responsibility is the query and the page envelope.
+   */
+  async listUsers(filter: UserListFilter = {}): Promise<Paginated<UserRow>> {
+    const page = normalizePage(filter.page);
+    const limit = normalizeLimit(filter.limit);
+    const where = {
+      isDeleted: false,
+      email: filter.search ? { contains: filter.search, mode: "insensitive" as const } : undefined,
     };
+
+    const [rows, total] = await this.prisma.$transaction([
+      this.prisma.user.findMany({
+        where,
+        include: USER_ROLES_INCLUDE,
+        orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+        take: limit,
+        skip: (page - 1) * limit,
+      }),
+      this.prisma.user.count({ where }),
+    ]);
+
+    return { items: rows, meta: buildPageMeta(page, limit, total) };
   }
 
   async getUser(userId: string): Promise<UserSummary> {
     const row = await this.prisma.user.findUnique({
       where: { id: toId(userId), isDeleted: false },
-      include: { roles: { select: { role: { select: { slug: true } } } } },
+      include: USER_ROLES_INCLUDE,
     });
     if (!row) throw new HttpError(404, `user "${userId}" not found`);
-    return {
-      id: row.id.toString(),
-      email: row.email,
-      firstName: row.firstName,
-      lastName: row.lastName,
-      displayName: row.displayName,
-      phone: row.phone,
-      username: row.username,
-      photo: row.photo,
-      dob: row.dob?.toISOString() ?? null,
-      gender: row.gender,
-      joinedDate: row.joinedDate.toISOString(),
-      lastLogin: row.lastLogin?.toISOString() ?? null,
-      blocked: row.blocked,
-      roles: row.roles.map((r) => r.role.slug).sort(),
-      createdAt: row.createdAt.toISOString(),
-    };
+    return toUserSummary(row);
   }
 
   /**
@@ -216,11 +219,6 @@ export class RbacRepository {
       displayName?: string;
       phone?: string;
       username?: string;
-      photo?: string;
-      dob?: string;
-      gender?: string;
-      joinedDate?: string;
-      isActive?: boolean;
       roles?: string[];
     },
     actorUserId: string | null,
@@ -237,11 +235,6 @@ export class RbacRepository {
         displayName: input.displayName,
         phone: input.phone,
         username: input.username,
-        photo: input.photo,
-        dob: input.dob ? new Date(input.dob) : undefined,
-        gender: input.gender,
-        joinedDate: input.joinedDate ? new Date(input.joinedDate) : undefined,
-        isActive: input.isActive,
         createdBy: toIdOrNull(actorUserId),
       },
     });
@@ -263,32 +256,13 @@ export class RbacRepository {
   // uniqueness/re-verification concerns a general "edit profile" screen shouldn't have to handle.
   async updateUser(
     userId: string,
-    input: {
-      firstName?: string | null;
-      lastName?: string | null;
-      displayName?: string | null;
-      phone?: string | null;
-      username?: string | null;
-      photo?: string | null;
-      dob?: string | null;
-      gender?: string | null;
-      joinedDate?: string;
-    },
+    input: { firstName?: string | null; lastName?: string | null; displayName?: string | null; phone?: string | null; username?: string | null; photo?: string | null },
     actorUserId: string | null,
   ): Promise<UserSummary> {
     const userIdBig = toId(userId);
     const existing = await this.prisma.user.findUnique({ where: { id: userIdBig, isDeleted: false }, select: { id: true } });
     if (!existing) throw new HttpError(404, `user "${userId}" not found`);
-    await this.prisma.user.update({
-      where: { id: userIdBig },
-      data: {
-        ...input,
-        // Date columns need Date values; `undefined` leaves them alone, like every other field here.
-        dob: input.dob === undefined ? undefined : input.dob === null ? null : new Date(input.dob),
-        joinedDate: input.joinedDate === undefined ? undefined : new Date(input.joinedDate),
-        updatedBy: toIdOrNull(actorUserId),
-      },
-    });
+    await this.prisma.user.update({ where: { id: userIdBig }, data: { ...input, updatedBy: toIdOrNull(actorUserId) } });
     return this.getUser(userId);
   }
 
@@ -308,7 +282,7 @@ export class RbacRepository {
 
   async updateRole(
     roleId: string,
-    input: { name?: string; displayName?: string; description?: string | null; isDefault?: boolean; isActive?: boolean },
+    input: { name?: string; displayName?: string; description?: string | null; isActive?: boolean },
     actorUserId: string | null,
   ): Promise<RoleSummary> {
     const roleIdBig = toId(roleId);
@@ -396,7 +370,7 @@ export class RbacRepository {
   }
 
   async createRole(
-    input: { slug: string; name?: string; displayName?: string; description?: string | null; isDefault?: boolean; isActive?: boolean },
+    input: { slug: string; name?: string; displayName?: string; description?: string | null },
     actorUserId: string | null,
   ): Promise<RoleSummary> {
     const role = await this.prisma.role.create({
@@ -405,8 +379,6 @@ export class RbacRepository {
         name: input.name ?? input.displayName ?? input.slug,
         displayName: input.displayName ?? input.slug,
         description: input.description ?? null,
-        isDefault: input.isDefault,
-        isActive: input.isActive,
         createdBy: toIdOrNull(actorUserId),
         updatedBy: toIdOrNull(actorUserId),
       },

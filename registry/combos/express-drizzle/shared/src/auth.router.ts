@@ -37,6 +37,11 @@ export function createAuthRouter(deps: AuthRouterDeps): RequestHandler {
       const tokens = await auth.signup({
         email: requireString(body.email, "email"),
         password: requireString(body.password, "password"),
+        firstName: optionalString(body.firstName),
+        lastName: optionalString(body.lastName),
+        displayName: optionalString(body.displayName),
+        phone: optionalString(body.phone),
+        username: optionalString(body.username),
         userAgent: req.headers["user-agent"],
         ip: req.ip,
       });

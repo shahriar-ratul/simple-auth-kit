@@ -1,5 +1,6 @@
-import type { ReactNode } from "react";
-import { Dialog } from "@/components/ui/dialog";
+"use client";
+
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 export function Modal({
   title,
@@ -12,11 +13,17 @@ export function Modal({
   description: string;
   isOpen: boolean;
   onClose: () => void;
-  children?: ReactNode;
+  children?: React.ReactNode;
 }) {
   return (
-    <Dialog open={isOpen} onClose={onClose} title={title} description={description}>
-      {children}
+    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>{title}</DialogTitle>
+          <DialogDescription>{description}</DialogDescription>
+        </DialogHeader>
+        <div>{children}</div>
+      </DialogContent>
     </Dialog>
   );
 }

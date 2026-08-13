@@ -1,9 +1,10 @@
 import { Inject, Injectable } from "@nestjs/common";
-import { and, desc, eq, gte, lt, lte, or, type SQL } from "drizzle-orm";
+import { and, count, desc, eq, gte, lte, type SQL } from "drizzle-orm";
 import type { AuditEvent } from "@/lib/auth/core/types.js";
 import { DRIZZLE_DB, type Database } from "./db.js";
+import { buildPageMeta, normalizeLimit, normalizePage, type Paginated } from "./pagination.js";
 import { auditLogs } from "./schema.js";
-import { toId, toIdOrNull, toIdOrUndefined } from "./id.helper.js";
+import { toIdOrNull, toIdOrUndefined } from "./id.helper.js";
 
 export interface AuditLogEntry {
   id: string;
@@ -24,12 +25,27 @@ export interface AuditLogListFilter {
   action?: string;
   since?: string;
   until?: string;
+  page?: number;
   limit?: number;
-  cursor?: string;
 }
 
-const MAX_PAGE_SIZE = 100;
-const DEFAULT_PAGE_SIZE = 25;
+/** An `auditLogs` row as `.select().from(auditLogs)` returns it. */
+export type AuditLogRow = typeof auditLogs.$inferSelect;
+
+/** Shapes a raw row into the wire DTO. Applied by the caller (`AuthService.listAuditLog`), not here. */
+export function toAuditLogEntry(row: AuditLogRow): AuditLogEntry {
+  return {
+    id: row.id.toString(),
+    workspaceId: row.workspaceId?.toString() ?? null,
+    userId: row.userId?.toString() ?? null,
+    name: row.name,
+    action: row.action,
+    info: row.info,
+    remarks: row.remarks,
+    createdAt: row.createdAt.toISOString(),
+    updatedAt: row.updatedAt.toISOString(),
+  };
+}
 
 /** "role_assigned" -> "Role assigned". Derived rather than passed in, so core never has to carry display text. */
 export function humanizeAction(action: string): string {
@@ -57,9 +73,10 @@ export class AuditLogRepository {
     });
   }
 
-  /** Newest-first, cursor-paginated (cursor = the last-seen row's `id`). */
-  async list(filter: AuditLogListFilter): Promise<{ entries: AuditLogEntry[]; nextCursor: string | null }> {
-    const limit = Math.min(filter.limit ?? DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE);
+  /** Newest-first, page-paginated. Returns raw rows — shaping is the caller's job, see `toAuditLogEntry`. */
+  async list(filter: AuditLogListFilter): Promise<Paginated<AuditLogRow>> {
+    const page = normalizePage(filter.page);
+    const limit = normalizeLimit(filter.limit);
 
     const conditions: SQL[] = [];
     const workspaceIdBig = toIdOrUndefined(filter.workspaceId);
@@ -69,41 +86,17 @@ export class AuditLogRepository {
     if (filter.action) conditions.push(eq(auditLogs.action, filter.action));
     if (filter.since) conditions.push(gte(auditLogs.createdAt, new Date(filter.since)));
     if (filter.until) conditions.push(lte(auditLogs.createdAt, new Date(filter.until)));
-
-    // `(createdAt, id) < (cursor.createdAt, cursor.id)`, spelled out so both halves of the
-    // ordering key are compared — the same rows Prisma's `cursor`/`skip: 1` would skip.
-    if (filter.cursor) {
-      const [anchor] = await this.db
-        .select({ id: auditLogs.id, createdAt: auditLogs.createdAt })
-        .from(auditLogs)
-        .where(eq(auditLogs.id, toId(filter.cursor)))
-        .limit(1);
-      if (!anchor) return { entries: [], nextCursor: null };
-      conditions.push(or(lt(auditLogs.createdAt, anchor.createdAt), and(eq(auditLogs.createdAt, anchor.createdAt), lt(auditLogs.id, anchor.id)))!);
-    }
+    const where = conditions.length ? and(...conditions) : undefined;
 
     const rows = await this.db
       .select()
       .from(auditLogs)
-      .where(conditions.length ? and(...conditions) : undefined)
+      .where(where)
       .orderBy(desc(auditLogs.createdAt), desc(auditLogs.id))
-      .limit(limit + 1);
+      .limit(limit)
+      .offset((page - 1) * limit);
+    const [{ value: total }] = await this.db.select({ value: count() }).from(auditLogs).where(where);
 
-    const hasMore = rows.length > limit;
-    const page = hasMore ? rows.slice(0, limit) : rows;
-    return {
-      entries: page.map((row) => ({
-        id: row.id.toString(),
-        workspaceId: row.workspaceId?.toString() ?? null,
-        userId: row.userId?.toString() ?? null,
-        name: row.name,
-        action: row.action,
-        info: row.info,
-        remarks: row.remarks,
-        createdAt: row.createdAt.toISOString(),
-        updatedAt: row.updatedAt.toISOString(),
-      })),
-      nextCursor: hasMore ? page[page.length - 1].id.toString() : null,
-    };
+    return { items: rows, meta: buildPageMeta(page, limit, total) };
   }
 }

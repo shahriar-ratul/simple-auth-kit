@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { BadRequestException, ConflictException, HttpException, HttpStatus, Inject, Injectable, NotFoundException, UnauthorizedException } from "@nestjs/common";
-import { and, desc, eq, gt } from "drizzle-orm";
+import { and, desc, eq, gt, or } from "drizzle-orm";
 import { hashPassword, verifyPassword } from "@/lib/auth/core/crypto.js";
 import {
   buildAuthorizationUrl,
@@ -17,6 +17,7 @@ import { checkRateLimit } from "@/lib/auth/core/rate-limit.js";
 import {
   blockUser,
   createSession,
+  deactivateUser,
   revokeAccessToken,
   revokeAllSessionsForUser,
   revokeOtherSessionsForUser,
@@ -26,7 +27,8 @@ import {
 import { signAccessToken, signRefreshToken, signTwoFactorChallengeToken, verifyRefreshToken, verifyTwoFactorChallengeToken } from "@/lib/auth/core/token-service.js";
 import { buildTotpProvisioningUri, generateBackupCodes, generateTotpSecret, verifyTotpCode } from "@/lib/auth/core/two-factor.js";
 import { AUTH_CONFIG, AuthConfig } from "./auth.config.js";
-import { AuditLogEntry, AuditLogListFilter, AuditLogRepository } from "./audit-log.repository.js";
+import { AuditLogEntry, AuditLogListFilter, AuditLogRepository, toAuditLogEntry } from "./audit-log.repository.js";
+import type { Paginated } from "./pagination.js";
 import { DRIZZLE_DB, type Database } from "./db.js";
 import { KeyProviderService } from "./key-provider.js";
 import { OAuthRepository } from "./oauth.repository.js";
@@ -34,7 +36,7 @@ import { PasswordResetRepository } from "./password-reset.repository.js";
 import { InMemoryRateLimitStore } from "./rate-limit.store.js";
 import type { Revoker } from "@/lib/auth/core/types.js";
 import type { AuthzContext } from "./authz.guard.js";
-import { MemberListFilter, MemberListResult, MemberSummary, PermissionInput, PermissionSummary, RbacRepository, RoleSummary } from "./rbac.repository.js";
+import { MemberListFilter, MemberListResult, MemberSummary, PermissionInput, PermissionSummary, RbacRepository, RoleSummary, toMemberSummary } from "./rbac.repository.js";
 import { sessions, users } from "./schema.js";
 import { SessionRepository } from "./session.repository.js";
 import { TwoFactorRepository } from "./two-factor.repository.js";
@@ -49,6 +51,19 @@ export interface AuthTokens {
 export interface TwoFactorChallenge {
   twoFactorRequired: true;
   challengeToken: string;
+}
+
+/** `PATCH /auth/me`'s return shape — the same across every combo, workspace-scoped or not, since a profile isn't a workspace concept. */
+export interface SelfProfile {
+  id: string;
+  email: string;
+  firstName: string | null;
+  lastName: string | null;
+  displayName: string | null;
+  phone: string | null;
+  username: string | null;
+  photo: string | null;
+  createdAt: string;
 }
 
 @Injectable()
@@ -67,22 +82,47 @@ export class AuthService {
   ) {}
 
   /** Creates the user and nothing else. Joining or creating a workspace is a separate, explicit call — see WorkspaceController. */
-  async signup(input: { email: string; password: string; userAgent?: string; ip?: string }): Promise<AuthTokens> {
+  async signup(input: {
+    email: string;
+    password: string;
+    firstName?: string;
+    lastName?: string;
+    displayName?: string;
+    phone?: string;
+    username?: string;
+    userAgent?: string;
+    ip?: string;
+  }): Promise<AuthTokens> {
     const [existing] = await this.db.select().from(users).where(eq(users.email, input.email)).limit(1);
     if (existing) throw new ConflictException("email already registered");
 
     const passwordHash = await hashPassword(input.password);
-    const [user] = await this.db.insert(users).values({ email: input.email, passwordHash }).returning();
+    const [user] = await this.db
+      .insert(users)
+      .values({
+        email: input.email,
+        passwordHash,
+        firstName: input.firstName,
+        lastName: input.lastName,
+        displayName: input.displayName,
+        phone: input.phone,
+        username: input.username,
+      })
+      .returning();
     return this.issueSessionTokens(user, { userAgent: input.userAgent, ip: input.ip });
   }
 
   /** Returns full tokens directly, or a short-lived challenge if the account has 2FA enabled — see `loginTwoFactor`. */
-  async login(input: { email: string; password: string; userAgent?: string; ip?: string }): Promise<AuthTokens | TwoFactorChallenge> {
-    const { allowed } = await checkRateLimit(this.rateLimit, "login", input.email);
+  async login(input: { identifier: string; password: string; userAgent?: string; ip?: string }): Promise<AuthTokens | TwoFactorChallenge> {
+    const { allowed } = await checkRateLimit(this.rateLimit, "login", input.identifier);
     if (!allowed) throw new HttpException("too many login attempts", HttpStatus.TOO_MANY_REQUESTS);
 
-    const [user] = await this.db.select().from(users).where(eq(users.email, input.email)).limit(1);
-    if (!user || user.blocked || user.isDeleted || !user.passwordHash) throw new UnauthorizedException("invalid credentials");
+    const [user] = await this.db
+      .select()
+      .from(users)
+      .where(or(eq(users.email, input.identifier), eq(users.username, input.identifier), eq(users.phone, input.identifier)))
+      .limit(1);
+    if (!user || user.blocked || !user.isActive || user.isDeleted || !user.passwordHash) throw new UnauthorizedException("invalid credentials");
 
     const valid = await verifyPassword(user.passwordHash, input.password);
     if (!valid) throw new UnauthorizedException("invalid credentials");
@@ -101,7 +141,7 @@ export class AuthService {
     const { sub } = await verifyTwoFactorChallengeToken({ secret: this.keys.secret }, input.challengeToken);
 
     const [user] = await this.db.select().from(users).where(eq(users.id, toId(sub))).limit(1);
-    if (!user || user.blocked || user.isDeleted || !user.twoFactorEnabled || !user.twoFactorSecret) throw new UnauthorizedException("invalid credentials");
+    if (!user || user.blocked || !user.isActive || user.isDeleted || !user.twoFactorEnabled || !user.twoFactorSecret) throw new UnauthorizedException("invalid credentials");
 
     const validTotp = verifyTotpCode(user.twoFactorSecret, input.code);
     const validBackup = !validTotp && (await this.twoFactor.consumeBackupCode(user.id, input.code));
@@ -213,13 +253,14 @@ export class AuthService {
     const { userId } = await completeOAuthLogin(this.oauth, { provider, profile });
 
     const user = await this.getUserOrThrow(userId);
-    if (user.blocked || user.isDeleted) throw new UnauthorizedException("account is blocked");
+    if (user.blocked || !user.isActive || user.isDeleted) throw new UnauthorizedException("account is blocked");
     return this.issueSessionTokens(user, { provider });
   }
 
   /** Pinned to the caller's workspace — the filter argument cannot widen it. */
-  async listAuditLog(ctx: AuthzContext, filter: AuditLogListFilter): Promise<{ entries: AuditLogEntry[]; nextCursor: string | null }> {
-    return this.auditLog.list({ ...filter, workspaceId: ctx.workspaceId });
+  async listAuditLog(ctx: AuthzContext, filter: AuditLogListFilter): Promise<Paginated<AuditLogEntry>> {
+    const { items, meta } = await this.auditLog.list({ ...filter, workspaceId: ctx.workspaceId });
+    return { items: items.map(toAuditLogEntry), meta };
   }
 
   /** `req.auth` (the JWT claims) never carries 2FA status, so `/auth/me` fetches it fresh — the one bit of the response that isn't just echoing the token. */
@@ -254,7 +295,8 @@ export class AuthService {
   // an admin of one workspace has no expressible way to name a row in another.
 
   async listUsers(ctx: AuthzContext, filter: MemberListFilter): Promise<MemberListResult> {
-    return this.rbac.listMembers(ctx.workspaceId, filter);
+    const { items, meta } = await this.rbac.listMembers(ctx.workspaceId, filter);
+    return { items: items.map(toMemberSummary), meta };
   }
 
   async getUser(ctx: AuthzContext, userId: string): Promise<MemberSummary> {
@@ -264,17 +306,7 @@ export class AuthService {
   async updateUser(
     ctx: AuthzContext,
     userId: string,
-    input: {
-      firstName?: string | null;
-      lastName?: string | null;
-      displayName?: string | null;
-      phone?: string | null;
-      username?: string | null;
-      photo?: string | null;
-      dob?: string | null;
-      gender?: string | null;
-      joinedDate?: string;
-    },
+    input: { firstName?: string | null; lastName?: string | null; displayName?: string | null; phone?: string | null; username?: string | null; photo?: string | null },
     actorUserId: string | null,
   ): Promise<MemberSummary> {
     return this.rbac.updateMember(ctx.workspaceId, userId, input, actorUserId);
@@ -303,7 +335,7 @@ export class AuthService {
 
   async createRole(
     ctx: AuthzContext,
-    input: { slug: string; name?: string; displayName?: string; description?: string | null; isDefault?: boolean; isActive?: boolean },
+    input: { slug: string; name?: string; displayName?: string; description?: string | null },
     actorUserId: string | null,
   ): Promise<RoleSummary> {
     return this.rbac.createRole(ctx.workspaceId, input, actorUserId);
@@ -312,7 +344,7 @@ export class AuthService {
   async updateRole(
     ctx: AuthzContext,
     roleId: string,
-    input: { name?: string; displayName?: string; description?: string | null; isDefault?: boolean; isActive?: boolean },
+    input: { name?: string; displayName?: string; description?: string | null; isActive?: boolean },
     actorUserId: string | null,
   ): Promise<RoleSummary> {
     return this.rbac.updateRole(ctx.workspaceId, roleId, input, actorUserId);
@@ -352,7 +384,7 @@ export class AuthService {
     const { session, nextJti } = await rotateRefreshToken(this.sessions, presented);
 
     const [user] = await this.db.select().from(users).where(eq(users.id, toId(session.userId))).limit(1);
-    if (!user || user.blocked || user.isDeleted) throw new UnauthorizedException("invalid credentials");
+    if (!user || user.blocked || !user.isActive || user.isDeleted) throw new UnauthorizedException("invalid credentials");
 
     // Identity only. Authorization is resolved from the database on every request (AuthzGuard),
     // so a token issued before a grant is as authoritative as one issued after it.
@@ -382,6 +414,75 @@ export class AuthService {
     await revokeOtherSessionsForUser(this.sessions, userId, keepSessionId, revoker);
   }
 
+  async changePassword(userId: string, currentSessionId: string, input: { currentPassword: string; newPassword: string }): Promise<void> {
+    const userIdBig = toId(userId);
+    const [user] = await this.db.select().from(users).where(eq(users.id, userIdBig)).limit(1);
+    if (!user || user.blocked || !user.isActive || user.isDeleted || !user.passwordHash) throw new UnauthorizedException("invalid credentials");
+
+    const valid = await verifyPassword(user.passwordHash, input.currentPassword);
+    if (!valid) throw new UnauthorizedException("invalid credentials");
+
+    const passwordHash = await hashPassword(input.newPassword);
+    await this.db.update(users).set({ passwordHash, updatedBy: userIdBig }).where(eq(users.id, userIdBig));
+    // The old password is no longer trusted everywhere else it's signed in — but leave the
+    // session making this very call alone, the same courtesy `logoutOthers` extends.
+    await revokeOtherSessionsForUser(this.sessions, userId, currentSessionId, { userId });
+  }
+
+  /** Backs both `GET`- and `PATCH /auth/me` — deliberately not workspace-scoped, see `updateProfile`. */
+  private toSelfProfile(user: typeof users.$inferSelect): SelfProfile {
+    return {
+      id: user.id.toString(),
+      email: user.email,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      displayName: user.displayName,
+      phone: user.phone,
+      username: user.username,
+      photo: user.photo,
+      createdAt: user.createdAt.toISOString(),
+    };
+  }
+
+  /** Self-service — no `users:manage` permission required, callable by anyone on their own row, and deliberately not workspace-scoped, see `updateProfile`. */
+  async getProfile(userId: string): Promise<SelfProfile> {
+    const userIdBig = toId(userId);
+    const [user] = await this.db
+      .select()
+      .from(users)
+      .where(and(eq(users.id, userIdBig), eq(users.isDeleted, false)))
+      .limit(1);
+    if (!user) throw new UnauthorizedException("invalid credentials");
+    return this.toSelfProfile(user);
+  }
+
+  /**
+   * Self-service — no `users:manage` permission required, the caller's own row only, and
+   * deliberately not workspace-scoped: a profile belongs to the account, not to any one
+   * membership, so this updates the same `users` row `updateMember` would, without requiring an
+   * `X-Workspace-Id` or a membership in it.
+   */
+  async updateProfile(
+    userId: string,
+    input: { firstName?: string | null; lastName?: string | null; displayName?: string | null; phone?: string | null; username?: string | null; photo?: string | null },
+  ): Promise<SelfProfile> {
+    const userIdBig = toId(userId);
+    const [existing] = await this.db
+      .select({ id: users.id })
+      .from(users)
+      .where(and(eq(users.id, userIdBig), eq(users.isDeleted, false)))
+      .limit(1);
+    if (!existing) throw new UnauthorizedException("invalid credentials");
+
+    const changed = Object.fromEntries(Object.entries(input).filter(([, value]) => value !== undefined));
+    const [user] = await this.db
+      .update(users)
+      .set({ ...changed, updatedBy: userIdBig })
+      .where(eq(users.id, userIdBig))
+      .returning();
+    return this.toSelfProfile(user);
+  }
+
   /**
    * Blocking is an account-level action, so it is gated on the target being a member of the
    * caller's workspace — otherwise an admin of one workspace could disable an account they
@@ -402,6 +503,22 @@ export class AuthService {
   async unblock(ctx: AuthzContext, userId: string, revoker?: Revoker): Promise<void> {
     await this.rbac.requireMember(ctx.workspaceId, userId);
     await this.db.update(users).set({ blocked: false, updatedBy: toIdOrNull(revoker?.userId) }).where(eq(users.id, toId(userId)));
+  }
+
+  /**
+   * A routine administrative on/off toggle — distinct from `block`/`unblock`, which is a
+   * security/moderation action. Both independently deny login; see the note on the `users` table.
+   */
+  async deactivate(ctx: AuthzContext, userId: string, revoker?: Revoker): Promise<void> {
+    await this.rbac.requireMember(ctx.workspaceId, userId);
+    await this.db.update(users).set({ isActive: false, updatedBy: toIdOrNull(revoker?.userId) }).where(eq(users.id, toId(userId)));
+    await deactivateUser(this.sessions, userId, revoker);
+    await this.rbac.invalidateMember(userId, ctx.workspaceId);
+  }
+
+  async activate(ctx: AuthzContext, userId: string, revoker?: Revoker): Promise<void> {
+    await this.rbac.requireMember(ctx.workspaceId, userId);
+    await this.db.update(users).set({ isActive: true, updatedBy: toIdOrNull(revoker?.userId) }).where(eq(users.id, toId(userId)));
   }
 
   private async getUserOrThrow(userId: string): Promise<typeof users.$inferSelect> {

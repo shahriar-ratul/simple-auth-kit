@@ -86,7 +86,7 @@ export function EditUserPage() {
 
   async function handleSubmit(event: FormEvent) {
     event.preventDefault();
-    if (!user) return;
+    if (!user || !id) return;
     setFormError(null);
     setSaving(true);
     // `joinedDate` is not nullable on update, so a cleared field just leaves it unchanged.

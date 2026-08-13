@@ -8,7 +8,7 @@ import { useAuthStore, useWorkspaceStore } from "@/stores/store-context";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Dialog } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -262,39 +262,35 @@ function SetRolesDialog({
     }
   }
 
+  function handleClose() {
+    setLoadedFor(null);
+    onClose();
+  }
+
   return (
-    <Dialog
-      open={member !== null}
-      onClose={() => {
-        setLoadedFor(null);
-        onClose();
-      }}
-      title="Set roles"
-      description={member ? `Replaces every role ${member.email} holds in this workspace.` : ""}
-    >
-      <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-        <div className="flex flex-col gap-1.5">
-          <Label htmlFor="set-roles">Roles</Label>
-          <Input id="set-roles" value={value} onChange={(e) => setValue(e.target.value)} placeholder="admin, member" />
-          <p className="text-xs text-muted-foreground">Comma-separated. Leave empty to remove every role — they stay a member with no permissions.</p>
-        </div>
-        {error ? <p className="text-sm text-destructive">{error}</p> : null}
-        <div className="flex gap-2">
-          <Button type="submit" disabled={submitting}>
-            {submitting ? "Saving…" : "Set roles"}
-          </Button>
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() => {
-              setLoadedFor(null);
-              onClose();
-            }}
-          >
-            Cancel
-          </Button>
-        </div>
-      </form>
+    <Dialog open={member !== null} onOpenChange={(next) => !next && handleClose()}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Set roles</DialogTitle>
+          <DialogDescription>{member ? `Replaces every role ${member.email} holds in this workspace.` : ""}</DialogDescription>
+        </DialogHeader>
+        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="set-roles">Roles</Label>
+            <Input id="set-roles" value={value} onChange={(e) => setValue(e.target.value)} placeholder="admin, member" />
+            <p className="text-xs text-muted-foreground">Comma-separated. Leave empty to remove every role — they stay a member with no permissions.</p>
+          </div>
+          {error ? <p className="text-sm text-destructive">{error}</p> : null}
+          <div className="flex gap-2">
+            <Button type="submit" disabled={submitting}>
+              {submitting ? "Saving…" : "Set roles"}
+            </Button>
+            <Button type="button" variant="outline" onClick={handleClose}>
+              Cancel
+            </Button>
+          </div>
+        </form>
+      </DialogContent>
     </Dialog>
   );
 }
@@ -326,27 +322,28 @@ function RemoveMemberDialog({
   }
 
   return (
-    <Dialog
-      open={member !== null}
-      onClose={onClose}
-      title="Remove member"
-      description={
-        member
-          ? `${member.email} loses access to this workspace, along with any permission granted to them directly here. Their account and their other workspaces are untouched.`
-          : ""
-      }
-    >
-      <div className="flex flex-col gap-4">
-        {error ? <p className="text-sm text-destructive">{error}</p> : null}
-        <div className="flex gap-2">
-          <Button variant="destructive" disabled={submitting} onClick={handleRemove}>
-            {submitting ? "Removing…" : "Remove member"}
-          </Button>
-          <Button variant="outline" onClick={onClose}>
-            Cancel
-          </Button>
+    <Dialog open={member !== null} onOpenChange={(next) => !next && onClose()}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Remove member</DialogTitle>
+          <DialogDescription>
+            {member
+              ? `${member.email} loses access to this workspace, along with any permission granted to them directly here. Their account and their other workspaces are untouched.`
+              : ""}
+          </DialogDescription>
+        </DialogHeader>
+        <div className="flex flex-col gap-4">
+          {error ? <p className="text-sm text-destructive">{error}</p> : null}
+          <div className="flex gap-2">
+            <Button variant="destructive" disabled={submitting} onClick={handleRemove}>
+              {submitting ? "Removing…" : "Remove member"}
+            </Button>
+            <Button variant="outline" onClick={onClose}>
+              Cancel
+            </Button>
+          </div>
         </div>
-      </div>
+      </DialogContent>
     </Dialog>
   );
 }

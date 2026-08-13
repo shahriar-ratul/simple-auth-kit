@@ -10,6 +10,8 @@ function requireString(value: unknown, field: string): string {
   return value;
 }
 
+const optionalString = (value: unknown): string | undefined => (typeof value === "string" ? value : undefined);
+
 export interface AuthRouterDeps extends TierMiddleware {
   auth: AuthService;
   config: AuthConfig;
@@ -35,6 +37,11 @@ export function createAuthRouter(deps: AuthRouterDeps): RequestHandler {
       const tokens = await auth.signup({
         email: requireString(body.email, "email"),
         password: requireString(body.password, "password"),
+        firstName: optionalString(body.firstName),
+        lastName: optionalString(body.lastName),
+        displayName: optionalString(body.displayName),
+        phone: optionalString(body.phone),
+        username: optionalString(body.username),
         userAgent: req.headers["user-agent"],
         ip: req.ip,
       });
@@ -48,7 +55,7 @@ export function createAuthRouter(deps: AuthRouterDeps): RequestHandler {
     try {
       const body = req.body as Record<string, unknown>;
       const result = await auth.login({
-        email: requireString(body.email, "email"),
+        identifier: requireString(body.identifier, "identifier"),
         password: requireString(body.password, "password"),
         userAgent: req.headers["user-agent"],
         ip: req.ip,
@@ -95,8 +102,21 @@ export function createAuthRouter(deps: AuthRouterDeps): RequestHandler {
   router.route("get", "/me", authenticated(), async (req: Request, res: Response, next: NextFunction) => {
     try {
       const { sub, sessionId } = req.auth!;
-      const { twoFactorEnabled } = await auth.getTwoFactorStatus(sub);
-      res.status(200).json({ sub, sessionId, roles: req.authz?.roles ?? [], permissions: req.authz?.permissions ?? [], twoFactorEnabled });
+      const [{ twoFactorEnabled }, profile] = await Promise.all([auth.getTwoFactorStatus(sub), auth.getProfile(sub)]);
+      res.status(200).json({
+        sub,
+        sessionId,
+        roles: req.authz?.roles ?? [],
+        permissions: req.authz?.permissions ?? [],
+        twoFactorEnabled,
+        email: profile.email,
+        firstName: profile.firstName,
+        lastName: profile.lastName,
+        displayName: profile.displayName,
+        phone: profile.phone,
+        username: profile.username,
+        photo: profile.photo,
+      });
     } catch (err) {
       next(err);
     }
@@ -136,6 +156,36 @@ export function createAuthRouter(deps: AuthRouterDeps): RequestHandler {
     try {
       await auth.logoutOthers(req.auth!.sub, req.auth!.sessionId, { userId: req.auth!.sub, ip: req.ip });
       res.status(200).json({ ok: true });
+    } catch (err) {
+      next(err);
+    }
+  });
+
+  router.route("post", "/password/change", authenticated(), async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const body = req.body as Record<string, unknown>;
+      await auth.changePassword(req.auth!.sub, req.auth!.sessionId, {
+        currentPassword: requireString(body.currentPassword, "currentPassword"),
+        newPassword: requireString(body.newPassword, "newPassword"),
+      });
+      res.status(200).json({ ok: true });
+    } catch (err) {
+      next(err);
+    }
+  });
+
+  router.route("patch", "/me", authenticated(), async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const body = req.body as Record<string, unknown>;
+      const profile = await auth.updateProfile(req.auth!.sub, {
+        firstName: body.firstName === null ? null : optionalString(body.firstName),
+        lastName: body.lastName === null ? null : optionalString(body.lastName),
+        displayName: body.displayName === null ? null : optionalString(body.displayName),
+        phone: body.phone === null ? null : optionalString(body.phone),
+        username: body.username === null ? null : optionalString(body.username),
+        photo: body.photo === null ? null : optionalString(body.photo),
+      });
+      res.status(200).json(profile);
     } catch (err) {
       next(err);
     }

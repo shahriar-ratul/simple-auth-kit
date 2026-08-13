@@ -81,12 +81,33 @@ export class AuthService {
   ) {}
 
   /** Creates the user and nothing else — there is no group to provision them into. */
-  async signup(input: { email: string; password: string; userAgent?: string; ip?: string }): Promise<AuthTokens> {
+  async signup(input: {
+    email: string;
+    password: string;
+    firstName?: string;
+    lastName?: string;
+    displayName?: string;
+    phone?: string;
+    username?: string;
+    userAgent?: string;
+    ip?: string;
+  }): Promise<AuthTokens> {
     const [existing] = await this.db.select().from(users).where(eq(users.email, input.email)).limit(1);
     if (existing) throw new ConflictException("email already registered");
 
     const passwordHash = await hashPassword(input.password);
-    const [user] = await this.db.insert(users).values({ email: input.email, passwordHash }).returning();
+    const [user] = await this.db
+      .insert(users)
+      .values({
+        email: input.email,
+        passwordHash,
+        firstName: input.firstName,
+        lastName: input.lastName,
+        displayName: input.displayName,
+        phone: input.phone,
+        username: input.username,
+      })
+      .returning();
     // The signup default is whichever roles are flagged `isDefault` in the database, not a name
     // spelled in code — see rbac.defaults.ts.
     await this.rbac.assignDefaultRoles(user.id);

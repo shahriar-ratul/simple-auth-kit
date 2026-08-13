@@ -9,7 +9,7 @@ import { useWorkspaceStore } from "@/stores/store-context";
 import { PermissionGroupSelect } from "@/components/permission-group-select";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Dialog } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
@@ -324,41 +324,41 @@ function EditRoleDialog({
     sameSlugs(editPermissions, role.permissions);
 
   return (
-    <Dialog
-      open={role !== null}
-      onClose={handleClose}
-      title="Edit role"
-      description={role ? `Changes to "${role.slug}" apply everywhere it's assigned in this workspace.` : ""}
-      className="max-w-xl max-h-[85vh] overflow-y-auto"
-    >
-      <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-        <div className="flex flex-col gap-1.5">
-          <Label htmlFor="edit-role-name">Name</Label>
-          <Input id="edit-role-name" value={name} onChange={(e) => setName(e.target.value)} required />
-        </div>
-        <div className="flex flex-col gap-1.5">
-          <Label htmlFor="edit-role-display-name">Display name</Label>
-          <Input id="edit-role-display-name" value={displayName} onChange={(e) => setDisplayName(e.target.value)} required />
-        </div>
-        <label className="flex items-center gap-2 text-sm">
-          <input type="checkbox" checked={isActive} onChange={(e) => setIsActive(e.target.checked)} className="h-4 w-4 rounded border-input" />
-          Active — suspending stops it from granting immediately, without deleting it.
-        </label>
-        {canReadPermissions ? (
-          <div className="flex flex-col gap-2">
-            <Label>Permissions</Label>
-            <PermissionGroupSelect permissions={permissionCatalog} selected={editPermissions} onChange={setEditPermissions} />
+    <Dialog open={role !== null} onOpenChange={(next) => !next && handleClose()}>
+      <DialogContent className="max-w-xl max-h-[85vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>Edit role</DialogTitle>
+          <DialogDescription>{role ? `Changes to "${role.slug}" apply everywhere it's assigned in this workspace.` : ""}</DialogDescription>
+        </DialogHeader>
+        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="edit-role-name">Name</Label>
+            <Input id="edit-role-name" value={name} onChange={(e) => setName(e.target.value)} required />
           </div>
-        ) : null}
-        <div className="flex gap-2">
-          <Button type="submit" disabled={submitting || unchanged}>
-            {submitting ? "Saving…" : "Save changes"}
-          </Button>
-          <Button type="button" variant="outline" onClick={handleClose}>
-            Cancel
-          </Button>
-        </div>
-      </form>
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="edit-role-display-name">Display name</Label>
+            <Input id="edit-role-display-name" value={displayName} onChange={(e) => setDisplayName(e.target.value)} required />
+          </div>
+          <label className="flex items-center gap-2 text-sm">
+            <input type="checkbox" checked={isActive} onChange={(e) => setIsActive(e.target.checked)} className="h-4 w-4 rounded border-input" />
+            Active — suspending stops it from granting immediately, without deleting it.
+          </label>
+          {canReadPermissions ? (
+            <div className="flex flex-col gap-2">
+              <Label>Permissions</Label>
+              <PermissionGroupSelect permissions={permissionCatalog} selected={editPermissions} onChange={setEditPermissions} />
+            </div>
+          ) : null}
+          <div className="flex gap-2">
+            <Button type="submit" disabled={submitting || unchanged}>
+              {submitting ? "Saving…" : "Save changes"}
+            </Button>
+            <Button type="button" variant="outline" onClick={handleClose}>
+              Cancel
+            </Button>
+          </div>
+        </form>
+      </DialogContent>
     </Dialog>
   );
 }
@@ -389,26 +389,27 @@ function DeleteRoleDialog({
   }
 
   return (
-    <Dialog
-      open={role !== null}
-      onClose={onClose}
-      title="Delete role"
-      description={
-        role
-          ? `Existing assignments of "${role.displayName}" are left in place; it simply stops being resolved to any permission. This can't be undone from here.`
-          : ""
-      }
-    >
-      <div className="flex flex-col gap-4">
-        <div className="flex gap-2">
-          <Button variant="destructive" disabled={submitting} onClick={handleDelete}>
-            {submitting ? "Deleting…" : "Delete role"}
-          </Button>
-          <Button variant="outline" onClick={onClose}>
-            Cancel
-          </Button>
+    <Dialog open={role !== null} onOpenChange={(next) => !next && onClose()}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Delete role</DialogTitle>
+          <DialogDescription>
+            {role
+              ? `Existing assignments of "${role.displayName}" are left in place; it simply stops being resolved to any permission. This can't be undone from here.`
+              : ""}
+          </DialogDescription>
+        </DialogHeader>
+        <div className="flex flex-col gap-4">
+          <div className="flex gap-2">
+            <Button variant="destructive" disabled={submitting} onClick={handleDelete}>
+              {submitting ? "Deleting…" : "Delete role"}
+            </Button>
+            <Button variant="outline" onClick={onClose}>
+              Cancel
+            </Button>
+          </div>
         </div>
-      </div>
+      </DialogContent>
     </Dialog>
   );
 }

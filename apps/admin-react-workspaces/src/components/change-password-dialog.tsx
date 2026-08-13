@@ -3,7 +3,7 @@ import { EyeIcon, EyeOffIcon } from "lucide-react";
 import { AuthApiError } from "@easy-auth/auth-client";
 import { authClient } from "@/lib/auth-client";
 import { Button } from "@/components/ui/button";
-import { Dialog } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
@@ -84,22 +84,28 @@ export function ChangePasswordDialog({ open, onClose }: { open: boolean; onClose
   }
 
   return (
-    <Dialog open={open} onClose={close} title="Change password" description="Every other session gets signed out — this one doesn't.">
-      <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-        <PasswordField id="currentPassword" label="Current password" value={currentPassword} onChange={setCurrentPassword} />
-        <PasswordField id="newPassword" label="New password" value={newPassword} onChange={setNewPassword} />
-        <PasswordField id="confirmPassword" label="Confirm new password" value={confirmPassword} onChange={setConfirmPassword} />
-        {error ? <p className="text-sm text-destructive">{error}</p> : null}
-        {notice ? <p className="text-sm text-emerald-600">{notice}</p> : null}
-        <div className="flex gap-2">
-          <Button type="submit" disabled={submitting}>
-            {submitting ? "Changing…" : "Change password"}
-          </Button>
-          <Button type="button" variant="outline" onClick={close}>
-            Close
-          </Button>
-        </div>
-      </form>
+    <Dialog open={open} onOpenChange={(next) => !next && close()}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Change password</DialogTitle>
+          <DialogDescription>Every other session gets signed out — this one doesn't.</DialogDescription>
+        </DialogHeader>
+        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+          <PasswordField id="currentPassword" label="Current password" value={currentPassword} onChange={setCurrentPassword} />
+          <PasswordField id="newPassword" label="New password" value={newPassword} onChange={setNewPassword} />
+          <PasswordField id="confirmPassword" label="Confirm new password" value={confirmPassword} onChange={setConfirmPassword} />
+          {error ? <p className="text-sm text-destructive">{error}</p> : null}
+          {notice ? <p className="text-sm text-emerald-600">{notice}</p> : null}
+          <div className="flex gap-2">
+            <Button type="submit" disabled={submitting}>
+              {submitting ? "Changing…" : "Change password"}
+            </Button>
+            <Button type="button" variant="outline" onClick={close}>
+              Close
+            </Button>
+          </div>
+        </form>
+      </DialogContent>
     </Dialog>
   );
 }

@@ -6,10 +6,13 @@ import { AuthGuard } from "./auth.guard.js";
 import { AuthService } from "./auth.service.js";
 import { WORKSPACE_HEADER, WorkspaceGuard } from "./authz.guard.js";
 import { CheckAbility } from "./route-tiers.js";
+import { WorkspaceRepository } from "./workspace.repository.js";
+import { hashPassword } from "@/lib/auth/core/crypto.js";
 import {
   AssignRoleDto,
   AttachPermissionDto,
   CreateRoleDto,
+  CreateUserDto,
   DefinePermissionDto,
   DeleteReasonDto,
   GrantPermissionDto,
@@ -55,17 +58,47 @@ const optionalString = (value: unknown): string | undefined => (typeof value ===
 @ApiHeader({ name: WORKSPACE_HEADER, required: true, description: "The workspace this request administers. The caller must be an admin member of it." })
 @UseGuards(AuthGuard, WorkspaceGuard, AbilityGuard)
 export class AdminController {
-  constructor(@Inject(AuthService) private readonly auth: AuthService) {}
+  constructor(
+    @Inject(AuthService) private readonly auth: AuthService,
+    @Inject(WorkspaceRepository) private readonly workspaces: WorkspaceRepository,
+  ) {}
 
   @Get("users")
   @CheckAbility("users:read")
   @ApiOperation({ summary: "[admin] List the members of this workspace" })
   @ApiQuery({ name: "search", required: false, description: "Email substring match" })
-  @ApiQuery({ name: "limit", required: false })
-  @ApiQuery({ name: "cursor", required: false })
+  @ApiQuery({ name: "page", required: false, description: "1-indexed. Defaults to 1." })
+  @ApiQuery({ name: "limit", required: false, description: "Defaults to 25, capped at 100." })
   @ApiResponse({ status: 200, type: UserListResponseDto })
-  async listUsers(@Req() req: Request, @Query("search") search?: string, @Query("limit") limit?: string, @Query("cursor") cursor?: string) {
-    return this.auth.listUsers(req.authz!, { search, limit: limit ? Number(limit) : undefined, cursor });
+  async listUsers(@Req() req: Request, @Query("search") search?: string, @Query("page") page?: string, @Query("limit") limit?: string) {
+    return this.auth.listUsers(req.authz!, { search, page: page ? Number(page) : undefined, limit: limit ? Number(limit) : undefined });
+  }
+
+  @Post("users")
+  @CheckAbility("users:manage")
+  @ApiOperation({
+    summary: "[admin] Create a user and add them to this workspace",
+    description: "No invitation email — the account is usable immediately with the password given here.",
+  })
+  @ApiBody({ type: CreateUserDto })
+  @ApiResponse({ status: 201, type: UserSummaryDto })
+  async createUser(@Body() body: Record<string, unknown>, @Req() req: Request) {
+    const passwordHash = await hashPassword(requireString(body.password, "password"));
+    const member = await this.workspaces.createMember(
+      req.authz!.workspaceId,
+      {
+        email: requireString(body.email, "email"),
+        passwordHash,
+        firstName: optionalString(body.firstName),
+        lastName: optionalString(body.lastName),
+        displayName: optionalString(body.displayName),
+        phone: optionalString(body.phone),
+        username: optionalString(body.username),
+        roles: Array.isArray(body.roles) ? body.roles.filter((role): role is string => typeof role === "string") : undefined,
+      },
+      req.auth!.sub,
+    );
+    return this.auth.getUser(req.authz!, member.userId);
   }
 
   @Get("users/:userId")
@@ -94,9 +127,6 @@ export class AdminController {
         phone: body.phone === null ? null : optionalString(body.phone),
         username: body.username === null ? null : optionalString(body.username),
         photo: body.photo === null ? null : optionalString(body.photo),
-        dob: body.dob === null ? null : optionalString(body.dob),
-        gender: body.gender === null ? null : optionalString(body.gender),
-        joinedDate: optionalString(body.joinedDate),
       },
       req.auth!.sub,
     );
@@ -126,8 +156,8 @@ export class AdminController {
   @ApiQuery({ name: "action", required: false, description: "AuditEvent discriminant, e.g. 'role_assigned'" })
   @ApiQuery({ name: "since", required: false, description: "ISO 8601 timestamp" })
   @ApiQuery({ name: "until", required: false, description: "ISO 8601 timestamp" })
-  @ApiQuery({ name: "limit", required: false })
-  @ApiQuery({ name: "cursor", required: false })
+  @ApiQuery({ name: "page", required: false, description: "1-indexed. Defaults to 1." })
+  @ApiQuery({ name: "limit", required: false, description: "Defaults to 25, capped at 100." })
   @ApiResponse({ status: 200, type: AuditLogListResponseDto })
   async listAuditLog(
     @Req() req: Request,
@@ -135,10 +165,17 @@ export class AdminController {
     @Query("action") action?: string,
     @Query("since") since?: string,
     @Query("until") until?: string,
+    @Query("page") page?: string,
     @Query("limit") limit?: string,
-    @Query("cursor") cursor?: string,
   ) {
-    return this.auth.listAuditLog(req.authz!, { userId, action, since, until, limit: limit ? Number(limit) : undefined, cursor });
+    return this.auth.listAuditLog(req.authz!, {
+      userId,
+      action,
+      since,
+      until,
+      page: page ? Number(page) : undefined,
+      limit: limit ? Number(limit) : undefined,
+    });
   }
 
   @Get("permissions")
@@ -200,8 +237,6 @@ export class AdminController {
         name: optionalString(body.name),
         displayName: optionalString(body.displayName),
         description: optionalString(body.description) ?? null,
-        isDefault: typeof body.isDefault === "boolean" ? body.isDefault : undefined,
-        isActive: typeof body.isActive === "boolean" ? body.isActive : undefined,
       },
       req.auth!.sub,
     );
@@ -221,7 +256,6 @@ export class AdminController {
         name: optionalString(body.name),
         displayName: optionalString(body.displayName),
         description: body.description === null ? null : optionalString(body.description),
-        isDefault: typeof body.isDefault === "boolean" ? body.isDefault : undefined,
         isActive: typeof body.isActive === "boolean" ? body.isActive : undefined,
       },
       req.auth!.sub,
@@ -320,6 +354,30 @@ export class AdminController {
   @ApiResponse({ status: 201, type: OkResponseDto })
   async unblock(@Param("userId") userId: string, @Req() req: Request) {
     await this.auth.unblock(req.authz!, userId, { userId: req.auth!.sub, ip: req.ip });
+    return { ok: true };
+  }
+
+  @Post("users/:userId/deactivate")
+  @CheckAbility("users:block")
+  @ApiOperation({
+    summary: "[admin] Deactivate a member, revoking all their sessions immediately",
+    description: "Distinct from block/unblock — a routine administrative toggle, not a security action. Both independently deny login.",
+  })
+  @ApiParam({ name: "userId" })
+  @ApiResponse({ status: 201, type: OkResponseDto })
+  async deactivate(@Param("userId") userId: string, @Req() req: Request, @Ip() ip: string) {
+    if (userId === req.auth!.sub) throw new ForbiddenException("cannot deactivate your own account");
+    await this.auth.deactivate(req.authz!, userId, { userId: req.auth!.sub, ip });
+    return { ok: true };
+  }
+
+  @Post("users/:userId/activate")
+  @CheckAbility("users:block")
+  @ApiOperation({ summary: "[admin] Reactivate a member" })
+  @ApiParam({ name: "userId" })
+  @ApiResponse({ status: 201, type: OkResponseDto })
+  async activate(@Param("userId") userId: string, @Req() req: Request, @Ip() ip: string) {
+    await this.auth.activate(req.authz!, userId, { userId: req.auth!.sub, ip });
     return { ok: true };
   }
 }

@@ -14,7 +14,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Dialog } from "@/components/ui/dialog";
+import { Modal } from "@/components/ui/modal";
 
 function apiErrorMessage(err: unknown, fallback: string): string {
   return err instanceof AuthApiError ? err.message : fallback;
@@ -247,8 +247,8 @@ function DeleteAccountDialog({
   }
 
   return (
-    <Dialog
-      open={open}
+    <Modal
+      isOpen={open}
       onClose={onClose}
       title="Delete account"
       description={`${email || "This user"} is soft-deleted: they stop appearing in listings and can no longer sign in.`}
@@ -263,6 +263,6 @@ function DeleteAccountDialog({
           </Button>
         </div>
       </div>
-    </Dialog>
+    </Modal>
   );
 }

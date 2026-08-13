@@ -28,12 +28,15 @@ model User {
   phone            String?   @unique
   username         String?   @unique
   photo            String?
-  dob              DateTime? @db.Date
-  gender           String?   @db.VarChar(10)
-  joinedDate       DateTime  @default(now()) @map("joined_date") @db.Date
   lastLogin        DateTime? @map("last_login") @db.Timestamptz(6)
   passwordHash     String?   @map("password_hash") // nullable: OAuth-only signup has no password
+  // Two independent reasons an account can't authenticate, tracked separately so an admin can see
+  // *why*: `blocked` is a security/moderation action (see `block()`/`unblock()`); `isActive` is a
+  // routine administrative on/off toggle (see `activate()`/`deactivate()`) — e.g. paused while an
+  // employee is on leave, with no implication of wrongdoing. Both deny login on their own; neither
+  // implies the other, and unblocking a blocked-but-inactive account still leaves it inactive.
   blocked          Boolean   @default(false)
+  isActive         Boolean   @default(true) @map("is_active")
   twoFactorEnabled Boolean   @default(false) @map("two_factor_enabled")
   twoFactorSecret  String?   @map("two_factor_secret") // base32 TOTP secret; plaintext-at-rest
   createdBy        BigInt?   @map("created_by")

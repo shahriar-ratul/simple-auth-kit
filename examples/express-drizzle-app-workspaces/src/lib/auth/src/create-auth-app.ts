@@ -17,6 +17,7 @@ import { PasswordResetRepository } from "./password-reset.repository.js";
 import { InMemoryPermissionCacheStore, PermissionCache } from "./permission-cache.js";
 import { InMemoryRateLimitStore } from "./rate-limit.store.js";
 import { RbacRepository } from "./rbac.repository.js";
+import { responseEnvelope } from "./response-envelope.middleware.js";
 import * as schema from "./schema.js";
 import { SessionRepository } from "./session.repository.js";
 import { TwoFactorRepository } from "./two-factor.repository.js";
@@ -57,7 +58,8 @@ export function createAuthApp(config: Partial<AuthConfig> = {}): Express {
 
   const app = express();
   app.use(express.json());
-  app.use("/auth/admin", createAdminRouter({ auth: authService, authentication: requireAuth, workspaceScope: requireWorkspace }));
+  app.use(responseEnvelope());
+  app.use("/auth/admin", createAdminRouter({ auth: authService, workspaces, authentication: requireAuth, workspaceScope: requireWorkspace }));
   app.use("/auth", createAuthRouter({ auth: authService, config: resolvedConfig, authentication: requireAuth, authorization: requireAuthz }));
   app.use(
     "/workspaces",

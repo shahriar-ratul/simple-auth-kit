@@ -1,15 +1,22 @@
-import { and, asc, desc, eq, ilike, inArray, lt, or, type SQL } from "drizzle-orm";
+import { and, asc, count, desc, eq, ilike, inArray, type SQL } from "drizzle-orm";
 import { resolvePermissions } from "@/lib/auth/core/rbac.js";
 import type { AuthzContext } from "./authz.middleware.js";
 import type { Database } from "./db.js";
+import { buildPageMeta, normalizeLimit, normalizePage, type Paginated } from "./pagination.js";
 import { PermissionCache } from "./permission-cache.js";
 import { permissionMember, permissionRole, permissions, roleMember, roles, users, workspaceMembers } from "./schema.js";
 import { HttpError } from "./http-error.js";
 import { toId, toIdOrNull } from "./id.helper.js";
 
+/**
+ * Every column the `users` table has (plus the membership's own `memberId`/`createdAt`), except
+ * the two secrets (`passwordHash`, `twoFactorSecret` — never leave the server). Deliberately NOT
+ * a hand-picked subset — see the identical note on the base variant's `UserSummary`.
+ */
 export interface MemberSummary {
   memberId: string;
   userId: string;
+  uuid: string;
   email: string;
   firstName: string | null;
   lastName: string | null;
@@ -17,24 +24,92 @@ export interface MemberSummary {
   phone: string | null;
   username: string | null;
   photo: string | null;
-  dob: string | null;
-  gender: string | null;
-  joinedDate: string;
   lastLogin: string | null;
   blocked: boolean;
+  isActive: boolean;
+  twoFactorEnabled: boolean;
   roles: string[];
+  createdBy: string | null;
+  updatedBy: string | null;
   createdAt: string;
+  updatedAt: string;
 }
 
 export interface MemberListFilter {
   search?: string;
+  page?: number;
   limit?: number;
-  cursor?: string;
 }
 
-export interface MemberListResult {
-  users: MemberSummary[];
-  nextCursor: string | null;
+export type MemberListResult = Paginated<MemberSummary>;
+
+const MEMBER_SELECT = {
+  memberId: workspaceMembers.id,
+  userId: workspaceMembers.userId,
+  createdAt: workspaceMembers.createdAt,
+  uuid: users.uuid,
+  email: users.email,
+  firstName: users.firstName,
+  lastName: users.lastName,
+  displayName: users.displayName,
+  phone: users.phone,
+  username: users.username,
+  photo: users.photo,
+  lastLogin: users.lastLogin,
+  blocked: users.blocked,
+  isActive: users.isActive,
+  twoFactorEnabled: users.twoFactorEnabled,
+  createdBy: users.createdBy,
+  updatedBy: users.updatedBy,
+  updatedAt: users.updatedAt,
+} as const;
+
+/** A membership row joined with its user, the way `listMembers`/`getMember` assemble it. */
+export interface MemberRow {
+  memberId: bigint;
+  userId: bigint;
+  createdAt: Date;
+  uuid: string;
+  email: string;
+  firstName: string | null;
+  lastName: string | null;
+  displayName: string | null;
+  phone: string | null;
+  username: string | null;
+  photo: string | null;
+  lastLogin: Date | null;
+  blocked: boolean;
+  isActive: boolean;
+  twoFactorEnabled: boolean;
+  createdBy: bigint | null;
+  updatedBy: bigint | null;
+  updatedAt: Date;
+  roles: string[];
+}
+
+/** Shapes a raw row into the wire DTO. Exported so `listMembers`'s collection can be shaped by the caller. */
+export function toMemberSummary(row: MemberRow): MemberSummary {
+  return {
+    memberId: row.memberId.toString(),
+    userId: row.userId.toString(),
+    uuid: row.uuid,
+    email: row.email,
+    firstName: row.firstName,
+    lastName: row.lastName,
+    displayName: row.displayName,
+    phone: row.phone,
+    username: row.username,
+    photo: row.photo,
+    lastLogin: row.lastLogin?.toISOString() ?? null,
+    blocked: row.blocked,
+    isActive: row.isActive,
+    twoFactorEnabled: row.twoFactorEnabled,
+    roles: row.roles,
+    createdBy: row.createdBy?.toString() ?? null,
+    updatedBy: row.updatedBy?.toString() ?? null,
+    createdAt: row.createdAt.toISOString(),
+    updatedAt: row.updatedAt.toISOString(),
+  };
 }
 
 /** A `permissions` row as the catalog endpoints return it. */
@@ -126,9 +201,6 @@ const asRoleSummary = (row: RoleRow): RoleSummary => ({ ...row, id: row.id.toStr
  * must not need the guard.
  */
 export const memberCacheKey = (userId: string, workspaceId: string) => `${userId}:${workspaceId}`;
-
-const MAX_PAGE_SIZE = 100;
-const DEFAULT_PAGE_SIZE = 25;
 
 export class RbacRepository {
   constructor(
@@ -239,57 +311,34 @@ export class RbacRepository {
     return member;
   }
 
-  /** Newest-first, cursor-paginated (cursor = the last-seen membership's `id`); `search` matches an email substring. */
-  async listMembers(workspaceId: string, filter: MemberListFilter = {}): Promise<MemberListResult> {
-    const limit = Math.min(filter.limit ?? DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE);
+  /**
+   * Newest-first, page-paginated; `search` matches an email substring. Returns raw rows —
+   * shaping the collection is the caller's job, see `toMemberSummary`.
+   */
+  async listMembers(workspaceId: string, filter: MemberListFilter = {}): Promise<Paginated<MemberRow>> {
+    const page = normalizePage(filter.page);
+    const limit = normalizeLimit(filter.limit);
     const workspaceIdBig = toId(workspaceId);
-
     const conditions: SQL[] = [eq(workspaceMembers.workspaceId, workspaceIdBig), eq(users.isDeleted, false)];
     if (filter.search) conditions.push(ilike(users.email, `%${filter.search}%`));
-
-    // `(createdAt, id) < (cursor.createdAt, cursor.id)`, spelled out so both halves of the
-    // ordering key are compared — the same rows Prisma's `cursor`/`skip: 1` would skip.
-    if (filter.cursor) {
-      const [anchor] = await this.db
-        .select({ id: workspaceMembers.id, createdAt: workspaceMembers.createdAt })
-        .from(workspaceMembers)
-        .where(eq(workspaceMembers.id, toId(filter.cursor)))
-        .limit(1);
-      if (!anchor) return { users: [], nextCursor: null };
-      conditions.push(
-        or(lt(workspaceMembers.createdAt, anchor.createdAt), and(eq(workspaceMembers.createdAt, anchor.createdAt), lt(workspaceMembers.id, anchor.id)))!,
-      );
-    }
+    const where = and(...conditions)!;
 
     const rows = await this.db
-      .select({
-        memberId: workspaceMembers.id,
-        userId: workspaceMembers.userId,
-        createdAt: workspaceMembers.createdAt,
-        email: users.email,
-        firstName: users.firstName,
-        lastName: users.lastName,
-        displayName: users.displayName,
-        phone: users.phone,
-        username: users.username,
-        photo: users.photo,
-        dob: users.dob,
-        gender: users.gender,
-        joinedDate: users.joinedDate,
-        lastLogin: users.lastLogin,
-        blocked: users.blocked,
-      })
+      .select(MEMBER_SELECT)
       .from(workspaceMembers)
       .innerJoin(users, eq(users.id, workspaceMembers.userId))
-      .where(and(...conditions))
+      .where(where)
       .orderBy(desc(workspaceMembers.createdAt), desc(workspaceMembers.id))
-      .limit(limit + 1);
-
-    const hasMore = rows.length > limit;
-    const page = hasMore ? rows.slice(0, limit) : rows;
+      .limit(limit)
+      .offset((page - 1) * limit);
+    const [{ value: total }] = await this.db
+      .select({ value: count() })
+      .from(workspaceMembers)
+      .innerJoin(users, eq(users.id, workspaceMembers.userId))
+      .where(where);
 
     // One read for the page's role assignments rather than one per member.
-    const assignments = page.length
+    const assignments = rows.length
       ? await this.db
           .select({ memberId: roleMember.memberId, slug: roles.slug })
           .from(roleMember)
@@ -297,7 +346,7 @@ export class RbacRepository {
           .where(
             inArray(
               roleMember.memberId,
-              page.map((row) => row.memberId),
+              rows.map((row) => row.memberId),
             ),
           )
       : [];
@@ -308,25 +357,8 @@ export class RbacRepository {
     }
 
     return {
-      users: page.map((row) => ({
-        memberId: row.memberId.toString(),
-        userId: row.userId.toString(),
-        email: row.email,
-        firstName: row.firstName,
-        lastName: row.lastName,
-        displayName: row.displayName,
-        phone: row.phone,
-        username: row.username,
-        photo: row.photo,
-        dob: row.dob,
-        gender: row.gender,
-        joinedDate: row.joinedDate,
-        lastLogin: row.lastLogin?.toISOString() ?? null,
-        blocked: row.blocked,
-        roles: (rolesByMember.get(row.memberId.toString()) ?? []).sort(),
-        createdAt: row.createdAt.toISOString(),
-      })),
-      nextCursor: hasMore ? page[page.length - 1].memberId.toString() : null,
+      items: rows.map((row) => ({ ...row, roles: (rolesByMember.get(row.memberId.toString()) ?? []).sort() })),
+      meta: buildPageMeta(page, limit, total),
     };
   }
 
@@ -340,23 +372,7 @@ export class RbacRepository {
   async getMember(workspaceId: string, userId: string): Promise<MemberSummary> {
     const member = await this.requireMember(workspaceId, userId);
     const [row] = await this.db
-      .select({
-        memberId: workspaceMembers.id,
-        userId: workspaceMembers.userId,
-        createdAt: workspaceMembers.createdAt,
-        email: users.email,
-        firstName: users.firstName,
-        lastName: users.lastName,
-        displayName: users.displayName,
-        phone: users.phone,
-        username: users.username,
-        photo: users.photo,
-        dob: users.dob,
-        gender: users.gender,
-        joinedDate: users.joinedDate,
-        lastLogin: users.lastLogin,
-        blocked: users.blocked,
-      })
+      .select(MEMBER_SELECT)
       .from(workspaceMembers)
       .innerJoin(users, and(eq(users.id, workspaceMembers.userId), eq(users.isDeleted, false)))
       .where(eq(workspaceMembers.id, member.id))
@@ -369,41 +385,14 @@ export class RbacRepository {
       .innerJoin(roles, eq(roles.id, roleMember.roleId))
       .where(eq(roleMember.memberId, member.id));
 
-    return {
-      memberId: row.memberId.toString(),
-      userId: row.userId.toString(),
-      email: row.email,
-      firstName: row.firstName,
-      lastName: row.lastName,
-      displayName: row.displayName,
-      phone: row.phone,
-      username: row.username,
-      photo: row.photo,
-      dob: row.dob,
-      gender: row.gender,
-      joinedDate: row.joinedDate,
-      lastLogin: row.lastLogin?.toISOString() ?? null,
-      blocked: row.blocked,
-      roles: roleRows.map((r) => r.slug).sort(),
-      createdAt: row.createdAt.toISOString(),
-    };
+    return toMemberSummary({ ...row, roles: roleRows.map((r) => r.slug).sort() });
   }
 
   /** Profile fields only — email is the login identifier and stays out of this endpoint. */
   async updateMember(
     workspaceId: string,
     userId: string,
-    input: {
-      firstName?: string | null;
-      lastName?: string | null;
-      displayName?: string | null;
-      phone?: string | null;
-      username?: string | null;
-      photo?: string | null;
-      dob?: string | null;
-      gender?: string | null;
-      joinedDate?: string;
-    },
+    input: { firstName?: string | null; lastName?: string | null; displayName?: string | null; phone?: string | null; username?: string | null; photo?: string | null },
     actorUserId: string | null,
   ): Promise<MemberSummary> {
     await this.requireMember(workspaceId, userId);
@@ -432,7 +421,7 @@ export class RbacRepository {
   async updateRole(
     workspaceId: string,
     roleId: string,
-    input: { name?: string; displayName?: string; description?: string | null; isDefault?: boolean; isActive?: boolean },
+    input: { name?: string; displayName?: string; description?: string | null; isActive?: boolean },
     actorUserId: string | null,
   ): Promise<RoleSummary> {
     const workspaceIdBig = toId(workspaceId);
@@ -550,7 +539,7 @@ export class RbacRepository {
 
   async createRole(
     workspaceId: string,
-    input: { slug: string; name?: string; displayName?: string; description?: string | null; isDefault?: boolean; isActive?: boolean },
+    input: { slug: string; name?: string; displayName?: string; description?: string | null },
     actorUserId: string | null,
   ): Promise<RoleSummary> {
     const actorId = toIdOrNull(actorUserId);
@@ -562,8 +551,6 @@ export class RbacRepository {
         name: input.name ?? input.displayName ?? input.slug,
         displayName: input.displayName ?? input.slug,
         description: input.description ?? null,
-        isDefault: input.isDefault,
-        isActive: input.isActive,
         createdBy: actorId,
         updatedBy: actorId,
       })

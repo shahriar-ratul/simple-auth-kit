@@ -5,13 +5,15 @@ import { observer } from "mobx-react-lite";
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { PlusIcon } from "lucide-react";
-import { AuthApiError, userIdOf, type RoleSummary, type UserSummary } from "@easy-auth/auth-client";
+import { AuthApiError, userIdOf, type PermissionSummary, type RoleSummary, type UserSummary } from "@easy-auth/auth-client";
 import { toast } from "sonner";
 import { AlertModal } from "@/components/alert-modal";
+import { PermissionGroupSelect } from "@/components/permission-group-select";
 import { PermissionRequired } from "@/components/permission-required";
 import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -29,6 +31,10 @@ import { useWorkspaceStore } from "@/lib/stores/store-context";
 
 function apiErrorMessage(err: unknown, fallback: string): string {
   return err instanceof AuthApiError ? err.message : fallback;
+}
+
+function sameSlugs(a: string[], b: string[]): boolean {
+  return JSON.stringify([...a].sort()) === JSON.stringify([...b].sort());
 }
 
 export default observer(function RolesPage() {

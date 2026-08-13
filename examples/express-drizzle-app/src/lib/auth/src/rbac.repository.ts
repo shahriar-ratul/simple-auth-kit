@@ -1,13 +1,22 @@
-import { and, asc, count, desc, eq, ilike, inArray, lt, or, type SQL } from "drizzle-orm";
+import { and, asc, count, desc, eq, ilike, inArray, type SQL } from "drizzle-orm";
 import { resolvePermissions } from "@/lib/auth/core/rbac.js";
 import type { Database } from "./db.js";
+import { buildPageMeta, normalizeLimit, normalizePage, type Paginated } from "./pagination.js";
 import { PermissionCache } from "./permission-cache.js";
 import { permissionRole, permissionUser, permissions, roleUser, roles, users } from "./schema.js";
 import { HttpError } from "./http-error.js";
 import { toId, toIdOrNull } from "./id.helper.js";
 
+/**
+ * Every column the `users` table has, except the two secrets (`passwordHash`, `twoFactorSecret`
+ * — never leave the server). Deliberately NOT a hand-picked subset: a shaping function that only
+ * forwards "the fields the UI happens to need today" means every future field the UI wants is
+ * another round-trip through repository → service → response shape → client type → UI, across
+ * every combo. Forwarding the whole safe row once means that trip never has to happen again.
+ */
 export interface UserSummary {
   id: string;
+  uuid: string;
   email: string;
   firstName: string | null;
   lastName: string | null;
@@ -15,24 +24,54 @@ export interface UserSummary {
   phone: string | null;
   username: string | null;
   photo: string | null;
-  dob: string | null;
-  gender: string | null;
-  joinedDate: string;
   lastLogin: string | null;
   blocked: boolean;
+  isActive: boolean;
+  twoFactorEnabled: boolean;
   roles: string[];
+  createdBy: string | null;
+  updatedBy: string | null;
   createdAt: string;
+  updatedAt: string;
 }
 
 export interface UserListFilter {
   search?: string;
+  page?: number;
   limit?: number;
-  cursor?: string;
 }
 
-export interface UserListResult {
-  users: UserSummary[];
-  nextCursor: string | null;
+export type UserListResult = Paginated<UserSummary>;
+
+/** A `users` row the way `listUsers`/`getUser` assemble it — the base columns plus the roles join, resolved separately since Drizzle has no nested-include shorthand for a many-to-many. */
+export type UserRow = typeof users.$inferSelect & { roles: string[] };
+
+/**
+ * Shapes a raw row into the wire DTO — bigint id to string, `Date` to ISO. Exported so callers
+ * that need the collection (paginated `listUsers`) can apply it themselves at the service layer
+ * instead of the repository doing it on their behalf.
+ */
+export function toUserSummary(row: UserRow): UserSummary {
+  return {
+    id: row.id.toString(),
+    uuid: row.uuid,
+    email: row.email,
+    firstName: row.firstName,
+    lastName: row.lastName,
+    displayName: row.displayName,
+    phone: row.phone,
+    username: row.username,
+    photo: row.photo,
+    lastLogin: row.lastLogin?.toISOString() ?? null,
+    blocked: row.blocked,
+    isActive: row.isActive,
+    twoFactorEnabled: row.twoFactorEnabled,
+    roles: row.roles,
+    createdBy: row.createdBy?.toString() ?? null,
+    updatedBy: row.updatedBy?.toString() ?? null,
+    createdAt: row.createdAt.toISOString(),
+    updatedAt: row.updatedAt.toISOString(),
+  };
 }
 
 /** A `permissions` row as the catalog endpoints return it. */
@@ -88,9 +127,6 @@ const ROLE_COLUMNS = {
   isDefault: roles.isDefault,
   isActive: roles.isActive,
 } as const;
-
-const MAX_PAGE_SIZE = 100;
-const DEFAULT_PAGE_SIZE = 25;
 
 interface PermissionRow {
   id: bigint;
@@ -176,34 +212,30 @@ export class RbacRepository {
     };
   }
 
-  /** Newest-first, cursor-paginated (cursor = the last-seen row's `id`); `search` matches an email substring. */
-  async listUsers(filter: UserListFilter = {}): Promise<UserListResult> {
-    const limit = Math.min(filter.limit ?? DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE);
+  /**
+   * Newest-first, page-paginated; `search` matches an email substring. Returns raw rows, not
+   * `UserSummary` — shaping each row is the caller's job (`AuthService.listUsers` does it via
+   * `toUserSummary`), so this method's only responsibility is the query and the page envelope.
+   */
+  async listUsers(filter: UserListFilter = {}): Promise<Paginated<UserRow>> {
+    const page = normalizePage(filter.page);
+    const limit = normalizeLimit(filter.limit);
 
     const conditions: SQL[] = [eq(users.isDeleted, false)];
     if (filter.search) conditions.push(ilike(users.email, `%${filter.search}%`));
-
-    // `(createdAt, id) < (cursor.createdAt, cursor.id)`, spelled out so both halves of the
-    // ordering key are compared — the same rows Prisma's `cursor`/`skip: 1` would skip.
-    if (filter.cursor) {
-      const cursorId = toId(filter.cursor);
-      const [anchor] = await this.db.select({ id: users.id, createdAt: users.createdAt }).from(users).where(eq(users.id, cursorId)).limit(1);
-      if (!anchor) return { users: [], nextCursor: null };
-      conditions.push(or(lt(users.createdAt, anchor.createdAt), and(eq(users.createdAt, anchor.createdAt), lt(users.id, anchor.id)))!);
-    }
+    const where = and(...conditions)!;
 
     const rows = await this.db
       .select()
       .from(users)
-      .where(and(...conditions))
+      .where(where)
       .orderBy(desc(users.createdAt), desc(users.id))
-      .limit(limit + 1);
-
-    const hasMore = rows.length > limit;
-    const page = hasMore ? rows.slice(0, limit) : rows;
+      .limit(limit)
+      .offset((page - 1) * limit);
+    const [{ value: total }] = await this.db.select({ value: count() }).from(users).where(where);
 
     // One read for the page's role assignments rather than one per user.
-    const assignments = page.length
+    const assignments = rows.length
       ? await this.db
           .select({ userId: roleUser.userId, slug: roles.slug })
           .from(roleUser)
@@ -211,7 +243,7 @@ export class RbacRepository {
           .where(
             inArray(
               roleUser.userId,
-              page.map((row) => row.id),
+              rows.map((row) => row.id),
             ),
           )
       : [];
@@ -222,24 +254,8 @@ export class RbacRepository {
     }
 
     return {
-      users: page.map((row) => ({
-        id: row.id.toString(),
-        email: row.email,
-        firstName: row.firstName,
-        lastName: row.lastName,
-        displayName: row.displayName,
-        phone: row.phone,
-        username: row.username,
-        photo: row.photo,
-        dob: row.dob,
-        gender: row.gender,
-        joinedDate: row.joinedDate,
-        lastLogin: row.lastLogin?.toISOString() ?? null,
-        blocked: row.blocked,
-        roles: (rolesByUser.get(row.id.toString()) ?? []).sort(),
-        createdAt: row.createdAt.toISOString(),
-      })),
-      nextCursor: hasMore ? page[page.length - 1].id.toString() : null,
+      items: rows.map((row) => ({ ...row, roles: (rolesByUser.get(row.id.toString()) ?? []).sort() })),
+      meta: buildPageMeta(page, limit, total),
     };
   }
 
@@ -254,7 +270,60 @@ export class RbacRepository {
     if (!row) throw new HttpError(404, `user "${userId}" not found`);
 
     const roleRows = await this.db.select({ slug: roles.slug }).from(roleUser).innerJoin(roles, eq(roles.id, roleUser.roleId)).where(eq(roleUser.userId, userIdBig));
-    return this.mapUserSummary(row, roleRows.map((r) => r.slug));
+    return toUserSummary({ ...row, roles: roleRows.map((r) => r.slug).sort() });
+  }
+
+  /**
+   * An administrator provisioning an account directly, as distinct from `/auth/signup` — the row
+   * is otherwise identical, right down to which roles a bare account gets by default.
+   */
+  async createUser(
+    input: {
+      email: string;
+      passwordHash: string;
+      firstName?: string;
+      lastName?: string;
+      displayName?: string;
+      phone?: string;
+      username?: string;
+      roles?: string[];
+    },
+    actorUserId: string | null,
+  ): Promise<UserSummary> {
+    const [existing] = await this.db.select({ id: users.id }).from(users).where(eq(users.email, input.email)).limit(1);
+    if (existing) throw new HttpError(409, "email already registered");
+
+    const [user] = await this.db
+      .insert(users)
+      .values({
+        email: input.email,
+        passwordHash: input.passwordHash,
+        firstName: input.firstName,
+        lastName: input.lastName,
+        displayName: input.displayName,
+        phone: input.phone,
+        username: input.username,
+        createdBy: toIdOrNull(actorUserId),
+      })
+      .returning();
+
+    if (input.roles && input.roles.length > 0) {
+      const granted = await this.db
+        .select({ id: roles.id })
+        .from(roles)
+        .where(and(inArray(roles.slug, input.roles), eq(roles.isActive, true), eq(roles.isDeleted, false)));
+      if (granted.length) {
+        await this.db
+          .insert(roleUser)
+          .values(granted.map((role) => ({ userId: user.id, roleId: role.id })))
+          .onConflictDoNothing({ target: [roleUser.userId, roleUser.roleId] });
+        await this.cache.invalidateSubject(user.id.toString());
+      }
+    } else {
+      await this.assignDefaultRoles(user.id);
+    }
+
+    return this.getUser(user.id.toString());
   }
 
   /**
@@ -263,17 +332,7 @@ export class RbacRepository {
    */
   async updateUser(
     userId: string,
-    input: {
-      firstName?: string | null;
-      lastName?: string | null;
-      displayName?: string | null;
-      phone?: string | null;
-      username?: string | null;
-      photo?: string | null;
-      dob?: string | null;
-      gender?: string | null;
-      joinedDate?: string;
-    },
+    input: { firstName?: string | null; lastName?: string | null; displayName?: string | null; phone?: string | null; username?: string | null; photo?: string | null },
     actorUserId: string | null,
   ): Promise<UserSummary> {
     const userIdBig = toId(userId);
@@ -314,7 +373,7 @@ export class RbacRepository {
 
   async updateRole(
     roleId: string,
-    input: { name?: string; displayName?: string; description?: string | null; isDefault?: boolean; isActive?: boolean },
+    input: { name?: string; displayName?: string; description?: string | null; isActive?: boolean },
     actorUserId: string | null,
   ): Promise<RoleSummary> {
     const roleIdBig = toId(roleId);
@@ -422,10 +481,7 @@ export class RbacRepository {
     return rows.map(asRoleSummary);
   }
 
-  async createRole(
-    input: { slug: string; name?: string; displayName?: string; description?: string | null; isDefault?: boolean; isActive?: boolean },
-    actorUserId: string | null,
-  ): Promise<RoleSummary> {
+  async createRole(input: { slug: string; name?: string; displayName?: string; description?: string | null }, actorUserId: string | null): Promise<RoleSummary> {
     const actorId = toIdOrNull(actorUserId);
     const [role] = await this.db
       .insert(roles)
@@ -434,8 +490,6 @@ export class RbacRepository {
         name: input.name ?? input.displayName ?? input.slug,
         displayName: input.displayName ?? input.slug,
         description: input.description ?? null,
-        isDefault: input.isDefault,
-        isActive: input.isActive,
         createdBy: actorId,
         updatedBy: actorId,
       })
@@ -533,27 +587,6 @@ export class RbacRepository {
   /** Bumped by `AuthService.block`: a blocked account should not keep serving a warm entry either, even though the block itself is enforced on the authentication path. */
   async invalidateUser(userId: string): Promise<void> {
     await this.cache.invalidateSubject(userId);
-  }
-
-  /** Shared by `getUser`/`updateUser` (and inlined in `listUsers`, which fetches roles for a whole page at once instead). */
-  private mapUserSummary(row: typeof users.$inferSelect, roleSlugs: string[]): UserSummary {
-    return {
-      id: row.id.toString(),
-      email: row.email,
-      firstName: row.firstName,
-      lastName: row.lastName,
-      displayName: row.displayName,
-      phone: row.phone,
-      username: row.username,
-      photo: row.photo,
-      dob: row.dob,
-      gender: row.gender,
-      joinedDate: row.joinedDate,
-      lastLogin: row.lastLogin?.toISOString() ?? null,
-      blocked: row.blocked,
-      roles: roleSlugs.sort(),
-      createdAt: row.createdAt.toISOString(),
-    };
   }
 
   /**

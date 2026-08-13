@@ -81,12 +81,32 @@ export class AuthService {
   ) {}
 
   /** Creates the user and nothing else — there is no group to provision them into. */
-  async signup(input: { email: string; password: string; userAgent?: string; ip?: string }): Promise<AuthTokens> {
+  async signup(input: {
+    email: string;
+    password: string;
+    firstName?: string;
+    lastName?: string;
+    displayName?: string;
+    phone?: string;
+    username?: string;
+    userAgent?: string;
+    ip?: string;
+  }): Promise<AuthTokens> {
     const existing = await this.prisma.user.findUnique({ where: { email: input.email } });
     if (existing) throw new HttpError(409, "email already registered");
 
     const passwordHash = await hashPassword(input.password);
-    const user = await this.prisma.user.create({ data: { email: input.email, passwordHash } });
+    const user = await this.prisma.user.create({
+      data: {
+        email: input.email,
+        passwordHash,
+        firstName: input.firstName,
+        lastName: input.lastName,
+        displayName: input.displayName,
+        phone: input.phone,
+        username: input.username,
+      },
+    });
     // The signup default is whichever roles are flagged `isDefault` in the database, not a name
     // spelled in code — see rbac.defaults.ts.
     await this.rbac.assignDefaultRoles(user.id);

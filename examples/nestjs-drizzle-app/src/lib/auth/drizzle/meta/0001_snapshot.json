@@ -1,5 +1,5 @@
 {
-  "id": "636ed51c-8dac-4411-886e-105f1922e377",
+  "id": "4d9cbb18-8af4-4f03-9346-d72ea205a5ca",
   "prevId": "a1b9b5e1-53f4-40ef-9fb9-8340391eb390",
   "version": "7",
   "dialect": "postgresql",
@@ -1608,25 +1608,6 @@
           "primaryKey": false,
           "notNull": false
         },
-        "dob": {
-          "name": "dob",
-          "type": "date",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "gender": {
-          "name": "gender",
-          "type": "varchar(10)",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "joined_date": {
-          "name": "joined_date",
-          "type": "date",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        },
         "last_login": {
           "name": "last_login",
           "type": "timestamp (6) with time zone",
@@ -1645,6 +1626,13 @@
           "primaryKey": false,
           "notNull": true,
           "default": false
+        },
+        "is_active": {
+          "name": "is_active",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": true
         },
         "two_factor_enabled": {
           "name": "two_factor_enabled",

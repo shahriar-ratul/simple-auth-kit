@@ -17,6 +17,7 @@ import { PasswordResetRepository } from "./password-reset.repository.js";
 import { InMemoryPermissionCacheStore, PermissionCache } from "./permission-cache.js";
 import { InMemoryRateLimitStore } from "./rate-limit.store.js";
 import { RbacRepository } from "./rbac.repository.js";
+import { responseEnvelope } from "./response-envelope.middleware.js";
 import { SessionRepository } from "./session.repository.js";
 import { TwoFactorRepository } from "./two-factor.repository.js";
 import { createWorkspaceRouter } from "./workspace.router.js";
@@ -73,6 +74,7 @@ export function createAuthApp(options: CreateAuthAppOptions = {}): Express {
   // listing and redirect.
   app.use("/docs", swaggerUi.serveWithOptions({ redirect: false }), swaggerUi.setup(openApiSpec));
   app.get("/docs-json", (_req, res) => res.json(openApiSpec));
+  app.use(responseEnvelope());
   // Mounted before /auth so `/auth/admin/*` reaches the admin router rather than falling
   // through to the identity router's 404.
   app.use("/auth/admin", createAdminRouter({ auth: authService, workspaces, authentication, workspaceScope }));

@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Dialog } from "@/components/ui/dialog";
+import { Modal } from "@/components/ui/modal";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
 function apiErrorMessage(err: unknown, fallback: string): string {
@@ -311,7 +311,7 @@ function EditRoleDialog({
   }
 
   return (
-    <Dialog open={role !== null} onClose={handleClose} title="Edit role" description={role ? `Updates the "${role.slug}" role.` : ""}>
+    <Modal isOpen={role !== null} onClose={handleClose} title="Edit role" description={role ? `Updates the "${role.slug}" role.` : ""}>
       <form onSubmit={handleSubmit} className="flex flex-col gap-4">
         <div className="flex flex-col gap-1.5">
           <Label htmlFor="edit-role-displayName">Display name</Label>
@@ -351,7 +351,7 @@ function EditRoleDialog({
           </Button>
         </div>
       </form>
-    </Dialog>
+    </Modal>
   );
 }
 
@@ -381,8 +381,8 @@ function DeleteRoleDialog({
   }
 
   return (
-    <Dialog
-      open={role !== null}
+    <Modal
+      isOpen={role !== null}
       onClose={onClose}
       title="Delete role"
       description={role ? `"${role.slug}" stops being resolved for anyone who holds it. Existing assignments are left in place.` : ""}
@@ -397,7 +397,7 @@ function DeleteRoleDialog({
           </Button>
         </div>
       </div>
-    </Dialog>
+    </Modal>
   );
 }
 

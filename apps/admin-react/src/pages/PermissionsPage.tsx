@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Dialog } from "@/components/ui/dialog";
+import { Modal } from "@/components/ui/modal";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
 /** One dialog serves both create (slug editable) and edit (slug fixed) — `definePermission` upserts on slug. */
@@ -210,8 +210,8 @@ function DefinePermissionDialog({
   }
 
   return (
-    <Dialog
-      open={state !== null}
+    <Modal
+      isOpen={state !== null}
       onClose={handleClose}
       title={state?.mode === "edit" ? "Edit permission" : "New permission"}
       description={
@@ -266,6 +266,6 @@ function DefinePermissionDialog({
           </Button>
         </div>
       </form>
-    </Dialog>
+    </Modal>
   );
 }

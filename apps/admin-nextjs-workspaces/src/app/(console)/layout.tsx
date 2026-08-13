@@ -34,6 +34,18 @@ export default observer(function ConsoleLayout({ children }: { children: ReactNo
     }
   }, [store.status, store.isAuthenticated, router]);
 
+  // This app has no server-side middleware equivalent to the base admin-nextjs app's `proxy.ts`
+  // (no NextAuth here), so this layout is the only thing standing between a revoked/blocked
+  // session and every screen under (console) — re-verify on every navigation, not just on mount,
+  // so a logout-all/block/deactivate takes effect at the next click rather than at next page load.
+  useEffect(() => {
+    if (store.status !== "ready" || !store.isAuthenticated) return;
+    void store.verifySession().then((stillValid) => {
+      if (!stillValid) router.replace("/login");
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pathname]);
+
   if (store.status !== "ready" || !store.isAuthenticated || workspaces.status !== "ready") {
     return <div className="flex min-h-screen items-center justify-center text-sm text-muted-foreground">Loading…</div>;
   }

@@ -15,6 +15,7 @@ import { checkRateLimit } from "@/lib/auth/core/rate-limit.js";
 import {
   blockUser,
   createSession,
+  deactivateUser,
   revokeAccessToken,
   revokeAllSessionsForUser,
   revokeOtherSessionsForUser,
@@ -26,13 +27,14 @@ import { buildTotpProvisioningUri, generateBackupCodes, generateTotpSecret, veri
 import type { Revoker } from "@/lib/auth/core/types.js";
 import type { AuthConfig } from "./auth.config.js";
 import { HttpError } from "./http-error.js";
-import { AuditLogEntry, AuditLogListFilter, AuditLogRepository } from "./audit-log.repository.js";
+import { AuditLogEntry, AuditLogListFilter, AuditLogRepository, toAuditLogEntry } from "./audit-log.repository.js";
+import type { Paginated } from "./pagination.js";
 import { PrismaClient } from "../generated/prisma/client.js";
 import { KeyProviderService } from "./key-provider.js";
 import { OAuthRepository } from "./oauth.repository.js";
 import { PasswordResetRepository } from "./password-reset.repository.js";
 import { InMemoryRateLimitStore } from "./rate-limit.store.js";
-import { PermissionInput, PermissionSummary, RbacRepository, RoleSummary, UserListFilter, UserListResult, UserSummary } from "./rbac.repository.js";
+import { PermissionInput, PermissionSummary, RbacRepository, RoleSummary, toUserSummary, UserListFilter, UserListResult, UserSummary } from "./rbac.repository.js";
 import { SessionRepository } from "./session.repository.js";
 import { TwoFactorRepository } from "./two-factor.repository.js";
 import { toId, toIdOrNull } from "./id.helper.js";
@@ -46,6 +48,19 @@ export interface AuthTokens {
 export interface TwoFactorChallenge {
   twoFactorRequired: true;
   challengeToken: string;
+}
+
+/** `PATCH /auth/me`'s return shape — the same across every combo, workspace-scoped or not, since a profile isn't a workspace concept. */
+export interface SelfProfile {
+  id: string;
+  email: string;
+  firstName: string | null;
+  lastName: string | null;
+  displayName: string | null;
+  phone: string | null;
+  username: string | null;
+  photo: string | null;
+  createdAt: string;
 }
 
 // Plain class, manually constructed with its dependencies (see create-auth-app.ts) —
@@ -66,12 +81,32 @@ export class AuthService {
   ) {}
 
   /** Creates the user and nothing else — there is no group to provision them into. */
-  async signup(input: { email: string; password: string; userAgent?: string; ip?: string }): Promise<AuthTokens> {
+  async signup(input: {
+    email: string;
+    password: string;
+    firstName?: string;
+    lastName?: string;
+    displayName?: string;
+    phone?: string;
+    username?: string;
+    userAgent?: string;
+    ip?: string;
+  }): Promise<AuthTokens> {
     const existing = await this.prisma.user.findUnique({ where: { email: input.email } });
     if (existing) throw new HttpError(409, "email already registered");
 
     const passwordHash = await hashPassword(input.password);
-    const user = await this.prisma.user.create({ data: { email: input.email, passwordHash } });
+    const user = await this.prisma.user.create({
+      data: {
+        email: input.email,
+        passwordHash,
+        firstName: input.firstName,
+        lastName: input.lastName,
+        displayName: input.displayName,
+        phone: input.phone,
+        username: input.username,
+      },
+    });
     // The signup default is whichever roles are flagged `isDefault` in the database, not a name
     // spelled in code — see rbac.defaults.ts.
     await this.rbac.assignDefaultRoles(user.id);
@@ -79,12 +114,14 @@ export class AuthService {
   }
 
   /** Returns full tokens directly, or a short-lived challenge if the account has 2FA enabled — see `loginTwoFactor`. */
-  async login(input: { email: string; password: string; userAgent?: string; ip?: string }): Promise<AuthTokens | TwoFactorChallenge> {
-    const { allowed } = await checkRateLimit(this.rateLimit, "login", input.email);
+  async login(input: { identifier: string; password: string; userAgent?: string; ip?: string }): Promise<AuthTokens | TwoFactorChallenge> {
+    const { allowed } = await checkRateLimit(this.rateLimit, "login", input.identifier);
     if (!allowed) throw new HttpError(429, "too many login attempts");
 
-    const user = await this.prisma.user.findUnique({ where: { email: input.email } });
-    if (!user || user.blocked || user.isDeleted || !user.passwordHash) throw new HttpError(401, "invalid credentials");
+    const user = await this.prisma.user.findFirst({
+      where: { OR: [{ email: input.identifier }, { username: input.identifier }, { phone: input.identifier }] },
+    });
+    if (!user || user.blocked || !user.isActive || user.isDeleted || !user.passwordHash) throw new HttpError(401, "invalid credentials");
 
     const valid = await verifyPassword(user.passwordHash, input.password);
     if (!valid) throw new HttpError(401, "invalid credentials");
@@ -103,7 +140,7 @@ export class AuthService {
     const { sub } = await verifyTwoFactorChallengeToken({ secret: this.keys.secret }, input.challengeToken);
 
     const user = await this.prisma.user.findUnique({ where: { id: toId(sub) } });
-    if (!user || user.blocked || user.isDeleted || !user.twoFactorEnabled || !user.twoFactorSecret) throw new HttpError(401, "invalid credentials");
+    if (!user || user.blocked || !user.isActive || user.isDeleted || !user.twoFactorEnabled || !user.twoFactorSecret) throw new HttpError(401, "invalid credentials");
 
     const validTotp = verifyTotpCode(user.twoFactorSecret, input.code);
     const validBackup = !validTotp && (await this.twoFactor.consumeBackupCode(user.id, input.code));
@@ -215,7 +252,7 @@ export class AuthService {
     const { userId } = await completeOAuthLogin(this.oauth, { provider, profile });
 
     const user = await this.getUserOrThrow(userId);
-    if (user.blocked || user.isDeleted) throw new HttpError(401, "account is blocked");
+    if (user.blocked || !user.isActive || user.isDeleted) throw new HttpError(401, "account is blocked");
     // A user this login just created holds no roles at all; give them the defaults. Guarded on
     // "holds none" rather than "was created", so it can never re-add a role an administrator
     // revoked from someone who has been logging in for months.
@@ -223,8 +260,9 @@ export class AuthService {
     return this.issueSessionTokens(user, { provider });
   }
 
-  async listAuditLog(filter: AuditLogListFilter): Promise<{ entries: AuditLogEntry[]; nextCursor: string | null }> {
-    return this.auditLog.list(filter);
+  async listAuditLog(filter: AuditLogListFilter): Promise<Paginated<AuditLogEntry>> {
+    const { items, meta } = await this.auditLog.list(filter);
+    return { items: items.map(toAuditLogEntry), meta };
   }
 
   /** `req.auth` (the JWT claims) never carries 2FA status, so `/auth/me` fetches it fresh — the one bit of the response that isn't just echoing the token. */
@@ -251,7 +289,8 @@ export class AuthService {
   }
 
   async listUsers(filter: UserListFilter): Promise<UserListResult> {
-    return this.rbac.listUsers(filter);
+    const { items, meta } = await this.rbac.listUsers(filter);
+    return { items: items.map(toUserSummary), meta };
   }
 
   async getUser(userId: string): Promise<UserSummary> {
@@ -267,11 +306,6 @@ export class AuthService {
       displayName?: string;
       phone?: string;
       username?: string;
-      photo?: string;
-      dob?: string;
-      gender?: string;
-      joinedDate?: string;
-      isActive?: boolean;
       roles?: string[];
     },
     actorUserId: string | null,
@@ -282,17 +316,7 @@ export class AuthService {
 
   async updateUser(
     userId: string,
-    input: {
-      firstName?: string | null;
-      lastName?: string | null;
-      displayName?: string | null;
-      phone?: string | null;
-      username?: string | null;
-      photo?: string | null;
-      dob?: string | null;
-      gender?: string | null;
-      joinedDate?: string;
-    },
+    input: { firstName?: string | null; lastName?: string | null; displayName?: string | null; phone?: string | null; username?: string | null; photo?: string | null },
     actorUserId: string | null,
   ): Promise<UserSummary> {
     return this.rbac.updateUser(userId, input, actorUserId);
@@ -316,16 +340,13 @@ export class AuthService {
     return { roles: await this.rbac.listRoles() };
   }
 
-  async createRole(
-    input: { slug: string; name?: string; displayName?: string; description?: string | null; isDefault?: boolean; isActive?: boolean },
-    actorUserId: string | null,
-  ): Promise<RoleSummary> {
+  async createRole(input: { slug: string; name?: string; displayName?: string; description?: string | null }, actorUserId: string | null): Promise<RoleSummary> {
     return this.rbac.createRole(input, actorUserId);
   }
 
   async updateRole(
     roleId: string,
-    input: { name?: string; displayName?: string; description?: string | null; isDefault?: boolean; isActive?: boolean },
+    input: { name?: string; displayName?: string; description?: string | null; isActive?: boolean },
     actorUserId: string | null,
   ): Promise<RoleSummary> {
     return this.rbac.updateRole(roleId, input, actorUserId);
@@ -365,7 +386,7 @@ export class AuthService {
     const { session, nextJti } = await rotateRefreshToken(this.sessions, presented);
 
     const user = await this.prisma.user.findUnique({ where: { id: toId(session.userId) } });
-    if (!user || user.blocked || user.isDeleted) throw new HttpError(401, "invalid credentials");
+    if (!user || user.blocked || !user.isActive || user.isDeleted) throw new HttpError(401, "invalid credentials");
 
     // Identity only. Authorization is resolved from the database on every request (the authz middleware),
     // so a token issued before a grant is as authoritative as one issued after it.
@@ -395,6 +416,53 @@ export class AuthService {
     await revokeOtherSessionsForUser(this.sessions, userId, keepSessionId, revoker);
   }
 
+  async changePassword(userId: string, currentSessionId: string, input: { currentPassword: string; newPassword: string }): Promise<void> {
+    const userIdBig = toId(userId);
+    const user = await this.prisma.user.findUnique({ where: { id: userIdBig } });
+    if (!user || user.blocked || !user.isActive || user.isDeleted || !user.passwordHash) throw new HttpError(401, "invalid credentials");
+
+    const valid = await verifyPassword(user.passwordHash, input.currentPassword);
+    if (!valid) throw new HttpError(401, "invalid credentials");
+
+    const passwordHash = await hashPassword(input.newPassword);
+    await this.prisma.user.update({ where: { id: userIdBig }, data: { passwordHash, updatedBy: userIdBig } });
+    // The old password is no longer trusted everywhere else it's signed in — but leave the
+    // session making this very call alone, the same courtesy `logoutOthers` extends.
+    await revokeOtherSessionsForUser(this.sessions, userId, currentSessionId, { userId });
+  }
+
+  /** Backs both `GET`- and `PATCH /auth/me` — roles/blocked/lastLogin are an admin's business, not this endpoint's. */
+  private toSelfProfile(user: UserSummary): SelfProfile {
+    return {
+      id: user.id,
+      email: user.email,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      displayName: user.displayName,
+      phone: user.phone,
+      username: user.username,
+      photo: user.photo,
+      createdAt: user.createdAt,
+    };
+  }
+
+  /** Self-service — no `users:manage` permission required, callable by anyone on their own row. */
+  async getProfile(userId: string): Promise<SelfProfile> {
+    return this.toSelfProfile(await this.rbac.getUser(userId));
+  }
+
+  /**
+   * Self-service — no `users:manage` permission required, the caller's own row only. Reuses the
+   * admin update path (the actor named is the caller themselves), then trims the response to
+   * `SelfProfile`: roles/blocked/lastLogin are an admin's business, not this endpoint's.
+   */
+  async updateProfile(
+    userId: string,
+    input: { firstName?: string | null; lastName?: string | null; displayName?: string | null; phone?: string | null; username?: string | null; photo?: string | null },
+  ): Promise<SelfProfile> {
+    return this.toSelfProfile(await this.rbac.updateUser(userId, input, userId));
+  }
+
   async block(userId: string, revoker?: Revoker): Promise<void> {
     await this.prisma.user.update({ where: { id: toId(userId) }, data: { blocked: true, updatedBy: toIdOrNull(revoker?.userId) } });
     // The administrator, not the blocked user, is what lands in `sessions.revoked_by`.
@@ -408,6 +476,20 @@ export class AuthService {
 
   async unblock(userId: string, revoker?: Revoker): Promise<void> {
     await this.prisma.user.update({ where: { id: toId(userId) }, data: { blocked: false, updatedBy: toIdOrNull(revoker?.userId) } });
+  }
+
+  /**
+   * A routine administrative on/off toggle — distinct from `block`/`unblock`, which is a
+   * security/moderation action. Both independently deny login; see the note on the `User` model.
+   */
+  async deactivate(userId: string, revoker?: Revoker): Promise<void> {
+    await this.prisma.user.update({ where: { id: toId(userId) }, data: { isActive: false, updatedBy: toIdOrNull(revoker?.userId) } });
+    await deactivateUser(this.sessions, userId, revoker);
+    await this.rbac.invalidateUser(userId);
+  }
+
+  async activate(userId: string, revoker?: Revoker): Promise<void> {
+    await this.prisma.user.update({ where: { id: toId(userId) }, data: { isActive: true, updatedBy: toIdOrNull(revoker?.userId) } });
   }
 
   /** Nest's filter turns Prisma's `findUniqueOrThrow` into a 404; without one, this does it by hand. */

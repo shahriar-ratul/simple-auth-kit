@@ -12,7 +12,7 @@ import { RoleMultiSelect } from "@/components/role-multi-select";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Dialog } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
@@ -381,24 +381,25 @@ function DeleteUserDialog({
   }
 
   return (
-    <Dialog
-      open={user !== null}
-      onClose={onClose}
-      title="Delete account"
-      description={
-        user
-          ? `${user.email} is soft-deleted: the account disappears from every listing and can no longer sign in, across every workspace it belongs to — not just this one. This can't be undone from here.`
-          : ""
-      }
-    >
-      <div className="flex gap-2">
-        <Button variant="destructive" disabled={submitting} onClick={handleDelete}>
-          {submitting ? "Deleting…" : "Delete account"}
-        </Button>
-        <Button variant="outline" onClick={onClose}>
-          Cancel
-        </Button>
-      </div>
+    <Dialog open={user !== null} onOpenChange={(next) => !next && onClose()}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Delete account</DialogTitle>
+          <DialogDescription>
+            {user
+              ? `${user.email} is soft-deleted: the account disappears from every listing and can no longer sign in, across every workspace it belongs to — not just this one. This can't be undone from here.`
+              : ""}
+          </DialogDescription>
+        </DialogHeader>
+        <div className="flex gap-2">
+          <Button variant="destructive" disabled={submitting} onClick={handleDelete}>
+            {submitting ? "Deleting…" : "Delete account"}
+          </Button>
+          <Button variant="outline" onClick={onClose}>
+            Cancel
+          </Button>
+        </div>
+      </DialogContent>
     </Dialog>
   );
 }
