@@ -127,6 +127,26 @@
           "Pair with a workspaces-variant backend (e.g. nestjs-prisma --workspaces) — this console sends X-Workspace-Id on every workspace-scoped request"
         ]
       }
+    },
+    "mobile-expo": {
+      "dir": "mobile-apps/expo",
+      "sharedDir": "shared",
+      "variantsDir": "variants",
+      "variants": ["base", "workspaces"],
+      "kind": "mobile",
+      "installMode": "scaffold",
+      "peerDependencies": [],
+      "postInstall": [
+        "Run: npm install (or pnpm install) in the generated directory",
+        "Set EXPO_PUBLIC_API_BASE_URL if your backend isn't at http://localhost:3001 — on an Android emulator that's http://10.0.2.2:3001, not localhost",
+        "Run: npm start — opens the Expo dev tools (android/ios/web from there)",
+        "Known limitation: package.json declares \"@easy-auth/auth-client\": \"workspace:*\", which only resolves inside this monorepo's pnpm workspace — the package isn't published to npm yet. If you're generating this app outside the monorepo, replace that line with a real version once published, or vendor packages/auth-client/src into the generated app yourself."
+      ],
+      "variantPostInstall": {
+        "workspaces": [
+          "Pair with a workspaces-variant backend (e.g. nestjs-prisma --workspaces) — this app sends X-Workspace-Id on every workspace-scoped request, and gates on selecting/creating a workspace before showing the main app"
+        ]
+      }
     }
   }
 }
