@@ -19,6 +19,7 @@ import { readFile, writeFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 import prompts from "prompts";
 import { copyDir, CopyResult, NEVER_COPY, pruneRemovedFiles, SCAFFOLD_NEVER_COPY, sha256 } from "./lib/copy.js";
+import { reconcileManifest, renameNative, type NativeIdentity } from "./lib/rename-native.js";
 
 const CLI_DIR = dirname(fileURLToPath(import.meta.url));
 const REGISTRY_ROOT = resolve(CLI_DIR, "..", "registry");
@@ -53,6 +54,10 @@ interface ComboEntry {
   kind?: Kind;
   /** Defaults to "merge" for kind "api", "scaffold" otherwise. */
   installMode?: InstallMode;
+  /** Present only for combos (bare React Native) whose native android/ios scaffolding bakes
+   * in a placeholder app identity that must be re-templated per generated app — see
+   * lib/rename-native.ts. Absent for every other combo (nothing to rename). */
+  nativeIdentity?: NativeIdentity;
 }
 
 interface Registry {
@@ -227,6 +232,12 @@ async function installScaffold(comboName: string, combo: ComboEntry, variant: st
   const pruned = await pruneRemovedFiles(targetRoot, previous, result, { force });
 
   const appName = flagString(flags.name) ?? basename(targetRoot);
+
+  if (combo.nativeIdentity) {
+    const renamed = await renameNative(targetRoot, combo.nativeIdentity, appName);
+    result.manifest = reconcileManifest(result.manifest, renamed);
+  }
+
   const pkgPath = join(targetRoot, "package.json");
   try {
     const pkg = JSON.parse(await readFile(pkgPath, "utf8"));

@@ -147,6 +147,28 @@
           "Pair with a workspaces-variant backend (e.g. nestjs-prisma --workspaces) — this app sends X-Workspace-Id on every workspace-scoped request, and gates on selecting/creating a workspace before showing the main app"
         ]
       }
+    },
+    "mobile-bare-rn": {
+      "dir": "mobile-apps/bare-rn",
+      "sharedDir": "shared",
+      "variantsDir": "variants",
+      "variants": ["base", "workspaces"],
+      "kind": "mobile",
+      "installMode": "scaffold",
+      "nativeIdentity": { "name": "MobileBareRn", "package": "com.mobilebarern" },
+      "peerDependencies": [],
+      "postInstall": [
+        "Run: npm install (or pnpm install) in the generated directory",
+        "iOS only: run pod install inside ios/ before the first build",
+        "Set the backend URL your platform actually needs — see src/api/authClient.ts (Android emulator: 10.0.2.2, not localhost)",
+        "Run: npm run android (or npm run ios) — the Android applicationId / iOS bundle id were re-templated from --name so multiple generated apps don't collide",
+        "Known limitation: package.json declares \"@easy-auth/auth-client\": \"workspace:*\", which only resolves inside this monorepo's pnpm workspace — the package isn't published to npm yet. If you're generating this app outside the monorepo, replace that line with a real version once published, or vendor packages/auth-client/src into the generated app yourself."
+      ],
+      "variantPostInstall": {
+        "workspaces": [
+          "Pair with a workspaces-variant backend (e.g. nestjs-prisma --workspaces) — this app sends X-Workspace-Id on every workspace-scoped request, and gates on selecting/creating a workspace before showing the main app"
+        ]
+      }
     }
   }
 }
