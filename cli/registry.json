@@ -169,6 +169,30 @@
           "Pair with a workspaces-variant backend (e.g. nestjs-prisma --workspaces) — this app sends X-Workspace-Id on every workspace-scoped request, and gates on selecting/creating a workspace before showing the main app"
         ]
       }
+    },
+    "admin-nextjs": {
+      "dir": "admin-apps/nextjs",
+      "sharedDir": "shared",
+      "variantsDir": "variants",
+      "variants": ["base", "workspaces"],
+      "kind": "admin",
+      "installMode": "scaffold",
+      "peerDependencies": [],
+      "postInstall": [
+        "Copy .env.example to .env and set NEXT_PUBLIC_AUTH_API_URL to your running easy-auth backend's URL",
+        "Run: npm install (or pnpm install) in the generated directory",
+        "Run: npm run dev — starts the Next.js dev server on port 3000",
+        "Known limitation: package.json declares \"@easy-auth/auth-client\": \"workspace:*\", which only resolves inside this monorepo's pnpm workspace — the package isn't published to npm yet. If you're generating this app outside the monorepo, replace that line with a real version once published, or vendor packages/auth-client/src into the generated app yourself.",
+        "Note: base and workspaces variants deliberately use different route-guarding trust models — base uses NextAuth edge middleware (src/proxy.ts), workspaces uses a client-side session recheck on every navigation. Both are correct for their own architecture; see registry/admin-apps/README.md for why they aren't unified."
+      ],
+      "variantPostInstall": {
+        "base": [
+          "Also set AUTH_SECRET in .env — the NextAuth v5 session-JWT signing secret. Generate one with: npx auth secret (or: openssl rand -base64 32)"
+        ],
+        "workspaces": [
+          "Pair with a workspaces-variant backend (e.g. nestjs-prisma --workspaces) — this console sends X-Workspace-Id on every workspace-scoped request"
+        ]
+      }
     }
   }
 }
