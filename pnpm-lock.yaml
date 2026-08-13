@@ -247,6 +247,9 @@ importers:
       '@easy-auth/auth-client':
         specifier: workspace:*
         version: link:../../packages/auth-client
+      '@fontsource-variable/bricolage-grotesque':
+        specifier: ^5.3.0
+        version: 5.3.0
       '@radix-ui/react-label':
         specifier: ^2.1.15
         version: 2.1.15(@types/react-dom@19.2.4(@types/react@19.2.18))(@types/react@19.2.18)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
@@ -316,6 +319,9 @@ importers:
       react-router-dom:
         specifier: ^7.9.5
         version: 7.18.2(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
+      shadcn:
+        specifier: ^4.16.2
+        version: 4.16.2(supports-color@8.1.1)(typescript@7.0.2)
       socket.io-client:
         specifier: ^4.8.1
         version: 4.8.3(supports-color@8.1.1)
@@ -328,6 +334,9 @@ importers:
       tailwindcss-animate:
         specifier: ^1.0.7
         version: 1.0.7(tailwindcss@4.3.3)
+      tw-animate-css:
+        specifier: ^1.4.0
+        version: 1.4.0
       use-debounce:
         specifier: ^10.0.6
         version: 10.1.1(react@19.2.8)
@@ -374,6 +383,9 @@ importers:
       '@easy-auth/auth-client':
         specifier: workspace:*
         version: link:../../packages/auth-client
+      '@fontsource-variable/bricolage-grotesque':
+        specifier: ^5.3.0
+        version: 5.3.0
       '@radix-ui/react-label':
         specifier: ^2.1.15
         version: 2.1.15(@types/react-dom@19.2.4(@types/react@19.2.18))(@types/react@19.2.18)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
@@ -443,6 +455,9 @@ importers:
       react-router-dom:
         specifier: ^7.9.5
         version: 7.18.2(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
+      shadcn:
+        specifier: ^4.16.2
+        version: 4.16.2(supports-color@8.1.1)(typescript@7.0.2)
       socket.io-client:
         specifier: ^4.8.1
         version: 4.8.3(supports-color@8.1.1)
@@ -455,6 +470,9 @@ importers:
       tailwindcss-animate:
         specifier: ^1.0.7
         version: 1.0.7(tailwindcss@4.3.3)
+      tw-animate-css:
+        specifier: ^1.4.0
+        version: 1.4.0
       use-debounce:
         specifier: ^10.0.6
         version: 10.1.1(react@19.2.8)
@@ -2544,6 +2562,9 @@ packages:
 
   '@floating-ui/utils@0.2.12':
     resolution: {integrity: sha512-HpCo8tmWzLVad5s2d19EhAz5zqrrQ6s69qd6moPMQvkOuSwDT1YgRfWSVuc4ennqrgv3OHppiOGMQ7oC13yIww==}
+
+  '@fontsource-variable/bricolage-grotesque@5.3.0':
+    resolution: {integrity: sha512-TLi9Q4hJjS2UvoTMRSS2nHu6c4R56lAw60NR9QYtVRCHn0XtsFpiEhNffZ8Glsoxu6wEEwLKBP8lb94J52PNBA==}
 
   '@hapi/hoek@9.3.0':
     resolution: {integrity: sha512-/c6rf4UJlmHlC9b5BaNvzAcFv7HZ2QHaV0D4/HNlBdvFnvQq8RI4kYdhyPCl7Xj+oWvTWQ8ujhqS53LIgAe6KQ==}
@@ -4984,10 +5005,12 @@ packages:
   '@xmldom/xmldom@0.8.13':
     resolution: {integrity: sha512-KRYzxepc14G/CEpEGc3Yn+JKaAeT63smlDr+vjB8jRfgTBBI9wRj/nkQEO+ucV8p8I9bfKLWp37uHgFrbntPvw==}
     engines: {node: '>=10.0.0'}
+    deprecated: this version has critical issues, please update to the latest version
 
   '@xmldom/xmldom@0.9.10':
     resolution: {integrity: sha512-A9gOqLdi6cV4ibazAjcQufGj0B1y/vDqYrcuP6d/6x8P27gRS8643Dj9o1dEKtB6O7fwxb2FgBmJS2mX7gpvdw==}
     engines: {node: '>=14.6'}
+    deprecated: this version has critical issues, please update to the latest version
 
   abort-controller@3.0.0:
     resolution: {integrity: sha512-h8lQ8tacZYnR3vNQTgibj+tODHI5/+l06Au2Pcriv/Gmet0eaj4TwWH41sO9wnHDiQsEj19q0drzdWdeAHtweg==}
@@ -11561,6 +11584,8 @@ snapshots:
       react-dom: 19.2.8(react@19.2.8)
 
   '@floating-ui/utils@0.2.12': {}
+
+  '@fontsource-variable/bricolage-grotesque@5.3.0': {}
 
   '@hapi/hoek@9.3.0': {}
 
