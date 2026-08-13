@@ -112,12 +112,18 @@ export interface CreateRoleInput {
   /** Human label for the console. Defaults to the slug. */
   displayName?: string;
   description?: string | null;
+  /** Given to every newly signed-up user. Defaults to false. */
+  isDefault?: boolean;
+  /** Defaults to true. */
+  isActive?: boolean;
 }
 
 export interface UpdateRoleInput {
   name?: string;
   displayName?: string;
   description?: string | null;
+  /** Given to every newly signed-up user. */
+  isDefault?: boolean;
   /** `false` suspends the role without deleting it — it stops granting immediately. */
   isActive?: boolean;
 }
@@ -163,6 +169,11 @@ export interface UpdateUserInput {
   phone?: string | null;
   username?: string | null;
   photo?: string | null;
+  /** ISO date (yyyy-mm-dd). */
+  dob?: string | null;
+  gender?: string | null;
+  /** ISO date (yyyy-mm-dd). Not nullable — omit to leave unchanged. */
+  joinedDate?: string;
 }
 
 /** `PATCH /auth/me`'s response — the same shape whether or not the combo has workspaces, since a profile isn't a workspace concept. */
@@ -188,6 +199,13 @@ export interface CreateUserInput {
   phone?: string;
   username?: string;
   photo?: string;
+  /** ISO date (yyyy-mm-dd). */
+  dob?: string;
+  gender?: string;
+  /** ISO date (yyyy-mm-dd). Defaults to today. */
+  joinedDate?: string;
+  /** Defaults to true — false creates the account already deactivated. */
+  isActive?: boolean;
   /** Defaults to whichever roles are flagged `isDefault`, same as a self-signup. */
   roles?: string[];
 }
@@ -208,6 +226,11 @@ export interface DeploymentUserSummary {
   phone: string | null;
   username: string | null;
   photo: string | null;
+  /** Date of birth, ISO 8601. */
+  dob: string | null;
+  gender: string | null;
+  /** ISO 8601. Defaults to the account's creation day. */
+  joinedDate: string;
   /** ISO 8601. Set on every successful signup/login/OAuth callback, never on a token refresh. */
   lastLogin: string | null;
   /** Security/moderation block (see `blockUser`/`unblockUser`) — distinct from `isActive`. Both independently deny login. */
@@ -235,6 +258,11 @@ export interface WorkspaceUserSummary {
   phone: string | null;
   username: string | null;
   photo: string | null;
+  /** Date of birth, ISO 8601. */
+  dob: string | null;
+  gender: string | null;
+  /** ISO 8601. Defaults to the account's creation day. */
+  joinedDate: string;
   lastLogin: string | null;
   blocked: boolean;
   isActive: boolean;

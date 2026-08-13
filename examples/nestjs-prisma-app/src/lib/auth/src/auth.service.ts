@@ -29,7 +29,10 @@ import type { Revoker } from "@/lib/auth/core/types.js";
 import { AUTH_CONFIG, AuthConfig } from "./auth.config.js";
 import { AuditLogEntry, AuditLogListFilter, AuditLogRepository, toAuditLogEntry } from "./audit-log.repository.js";
 import { PrismaClient } from "../generated/prisma/client.js";
+import { CountryInput, CountryListFilter, CountryListResult, CountryRepository, CountrySummary } from "./country.repository.js";
+import { CustomerInput, CustomerListFilter, CustomerListResult, CustomerRepository, CustomerSummary } from "./customer.repository.js";
 import { KeyProviderService } from "./key-provider.js";
+import { LanguageInput, LanguageListFilter, LanguageListResult, LanguageRepository, LanguageSummary } from "./language.repository.js";
 import { OAuthRepository } from "./oauth.repository.js";
 import { PasswordResetRepository } from "./password-reset.repository.js";
 import type { Paginated } from "./pagination.js";
@@ -75,6 +78,9 @@ export class AuthService {
     @Inject(TwoFactorRepository) private readonly twoFactor: TwoFactorRepository,
     @Inject(OAuthRepository) private readonly oauth: OAuthRepository,
     @Inject(PasswordResetRepository) private readonly passwordReset: PasswordResetRepository,
+    @Inject(CountryRepository) private readonly countries: CountryRepository,
+    @Inject(LanguageRepository) private readonly languages: LanguageRepository,
+    @Inject(CustomerRepository) private readonly customers: CustomerRepository,
     @Inject(AUTH_CONFIG) private readonly config: AuthConfig,
   ) {}
 
@@ -296,6 +302,10 @@ export class AuthService {
       phone?: string;
       username?: string;
       photo?: string;
+      dob?: string;
+      gender?: string;
+      joinedDate?: string;
+      isActive?: boolean;
       roles?: string[];
     },
     actorUserId: string | null,
@@ -306,7 +316,17 @@ export class AuthService {
 
   async updateUser(
     userId: string,
-    input: { firstName?: string | null; lastName?: string | null; displayName?: string | null; phone?: string | null; username?: string | null; photo?: string | null },
+    input: {
+      firstName?: string | null;
+      lastName?: string | null;
+      displayName?: string | null;
+      phone?: string | null;
+      username?: string | null;
+      photo?: string | null;
+      dob?: string | null;
+      gender?: string | null;
+      joinedDate?: string;
+    },
     actorUserId: string | null,
   ): Promise<UserSummary> {
     return this.rbac.updateUser(userId, input, actorUserId);
@@ -329,7 +349,7 @@ export class AuthService {
   }
 
   async createRole(
-    input: { slug: string; name?: string; displayName?: string; description?: string | null },
+    input: { slug: string; name?: string; displayName?: string; description?: string | null; isDefault?: boolean; isActive?: boolean },
     actorUserId: string | null,
   ): Promise<RoleSummary> {
     return this.rbac.createRole(input, actorUserId);
@@ -337,7 +357,7 @@ export class AuthService {
 
   async updateRole(
     roleId: string,
-    input: { name?: string; displayName?: string; description?: string | null; isActive?: boolean },
+    input: { name?: string; displayName?: string; description?: string | null; isDefault?: boolean; isActive?: boolean },
     actorUserId: string | null,
   ): Promise<RoleSummary> {
     return this.rbac.updateRole(roleId, input, actorUserId);
@@ -482,6 +502,97 @@ export class AuthService {
 
   async activate(userId: string, revoker?: Revoker): Promise<void> {
     await this.prisma.user.update({ where: { id: toId(userId) }, data: { isActive: true, updatedBy: toIdOrNull(revoker?.userId) } });
+  }
+
+  // ---- countries ----
+
+  async listCountries(filter: CountryListFilter): Promise<CountryListResult> {
+    return this.countries.list(filter);
+  }
+
+  async getCountry(countryId: string): Promise<CountrySummary> {
+    return this.countries.get(countryId);
+  }
+
+  async createCountry(input: CountryInput, actorUserId: string | null): Promise<CountrySummary> {
+    return this.countries.create(input, actorUserId);
+  }
+
+  async updateCountry(countryId: string, input: Partial<CountryInput>, actorUserId: string | null): Promise<CountrySummary> {
+    return this.countries.update(countryId, input, actorUserId);
+  }
+
+  async deleteCountry(countryId: string, actorUserId: string | null, reason?: string): Promise<void> {
+    await this.countries.delete(countryId, actorUserId, reason);
+  }
+
+  async activateCountry(countryId: string, actorUserId: string | null): Promise<void> {
+    await this.countries.setActive(countryId, true, actorUserId);
+  }
+
+  async deactivateCountry(countryId: string, actorUserId: string | null): Promise<void> {
+    await this.countries.setActive(countryId, false, actorUserId);
+  }
+
+  // ---- languages ----
+
+  async listLanguages(filter: LanguageListFilter): Promise<LanguageListResult> {
+    return this.languages.list(filter);
+  }
+
+  async getLanguage(languageId: string): Promise<LanguageSummary> {
+    return this.languages.get(languageId);
+  }
+
+  async createLanguage(input: LanguageInput, actorUserId: string | null): Promise<LanguageSummary> {
+    return this.languages.create(input, actorUserId);
+  }
+
+  async updateLanguage(languageId: string, input: Partial<LanguageInput>, actorUserId: string | null): Promise<LanguageSummary> {
+    return this.languages.update(languageId, input, actorUserId);
+  }
+
+  async deleteLanguage(languageId: string, actorUserId: string | null, reason?: string): Promise<void> {
+    await this.languages.delete(languageId, actorUserId, reason);
+  }
+
+  async activateLanguage(languageId: string, actorUserId: string | null): Promise<void> {
+    await this.languages.setActive(languageId, true, actorUserId);
+  }
+
+  async deactivateLanguage(languageId: string, actorUserId: string | null): Promise<void> {
+    await this.languages.setActive(languageId, false, actorUserId);
+  }
+
+  // ---- customers ----
+  // End-users managed by admins — no login capability, not related to the RBAC `User` model above.
+
+  async listCustomers(filter: CustomerListFilter): Promise<CustomerListResult> {
+    return this.customers.list(filter);
+  }
+
+  async getCustomer(customerId: string): Promise<CustomerSummary> {
+    return this.customers.get(customerId);
+  }
+
+  async createCustomer(input: CustomerInput, actorUserId: string | null): Promise<CustomerSummary> {
+    return this.customers.create(input, actorUserId);
+  }
+
+  async updateCustomer(customerId: string, input: Partial<CustomerInput>, actorUserId: string | null): Promise<CustomerSummary> {
+    return this.customers.update(customerId, input, actorUserId);
+  }
+
+  async deleteCustomer(customerId: string, actorUserId: string | null, reason?: string): Promise<void> {
+    await this.customers.delete(customerId, actorUserId, reason);
+  }
+
+  async activateCustomer(customerId: string, actorUserId: string | null): Promise<void> {
+    await this.customers.setActive(customerId, true, actorUserId);
+  }
+
+  async deactivateCustomer(customerId: string, actorUserId: string | null): Promise<void> {
+    await this.customers.setActive(customerId, false, actorUserId);
   }
 
   // refresh() does not call this, so a token rotation never counts as a fresh login.

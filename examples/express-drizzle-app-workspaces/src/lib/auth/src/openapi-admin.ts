@@ -73,6 +73,8 @@ export const adminSpec: OpenApiFragment = {
         slug: { type: "string", description: "Stable identifier. Grants and assignments are keyed on it.", example: "billing-manager" },
         displayName: { type: "string", description: "Human label for the console. Defaults to the slug.", example: "Billing manager" },
         description: { type: "string", nullable: true },
+        isDefault: { type: "boolean", description: "Given to every newly signed-up user. Defaults to false." },
+        isActive: { type: "boolean", description: "Defaults to true." },
       },
     },
     AttachPermissionRequest: {
@@ -106,6 +108,9 @@ export const adminSpec: OpenApiFragment = {
         phone: { type: "string", nullable: true },
         username: { type: "string", nullable: true },
         photo: { type: "string", nullable: true },
+        dob: { type: "string", format: "date", nullable: true, description: "Date of birth, ISO date (yyyy-mm-dd)." },
+        gender: { type: "string", nullable: true },
+        joinedDate: { type: "string", format: "date", description: "ISO date (yyyy-mm-dd). Not nullable — omit to leave unchanged." },
       },
     },
     UpdateRoleRequest: {
@@ -114,6 +119,7 @@ export const adminSpec: OpenApiFragment = {
         name: { type: "string" },
         displayName: { type: "string" },
         description: { type: "string", nullable: true },
+        isDefault: { type: "boolean", description: "Given to every newly signed-up user." },
         isActive: { type: "boolean", description: "false suspends the role without deleting it; every assignment pointing at it survives." },
       },
     },
@@ -136,7 +142,7 @@ export const adminSpec: OpenApiFragment = {
     },
     MemberSummary: {
       type: "object",
-      required: ["memberId", "userId", "email", "blocked", "roles", "createdAt"],
+      required: ["memberId", "userId", "email", "joinedDate", "blocked", "roles", "createdAt"],
       properties: {
         memberId: { type: "string" },
         userId: { type: "string" },
@@ -147,6 +153,9 @@ export const adminSpec: OpenApiFragment = {
         phone: { type: "string", nullable: true },
         username: { type: "string", nullable: true },
         photo: { type: "string", nullable: true },
+        dob: { type: "string", format: "date", nullable: true, description: "Date of birth, ISO date (yyyy-mm-dd)." },
+        gender: { type: "string", nullable: true },
+        joinedDate: { type: "string", format: "date", description: "ISO date (yyyy-mm-dd). Defaults to the account's creation day." },
         lastLogin: { type: "string", format: "date-time", nullable: true },
         blocked: { type: "boolean" },
         roles: { type: "array", items: { type: "string" }, description: "This member's roles in this workspace" },

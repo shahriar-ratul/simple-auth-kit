@@ -63,6 +63,12 @@ export class CreateRoleDto {
 
   @ApiProperty({ type: String, required: false, nullable: true })
   description?: string | null;
+
+  @ApiProperty({ type: Boolean, required: false, description: "Given to every newly signed-up user. Defaults to false." })
+  isDefault?: boolean;
+
+  @ApiProperty({ type: Boolean, required: false, description: "Defaults to true." })
+  isActive?: boolean;
 }
 
 export class UpdateRoleDto {
@@ -74,6 +80,9 @@ export class UpdateRoleDto {
 
   @ApiProperty({ type: String, required: false, nullable: true })
   description?: string | null;
+
+  @ApiProperty({ type: Boolean, required: false, description: "Given to every newly signed-up user." })
+  isDefault?: boolean;
 
   @ApiProperty({ type: Boolean, required: false, description: "false suspends the role without deleting it — it stops granting immediately." })
   isActive?: boolean;
@@ -97,6 +106,15 @@ export class UpdateUserDto {
 
   @ApiProperty({ type: String, required: false, nullable: true })
   photo?: string | null;
+
+  @ApiProperty({ type: String, required: false, nullable: true, description: "Date of birth, ISO date (yyyy-mm-dd)." })
+  dob?: string | null;
+
+  @ApiProperty({ type: String, required: false, nullable: true })
+  gender?: string | null;
+
+  @ApiProperty({ type: String, required: false, description: "ISO date (yyyy-mm-dd). Not nullable — omit to leave unchanged." })
+  joinedDate?: string;
 }
 
 export class DeleteReasonDto {

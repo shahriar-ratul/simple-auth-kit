@@ -52,6 +52,48 @@ export const PERMISSION_CATALOG = {
     order: 3,
   },
   "audit-log:read": { displayName: "Read the audit log", description: "GET /auth/admin/audit-log", group: "Audit", order: 1 },
+
+  "countries:read": { displayName: "List countries", description: "GET /auth/admin/countries, GET /auth/admin/countries/:countryId", group: "Countries", order: 1 },
+  "countries:manage": {
+    displayName: "Create, edit, and delete countries",
+    description: "POST /auth/admin/countries, PATCH /auth/admin/countries/:countryId, DELETE /auth/admin/countries/:countryId",
+    group: "Countries",
+    order: 2,
+  },
+  "countries:status": {
+    displayName: "Activate and deactivate countries",
+    description: "POST /auth/admin/countries/:countryId/activate, .../deactivate",
+    group: "Countries",
+    order: 3,
+  },
+
+  "languages:read": { displayName: "List languages", description: "GET /auth/admin/languages, GET /auth/admin/languages/:languageId", group: "Languages", order: 1 },
+  "languages:manage": {
+    displayName: "Create, edit, and delete languages",
+    description: "POST /auth/admin/languages, PATCH /auth/admin/languages/:languageId, DELETE /auth/admin/languages/:languageId",
+    group: "Languages",
+    order: 2,
+  },
+  "languages:status": {
+    displayName: "Activate and deactivate languages",
+    description: "POST /auth/admin/languages/:languageId/activate, .../deactivate",
+    group: "Languages",
+    order: 3,
+  },
+
+  "customers:read": { displayName: "List customers", description: "GET /auth/admin/customers, GET /auth/admin/customers/:customerId", group: "Customers", order: 1 },
+  "customers:manage": {
+    displayName: "Create, edit, and delete customers",
+    description: "POST /auth/admin/customers, PATCH /auth/admin/customers/:customerId, DELETE /auth/admin/customers/:customerId",
+    group: "Customers",
+    order: 2,
+  },
+  "customers:status": {
+    displayName: "Activate and deactivate customers",
+    description: "POST /auth/admin/customers/:customerId/activate, .../deactivate",
+    group: "Customers",
+    order: 3,
+  },
 } as const satisfies Record<string, PermissionSeed>;
 
 // Deployments may invent slugs at runtime (`POST /auth/admin/permissions` accepts any string),

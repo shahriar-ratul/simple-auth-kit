@@ -2,8 +2,7 @@ import { z } from "zod";
 
 /**
  * `CreateCountryInput` and `UpdateCountryInput` share every field, and all of them except the
- * flag are required strings on create — so one schema serves both forms. `isActive` is not a
- * form field; status is toggled from the list/detail screens like every other domain here.
+ * flag are required strings on create — so one schema serves both forms.
  */
 export const countrySchema = z.object({
   code: z.string().min(1, "Code is required"),
@@ -14,5 +13,6 @@ export const countrySchema = z.object({
   currencyName: z.string().min(1, "Currency name is required"),
   isoCode: z.string().min(1, "ISO code is required"),
   flag: z.string().nullable().optional(),
+  isActive: z.boolean(),
 });
 export type CountryFormValues = z.infer<typeof countrySchema>;

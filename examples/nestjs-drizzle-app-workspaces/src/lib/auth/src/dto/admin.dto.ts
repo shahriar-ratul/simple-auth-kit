@@ -31,6 +31,15 @@ export class UserSummaryDto {
   @ApiProperty({ type: String, nullable: true })
   photo!: string | null;
 
+  @ApiProperty({ type: String, nullable: true, description: "Date of birth, ISO 8601." })
+  dob!: string | null;
+
+  @ApiProperty({ type: String, nullable: true })
+  gender!: string | null;
+
+  @ApiProperty({ type: String, description: "ISO 8601. Defaults to the account's creation day." })
+  joinedDate!: string;
+
   @ApiProperty({ type: String, nullable: true, description: "ISO 8601. Set on every successful signup/login/OAuth callback, never on a token refresh." })
   lastLogin!: string | null;
 

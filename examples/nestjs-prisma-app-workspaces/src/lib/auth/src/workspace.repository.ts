@@ -129,6 +129,10 @@ export class WorkspaceRepository {
       phone?: string;
       username?: string;
       photo?: string;
+      dob?: string;
+      gender?: string;
+      joinedDate?: string;
+      isActive?: boolean;
       roles?: string[];
     },
     actorUserId: string | null,
@@ -148,6 +152,10 @@ export class WorkspaceRepository {
         phone: input.phone,
         username: input.username,
         photo: input.photo,
+        dob: input.dob ? new Date(input.dob) : undefined,
+        gender: input.gender,
+        joinedDate: input.joinedDate ? new Date(input.joinedDate) : undefined,
+        isActive: input.isActive,
         createdBy: actorUserId ? toId(actorUserId) : null,
       },
     });

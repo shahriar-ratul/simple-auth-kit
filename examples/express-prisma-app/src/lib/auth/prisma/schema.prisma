@@ -28,6 +28,9 @@ model User {
   phone            String?   @unique
   username         String?   @unique
   photo            String?
+  dob              DateTime? @db.Date
+  gender           String?   @db.VarChar(10)
+  joinedDate       DateTime  @default(now()) @map("joined_date") @db.Date
   lastLogin        DateTime? @map("last_login") @db.Timestamptz(6)
   passwordHash     String?   @map("password_hash") // nullable: OAuth-only signup has no password
   blocked          Boolean   @default(false)

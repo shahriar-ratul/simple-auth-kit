@@ -15,6 +15,9 @@ export interface MemberSummary {
   phone: string | null;
   username: string | null;
   photo: string | null;
+  dob: string | null;
+  gender: string | null;
+  joinedDate: string;
   lastLogin: string | null;
   blocked: boolean;
   roles: string[];
@@ -221,6 +224,9 @@ export class RbacRepository {
         phone: row.user.phone,
         username: row.user.username,
         photo: row.user.photo,
+        dob: row.user.dob?.toISOString() ?? null,
+        gender: row.user.gender,
+        joinedDate: row.user.joinedDate.toISOString(),
         lastLogin: row.user.lastLogin?.toISOString() ?? null,
         blocked: row.user.blocked,
         roles: row.roles.map((r) => r.role.slug).sort(),
@@ -251,6 +257,9 @@ export class RbacRepository {
       phone: row.user.phone,
       username: row.user.username,
       photo: row.user.photo,
+      dob: row.user.dob?.toISOString() ?? null,
+      gender: row.user.gender,
+      joinedDate: row.user.joinedDate.toISOString(),
       lastLogin: row.user.lastLogin?.toISOString() ?? null,
       blocked: row.user.blocked,
       roles: row.roles.map((r) => r.role.slug).sort(),
@@ -262,11 +271,30 @@ export class RbacRepository {
   async updateMember(
     workspaceId: string,
     userId: string,
-    input: { firstName?: string | null; lastName?: string | null; displayName?: string | null; phone?: string | null; username?: string | null; photo?: string | null },
+    input: {
+      firstName?: string | null;
+      lastName?: string | null;
+      displayName?: string | null;
+      phone?: string | null;
+      username?: string | null;
+      photo?: string | null;
+      dob?: string | null;
+      gender?: string | null;
+      joinedDate?: string;
+    },
     actorUserId: string | null,
   ): Promise<MemberSummary> {
     await this.requireMember(workspaceId, userId);
-    await this.prisma.user.update({ where: { id: toId(userId) }, data: { ...input, updatedBy: toIdOrNull(actorUserId) } });
+    await this.prisma.user.update({
+      where: { id: toId(userId) },
+      data: {
+        ...input,
+        // Date columns need Date values; `undefined` leaves them alone, like every other field here.
+        dob: input.dob === undefined ? undefined : input.dob === null ? null : new Date(input.dob),
+        joinedDate: input.joinedDate === undefined ? undefined : new Date(input.joinedDate),
+        updatedBy: toIdOrNull(actorUserId),
+      },
+    });
     return this.getMember(workspaceId, userId);
   }
 
@@ -286,7 +314,7 @@ export class RbacRepository {
   async updateRole(
     workspaceId: string,
     roleId: string,
-    input: { name?: string; displayName?: string; description?: string | null; isActive?: boolean },
+    input: { name?: string; displayName?: string; description?: string | null; isDefault?: boolean; isActive?: boolean },
     actorUserId: string | null,
   ): Promise<RoleSummary> {
     const workspaceIdBig = toId(workspaceId);
@@ -383,7 +411,7 @@ export class RbacRepository {
 
   async createRole(
     workspaceId: string,
-    input: { slug: string; name?: string; displayName?: string; description?: string | null },
+    input: { slug: string; name?: string; displayName?: string; description?: string | null; isDefault?: boolean; isActive?: boolean },
     actorUserId: string | null,
   ): Promise<RoleSummary> {
     const role = await this.prisma.role.create({
@@ -393,6 +421,8 @@ export class RbacRepository {
         name: input.name ?? input.displayName ?? input.slug,
         displayName: input.displayName ?? input.slug,
         description: input.description ?? null,
+        isDefault: input.isDefault,
+        isActive: input.isActive,
         createdBy: toIdOrNull(actorUserId),
         updatedBy: toIdOrNull(actorUserId),
       },

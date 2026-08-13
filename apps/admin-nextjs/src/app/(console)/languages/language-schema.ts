@@ -2,8 +2,7 @@ import { z } from "zod";
 
 /**
  * `CreateLanguageInput` and `UpdateLanguageInput` share every field, so one schema serves both
- * forms. `isActive` is not a form field; status is toggled from the list/detail screens like
- * every other domain here.
+ * forms.
  */
 export const languageSchema = z.object({
   code: z.string().min(1, "Code is required"),
@@ -11,6 +10,7 @@ export const languageSchema = z.object({
   nativeName: z.string().min(1, "Native name is required"),
   direction: z.enum(["ltr", "rtl"]),
   isDefault: z.boolean(),
+  isActive: z.boolean(),
 });
 export type LanguageFormValues = z.infer<typeof languageSchema>;
 

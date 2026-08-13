@@ -21,6 +21,9 @@ model User {
   phone            String?   @unique
   username         String?   @unique
   photo            String?
+  dob              DateTime? @db.Date
+  gender           String?   @db.VarChar(10)
+  joinedDate       DateTime  @default(now()) @map("joined_date") @db.Date
   lastLogin        DateTime? @map("last_login") @db.Timestamptz(6)
   passwordHash     String?   @map("password_hash") // nullable: OAuth-only signup has no password
   // Two independent reasons an account can't authenticate, tracked separately so an admin can see
@@ -68,6 +71,18 @@ model User {
   permissionsCreated Permission[] @relation("PermissionCreatedBy")
   permissionsUpdated Permission[] @relation("PermissionUpdatedBy")
   permissionsDeleted Permission[] @relation("PermissionDeletedBy")
+
+  countriesCreated Country[] @relation("CountryCreatedBy")
+  countriesUpdated Country[] @relation("CountryUpdatedBy")
+  countriesDeleted Country[] @relation("CountryDeletedBy")
+
+  languagesCreated Language[] @relation("LanguageCreatedBy")
+  languagesUpdated Language[] @relation("LanguageUpdatedBy")
+  languagesDeleted Language[] @relation("LanguageDeletedBy")
+
+  customersCreated Customer[] @relation("CustomerCreatedBy")
+  customersUpdated Customer[] @relation("CustomerUpdatedBy")
+  customersDeleted Customer[] @relation("CustomerDeletedBy")
 
   @@index([isDeleted], map: "users_is_deleted_idx")
   @@map("users")
@@ -307,4 +322,101 @@ model DenylistedAccessToken {
   expiresAt DateTime @map("expires_at") @db.Timestamptz(6)
 
   @@map("denylisted_access_tokens")
+}
+
+/// Admin-managed reference data — a deployment's country list. `flag` is a stored image path/URL,
+/// the same string-field convention `User.photo` already uses (no multipart upload in this combo).
+model Country {
+  id           BigInt    @id @default(autoincrement())
+  uuid         String    @unique @default(uuid())
+  code         String    @unique @db.VarChar(10)
+  name         String    @db.VarChar(100)
+  emoji        String    @db.VarChar(10)
+  phoneCode    String    @map("phone_code") @db.VarChar(10)
+  currency     String    @db.VarChar(10)
+  currencyName String    @map("currency_name") @db.VarChar(100)
+  isoCode      String    @unique @map("iso_code") @db.VarChar(10)
+  flag         String?
+  isActive     Boolean   @default(true) @map("is_active")
+  createdBy    BigInt?   @map("created_by")
+  updatedBy    BigInt?   @map("updated_by")
+  isDeleted    Boolean   @default(false) @map("is_deleted")
+  deletedAt    DateTime? @map("deleted_at") @db.Timestamptz(6)
+  deletedBy    BigInt?   @map("deleted_by")
+  deletedReason String?  @map("deleted_reason") @db.VarChar(255)
+  createdAt    DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt    DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  createdByUser User? @relation("CountryCreatedBy", fields: [createdBy], references: [id], onDelete: SetNull)
+  updatedByUser User? @relation("CountryUpdatedBy", fields: [updatedBy], references: [id], onDelete: SetNull)
+  deletedByUser User? @relation("CountryDeletedBy", fields: [deletedBy], references: [id], onDelete: SetNull)
+
+  @@index([isActive], map: "countries_is_active_idx")
+  @@index([isDeleted], map: "countries_is_deleted_idx")
+  @@map("countries")
+}
+
+/// Admin-managed reference data — a deployment's supported languages. Deliberately no `countryId`
+/// FK: the UI this backend mirrors has no country field on the language form.
+model Language {
+  id            BigInt    @id @default(autoincrement())
+  uuid          String    @unique @default(uuid())
+  code          String    @unique @db.VarChar(10)
+  name          String    @db.VarChar(100)
+  nativeName    String    @map("native_name") @db.VarChar(100)
+  direction     String    @default("ltr") @db.VarChar(3)
+  isDefault     Boolean   @default(false) @map("is_default")
+  isActive      Boolean   @default(true) @map("is_active")
+  createdBy     BigInt?   @map("created_by")
+  updatedBy     BigInt?   @map("updated_by")
+  isDeleted     Boolean   @default(false) @map("is_deleted")
+  deletedAt     DateTime? @map("deleted_at") @db.Timestamptz(6)
+  deletedBy     BigInt?   @map("deleted_by")
+  deletedReason String?   @map("deleted_reason") @db.VarChar(255)
+  createdAt     DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt     DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  createdByUser User? @relation("LanguageCreatedBy", fields: [createdBy], references: [id], onDelete: SetNull)
+  updatedByUser User? @relation("LanguageUpdatedBy", fields: [updatedBy], references: [id], onDelete: SetNull)
+  deletedByUser User? @relation("LanguageDeletedBy", fields: [deletedBy], references: [id], onDelete: SetNull)
+
+  @@index([isActive], map: "languages_is_active_idx")
+  @@index([isDeleted], map: "languages_is_deleted_idx")
+  @@map("languages")
+}
+
+/// End-users managed by admins — no login capability, and deliberately not related to the RBAC
+/// `User` model above (which plays this deployment's "admin"). A `Customer` never authenticates,
+/// so it carries no password/session/role relations at all.
+model Customer {
+  id               BigInt    @id @default(autoincrement())
+  uuid             String    @unique @default(uuid())
+  firstName        String?   @map("first_name") @db.VarChar(100)
+  lastName         String?   @map("last_name") @db.VarChar(100)
+  username         String?   @unique @db.VarChar(100)
+  email            String    @unique @db.VarChar(255)
+  phone            String?   @unique @db.VarChar(100)
+  dob              DateTime? @db.Date
+  gender           String?   @db.VarChar(10)
+  joinedDate       DateTime  @default(now()) @map("joined_date") @db.Date
+  photo            String?
+  isEmailVerified  Boolean   @default(false) @map("is_email_verified")
+  isPhoneVerified  Boolean   @default(false) @map("is_phone_verified")
+  isActive         Boolean   @default(true) @map("is_active")
+  createdBy        BigInt?   @map("created_by")
+  updatedBy        BigInt?   @map("updated_by")
+  isDeleted        Boolean   @default(false) @map("is_deleted")
+  deletedAt        DateTime? @map("deleted_at") @db.Timestamptz(6)
+  deletedBy        BigInt?   @map("deleted_by")
+  deletedReason    String?   @map("deleted_reason") @db.VarChar(255)
+  createdAt        DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt        DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  createdByUser User? @relation("CustomerCreatedBy", fields: [createdBy], references: [id], onDelete: SetNull)
+  updatedByUser User? @relation("CustomerUpdatedBy", fields: [updatedBy], references: [id], onDelete: SetNull)
+  deletedByUser User? @relation("CustomerDeletedBy", fields: [deletedBy], references: [id], onDelete: SetNull)
+
+  @@index([isActive], map: "customers_is_active_idx")
+  @@index([isDeleted], map: "customers_is_deleted_idx")
+  @@map("customers")
 }

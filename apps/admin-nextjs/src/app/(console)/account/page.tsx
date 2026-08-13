@@ -2,6 +2,7 @@
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { observer } from "mobx-react-lite";
+import Link from "next/link";
 import { QRCodeSVG } from "qrcode.react";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
@@ -9,17 +10,18 @@ import { AuthApiError, type SessionSummary } from "@easy-auth/auth-client";
 import { toast } from "sonner";
 import { z } from "zod";
 import { Breadcrumb } from "@/components/breadcrumb";
-import { ChangePasswordDialog } from "@/components/change-password-dialog";
 import { FormErrorAlert } from "@/components/form-error-alert";
 import { PhotoUpload } from "@/components/photo-upload";
 import { Alert } from "@/components/ui/alert";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Heading } from "@/components/ui/heading";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Separator } from "@/components/ui/separator";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { authClient } from "@/lib/auth-client";
 import { errorMessages } from "@/lib/error";
@@ -67,7 +69,6 @@ export default observer(function AccountPage() {
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [submitError, setSubmitError] = useState<unknown>(null);
-  const [changePasswordOpen, setChangePasswordOpen] = useState(false);
 
   const [sessions, setSessions] = useState<SessionSummary[]>([]);
 
@@ -193,8 +194,12 @@ export default observer(function AccountPage() {
   const displayLabel = user.displayName || user.email;
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex-1 space-y-4">
       <Breadcrumb items={[{ title: "Profile", href: "/account" }]} />
+      <div className="flex items-start justify-between">
+        <Heading title="Profile" description="Manage your account information and security." />
+      </div>
+      <Separator />
 
       <Card>
         <CardHeader className="flex flex-row items-start justify-between gap-4">
@@ -203,8 +208,8 @@ export default observer(function AccountPage() {
             <CardDescription>Your own info — no admin permission needed to change any of this.</CardDescription>
           </div>
           <div className="flex shrink-0 gap-2">
-            <Button type="button" variant="outline" onClick={() => setChangePasswordOpen(true)}>
-              Change password
+            <Button asChild type="button" variant="outline">
+              <Link href="/account/change-password">Change password</Link>
             </Button>
             {!editing && (
               <Button type="button" onClick={startEditing}>
@@ -215,90 +220,151 @@ export default observer(function AccountPage() {
         </CardHeader>
         <CardContent className="flex flex-col gap-4">
           {editing ? (
-            <Form {...form}>
-              <form onSubmit={form.handleSubmit(handleProfileSave)} className="flex flex-col gap-4">
-                <FormErrorAlert messages={submitError ? errorMessages(submitError) : null} />
+            <>
+              <FormErrorAlert messages={submitError ? errorMessages(submitError) : null} />
+              <Form {...form}>
+                <form onSubmit={form.handleSubmit(handleProfileSave)} className="space-y-8 w-full">
+                  <Card className="w-full">
+                    <CardHeader className="border-b bg-muted/50">
+                      <CardTitle className="text-2xl">Profile Information</CardTitle>
+                      <CardDescription className="text-base">Update your personal information</CardDescription>
+                    </CardHeader>
+                    <CardContent className="pt-6">
+                      <div className="space-y-6">
+                        <div className="space-y-4">
+                          <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Personal Information</h3>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <FormField
+                              control={form.control}
+                              name="firstName"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>First Name</FormLabel>
+                                  <FormControl>
+                                    <Input
+                                      disabled={saving}
+                                      placeholder="First Name"
+                                      {...field}
+                                      type="text"
+                                      className="bg-background border-2 focus:border-purple-500 transition-colors"
+                                    />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                            <FormField
+                              control={form.control}
+                              name="lastName"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>Last Name</FormLabel>
+                                  <FormControl>
+                                    <Input
+                                      disabled={saving}
+                                      placeholder="Last Name"
+                                      {...field}
+                                      type="text"
+                                      className="bg-background border-2 focus:border-purple-500 transition-colors"
+                                    />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                            <FormField
+                              control={form.control}
+                              name="displayName"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>Display Name</FormLabel>
+                                  <FormControl>
+                                    <Input
+                                      disabled={saving}
+                                      placeholder="Display Name"
+                                      {...field}
+                                      type="text"
+                                      className="bg-background border-2 focus:border-purple-500 transition-colors"
+                                    />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                            <FormField
+                              control={form.control}
+                              name="username"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>
+                                    Username &nbsp;
+                                    <span className="text-xs text-destructive dark:text-destructive-foreground">(Must be unique)</span>
+                                  </FormLabel>
+                                  <FormControl>
+                                    <Input
+                                      disabled={saving}
+                                      placeholder="Username"
+                                      {...field}
+                                      className="bg-background border-2 focus:border-purple-500 transition-colors"
+                                    />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                          </div>
+                        </div>
 
-                <PhotoUpload photo={user.photo} fallback={initialsOf(displayLabel)} onChange={handlePhotoChange} />
+                        <div className="space-y-4">
+                          <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Contact Information</h3>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <FormField
+                              control={form.control}
+                              name="phone"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>
+                                    Phone &nbsp;
+                                    <span className="text-xs text-muted-foreground">(With country code)</span>
+                                  </FormLabel>
+                                  <FormControl>
+                                    <Input
+                                      type="text"
+                                      disabled={saving}
+                                      {...field}
+                                      placeholder="+1234567890"
+                                      className="bg-background border-2 focus:border-purple-500 transition-colors"
+                                    />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    </CardContent>
 
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                  <FormField
-                    control={form.control}
-                    name="firstName"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>First name</FormLabel>
-                        <FormControl>
-                          <Input {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="lastName"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Last name</FormLabel>
-                        <FormControl>
-                          <Input {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="displayName"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Display name</FormLabel>
-                        <FormControl>
-                          <Input {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="username"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Username</FormLabel>
-                        <FormControl>
-                          <Input {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="phone"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Phone</FormLabel>
-                        <FormControl>
-                          <Input {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
+                    <CardHeader className="border-b bg-muted/50 mt-6">
+                      <CardTitle className="text-2xl">Profile Photo</CardTitle>
+                      <CardDescription className="text-base">Upload your profile picture (Max size: 2MB, Formats: JPG, PNG)</CardDescription>
+                    </CardHeader>
+                    <CardContent className="pt-6">
+                      <PhotoUpload photo={user.photo} fallback={initialsOf(displayLabel)} onChange={handlePhotoChange} disabled={saving} />
+                    </CardContent>
 
-                <div className="flex gap-2">
-                  <Button type="submit" disabled={saving}>
-                    {saving ? "Saving…" : "Save changes"}
-                  </Button>
-                  <Button type="button" variant="outline" disabled={saving} onClick={cancelEditing}>
-                    Cancel
-                  </Button>
-                </div>
-              </form>
-            </Form>
+                    <CardFooter className="flex justify-center gap-4 mt-8 pb-8">
+                      <Button type="button" variant="outline" disabled={saving} onClick={cancelEditing}>
+                        Cancel
+                      </Button>
+                      <Button disabled={saving} className="bg-purple-600 hover:bg-purple-700 dark:bg-purple-600 dark:hover:bg-purple-700 min-w-32" type="submit">
+                        {saving ? "Updating..." : "Update Profile"}
+                      </Button>
+                    </CardFooter>
+                  </Card>
+                </form>
+              </Form>
+            </>
           ) : (
             <div className="flex flex-col gap-4">
               <div className="flex items-center gap-4">
@@ -396,7 +462,7 @@ export default observer(function AccountPage() {
       <Card>
         <CardHeader>
           <CardTitle>Active sessions</CardTitle>
-          <CardDescription>Only bulk sign-out is available — the backend doesn't yet expose per-session revocation.</CardDescription>
+          <CardDescription>Only bulk sign-out is available — the backend doesn&apos;t yet expose per-session revocation.</CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col gap-4">
           <Table>
@@ -498,8 +564,6 @@ export default observer(function AccountPage() {
           )}
         </CardContent>
       </Card>
-
-      <ChangePasswordDialog open={changePasswordOpen} onOpenChange={setChangePasswordOpen} />
     </div>
   );
 });

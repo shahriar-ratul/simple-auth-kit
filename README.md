@@ -6,6 +6,10 @@ deployment — 4 backend combos (each in a **base** and a **workspaces** variant
 backends total), 8 example consumer apps, and 8 client apps (4 admin consoles, 4 mobile) built
 against them.
 
+**New here? Start with [`docs/`](docs/README.md)** — getting started (clone → running login),
+architecture, the full backend API reference, the admin console internals, and the development
+workflows. This README stays the operational quick reference.
+
 ## Repo structure
 
 | Path | What it is |
@@ -15,10 +19,11 @@ against them.
 | `cli/` | The `easy-auth` CLI (`add`, `init`, `diff`) — copies `registry/` source into a target repo. `add <combo> --workspaces` emits the workspace-aware variant; omitted, the base (global roles) variant is the default. |
 | `examples/{nestjs-prisma,nestjs-drizzle,express-prisma,express-drizzle}-app[-workspaces]/` | Fresh consumer projects, each demonstrating `easy-auth add <combo> [--workspaces]` end to end — 8 in total. These are the **runnable backends**. |
 | `packages/auth-client/` | Shared, framework-agnostic API client used by all 8 client apps below. |
-| `apps/admin-nextjs[-workspaces]/`, `apps/admin-react[-workspaces]/` | Admin console — same full feature set (users, roles & permissions, audit log, 2FA), two different frontend stacks (Next.js vs. bare React/Vite), each in a base and a workspace-aware version. |
+| `apps/admin-nextjs[-workspaces]/`, `apps/admin-react[-workspaces]/` | Admin console — users, roles & permissions, audit log, 2FA — two frontend stacks (Next.js vs. bare React/Vite), each in a base and a workspace-aware version. `apps/admin-nextjs` is the reference console: it additionally carries NextAuth v5 session orchestration + an edge `proxy.ts` route guard, countries/languages/customers CRUD, and a realtime audit feed (see `docs/admin-console.md`). |
 | `apps/mobile-expo[-workspaces]/`, `apps/mobile-bare-rn[-workspaces]/` | End-user mobile app — same feature set (login, 2FA, sessions), two different React Native toolchains (Expo vs. bare RN CLI), each in a base and a workspace-aware version. |
 | `apps/dev-portal/` | Next.js control panel for this repo (`pnpm portal`, port 8080): live status and start/stop/restart per compose service, plus the auth schema drawn from the migration files with the columns the 4 combos disagree on. For working on this repo — not part of the library, never shipped to consumers. |
-| `plan/brief.md` | Settled decisions, current state, and remaining work — read before changing anything architectural. |
+| `docs/` | The documentation set: getting started, architecture, backend API reference, admin console internals, development workflows. Start at `docs/README.md`. |
+| `plan/brief.md` | Settled decisions, current state, and remaining work — read before changing anything architectural. `plan/plan.md` is the executed 2026-08-12 parity build plan with its verification record. |
 
 ## Prerequisites
 
@@ -245,7 +250,7 @@ To work on the **library source** itself (`registry/combos/nestjs-prisma`, the r
 cd registry/combos/nestjs-prisma
 npx prisma migrate dev        # apply schema changes to auth_reference
 npm run typecheck
-npm run prove-cycle           # black-box test: signup, login, 2FA, RBAC, OAuth-shaped flows, audit log, password reset — 44 assertions
+npm run prove-cycle           # black-box test: signup, login, 2FA, RBAC, OAuth-shaped flows, audit log, password reset — 300+ assertions across both variants
 ```
 The other 3 combos follow the same shape (swap `prisma migrate dev` for `drizzle-kit generate && drizzle-kit migrate` on the Drizzle ones).
 
@@ -284,10 +289,14 @@ one or join an existing one) before the rest of the app is reachable.
 ### `apps/admin-nextjs` / `apps/admin-nextjs-workspaces` (Next.js, MobX, CASL, Tailwind)
 ```bash
 cd apps/admin-nextjs                 # or apps/admin-nextjs-workspaces
-cp .env.example .env.local           # NEXT_PUBLIC_AUTH_API_URL
+cp .env.example .env.local           # NEXT_PUBLIC_AUTH_API_URL; admin-nextjs also needs AUTH_SECRET
 npm run dev                          # -> http://localhost:3000 (base) / :3010 (workspaces)
 ```
 Base defaults to `http://localhost:3001`; workspaces defaults to `http://localhost:3005`.
+`apps/admin-nextjs` (base) requires `AUTH_SECRET` (NextAuth session signing — `openssl rand
+-base64 32`), and honors `AUTH_API_INTERNAL_URL` when its server side reaches the backend at a
+different address than the browser does (docker compose sets both). Details:
+`docs/admin-console.md`.
 
 ### `apps/admin-react` / `apps/admin-react-workspaces` (Vite + bare React, MobX, CASL, Tailwind)
 ```bash
@@ -341,6 +350,6 @@ pnpm -r test        # vitest suites (registry/core, packages/auth-client)
   (Xcode bundle ID, Android `applicationId`) with `mobile-bare-rn` — see the client apps section
   above.
 - `AsyncStorage` (all 4 mobile apps) is unencrypted-at-rest by deliberate choice, not an
-  oversight — see the decision log in `plan/README.md` for the tradeoff and the upgrade path
+  oversight — see the decision log in `plan/brief.md` for the tradeoff and the upgrade path
   (`TokenStorage` is an injected interface, swapping in `expo-secure-store`/Keychain storage
   later doesn't touch call sites).

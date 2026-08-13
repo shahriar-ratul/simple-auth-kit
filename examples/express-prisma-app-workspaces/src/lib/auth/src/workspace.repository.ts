@@ -119,6 +119,72 @@ export class WorkspaceRepository {
     };
   }
 
+  /**
+   * An administrator provisioning a brand-new account and adding it to this workspace in one
+   * step — as distinct from `addMember`, which only ever attaches an account that already
+   * exists. No invite/email flow in this library either way: the password is usable immediately.
+   */
+  async createMember(
+    workspaceId: string,
+    input: {
+      email: string;
+      passwordHash: string;
+      firstName?: string;
+      lastName?: string;
+      displayName?: string;
+      phone?: string;
+      username?: string;
+      photo?: string;
+      dob?: string;
+      gender?: string;
+      joinedDate?: string;
+      isActive?: boolean;
+      roles?: string[];
+    },
+    actorUserId: string | null,
+  ): Promise<MembershipSummary> {
+    const workspaceIdBig = toId(workspaceId);
+    const existing = await this.prisma.user.findUnique({ where: { email: input.email } });
+    if (existing) throw new HttpError(409, "email already registered");
+
+    const roles = await this.prisma.role.findMany({
+      where: input.roles
+        ? { workspaceId: workspaceIdBig, slug: { in: input.roles }, isDeleted: false }
+        : { workspaceId: workspaceIdBig, isDefault: true, isActive: true, isDeleted: false },
+      select: { id: true, slug: true },
+    });
+    const unknown = (input.roles ?? []).filter((slug) => !roles.some((role) => role.slug === slug));
+    if (unknown.length) throw new HttpError(404, `role(s) not defined in this workspace: ${unknown.join(", ")}`);
+
+    const user = await this.prisma.user.create({
+      data: {
+        email: input.email,
+        passwordHash: input.passwordHash,
+        firstName: input.firstName,
+        lastName: input.lastName,
+        displayName: input.displayName,
+        phone: input.phone,
+        username: input.username,
+        photo: input.photo,
+        dob: input.dob ? new Date(input.dob) : undefined,
+        gender: input.gender,
+        joinedDate: input.joinedDate ? new Date(input.joinedDate) : undefined,
+        isActive: input.isActive,
+        createdBy: actorUserId ? toId(actorUserId) : null,
+      },
+    });
+    const member = await this.prisma.workspaceMember.create({
+      data: { workspaceId: workspaceIdBig, userId: user.id, roles: { create: roles.map((role) => ({ roleId: role.id })) } },
+    });
+    return {
+      memberId: member.id.toString(),
+      userId: user.id.toString(),
+      email: user.email,
+      roles: roles.map((role) => role.slug).sort(),
+      createdAt: member.createdAt.toISOString(),
+    };
+  }
+
   async removeMember(workspaceId: string, memberId: string): Promise<void> {
     const workspaceIdBig = toId(workspaceId);
     const memberIdBig = toId(memberId);

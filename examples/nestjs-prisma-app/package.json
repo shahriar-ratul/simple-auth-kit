@@ -2,7 +2,7 @@
   "name": "example-nestjs-prisma-app",
   "private": true,
   "version": "0.0.0",
-  "description": "A fresh consumer project demonstrating `easy-auth add nestjs-prisma` end to end — not part of the registry's pnpm workspace, installed with plain npm like any real consumer would.",
+  "description": "A fresh consumer project demonstrating `easy-auth add nestjs-prisma` end to end \u2014 not part of the registry's pnpm workspace, installed with plain npm like any real consumer would.",
   "type": "module",
   "scripts": {
     "start": "tsx src/main.ts",
@@ -13,15 +13,20 @@
     "@nestjs/common": "^11.1.28",
     "@nestjs/core": "^11.1.28",
     "@nestjs/platform-express": "^11.1.28",
+    "@nestjs/platform-socket.io": "^11.1.28",
     "@nestjs/swagger": "^11.4.6",
+    "@nestjs/throttler": "^6.5.0",
+    "@nestjs/websockets": "^11.1.28",
     "@prisma/adapter-pg": "^7.9.1",
     "@prisma/client": "^7.9.1",
+    "@scalar/nestjs-api-reference": "^1.2.13",
     "argon2": "^0.45.1",
     "express": "^5.2.1",
     "jose": "^6.2.8",
     "prisma": "^7.9.1",
     "reflect-metadata": "^0.2.2",
-    "rxjs": "^7.8.2"
+    "rxjs": "^7.8.2",
+    "socket.io": "^4.8.3"
   },
   "devDependencies": {
     "@types/express": "^5.0.6",

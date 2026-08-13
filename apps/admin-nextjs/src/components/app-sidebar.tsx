@@ -75,8 +75,26 @@ const LINKS: NavLink[] = [
       { href: "/languages/new", label: "Add language", requires: [PERMISSIONS.languagesManage] },
     ],
   },
-  { href: "/roles", label: "Roles & permissions", icon: ShieldCheckIcon, requires: ROLES_SCREEN_PERMISSIONS },
-  { href: "/permissions", label: "Permissions", icon: ShieldCheckIcon, requires: [PERMISSIONS.permissionsRead] },
+  {
+    href: "/roles",
+    label: "Roles & permissions",
+    icon: ShieldCheckIcon,
+    requires: ROLES_SCREEN_PERMISSIONS,
+    children: [
+      { href: "/roles", label: "All roles", requires: ROLES_SCREEN_PERMISSIONS },
+      { href: "/roles/new", label: "Add role", requires: [PERMISSIONS.rolesManage] },
+    ],
+  },
+  {
+    href: "/permissions",
+    label: "Permissions",
+    icon: ShieldCheckIcon,
+    requires: [PERMISSIONS.permissionsRead],
+    children: [
+      { href: "/permissions", label: "All permissions", requires: [PERMISSIONS.permissionsRead] },
+      { href: "/permissions/new", label: "Add permission", requires: [PERMISSIONS.permissionsDefine] },
+    ],
+  },
   { href: "/audit-log", label: "Audit log", icon: ScrollTextIcon, requires: [PERMISSIONS.auditLogRead] },
 ];
 

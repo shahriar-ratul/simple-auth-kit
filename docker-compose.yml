@@ -152,6 +152,12 @@ services:
       # Browser-facing: the browser runs on the host, not inside the compose network, so
       # this must be the host-published port, not the internal service DNS name.
       NEXT_PUBLIC_AUTH_API_URL: http://localhost:3001
+      # Server-side calls (NextAuth authorize, proxy token verify) run inside this container,
+      # where localhost:3001 is the container itself — name the backend by its service DNS.
+      AUTH_API_INTERNAL_URL: http://nestjs-prisma-app:3001
+      # NextAuth session-JWT signing secret. Fixed dev-only value for this local reference
+      # deployment — generate a real one (`openssl rand -base64 32`) for anything shared.
+      AUTH_SECRET: local-reference-deployment-dev-secret
     ports:
       - "3000:3000"
     depends_on:

@@ -2,8 +2,8 @@ import "dotenv/config";
 import "reflect-metadata";
 import { Module } from "@nestjs/common";
 import { NestFactory } from "@nestjs/core";
-import { DocumentBuilder, SwaggerModule } from "@nestjs/swagger";
 import { AuthModule } from "./lib/auth/src/auth.module.js";
+import { setupDocs } from "./lib/auth/src/docs.js";
 
 @Module({
   imports: [AuthModule.forRoot()],
@@ -18,21 +18,14 @@ async function main() {
   // not same-origin.
   app.enableCors({ origin: true, credentials: false });
 
-  const document = SwaggerModule.createDocument(
-    app,
-    new DocumentBuilder()
-      .setTitle("easy-auth API")
-      .setDescription("nestjs-prisma reference combo — signup/login, sessions, TOTP 2FA, OAuth, password reset, RBAC, audit log")
-      .setVersion("1.0")
-      .addBearerAuth()
-      .build(),
-  );
-  SwaggerModule.setup("docs", app, document);
+  // Swagger UI at /docs, Scalar at /reference — both Basic-Auth-gated when NODE_ENV=production
+  // (DOCS_USERNAME/DOCS_PASSWORD), open in dev.
+  setupDocs(app);
 
   const port = Number(process.env["PORT"] ?? 3001);
   await app.listen(port);
   console.log(`example-nestjs-prisma-app listening on http://localhost:${port}`);
-  console.log(`Swagger UI at http://localhost:${port}/docs`);
+  console.log(`Swagger UI at http://localhost:${port}/docs — Scalar at /reference`);
 }
 
 main();
