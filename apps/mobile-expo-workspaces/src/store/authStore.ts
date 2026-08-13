@@ -50,7 +50,7 @@ interface AuthState {
   /** Re-fetch `me()` for an already-authenticated user (e.g. pull-to-refresh on Home). */
   refreshCurrentUser: () => Promise<void>;
   signup: (input: { email: string; password: string }) => Promise<void>;
-  login: (input: { email: string; password: string }) => Promise<LoginResult>;
+  login: (input: { identifier: string; password: string }) => Promise<LoginResult>;
   loginTwoFactor: (code: string) => Promise<void>;
   logout: () => Promise<void>;
   logoutAll: () => Promise<void>;

@@ -12,6 +12,11 @@ export interface Credentials {
   password: string;
 }
 
+export interface LoginCredentials {
+  identifier: string;
+  password: string;
+}
+
 interface AuthState {
   /** null until `hydrate()` has checked storage for an existing session at least once. */
   isHydrated: boolean;
@@ -24,7 +29,7 @@ interface AuthState {
   /** Call once on app start: checks for a persisted session and loads `me()` if one exists. */
   hydrate: () => Promise<void>;
   signup: (input: Credentials) => Promise<AuthTokens>;
-  login: (input: Credentials) => Promise<AuthTokens | TwoFactorChallenge>;
+  login: (input: LoginCredentials) => Promise<AuthTokens | TwoFactorChallenge>;
   loginTwoFactor: (input: { challengeToken: string; code: string }) => Promise<AuthTokens>;
   logout: () => Promise<void>;
   logoutAll: () => Promise<void>;

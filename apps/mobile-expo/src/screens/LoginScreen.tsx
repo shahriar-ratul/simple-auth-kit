@@ -18,7 +18,7 @@ export function LoginScreen({ navigation }: Props) {
 
   async function handleSubmit() {
     try {
-      const result = await login({ email: email.trim(), password });
+      const result = await login({ identifier: email.trim(), password });
       if (result.twoFactorRequired) {
         navigation.navigate("TwoFactor");
       }

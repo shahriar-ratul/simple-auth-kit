@@ -20,7 +20,7 @@ export function LoginScreen({ navigation }: Props): React.JSX.Element {
 
   const onSubmit = async (): Promise<void> => {
     try {
-      const result = await login({ email: email.trim(), password });
+      const result = await login({ identifier: email.trim(), password });
       if ('twoFactorRequired' in result) {
         navigation.navigate('TwoFactor', { challengeToken: result.challengeToken });
       }
