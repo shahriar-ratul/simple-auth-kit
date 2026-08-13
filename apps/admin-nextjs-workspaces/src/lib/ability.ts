@@ -51,6 +51,15 @@ export const PERMISSIONS = {
   permissionsGrant: "permissions:grant",
   auditLogRead: "audit-log:read",
   membersManage: "members:manage",
+  countriesRead: "countries:read",
+  countriesManage: "countries:manage",
+  countriesStatus: "countries:status",
+  customersRead: "customers:read",
+  customersManage: "customers:manage",
+  customersStatus: "customers:status",
+  languagesRead: "languages:read",
+  languagesManage: "languages:manage",
+  languagesStatus: "languages:status",
 } as const;
 
 export type PermissionKey = (typeof PERMISSIONS)[keyof typeof PERMISSIONS];

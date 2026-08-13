@@ -19,7 +19,7 @@
       "sharedDir": "shared",
       "variantsDir": "variants",
       "variants": ["base", "workspaces"],
-      "peerDependencies": ["@nestjs/common", "@nestjs/core", "@nestjs/platform-express", "@nestjs/swagger", "reflect-metadata", "rxjs", "express", "@prisma/client", "@prisma/adapter-pg", "prisma", "@casl/ability"],
+      "peerDependencies": ["@nestjs/common", "@nestjs/core", "@nestjs/platform-express", "@nestjs/swagger", "@nestjs/throttler", "reflect-metadata", "rxjs", "express", "@prisma/client", "@prisma/adapter-pg", "prisma", "@casl/ability"],
       "postInstall": [
         "Set DATABASE_URL in .env (see .env.example)",
         "Set AUTH_JWT_SECRET in .env — a base64-encoded 256-bit (or longer) secret, e.g.: openssl rand -base64 32. The app refuses to start without it; there is no default and nothing is generated for you. Changing it invalidates every outstanding token.",

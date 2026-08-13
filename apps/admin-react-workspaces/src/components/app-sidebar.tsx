@@ -1,6 +1,6 @@
 import { observer } from "mobx-react-lite";
 import { NavLink, useLocation } from "react-router-dom";
-import { ChevronRightIcon, LayoutDashboardIcon, ScrollTextIcon, ShieldCheckIcon, UserPlusIcon, UsersIcon } from "lucide-react";
+import { ChevronRightIcon, ContactIcon, GlobeIcon, LanguagesIcon, LayoutDashboardIcon, ScrollTextIcon, ShieldCheckIcon, UserPlusIcon, UsersIcon } from "lucide-react";
 import { NavUser } from "@/components/nav-user";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import {
@@ -62,6 +62,39 @@ const LINKS: Array<{
   },
   { to: "/permissions", label: "Permissions", icon: ShieldCheckIcon, requires: [PERMISSIONS.permissionsRead], needsWorkspace: true },
   { to: "/audit-log", label: "Audit log", icon: ScrollTextIcon, requires: [PERMISSIONS.auditLogRead], needsWorkspace: true },
+  {
+    to: "/customers",
+    label: "Customers",
+    icon: ContactIcon,
+    requires: [PERMISSIONS.customersRead],
+    needsWorkspace: true,
+    children: [
+      { to: "/customers", label: "All customers", requires: [PERMISSIONS.customersRead] },
+      { to: "/customers/new", label: "Add customer", requires: [PERMISSIONS.customersManage] },
+    ],
+  },
+  {
+    to: "/countries",
+    label: "Countries",
+    icon: GlobeIcon,
+    requires: [PERMISSIONS.countriesRead],
+    needsWorkspace: true,
+    children: [
+      { to: "/countries", label: "All countries", requires: [PERMISSIONS.countriesRead] },
+      { to: "/countries/new", label: "Add country", requires: [PERMISSIONS.countriesManage] },
+    ],
+  },
+  {
+    to: "/languages",
+    label: "Languages",
+    icon: LanguagesIcon,
+    requires: [PERMISSIONS.languagesRead],
+    needsWorkspace: true,
+    children: [
+      { to: "/languages", label: "All languages", requires: [PERMISSIONS.languagesRead] },
+      { to: "/languages/new", label: "Add language", requires: [PERMISSIONS.languagesManage] },
+    ],
+  },
 ];
 
 function visibleLinks(ability: AppAbility, hasWorkspace: boolean) {

@@ -13,7 +13,31 @@
   - admin-react: reused its existing `Modal` wrapper for old Dialog call sites instead of rewriting composition, added deps, fixed a pre-existing unrelated bug in `EditUserPage.tsx`
   - All 3 builds independently re-verified clean by the orchestrating session, not just self-reported by the agents
 - [x] Phase 4 — Session-verification parity. Added `AuthStore.verifySession()` (admin-nextjs-workspaces, admin-react, admin-react-workspaces) — calls `authClient.me()`, which already retries once via token refresh internally on a bare 401, so an `AuthApiError` reaching the guard means that recovery path is exhausted; a network/parse error is treated as "still fine" (backend unreachable, not session-invalid), matching `proxy.ts`'s own philosophy. Wired into each app's route guard on every navigation (`(console)/layout.tsx` pathname-effect for the Next app; `RequireAuth.tsx` location.pathname-effect for both React apps, with a stale-response guard so a slow check can't navigate the user away from a page they've already left). All 3 builds verified clean. Not click-through tested — no browser tooling available this session.
-- [ ] Phase 5 — Feature-domain porting (5a countries/customers/languages, 5b Users-page gaps, 5c live audit feed; 5d deprioritized)
+- [x] Phase 5 — Feature-domain porting (5a countries/customers/languages, 5b Users-page gaps, 5c live audit feed; 5d deprioritized)
+  - 5a: ported into admin-react, admin-react-workspaces, admin-nextjs-workspaces. The open blocking
+    question was resolved by building the backend module rather than skipping: countries/customers/
+    languages didn't exist in any combo's `workspaces` variant, only `nestjs-prisma/variants/base`.
+    Added a workspace-scoped module (3 repositories threaded with `workspaceId`, migration with
+    composite unique constraints, `admin.controller.ts` routes reading `req.authz!.workspaceId`, 9
+    RBAC slugs) to `registry/combos/nestjs-prisma/variants/workspaces`, mirroring the existing
+    `WorkspaceRepository`/`WorkspaceController` pattern, then re-synced `examples/nestjs-prisma-app-workspaces`.
+    `nestjs-drizzle`/`express-prisma`/`express-drizzle` still don't have this feature in any variant —
+    out of scope, never had it to begin with.
+  - 5b: Breadcrumb, RoleMultiSelect filter, and inline delete (with self-delete guard) wired onto the
+    Users list page in all 3 target apps — components already existed, this was wiring-only.
+  - 5c: live audit feed (`use-live-audit-feed.ts` + socket.io-client + Live/Connecting/Offline card)
+    ported into all 3 target apps' dashboards.
+  - All 3 apps typecheck clean; `madge --circular` confirms zero circular dependencies across all 3
+    apps, `packages/auth-client`, and every backend combo (the only hits madge flags anywhere are
+    pre-existing, type-only `import type` cross-references in `authz.guard.ts`/`rbac.repository.ts`
+    and `auth.config.ts`/`permission-cache.ts`, byte-identical to the commit before this session —
+    not real runtime cycles).
+  - Incidentally fixed: `@nestjs/throttler` was missing from `cli/registry.json`'s `nestjs-prisma`
+    peerDependencies and from `examples/nestjs-prisma-app-workspaces/package.json`, even though
+    `shared/src/auth.controller.ts` (used by both variants) imports from it — base's example had it
+    hand-patched, workspaces' didn't. Fixed in both places.
+  - Not click-through tested in a browser — no browser tooling available this session, same
+    limitation noted for Phase 4.
 
 ## Context
 

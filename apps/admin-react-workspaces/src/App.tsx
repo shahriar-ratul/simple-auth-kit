@@ -15,6 +15,18 @@ import { RolesPage } from "@/pages/RolesPage";
 import { PermissionsPage } from "@/pages/PermissionsPage";
 import { AuditLogPage } from "@/pages/AuditLogPage";
 import { AccountPage } from "@/pages/AccountPage";
+import { CustomersPage } from "@/pages/CustomersPage";
+import { AddCustomerPage } from "@/pages/AddCustomerPage";
+import { CustomerDetailPage } from "@/pages/CustomerDetailPage";
+import { EditCustomerPage } from "@/pages/EditCustomerPage";
+import { CountriesPage } from "@/pages/CountriesPage";
+import { AddCountryPage } from "@/pages/AddCountryPage";
+import { CountryDetailPage } from "@/pages/CountryDetailPage";
+import { EditCountryPage } from "@/pages/EditCountryPage";
+import { LanguagesPage } from "@/pages/LanguagesPage";
+import { AddLanguagePage } from "@/pages/AddLanguagePage";
+import { LanguageDetailPage } from "@/pages/LanguageDetailPage";
+import { EditLanguagePage } from "@/pages/EditLanguagePage";
 
 export const App = observer(function App() {
   const store = useAuthStore();
@@ -60,6 +72,33 @@ export const App = observer(function App() {
               </Route>
               <Route element={<RequirePermission anyOf={[PERMISSIONS.auditLogRead]} />}>
                 <Route path="/audit-log" element={<AuditLogPage />} />
+              </Route>
+
+              <Route element={<RequirePermission anyOf={[PERMISSIONS.customersRead]} />}>
+                <Route path="/customers" element={<CustomersPage />} />
+                <Route path="/customers/:id" element={<CustomerDetailPage />} />
+              </Route>
+              <Route element={<RequirePermission anyOf={[PERMISSIONS.customersManage]} />}>
+                <Route path="/customers/new" element={<AddCustomerPage />} />
+                <Route path="/customers/:id/edit" element={<EditCustomerPage />} />
+              </Route>
+
+              <Route element={<RequirePermission anyOf={[PERMISSIONS.countriesRead]} />}>
+                <Route path="/countries" element={<CountriesPage />} />
+                <Route path="/countries/:id" element={<CountryDetailPage />} />
+              </Route>
+              <Route element={<RequirePermission anyOf={[PERMISSIONS.countriesManage]} />}>
+                <Route path="/countries/new" element={<AddCountryPage />} />
+                <Route path="/countries/:id/edit" element={<EditCountryPage />} />
+              </Route>
+
+              <Route element={<RequirePermission anyOf={[PERMISSIONS.languagesRead]} />}>
+                <Route path="/languages" element={<LanguagesPage />} />
+                <Route path="/languages/:id" element={<LanguageDetailPage />} />
+              </Route>
+              <Route element={<RequirePermission anyOf={[PERMISSIONS.languagesManage]} />}>
+                <Route path="/languages/new" element={<AddLanguagePage />} />
+                <Route path="/languages/:id/edit" element={<EditLanguagePage />} />
               </Route>
             </Route>
           </Route>

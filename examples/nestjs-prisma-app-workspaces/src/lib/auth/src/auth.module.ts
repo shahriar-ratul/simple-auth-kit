@@ -11,7 +11,10 @@ import { AuthGuard } from "./auth.guard.js";
 import { AuthService } from "./auth.service.js";
 import { AuthzGuard, WorkspaceGuard } from "./authz.guard.js";
 import { PrismaClient } from "../generated/prisma/client.js";
+import { CountryRepository } from "./country.repository.js";
+import { CustomerRepository } from "./customer.repository.js";
 import { KeyProviderService } from "./key-provider.js";
+import { LanguageRepository } from "./language.repository.js";
 import { OAuthRepository } from "./oauth.repository.js";
 import { PasswordResetRepository } from "./password-reset.repository.js";
 import { InMemoryPermissionCacheStore, PERMISSION_CACHE_STORE, PermissionCache } from "./permission-cache.js";
@@ -56,6 +59,9 @@ export class AuthModule {
         TwoFactorRepository,
         OAuthRepository,
         PasswordResetRepository,
+        CountryRepository,
+        LanguageRepository,
+        CustomerRepository,
         AuthService,
         AuthGuard,
         AuthzGuard,

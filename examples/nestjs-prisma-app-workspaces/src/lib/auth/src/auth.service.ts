@@ -291,17 +291,7 @@ export class AuthService {
   async updateUser(
     ctx: AuthzContext,
     userId: string,
-    input: {
-      firstName?: string | null;
-      lastName?: string | null;
-      displayName?: string | null;
-      phone?: string | null;
-      username?: string | null;
-      photo?: string | null;
-      dob?: string | null;
-      gender?: string | null;
-      joinedDate?: string;
-    },
+    input: { firstName?: string | null; lastName?: string | null; displayName?: string | null; phone?: string | null; username?: string | null; photo?: string | null },
     actorUserId: string | null,
   ): Promise<MemberSummary> {
     return this.rbac.updateMember(ctx.workspaceId, userId, input, actorUserId);
@@ -326,7 +316,7 @@ export class AuthService {
 
   async createRole(
     ctx: AuthzContext,
-    input: { slug: string; name?: string; displayName?: string; description?: string | null; isDefault?: boolean; isActive?: boolean },
+    input: { slug: string; name?: string; displayName?: string; description?: string | null },
     actorUserId: string | null,
   ): Promise<RoleSummary> {
     return this.rbac.createRole(ctx.workspaceId, input, actorUserId);
@@ -335,7 +325,7 @@ export class AuthService {
   async updateRole(
     ctx: AuthzContext,
     roleId: string,
-    input: { name?: string; displayName?: string; description?: string | null; isDefault?: boolean; isActive?: boolean },
+    input: { name?: string; displayName?: string; description?: string | null; isActive?: boolean },
     actorUserId: string | null,
   ): Promise<RoleSummary> {
     return this.rbac.updateRole(ctx.workspaceId, roleId, input, actorUserId);
