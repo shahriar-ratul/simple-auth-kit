@@ -802,10 +802,17 @@ importers:
         version: 6.0.3
 
   cli:
+    dependencies:
+      prompts:
+        specifier: ^2.4.2
+        version: 2.4.2
     devDependencies:
       '@types/node':
         specifier: ^26.2.0
         version: 26.2.0
+      '@types/prompts':
+        specifier: ^2.4.9
+        version: 2.4.9
       tsx:
         specifier: ^4.23.11
         version: 4.23.11
@@ -4590,6 +4597,9 @@ packages:
 
   '@types/pg@8.21.0':
     resolution: {integrity: sha512-AYdtudzabjLZgVgRZmAnU8bAnVUXzuJX2IYHeSIiIHm68olD+LgQYCGWdtcNYnP0uq9c4S4NibVG3Ni7VbKW7Q==}
+
+  '@types/prompts@2.4.9':
+    resolution: {integrity: sha512-qTxFi6Buiu8+50/+3DGIWLHM6QuWsEKugJnnP6iv2Mc4ncxE4A/OJkjuVOA+5X0X1S/nq5VJRa8Lu+nwcvbrKA==}
 
   '@types/qs@6.15.1':
     resolution: {integrity: sha512-GZHUBZR9hckSUhrxmp1nG6NwdpM9fCunJwyThLW1X3AyHgd9IlHb6VANpQQqDr2o/qQp6McZ3y/IA2rVzKzSbw==}
@@ -13937,6 +13947,11 @@ snapshots:
       '@types/node': 26.2.0
       pg-protocol: 1.16.0
       pg-types: 2.2.0
+
+  '@types/prompts@2.4.9':
+    dependencies:
+      '@types/node': 26.2.0
+      kleur: 3.0.3
 
   '@types/qs@6.15.1': {}
 

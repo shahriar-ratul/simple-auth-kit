@@ -4,11 +4,21 @@ import { dirname, join, relative, resolve, sep } from "node:path";
 
 // Never copied out of the registry: build output, the registry's own package/tsconfig wiring,
 // and the per-variant test harness. A consumer gets source, not this repo's scaffolding.
-const NEVER_COPY = new Set(["node_modules", "dist", "generated", "test", "scripts", ".variant", "package.json", "tsconfig.json", ".env"]);
+export const NEVER_COPY = new Set(["node_modules", "dist", "generated", "test", "scripts", ".variant", "package.json", "tsconfig.json", ".env"]);
+
+// For "scaffold" installs (admin/mobile apps materialized as whole standalone projects, not
+// merged into an existing one): package.json/tsconfig.json are real, consumer-facing content
+// here, not the registry's own dev wiring, so they're copied like any other file.
+export const SCAFFOLD_NEVER_COPY = new Set(["node_modules", "dist", "generated", "test", "scripts", ".variant", ".env"]);
 
 export interface CopyOptions {
-  aliasFrom: string;
-  aliasTo: string;
+  /**
+   * Rewrites this literal string to `aliasTo` inside every copied `.ts`/`.tsx` file — used to
+   * retarget the core package's placeholder import alias to the consumer's configured one. Omit
+   * both for installs (e.g. scaffold-mode admin/mobile apps) that have no such alias to rewrite.
+   */
+  aliasFrom?: string;
+  aliasTo?: string;
   /**
    * The previous install's sha256-by-path manifest. A destination file whose current content
    * no longer matches what was recorded is a file the user edited, and is left alone.
@@ -18,6 +28,8 @@ export interface CopyOptions {
   force?: boolean;
   /** Paths (relative to destRoot, POSIX separators) this install must not write or delete. */
   ignore?: string[];
+  /** Overrides the default skip-by-name set (see NEVER_COPY / SCAFFOLD_NEVER_COPY). */
+  neverCopy?: Set<string>;
 }
 
 export interface CopyResult {
@@ -29,7 +41,7 @@ export interface CopyResult {
   ignored: string[];
 }
 
-const sha256 = (content: string) => createHash("sha256").update(content).digest("hex");
+export const sha256 = (content: string) => createHash("sha256").update(content).digest("hex");
 const toPosix = (path: string) => path.split(sep).join("/");
 
 async function readIfExists(path: string): Promise<string | null> {
@@ -51,7 +63,7 @@ async function copyOneFile(srcPath: string, destPath: string, destRoot: string, 
   }
 
   let content = await readFile(srcPath, "utf8");
-  if (destPath.endsWith(".ts") || destPath.endsWith(".tsx")) {
+  if (opts.aliasFrom && opts.aliasTo !== undefined && (destPath.endsWith(".ts") || destPath.endsWith(".tsx"))) {
     content = content.split(opts.aliasFrom).join(opts.aliasTo);
   }
 
@@ -71,10 +83,11 @@ async function copyOneFile(srcPath: string, destPath: string, destRoot: string, 
 /** Recursively copies srcDir into destDir, rewriting the placeholder core import alias in .ts files. */
 export async function copyDir(srcDir: string, destDir: string, opts: CopyOptions, destRoot: string = destDir, result?: CopyResult): Promise<CopyResult> {
   const acc: CopyResult = result ?? { manifest: {}, skipped: [], ignored: [] };
+  const skipNames = opts.neverCopy ?? NEVER_COPY;
   const entries = await readdir(srcDir, { withFileTypes: true });
 
   for (const entry of entries) {
-    if (NEVER_COPY.has(entry.name)) continue;
+    if (skipNames.has(entry.name)) continue;
     const srcPath = join(srcDir, entry.name);
     const destPath = join(destDir, entry.name);
 
