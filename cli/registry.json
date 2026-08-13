@@ -107,6 +107,26 @@
           "Roles are scoped to a workspace here, so the seeder also creates the first one — set SEED_WORKSPACE_NAME to name it (defaults to \"Default workspace\")"
         ]
       }
+    },
+    "admin-react": {
+      "dir": "admin-apps/react",
+      "sharedDir": "shared",
+      "variantsDir": "variants",
+      "variants": ["base", "workspaces"],
+      "kind": "admin",
+      "installMode": "scaffold",
+      "peerDependencies": [],
+      "postInstall": [
+        "Copy .env.example to .env and set VITE_AUTH_API_URL to your running easy-auth backend's URL",
+        "Run: npm install (or pnpm install) in the generated directory",
+        "Run: npm run dev — starts the Vite dev server",
+        "Known limitation: package.json declares \"@easy-auth/auth-client\": \"workspace:*\", which only resolves inside this monorepo's pnpm workspace — the package isn't published to npm yet. If you're generating this app outside the monorepo, replace that line with a real version once published, or vendor packages/auth-client/src into the generated app yourself."
+      ],
+      "variantPostInstall": {
+        "workspaces": [
+          "Pair with a workspaces-variant backend (e.g. nestjs-prisma --workspaces) — this console sends X-Workspace-Id on every workspace-scoped request"
+        ]
+      }
     }
   }
 }
