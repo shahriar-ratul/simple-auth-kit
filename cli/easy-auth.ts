@@ -15,7 +15,7 @@
 // workspaces support — or reads the same choices from --kind/--framework/--workspaces for
 // non-interactive/scripted use.
 import { basename, dirname, join, resolve } from "node:path";
-import { readFile, writeFile } from "node:fs/promises";
+import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 import prompts from "prompts";
 import { copyDir, CopyResult, NEVER_COPY, pruneRemovedFiles, SCAFFOLD_NEVER_COPY, sha256 } from "./lib/copy.js";
@@ -412,8 +412,23 @@ async function cmdCreate(targetRoot: string, flags: Record<string, string | true
     process.exitCode = 1;
     return;
   }
+  // Two "merge" combos both target <targetRoot>/<installPath> by design (that's how a backend
+  // fragment composes into a host project) — but two "scaffold" combos both writing whole
+  // standalone apps (their own package.json, src/App.tsx, ...) into the *same* directory would
+  // collide outright, and worse, each install's prune step would see the other's files as no
+  // longer part of *its* install and delete them. So whenever more than one kind was picked in
+  // this run, each gets its own <targetRoot>/<comboName> subdirectory — predictable, and safe
+  // regardless of which mix of merge/scaffold combos ended up selected.
+  const namespaced = selections.length > 1;
   for (const { comboName, combo, variant } of selections) {
-    await installCombo(comboName, combo, variant, registry, targetRoot, flags);
+    const installRoot = namespaced ? join(targetRoot, comboName) : targetRoot;
+    if (namespaced) await mkdir(installRoot, { recursive: true });
+    // An explicit --name applies to every selection uniformly — fine for merge-mode combos
+    // (they don't have their own package.json identity), but two scaffold apps both literally
+    // named e.g. "combo-test" would collide if anything ever treats them as sibling packages
+    // (a pnpm/npm workspace, for one). Suffix with the combo name once there's more than one.
+    const installFlags = namespaced && flagString(flags.name) ? { ...flags, name: `${flagString(flags.name)}-${comboName}` } : flags;
+    await installCombo(comboName, combo, variant, registry, installRoot, installFlags);
   }
 }
 
