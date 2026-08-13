@@ -12,6 +12,22 @@ Every combo ships in **two variants**, chosen by the consumer at `easy-auth add`
 
 The emitted project contains exactly one variant. A consumer cannot tell the other exists.
 
+## `kind`: this doc covers `api` combos specifically
+
+Every combo also has a `kind` (`api`, `admin`, or `mobile`, in `cli/registry.json` — absent means
+`api`, since every combo predating that field is one) and an `installMode` (`merge` or
+`scaffold`). This file is entirely about **`kind: "api"`** combos — `registry/combos/*`, `merge`
+mode, a source fragment the CLI composes into an *existing* project's `src/lib/auth`. Everything
+above (the byte-identical rule, the two-variant model, `shared/`+`variants/*`, the seeder,
+enforcement) is specific to that shape.
+
+`kind: "admin"` (`registry/admin-apps/*`) and `kind: "mobile"` (`registry/mobile-apps/*`) combos
+share the same `shared/`+`variants/{base,workspaces}` composition and the same byte-identical
+hoisting rule, but `installMode: "scaffold"`: the CLI writes a **whole standalone app** — its own
+`package.json`, its own `src/`, everything — directly into the target directory, not a fragment
+merged into a host project. See `registry/admin-apps/README.md` and
+`registry/mobile-apps/README.md` for what's specific to those two.
+
 ## Directory layout
 
 `registry/combos/nestjs-prisma` is the reference. Every other combo mirrors this shape exactly.
@@ -303,6 +319,12 @@ taken, is one line in `AdminController.revokeRole` matching the two guards above
 four combos at once or not at all.
 
 ## Adding a combo (or migrating one)
+
+This section is for `kind: "api"` combos specifically — see `registry/admin-apps/README.md` or
+`registry/mobile-apps/README.md` if you're adding an admin console or mobile app instead; those
+follow the same byte-identical shared/variant rule but skip most of the steps below (no seeder, no
+`@RequirePermission` enforcement table, no `prove-cycle` — a `scaffold`-mode combo is verified by
+generating it and running its own build/typecheck, not this file's proof harness).
 
 1. Split the existing flat `src/` into `shared/src` and `variants/base/src` by the byte-identical
    rule above.
