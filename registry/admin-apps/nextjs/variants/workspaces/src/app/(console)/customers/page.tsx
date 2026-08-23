@@ -7,7 +7,7 @@ import { observer } from "mobx-react-lite";
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import { useDebounce } from "use-debounce";
-import { ChevronDownIcon, EyeIcon, PencilIcon, PlusIcon, Trash2Icon } from "lucide-react";
+import { ChevronDownIcon, EyeIcon, PencilIcon, PlusIcon, PowerIcon, Trash2Icon } from "lucide-react";
 import { AuthApiError, type CustomerSummary } from "@easy-auth/auth-client";
 import { AlertModal } from "@/components/alert-modal";
 import { Breadcrumb } from "@/components/breadcrumb";
@@ -254,6 +254,16 @@ export default observer(function CustomersPage() {
                   </Link>
                 </TooltipTrigger>
                 <TooltipContent>{canManage ? "Edit customer" : missingPermissionHint(PERMISSIONS.customersManage)}</TooltipContent>
+              </Tooltip>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button size="icon" variant="outline" disabled={!canStatus} onClick={() => openStatusConfirm(customer)}>
+                    <PowerIcon />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  {canStatus ? (customer.isActive ? "Deactivate this customer" : "Activate this customer") : missingPermissionHint(PERMISSIONS.customersStatus)}
+                </TooltipContent>
               </Tooltip>
               <Tooltip>
                 <TooltipTrigger asChild>

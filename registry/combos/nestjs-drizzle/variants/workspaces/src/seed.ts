@@ -32,7 +32,7 @@ import { drizzle } from "drizzle-orm/node-postgres";
 import { Pool } from "pg";
 import { hashPassword } from "@/lib/auth/core/crypto.js";
 import type { Database } from "./db.js";
-import { DEFAULT_ROLES, PERMISSION_SLUGS, provisionDefaultRoles, WORKSPACE_CREATOR_ROLES } from "./rbac.defaults.js";
+import { DEFAULT_ROLES, PERMISSION_SLUGS, SEED_SUPERADMIN_ROLES, WORKSPACE_CREATOR_ROLES, provisionDefaultRoles } from "./rbac.defaults.js";
 import * as schema from "./schema.js";
 import { permissions, roleMember, roles, users, workspaceMembers, workspaces } from "./schema.js";
 
@@ -109,6 +109,43 @@ async function seedAdminUser(db: Database, workspace: { id: bigint; name: string
   console.log(`admin: member of "${workspace.name}" with roles ${adminRoles.map((r) => r.slug).join(", ")}`);
 }
 
+/** The user is the authentication principal; the membership below is the authorization one. */
+async function seedSuperAdminUser(db: Database, workspace: { id: bigint; name: string }): Promise<void> {
+  const email = process.env["SEED_SUPERADMIN_EMAIL"];
+  const password = process.env["SEED_SUPERADMIN_PASSWORD"];
+  if (!email || !password) {
+    console.log("super admin: skipped — set SEED_SUPERADMIN_EMAIL and SEED_SUPERADMIN_PASSWORD to create one (there is no default password)");
+    console.log(`super admin: "${workspace.name}" has no members until you re-run with them set`);
+    return;
+  }
+  const username = process.env["SEED_SUPERADMIN_USERNAME"] || undefined;
+
+  // Their password may have been changed since; rewriting it here would silently reset it.
+  const [existing] = await db.select({ id: users.id }).from(users).where(eq(users.email, email)).limit(1);
+  const user = existing ?? (await db.insert(users).values({ email, username, passwordHash: await hashPassword(password) }).returning({ id: users.id }))[0];
+  console.log(existing ? `super admin: ${email} already exists — password left unchanged` : `super admin: created ${email}${username ? ` (username ${username})` : ""}`);
+
+  const [existingMembership] = await db
+    .select({ id: workspaceMembers.id })
+    .from(workspaceMembers)
+    .where(and(eq(workspaceMembers.userId, user.id), eq(workspaceMembers.workspaceId, workspace.id)))
+    .limit(1);
+  const membership =
+    existingMembership ?? (await db.insert(workspaceMembers).values({ userId: user.id, workspaceId: workspace.id }).returning({ id: workspaceMembers.id }))[0];
+
+  const superAdminRoles = await db
+    .select({ id: roles.id, slug: roles.slug })
+    .from(roles)
+    .where(and(eq(roles.workspaceId, workspace.id), inArray(roles.slug, SEED_SUPERADMIN_ROLES)));
+  if (superAdminRoles.length) {
+    await db
+      .insert(roleMember)
+      .values(superAdminRoles.map((role) => ({ memberId: membership.id, roleId: role.id })))
+      .onConflictDoNothing({ target: [roleMember.memberId, roleMember.roleId] });
+  }
+  console.log(`super admin: member of "${workspace.name}" with roles ${superAdminRoles.map((r) => r.slug).join(", ")}`);
+}
+
 async function main(): Promise<void> {
   // Loads .env from the working directory if there is one. It never overrides a variable the
   // process was already given, so an explicit `SEED_ADMIN_PASSWORD=... npm run seed` still wins.
@@ -124,6 +161,7 @@ async function main(): Promise<void> {
     const workspace = await seedWorkspace(db);
     await seedRbacDefaults(db, workspace.id);
     await seedAdminUser(db, workspace);
+    await seedSuperAdminUser(db, workspace);
     console.log("seed complete.");
   } finally {
     await pool.end();

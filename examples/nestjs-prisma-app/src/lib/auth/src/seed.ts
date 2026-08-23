@@ -6,7 +6,7 @@
 import { PrismaPg } from "@prisma/adapter-pg";
 import { hashPassword } from "@/lib/auth/core/crypto.js";
 import { PrismaClient } from "../generated/prisma/client.js";
-import { DEFAULT_ROLES, PERMISSION_SLUGS, provisionDefaultRoles, SEED_ADMIN_ROLES } from "./rbac.defaults.js";
+import { DEFAULT_ROLES, PERMISSION_SLUGS, provisionDefaultRoles, SEED_ADMIN_ROLES, SEED_SUPERADMIN_ROLES } from "./rbac.defaults.js";
 
 function requireEnv(name: string): string {
   const value = process.env[name];
@@ -46,6 +46,25 @@ async function seedAdminUser(prisma: PrismaClient): Promise<void> {
   console.log(`admin: holds roles ${roles.map((r) => r.slug).join(", ")}`);
 }
 
+async function seedSuperAdminUser(prisma: PrismaClient): Promise<void> {
+  const email = process.env["SEED_SUPERADMIN_EMAIL"];
+  const password = process.env["SEED_SUPERADMIN_PASSWORD"];
+  if (!email || !password) {
+    console.log("super admin: skipped — set SEED_SUPERADMIN_EMAIL and SEED_SUPERADMIN_PASSWORD to create one (there is no default password)");
+    return;
+  }
+  const username = process.env["SEED_SUPERADMIN_USERNAME"] || undefined;
+
+  // Rewriting the password here would silently reset one the user may have already changed.
+  const existing = await prisma.user.findUnique({ where: { email } });
+  const user = existing ?? (await prisma.user.create({ data: { email, username, passwordHash: await hashPassword(password) } }));
+  console.log(existing ? `super admin: ${email} already exists — password left unchanged` : `super admin: created ${email}${username ? ` (username ${username})` : ""}`);
+
+  const roles = await prisma.role.findMany({ where: { slug: { in: SEED_SUPERADMIN_ROLES } }, select: { id: true, slug: true } });
+  await prisma.roleUser.createMany({ data: roles.map((role) => ({ userId: user.id, roleId: role.id })), skipDuplicates: true });
+  console.log(`super admin: holds roles ${roles.map((r) => r.slug).join(", ")}`);
+}
+
 async function main(): Promise<void> {
   try {
     process.loadEnvFile();
@@ -57,6 +76,7 @@ async function main(): Promise<void> {
   try {
     await seedRbacDefaults(prisma);
     await seedAdminUser(prisma);
+    await seedSuperAdminUser(prisma);
     console.log("seed complete.");
   } finally {
     await prisma.$disconnect();

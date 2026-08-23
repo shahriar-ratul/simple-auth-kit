@@ -1,4 +1,5 @@
 import type { PermissionCacheStore } from "./permission-cache.js";
+import type { RateLimitDeps } from "@/lib/auth/core/rate-limit.js";
 
 export const AUTH_CONFIG = Symbol("AUTH_CONFIG");
 
@@ -43,6 +44,8 @@ export interface AuthConfig {
   // Defaults to an in-process Map; pass a Redis-backed PermissionCacheStore for multiple
   // instances. Keys are namespaced `easyauth:authz:*`.
   permissionCacheStore?: PermissionCacheStore;
+  // Defaults to an in-process Map; pass a Redis-backed RateLimitDeps for multiple instances.
+  rateLimitStore?: RateLimitDeps;
   // Enforced by a globally registered ThrottlerGuard, per client IP, all buckets at once.
   // `false` removes the guard entirely — the escape hatch for load tests and proofs whose
   // request rate is the point, not an abuse signal.

@@ -335,6 +335,15 @@ async function resolvePlan(registry: Registry, flags: Record<string, string | tr
     return null;
   }
 
+  if (interactive) {
+    console.log("\nAvailable templates:");
+    for (const kind of kinds) {
+      const names = combosByKind(registry, kind).map(([name]) => name);
+      console.log(`  ${KIND_LABELS[kind]}: ${names.join(", ")}`);
+    }
+    console.log("");
+  }
+
   const picks: Array<{ comboName: string; combo: ComboEntry }> = [];
   for (let i = 0; i < kinds.length; i++) {
     const kind = kinds[i];

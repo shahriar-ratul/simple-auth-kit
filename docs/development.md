@@ -17,12 +17,19 @@ npm run seed -- base   # idempotent; SEED_ADMIN_EMAIL/PASSWORD env to also creat
 ```
 
 Edit files in `variants/<variant>/src/` or `shared/src/` — **never** in `.variant/` (it's
-regenerated). If a change touches `shared/`, check both variants still typecheck; shared files
-must stay inert for the variant that doesn't use them.
+regenerated). The placement rule: write both variants, hoist what comes out byte-identical
+into `shared/`; a file must not branch on which variant it's in. If a change touches
+`shared/`, check both variants still typecheck.
 
 `prove-cycle` needs Postgres at `localhost:55432`. It is the merge gate for combo changes: it
 boots the real module, runs the full auth/RBAC flow, and asserts fail-closed behavior (e.g. an
 untiered route must crash the boot; a deactivated permission must 403 immediately).
+
+The same discipline applies to `registry/admin-apps/*` and `registry/mobile-apps/*` — but
+those are `scaffold`-mode templates with no prove-cycle: they're verified by generating an app
+and running its own typecheck/build. `apps/admin-*` and `apps/mobile-*` are the runnable
+mirrors of those templates; a change should land in both, and `apps/` is where you actually
+run it.
 
 ## Syncing an example after combo changes
 
@@ -40,6 +47,9 @@ skipped (that's the consumer-facing update behavior). New backend dependencies (
 throttler) must be added to the example's own `package.json` — the CLI copies source, not deps.
 
 Then rebuild the docker image if you run via compose: `docker compose build nestjs-prisma-app`.
+
+Changes land **combo-first** (`registry/combos/*`, gated by prove-cycle); examples are
+regenerated to agree. An example that's ahead of its combo is a bug, not a feature.
 
 ## The auth-client rebuild gotcha
 
@@ -81,7 +91,9 @@ template. Nine steps, repository → UI:
 9. **Console pages**: copy the customers page group (list/schema/new/[id]/edit), add the
    sidebar entry + `PERMISSIONS` keys in `src/lib/ability.ts`.
 
-Then sync the example (above) and verify against the running pair.
+Then sync the example (above) and verify against the running pair. For the workspaces variant,
+mirror the module with `workspaceId` threaded through the repository and composite unique
+constraints — the existing workspace-scoped content modules are the template.
 
 ## Console dev loop
 
@@ -96,7 +108,7 @@ pnpm build        # the merge gate — prerenders every page, catches what dev m
 
 ```bash
 pnpm -r typecheck
-pnpm -r test        # registry/core (52), auth-client (36)
+pnpm -r test        # registry/core (56), auth-client (36)
 ```
 
 ## Verification philosophy
@@ -108,14 +120,25 @@ rendering live data, one create through a real form, logout). The 2026-08-12 par
 walkthrough found two real bugs that typecheck and unit tests missed (BigInt list
 serialization; docker-internal URL split — see `AUTH_API_INTERNAL_URL` in getting-started.md).
 
-## Known state / gaps (as of 2026-08-13)
+## Known state / gaps (as of 2026-08-14)
 
-- The **content domains, WS feed, throttling, and NextAuth console flow** live in
-  **nestjs-prisma base + admin-nextjs** (the reference pair). The **reference form recipe and
-  the user/role profile fields** (dob/gender/joinedDate, role isDefault/isActive) are rolled out
-  wider — all 4 admin apps and all 4 combo pairs (see brief.md decision 28).
-- Changes land combo-first (`registry/combos/*`, gated by prove-cycle); examples are regenerated
-  or back-ported to agree. An example that's ahead of its combo is a bug, not a feature.
+- **Feature footprint is uneven by design** — see the parity map in architecture.md. Content
+  domains, the socket.io feed, and HTTP throttling live in nestjs-prisma (feed/throttling:
+  base variant only); `dob`/`gender`/`joinedDate` exist in the NestJS combos but not the
+  express ones. All 4 consoles carry the full page set regardless — content pages simply have
+  no API to talk to on the other combos.
+- `docker compose up` migrates but does **not** seed — every backend needs the one-time
+  `docker exec ... seed.ts` step (getting-started.md) before anything is authorized. The seed
+  credentials are deliberately not baked into compose.
+- The CLI's `diff` command is a stub (prints the lockfile manifest only).
+- Scaffolded admin/mobile apps depend on `@easy-auth/auth-client` as `workspace:*`, which
+  doesn't resolve outside this monorepo (see cli.md).
 - Mobile apps: verified by typecheck/bundling/Metro boot, not by a recent device run;
-  `mobile-bare-rn` needs a one-time manual Xcode step for `react-native-config`.
-- Docker consoles run `next dev`, not production builds (deliberate — see the Dockerfile note).
+  `mobile-bare-rn` needs a one-time manual Xcode step for `react-native-config`. Generated
+  `mobile-bare-rn` apps get unique native identities via the CLI's renamer, but an actual
+  Xcode/Gradle build of a generated app hasn't been run in this environment.
+- Docker consoles run `next dev`/`vite` dev servers, not production builds (deliberate — the
+  compose Dockerfiles build `@easy-auth/auth-client` from the repo root context).
+- `AsyncStorage` (mobile apps) is unencrypted-at-rest by deliberate choice — `TokenStorage` is
+  an injected interface; swapping in `expo-secure-store`/Keychain later doesn't touch call
+  sites (see the decision log).

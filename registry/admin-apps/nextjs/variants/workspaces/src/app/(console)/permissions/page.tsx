@@ -4,6 +4,7 @@ import { useAbility } from "@casl/react";
 import { observer } from "mobx-react-lite";
 import { useCallback, useEffect, useState } from "react";
 import type { DefinePermissionInput, PermissionSummary } from "@easy-auth/auth-client";
+import { AlertModal } from "@/components/alert-modal";
 import { PermissionRequired } from "@/components/permission-required";
 import { Alert } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
@@ -45,6 +46,9 @@ export default observer(function PermissionsPage() {
   const [form, setForm] = useState<DefinePermissionInput>(emptyForm);
   const [createOpen, setCreateOpen] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [statusConfirmOpen, setStatusConfirmOpen] = useState(false);
+  const [pendingStatusPermission, setPendingStatusPermission] = useState<PermissionSummary | null>(null);
+  const [statusBusy, setStatusBusy] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -101,6 +105,27 @@ export default observer(function PermissionsPage() {
       setError(errorMessage(err));
     } finally {
       setSaving(false);
+    }
+  }
+
+  function openStatusConfirm(permission: PermissionSummary) {
+    setPendingStatusPermission(permission);
+    setStatusConfirmOpen(true);
+  }
+
+  async function confirmStatusChange() {
+    if (!pendingStatusPermission) return;
+    setStatusBusy(true);
+    try {
+      const updated = await authClient.definePermission({ slug: pendingStatusPermission.slug, isActive: !pendingStatusPermission.isActive });
+      setPermissions((prev) => prev.map((p) => (p.id === updated.id ? updated : p)));
+      setNotice(`Permission "${updated.slug}" ${updated.isActive ? "activated" : "deactivated"}.`);
+      setStatusConfirmOpen(false);
+      setPendingStatusPermission(null);
+    } catch (err) {
+      setError(errorMessage(err));
+    } finally {
+      setStatusBusy(false);
     }
   }
 
@@ -211,15 +236,26 @@ export default observer(function PermissionsPage() {
                         <Badge variant={permission.isActive ? "success" : "destructive"}>{permission.isActive ? "Active" : "Inactive"}</Badge>
                       </TableCell>
                       <TableCell className="text-right">
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          disabled={!canDefine}
-                          title={canDefine ? undefined : missingPermissionHint(PERMISSIONS.permissionsDefine)}
-                          onClick={() => openEdit(permission)}
-                        >
-                          Edit
-                        </Button>
+                        <div className="flex justify-end gap-1.5">
+                          <Button
+                            size="sm"
+                            variant={permission.isActive ? "destructive" : "outline"}
+                            disabled={!canDefine}
+                            title={canDefine ? undefined : missingPermissionHint(PERMISSIONS.permissionsDefine)}
+                            onClick={() => openStatusConfirm(permission)}
+                          >
+                            {permission.isActive ? "Deactivate" : "Activate"}
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            disabled={!canDefine}
+                            title={canDefine ? undefined : missingPermissionHint(PERMISSIONS.permissionsDefine)}
+                            onClick={() => openEdit(permission)}
+                          >
+                            Edit
+                          </Button>
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))}
@@ -231,6 +267,18 @@ export default observer(function PermissionsPage() {
           {!loading && permissions.length === 0 && <p className="text-sm text-muted-foreground">No permissions defined yet.</p>}
         </CardContent>
       </Card>
+
+      <AlertModal
+        isOpen={statusConfirmOpen}
+        onClose={() => setStatusConfirmOpen(false)}
+        onConfirm={confirmStatusChange}
+        loading={statusBusy}
+        description={
+          pendingStatusPermission?.isActive
+            ? "This deactivates the permission — every ability that carries it stops granting immediately."
+            : "This reactivates the permission, effective immediately."
+        }
+      />
     </div>
   );
 });

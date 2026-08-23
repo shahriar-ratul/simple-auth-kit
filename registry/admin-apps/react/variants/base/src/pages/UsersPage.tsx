@@ -4,7 +4,7 @@ import { Link } from "react-router-dom";
 import { type ColumnDef, type PaginationState, type SortingState, getCoreRowModel, getSortedRowModel, useReactTable } from "@tanstack/react-table";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { useDebounce } from "use-debounce";
-import { ChevronDownIcon, EyeIcon, PlusIcon, Trash2Icon } from "lucide-react";
+import { ChevronDownIcon, EyeIcon, PlusIcon, PowerIcon, Trash2Icon } from "lucide-react";
 import { toast } from "sonner";
 import { AuthApiError, userIdOf, type RoleSummary, type UserSummary } from "@easy-auth/auth-client";
 import { PERMISSIONS, useAbility } from "@/lib/ability";
@@ -261,6 +261,20 @@ export const UsersPage = observer(function UsersPage() {
                     : canManage
                       ? "Delete user"
                       : `You need the "${PERMISSIONS.usersManage}" permission to do this.`}
+                </TooltipContent>
+              </Tooltip>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button size="icon" variant="outline" disabled={!canBlock} onClick={() => openStatusConfirm(user)}>
+                    <PowerIcon />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  {canBlock
+                    ? user.isActive
+                      ? "Deactivate this user"
+                      : "Activate this user"
+                    : `You need the "${PERMISSIONS.usersBlock}" permission to do this.`}
                 </TooltipContent>
               </Tooltip>
               <Tooltip>

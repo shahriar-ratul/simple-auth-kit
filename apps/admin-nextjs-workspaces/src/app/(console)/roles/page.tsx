@@ -75,6 +75,9 @@ export default observer(function RolesPage() {
   const [editSaving, setEditSaving] = useState(false);
   const [deletingRole, setDeletingRole] = useState<RoleSummary | null>(null);
   const [deleteSaving, setDeleteSaving] = useState(false);
+  const [statusConfirmOpen, setStatusConfirmOpen] = useState(false);
+  const [pendingStatusRole, setPendingStatusRole] = useState<RoleSummary | null>(null);
+  const [statusBusy, setStatusBusy] = useState(false);
 
   const loadRoles = useCallback(async () => {
     setRolesLoading(true);
@@ -189,6 +192,27 @@ export default observer(function RolesPage() {
     }
   }
 
+  function openStatusConfirm(role: RoleSummary) {
+    setPendingStatusRole(role);
+    setStatusConfirmOpen(true);
+  }
+
+  async function confirmStatusChange() {
+    if (!pendingStatusRole) return;
+    setStatusBusy(true);
+    try {
+      const updated = await authClient.updateRole(pendingStatusRole.id, { isActive: !pendingStatusRole.isActive });
+      setRoles((prev) => prev.map((r) => (r.id === updated.id ? { ...r, isActive: updated.isActive } : r)));
+      toast.success(pendingStatusRole.isActive ? "Role deactivated." : "Role activated.");
+      setStatusConfirmOpen(false);
+      setPendingStatusRole(null);
+    } catch (err) {
+      toast.error(apiErrorMessage(err, "Couldn't change this role's status. Try again."));
+    } finally {
+      setStatusBusy(false);
+    }
+  }
+
   const handleAssignRole = report(async () => {
     await authClient.assignRole(assignUserId, assignRoleName);
     toast.success(`Role "${assignRoleName}" assigned.`);
@@ -286,6 +310,9 @@ export default observer(function RolesPage() {
                     <div className="flex gap-1.5">
                       <Button size="sm" variant="outline" onClick={() => openEditRole(role)}>
                         Edit
+                      </Button>
+                      <Button size="sm" variant={role.isActive ? "destructive" : "outline"} onClick={() => openStatusConfirm(role)}>
+                        {role.isActive ? "Deactivate" : "Activate"}
                       </Button>
                       <Button size="sm" variant="destructive" onClick={() => setDeletingRole(role)}>
                         Delete
@@ -441,6 +468,18 @@ export default observer(function RolesPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <AlertModal
+        isOpen={statusConfirmOpen}
+        onClose={() => setStatusConfirmOpen(false)}
+        onConfirm={confirmStatusChange}
+        loading={statusBusy}
+        description={
+          pendingStatusRole?.isActive
+            ? "This deactivates the role — it stops being resolved for the users who hold it until reactivated."
+            : "This reactivates the role, immediately."
+        }
+      />
     </div>
   );
 });

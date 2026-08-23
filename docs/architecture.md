@@ -9,8 +9,10 @@ The library is **copied, never installed**. `registry/` holds the source of trut
 (`cli/easy-auth.ts`) copies it into a consumer repo:
 
 ```bash
-npx easy-auth add nestjs-prisma               # base variant (the default)
-npx easy-auth add nestjs-prisma --workspaces  # workspace-aware variant
+npx easy-auth add nestjs-prisma               # backend, base variant (the default)
+npx easy-auth add nestjs-prisma --workspaces  # backend, workspace-aware variant
+npx easy-auth add admin-react --into ./admin  # a whole admin console app
+npx easy-auth add                             # guided multi-kind flow (api + admin + mobile)
 ```
 
 - Zero `@easy-auth/*` in any consumer's `package.json`.
@@ -18,21 +20,40 @@ npx easy-auth add nestjs-prisma --workspaces  # workspace-aware variant
   consumer has modified; `--force` overrides.
 - A consumer installs **one** variant and cannot tell the other exists.
 
+## Three kinds, two install modes
+
+Every registry entry has a `kind` and an `installMode` (`cli/registry.json`):
+
+| Kind | Products | Install mode | What the CLI writes |
+|---|---|---|---|
+| `api` | `nestjs-prisma` (reference), `nestjs-drizzle`, `express-prisma`, `express-drizzle` | `merge` | A source fragment composed into an **existing** project: `registry/core/` + the combo's `shared/` + `variants/<variant>/`, landing under `src/lib/auth/` (configurable). |
+| `admin` | `admin-nextjs`, `admin-react` | `scaffold` | A **whole standalone app** — `package.json`, `src/`, everything — written directly into the target directory. |
+| `mobile` | `mobile-expo`, `mobile-bare-rn` | `scaffold` | Same, plus native-identity retemplating for `mobile-bare-rn` (bundle id / `applicationId` / project names driven by `--name`). |
+
+All 8 products use the same `shared/` + `variants/{base,workspaces}` composition and the same
+rule for deciding where a file goes: **write both variants, then hoist every file that comes
+out byte-identical into `shared/`** — anything that differs, even by one line, stays duplicated
+in both variants, and no file may branch on which variant it's in. Details and per-kind
+specifics: `registry/README.md`, `registry/admin-apps/README.md`, `registry/mobile-apps/README.md`.
+
 ## Layers
 
 ```
 registry/core/            framework/ORM-free auth logic (sessions, JWTs, 2FA, OAuth flows,
-                          password reset, RBAC). Storage is injected as function parameters.
-registry/combos/<combo>/  framework+ORM wiring around core — nestjs-prisma (reference),
-  shared/                 nestjs-drizzle, express-prisma, express-drizzle. Each combo:
-  variants/base/          - shared/: files common to both variants
-  variants/workspaces/    - variants/: per-variant sources, composed at materialize time
-  .variant/               - .variant/: gitignored materialized output (shared + variant merged)
-cli/                      the copy tool (add / init / diff)
+                          password reset, RBAC primitives). Storage is injected as function
+                          parameters. 56 unit tests.
+registry/combos/<combo>/  framework+ORM wiring around core — the 4 api products.
+registry/admin-apps/      admin console templates — nextjs/ and react/, each shared+variants.
+registry/mobile-apps/     mobile app templates — expo/ and bare-rn/, each shared+variants.
+cli/                      the copy tool (init / add / diff) + registry.json manifest.
 examples/<combo>-app[-workspaces]/   8 real consumer apps produced BY the CLI — the runnable
                           backends. Snapshots, not symlinks: re-sync after combo changes.
-packages/auth-client/     one typed API client used by all 8 client apps (compiled to dist/)
-apps/                     4 admin consoles + 4 mobile apps + the dev-portal
+packages/auth-client/     one typed API client used by all 8 client apps (compiled to dist/).
+                          36 tests.
+apps/                     the reference deployment: 4 admin consoles + 4 mobile apps + the
+                          dev-portal. The admin/mobile apps are the source the registry
+                          templates were extracted from, and stay the place you run and
+                          verify them.
 ```
 
 **No shared runtime adapter interface across combos** — each combo wires storage idiomatically.
@@ -55,10 +76,15 @@ There is **no multi-tenancy** (removed permanently; true isolation is a separate
 - **CASL** with **flat permission slugs**: the slug is the CASL action, subject is the empty
   string — `can("users:read", "")`. No subject taxonomy, no conditions.
 - **Permissions live in the database**, resolved per request (user → roles → role permissions,
-  plus direct grants, deduped) behind an injected cache with version-key invalidation and
-  single-flight. Real join tables: `RoleUser`, `PermissionRole`, `PermissionUser`.
-- **Never in the JWT.** The access token carries identity and session only, so a revoked grant
-  dies at the next request, not at token expiry.
+  plus direct grants, deduped) behind an injected cache (`permission-cache.ts`) with version-key
+  invalidation and single-flight. Real join tables: `RoleUser`, `PermissionRole`,
+  `PermissionUser`. A grant or revocation lands on the caller's **next request**, not their
+  next token.
+- **Never in the JWT.** The access token carries identity and session only.
+- **The catalog is code**: `rbac.defaults.ts` defines `PERMISSION_CATALOG` (18 slugs in the
+  reference combo's base variant, +`members:manage` in workspaces; 9/10 in the other combos,
+  which have no content domains) and `PermissionSlug = keyof typeof PERMISSION_CATALOG` —
+  `@CheckAbility` takes that type, so a route cannot demand a slug the catalog doesn't define.
 - **Three route tiers, enforced at startup**: `@Public()`, authenticated-only, or
   `@CheckAbility("slug")`. A route carrying none of them fails the boot, naming itself — a new
   route cannot ship open by omission.
@@ -71,9 +97,26 @@ There is **no multi-tenancy** (removed permanently; true isolation is a separate
   injected `TokenStorage` interface.
 - **The database never stores a usable credential**: refresh revocation is a `sessionVersion`
   claim + `currentRefreshJti`, with a denylist for instant access-token revocation. (Deliberate
-  divergence from the reference app this console replicates, which stores raw token columns.)
+  divergence from the reference app the console replicates, which stores raw token columns.)
 - `auth-client` auto-refreshes: on a 401 it attempts exactly one refresh-token rotation and
   retries the request once; if refresh fails it clears storage and surfaces the original error.
+
+## Where features live (the parity map)
+
+`nestjs-prisma` is the reference combo; `apps/admin-nextjs` is the reference console. Not
+everything has been mirrored everywhere, and the docs shouldn't pretend otherwise:
+
+| Feature | Where it exists |
+|---|---|
+| Auth + RBAC + admin surface (users/roles/permissions/audit-log), seeder, prove-cycle | All 4 combos, both variants |
+| Auth-flow rate limiting (login, password reset — `registry/core/rate-limit.ts`) | All 4 combos, both variants |
+| Role `isDefault`/`isActive`, `isActive` on users/permissions | All 4 combos, both variants |
+| Content domains (countries/languages/customers) | `nestjs-prisma` only — both variants (workspace-scoped in `workspaces`) |
+| Realtime audit feed (socket.io `/audit-logs` gateway) | `nestjs-prisma` **base only** |
+| HTTP throttling (`@nestjs/throttler`, global guard) | `nestjs-prisma` **base only** |
+| User profile fields `dob`/`gender`/`joinedDate` | NestJS combos only (both variants); absent from the express combos |
+| Content-domain pages, live-feed UI, full form recipe | All 4 admin consoles |
+| NextAuth v5 + edge `proxy.ts` guard | `apps/admin-nextjs` only — the other 3 consoles use client-side re-verification on every route change (a deliberate trust-model split, see `registry/admin-apps/README.md`) |
 
 ## The admin console pairing (2026-08-12 parity build)
 
@@ -92,11 +135,12 @@ only, no login capability, no roles.
 
 ## The reference deployment proves the claims
 
-- `registry/core` — 52 unit tests.
+- `registry/core` — 56 unit tests (crypto, OAuth, password reset, rate limit, RBAC, session
+  policy, tokens, 2FA).
 - Each combo — `prove-cycle`: boots a temporary instance and black-box-tests the full flow
   (signup, login, 2FA, RBAC enforcement, OAuth-shaped flows, password reset, audit log,
   cache behavior; cross-workspace isolation on the workspaces variant). 300+ assertions across
   both variants in the reference combo.
-- `packages/auth-client` — 36 tests.
+- `packages/auth-client` — 36 tests (mocked fetch).
 - `apps/dev-portal` — replays every combo's migrations into a throwaway database and diffs the
   resulting schemas, so the ER diagram and the drift table cannot disagree with the migrations.

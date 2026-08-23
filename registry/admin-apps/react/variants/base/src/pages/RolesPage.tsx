@@ -1,14 +1,18 @@
 import { type FormEvent, useCallback, useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import type { PermissionSummary, RoleSummary, UserSummary } from "@easy-auth/auth-client";
 import { AuthApiError, userIdOf } from "@easy-auth/auth-client";
+import { EyeIcon, PowerIcon } from "lucide-react";
 import { toast } from "sonner";
 import { PERMISSIONS, useAbility } from "@/lib/ability";
 import { authClient } from "@/lib/auth-client";
+import { cn } from "@/lib/cn";
+import { AlertModal } from "@/components/alert-modal";
 import { PermissionGroupSelect } from "@/components/permission-group-select";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Modal } from "@/components/ui/modal";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -38,6 +42,9 @@ export function RolesPage() {
   const [permissionCatalog, setPermissionCatalog] = useState<PermissionSummary[]>([]);
   const [editingRole, setEditingRole] = useState<RoleSummary | null>(null);
   const [deletingRole, setDeletingRole] = useState<RoleSummary | null>(null);
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [pendingRole, setPendingRole] = useState<RoleSummary | null>(null);
+  const [pendingBusy, setPendingBusy] = useState(false);
 
   const loadRoles = useCallback(async () => {
     setRolesLoading(true);
@@ -71,12 +78,45 @@ export function RolesPage() {
       .catch((err) => toast.error(apiErrorMessage(err, "Couldn't load the permission catalog.")));
   }, [canReadPermissions]);
 
+  function openStatusConfirm(role: RoleSummary) {
+    setPendingRole(role);
+    setConfirmOpen(true);
+  }
+
+  async function confirmPendingAction() {
+    if (!pendingRole) return;
+    setPendingBusy(true);
+    try {
+      await authClient.updateRole(pendingRole.id, { isActive: !pendingRole.isActive });
+      setRoles((prev) => prev.map((r) => (r.id === pendingRole.id ? { ...r, isActive: !r.isActive } : r)));
+      toast.success(pendingRole.isActive ? "Role deactivated." : "Role activated.");
+      setConfirmOpen(false);
+      setPendingRole(null);
+    } catch (err) {
+      toast.error(apiErrorMessage(err, "Couldn't change this role's status. Try again."));
+    } finally {
+      setPendingBusy(false);
+    }
+  }
+
   return (
     <div className="flex flex-col gap-6">
       <div>
         <h1 className="text-2xl font-semibold">Roles & permissions</h1>
         <p className="text-sm text-muted-foreground">Create roles, attach permissions to them, and manage direct grants on individual users.</p>
       </div>
+
+      <AlertModal
+        isOpen={confirmOpen}
+        onClose={() => setConfirmOpen(false)}
+        onConfirm={confirmPendingAction}
+        loading={pendingBusy}
+        description={
+          pendingRole?.isActive
+            ? "This deactivates the role — everyone who holds it loses the permissions it carries immediately."
+            : "This reactivates the role, effective immediately."
+        }
+      />
 
       {canManageRoles ? (
         <Card>
@@ -119,6 +159,22 @@ export function RolesPage() {
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-2">
+                          <Link
+                            to={`/roles/${role.id}`}
+                            className={cn(buttonVariants({ variant: "outline", size: "icon" }))}
+                            title="View details"
+                          >
+                            <EyeIcon />
+                          </Link>
+                          <Button
+                            size="icon"
+                            variant="outline"
+                            disabled={!canManageRoles}
+                            title={canManageRoles ? (role.isActive ? "Deactivate this role" : "Activate this role") : undefined}
+                            onClick={() => openStatusConfirm(role)}
+                          >
+                            <PowerIcon />
+                          </Button>
                           <Button size="sm" variant="outline" onClick={() => setEditingRole(role)}>
                             Edit
                           </Button>
@@ -242,7 +298,7 @@ function CreateRoleCard({
   );
 }
 
-function EditRoleDialog({
+export function EditRoleDialog({
   role,
   permissionCatalog,
   canReadPermissions,
@@ -355,7 +411,7 @@ function EditRoleDialog({
   );
 }
 
-function DeleteRoleDialog({
+export function DeleteRoleDialog({
   role,
   onClose,
   onDeleted,

@@ -2,17 +2,21 @@ import { type FormEvent, useCallback, useEffect, useState } from "react";
 import type { PermissionSummary, RoleSummary, UserSummary } from "@easy-auth/auth-client";
 import { AuthApiError, userIdOf } from "@easy-auth/auth-client";
 import { observer } from "mobx-react-lite";
+import { Link } from "react-router-dom";
+import { EyeIcon, PowerIcon } from "lucide-react";
 import { toast } from "sonner";
 import { PERMISSIONS, useAbility } from "@/lib/ability";
 import { authClient } from "@/lib/auth-client";
+import { cn } from "@/lib/cn";
 import { useWorkspaceStore } from "@/stores/store-context";
+import { AlertModal } from "@/components/alert-modal";
 import { PermissionGroupSelect } from "@/components/permission-group-select";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
 function apiErrorMessage(err: unknown, fallback: string): string {
@@ -42,6 +46,9 @@ export const RolesPage = observer(function RolesPage() {
   const [permissionCatalog, setPermissionCatalog] = useState<PermissionSummary[]>([]);
   const [editingRole, setEditingRole] = useState<RoleSummary | null>(null);
   const [deletingRole, setDeletingRole] = useState<RoleSummary | null>(null);
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [pendingRole, setPendingRole] = useState<RoleSummary | null>(null);
+  const [pendingBusy, setPendingBusy] = useState(false);
   const [users, setUsers] = useState<UserSummary[]>([]);
 
   const loadRoles = useCallback(async () => {
@@ -88,6 +95,27 @@ export const RolesPage = observer(function RolesPage() {
       .catch((err) => toast.error(apiErrorMessage(err, "Couldn't load the permission catalog.")));
   }, [canReadPermissions, activeWorkspaceId]);
 
+  function openStatusConfirm(role: RoleSummary) {
+    setPendingRole(role);
+    setConfirmOpen(true);
+  }
+
+  async function confirmPendingAction() {
+    if (!pendingRole) return;
+    setPendingBusy(true);
+    try {
+      const updated = await authClient.updateRole(pendingRole.id, { isActive: !pendingRole.isActive });
+      setRoles((prev) => prev.map((r) => (r.id === pendingRole.id ? { ...updated, permissions: r.permissions } : r)));
+      toast.success(pendingRole.isActive ? "Role deactivated." : "Role activated.");
+      setConfirmOpen(false);
+      setPendingRole(null);
+    } catch (err) {
+      toast.error(apiErrorMessage(err, "Couldn't change this role's status. Try again."));
+    } finally {
+      setPendingBusy(false);
+    }
+  }
+
   return (
     <div className="flex flex-col gap-6">
       <div>
@@ -97,6 +125,18 @@ export const RolesPage = observer(function RolesPage() {
           means nothing in any other workspace.
         </p>
       </div>
+
+      <AlertModal
+        isOpen={confirmOpen}
+        onClose={() => setConfirmOpen(false)}
+        onConfirm={confirmPendingAction}
+        loading={pendingBusy}
+        description={
+          pendingRole?.isActive
+            ? "This deactivates the role — everyone who holds it loses the permissions it carries immediately."
+            : "This reactivates the role, effective immediately."
+        }
+      />
 
       {canManageRoles ? (
         <Card>
@@ -135,8 +175,15 @@ export const RolesPage = observer(function RolesPage() {
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-2">
+                          <Link to={`/roles/${role.id}`} className={cn(buttonVariants({ size: "sm", variant: "outline" }))}>
+                            <EyeIcon />
+                            View
+                          </Link>
                           <Button size="sm" variant="outline" onClick={() => setEditingRole(role)}>
                             Edit
+                          </Button>
+                          <Button size="icon" variant="outline" onClick={() => openStatusConfirm(role)}>
+                            <PowerIcon />
                           </Button>
                           <Button size="sm" variant="destructive" onClick={() => setDeletingRole(role)}>
                             Delete

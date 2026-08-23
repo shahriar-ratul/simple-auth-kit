@@ -1,0 +1,610 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>easy-auth — Architecture Review</title>
+<style>
+  :root {
+    --bg: #0b0d12;
+    --panel: #12151d;
+    --panel-2: #171b26;
+    --border: #262b3a;
+    --text: #dfe3ee;
+    --muted: #8b93a7;
+    --accent: #7aa2f7;
+    --good: #57d692;
+    --good-bg: rgba(87,214,146,0.08);
+    --warn: #f2b866;
+    --warn-bg: rgba(242,184,102,0.08);
+    --bad: #f26d78;
+    --bad-bg: rgba(242,109,120,0.08);
+    --p0: #f26d78;
+    --p1: #f2b866;
+    --p2: #7aa2f7;
+    --mono: "SF Mono", "Fira Code", Menlo, Consolas, monospace;
+    --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, sans-serif;
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    line-height: 1.6;
+    font-size: 15px;
+  }
+  a { color: var(--accent); }
+  code, pre { font-family: var(--mono); }
+  code.inline {
+    background: #1c2130;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 1px 6px;
+    font-size: 0.88em;
+    color: #c9d4ff;
+    white-space: nowrap;
+  }
+  pre {
+    background: #0e1017;
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--accent);
+    border-radius: 6px;
+    padding: 14px 16px;
+    overflow-x: auto;
+    font-size: 13px;
+    line-height: 1.55;
+    margin: 10px 0 0 0;
+  }
+  pre code { color: #cfd7ea; }
+  .comment { color: #6c7488; }
+  .kw { color: #c792ea; }
+  .str { color: #a6e3a1; }
+  .fn { color: #82aaff; }
+
+  header.top {
+    position: sticky; top: 0; z-index: 50;
+    background: rgba(11,13,18,0.92);
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid var(--border);
+    padding: 14px 28px;
+    display: flex; align-items: center; justify-content: space-between; gap: 20px;
+    flex-wrap: wrap;
+  }
+  header.top .title { display: flex; flex-direction: column; gap: 2px; }
+  header.top h1 { margin: 0; font-size: 17px; letter-spacing: 0.2px; }
+  header.top .sub { color: var(--muted); font-size: 12.5px; }
+  nav.toc { display: flex; gap: 4px; flex-wrap: wrap; }
+  nav.toc a {
+    text-decoration: none; color: var(--muted); font-size: 12.5px;
+    padding: 6px 10px; border-radius: 5px; border: 1px solid transparent;
+  }
+  nav.toc a:hover { color: var(--text); border-color: var(--border); background: var(--panel-2); }
+
+  main { max-width: 980px; margin: 0 auto; padding: 40px 28px 100px; }
+
+  .hero {
+    background: linear-gradient(155deg, #151a26, #0f1219);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 28px 30px;
+    margin-bottom: 40px;
+  }
+  .hero h2 { margin-top: 0; font-size: 22px; }
+  .verdict-badge {
+    display: inline-block; font-size: 12px; font-weight: 600; letter-spacing: 0.4px;
+    text-transform: uppercase; padding: 4px 10px; border-radius: 20px;
+    background: var(--good-bg); color: var(--good); border: 1px solid rgba(87,214,146,0.35);
+    margin-bottom: 14px;
+  }
+  .verdict-badge.note {
+    background: rgba(122,162,247,0.1); color: var(--accent); border-color: rgba(122,162,247,0.35);
+    margin-left: 8px;
+  }
+
+  section { margin-bottom: 52px; scroll-margin-top: 74px; }
+  section > h2 {
+    font-size: 13px; text-transform: uppercase; letter-spacing: 1.2px;
+    color: var(--muted); border-bottom: 1px solid var(--border);
+    padding-bottom: 10px; margin-bottom: 22px;
+    display: flex; align-items: center; gap: 10px;
+  }
+  section > h2 .n {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 20px; height: 20px; border-radius: 50%; background: var(--panel-2);
+    color: var(--accent); font-size: 11px; border: 1px solid var(--border);
+  }
+  h3 { font-size: 16px; margin: 0 0 4px 0; color: var(--text); }
+  p { color: #c3c9d8; margin: 8px 0; }
+
+  /* diagram */
+  .diagram {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 26px;
+  }
+  .layers { display: flex; flex-direction: column; gap: 6px; }
+  .layer {
+    display: flex; align-items: center; gap: 14px;
+    background: var(--panel-2); border: 1px solid var(--border);
+    border-radius: 8px; padding: 12px 16px;
+  }
+  .layer .tag {
+    font-family: var(--mono); font-size: 11px; color: var(--bg);
+    background: var(--accent); border-radius: 4px; padding: 2px 7px;
+    white-space: nowrap; font-weight: 700;
+  }
+  .layer .desc { color: var(--muted); font-size: 13px; }
+  .layer .desc b { color: var(--text); font-weight: 600; }
+  .arrow-down { text-align: center; color: var(--border); font-size: 16px; margin: 0; }
+
+  .flow {
+    margin-top: 30px; display: flex; align-items: stretch; gap: 8px; flex-wrap: wrap;
+  }
+  .flow .step {
+    flex: 1; min-width: 140px;
+    background: var(--panel-2); border: 1px solid var(--border); border-radius: 8px;
+    padding: 12px 14px; position: relative;
+  }
+  .flow .step .num { color: var(--accent); font-size: 11px; font-weight: 700; font-family: var(--mono); }
+  .flow .step .name { font-family: var(--mono); font-size: 13px; margin-top: 4px; color: var(--text); }
+  .flow .step .note { font-size: 12px; color: var(--muted); margin-top: 6px; }
+  .flow .sep { display: flex; align-items: center; color: var(--border); font-size: 18px; padding: 0 2px; }
+
+  /* cards */
+  .grid { display: grid; grid-template-columns: 1fr; gap: 16px; }
+  .card {
+    background: var(--panel); border: 1px solid var(--border); border-radius: 10px;
+    padding: 20px 22px;
+  }
+  .card.good { border-left: 3px solid var(--good); }
+  .card.bad { border-left: 3px solid var(--bad); }
+  .card .file {
+    display: inline-block; font-family: var(--mono); font-size: 11.5px;
+    color: var(--muted); background: #0e1017; border: 1px solid var(--border);
+    padding: 3px 8px; border-radius: 4px; margin-top: 6px;
+  }
+  .why {
+    margin-top: 12px; padding: 10px 14px; border-radius: 6px;
+    background: var(--panel-2); border: 1px dashed var(--border);
+    font-size: 13.5px;
+  }
+  .why b { color: var(--accent); }
+  .update-flag {
+    display: inline-flex; align-items: center; gap: 6px;
+    font-size: 11px; font-weight: 700; letter-spacing: 0.3px; text-transform: uppercase;
+    color: var(--warn); background: var(--warn-bg); border: 1px solid rgba(242,184,102,0.35);
+    border-radius: 20px; padding: 3px 10px; margin-left: 8px;
+  }
+
+  /* recommendation cards */
+  .rec {
+    background: var(--panel); border: 1px solid var(--border); border-radius: 10px;
+    overflow: hidden; margin-bottom: 16px;
+  }
+  .rec .head {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 14px 20px; background: var(--panel-2); flex-wrap: wrap; gap: 10px;
+  }
+  .rec .head h3 { margin: 0; font-size: 15.5px; display: flex; align-items: center; flex-wrap: wrap; }
+  .badge { font-size: 11px; font-weight: 700; padding: 3px 9px; border-radius: 20px; letter-spacing: 0.4px; }
+  .badge.p0 { background: rgba(242,109,120,0.14); color: var(--p0); border: 1px solid rgba(242,109,120,0.4); }
+  .badge.p1 { background: rgba(242,184,102,0.14); color: var(--p1); border: 1px solid rgba(242,184,102,0.4); }
+  .badge.p2 { background: rgba(122,162,247,0.14); color: var(--p2); border: 1px solid rgba(122,162,247,0.4); }
+  .rec .body { padding: 4px 20px 18px; }
+  .rec-row { display: flex; gap: 14px; padding: 10px 0; border-top: 1px solid var(--border); }
+  .rec-row:first-child { border-top: none; }
+  .rec-row .label {
+    flex: 0 0 92px; font-size: 11px; text-transform: uppercase; letter-spacing: 0.6px;
+    color: var(--muted); padding-top: 2px;
+  }
+  .rec-row .content { flex: 1; font-size: 13.8px; color: #c3c9d8; }
+  .rec-row .content code.inline { margin: 0 2px; }
+  .meta-line { display: flex; gap: 18px; font-size: 12px; color: var(--muted); padding: 10px 20px 0; flex-wrap: wrap; }
+  .meta-line span b { color: var(--text); }
+
+  table.matrix { width: 100%; border-collapse: collapse; margin-top: 4px; font-size: 13.5px; }
+  table.matrix th, table.matrix td {
+    text-align: left; padding: 10px 14px; border-bottom: 1px solid var(--border);
+  }
+  table.matrix th { color: var(--muted); font-weight: 600; font-size: 11.5px; text-transform: uppercase; letter-spacing: 0.5px; }
+  table.matrix tr:last-child td { border-bottom: none; }
+  table.matrix td.item { font-weight: 600; }
+  table.matrix td.files { font-family: var(--mono); color: var(--accent); font-weight: 700; }
+  table.matrix tr.total td { border-top: 2px solid var(--border); font-weight: 700; color: var(--text); }
+  table.matrix tr.total td.files { color: var(--good); }
+
+  /* implementation options */
+  .options { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  @media (max-width: 760px) { .options { grid-template-columns: 1fr; } }
+  .option {
+    background: var(--panel); border: 1px solid var(--border); border-radius: 10px; padding: 18px 20px;
+    display: flex; flex-direction: column;
+  }
+  .option.recommended { border-color: rgba(87,214,146,0.5); box-shadow: 0 0 0 1px rgba(87,214,146,0.15) inset; }
+  .option h4 { margin: 0 0 2px 0; font-size: 14.5px; }
+  .option .pick {
+    display: inline-block; font-size: 10.5px; font-weight: 700; letter-spacing: 0.4px; text-transform: uppercase;
+    color: var(--good); background: var(--good-bg); border: 1px solid rgba(87,214,146,0.35);
+    border-radius: 20px; padding: 2px 8px; margin-bottom: 10px; width: fit-content;
+  }
+  .option ul.files { list-style: none; margin: 8px 0; padding: 0; font-family: var(--mono); font-size: 12px; color: var(--muted); }
+  .option ul.files li { padding: 3px 0; border-top: 1px dotted var(--border); }
+  .option ul.files li:first-child { border-top: none; }
+  .option ul.files li b { color: var(--text); font-weight: 500; }
+  .option ul.files li .op { color: var(--accent); font-size: 10.5px; text-transform: uppercase; margin-right: 6px; }
+  .option .cost { margin-top: auto; padding-top: 10px; border-top: 1px solid var(--border); font-size: 12.5px; color: var(--muted); }
+  .option .cost b { color: var(--text); }
+  .verdict-line {
+    margin-top: 16px; padding: 14px 18px; border-radius: 8px;
+    background: var(--good-bg); border: 1px solid rgba(87,214,146,0.3); font-size: 13.8px;
+  }
+  .verdict-line b { color: var(--good); }
+
+  footer {
+    max-width: 980px; margin: 0 auto; padding: 30px 28px 60px;
+    color: var(--muted); font-size: 12.5px; border-top: 1px solid var(--border);
+  }
+  footer .files { font-family: var(--mono); font-size: 11.5px; line-height: 1.9; margin-top: 8px; color: #7f879b; }
+
+  ::-webkit-scrollbar { height: 8px; width: 8px; }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="title">
+    <h1>easy-auth — Architecture Review</h1>
+    <div class="sub">Grounded in direct source reads · registry/core, registry/combos/nestjs-prisma, cli/lib · updated 2026-08-23 · no-CI constraint applied</div>
+  </div>
+  <nav class="toc">
+    <a href="#diagram">Layering</a>
+    <a href="#strengths">Strengths</a>
+    <a href="#risks">Risks</a>
+    <a href="#recs">Recommendations</a>
+    <a href="#enforcement">Local Enforcement</a>
+    <a href="#matrix">Priority</a>
+  </nav>
+</header>
+
+<main>
+
+  <div class="hero">
+    <span class="verdict-badge">Verdict: sound, ship the fixes below</span>
+    <span class="verdict-badge note">Update: no CI — enforcement moved local</span>
+    <h2>The hard decisions are correct. The gaps are all in enforcement, not design.</h2>
+    <p>
+      Deps-injection over interface abstraction, no-authz-in-JWT, fail-closed route tiers, version-key
+      cache invalidation, and session-family revocation on refresh reuse are all textbook-correct and
+      consistently applied. Nothing here is architecturally wrong. What's missing is the mechanical
+      backstop that keeps good design good under scale and time: nothing automatically runs the one
+      test suite that actually proves correctness, one of two in-memory stores doesn't get the same
+      swap contract as its sibling, and a few comments describe a backend that was refactored out
+      from under them. CI is explicitly off the table by decision — the enforcement recommendation
+      below was revised to a local git hook, and every file count on this page was re-verified against
+      the actual repo, not estimated.
+    </p>
+  </div>
+
+  <section id="diagram">
+    <h2><span class="n">1</span>Layering &amp; the auth/authz seam</h2>
+    <div class="diagram">
+      <div class="layers">
+        <div class="layer">
+          <span class="tag">registry/core</span>
+          <span class="desc">Pure TS, zero framework/ORM imports. Exports plain async functions taking a small <b>*Deps</b> object — <code class="inline">SessionStoreDeps</code>, <code class="inline">RateLimitDeps</code> — never one unified store interface.</span>
+        </div>
+        <div class="arrow-down">↓ copied into, structurally implemented by</div>
+        <div class="layer">
+          <span class="tag">combo/shared</span>
+          <span class="desc">Framework-flavored, variant-agnostic. The seam lives here: <b>request-context</b>, <b>AuthGuard</b>, <b>ability.ts</b>, <b>AbilityGuard</b>, <b>route-tiers.ts</b>, <b>PermissionCache</b>, response envelope.</span>
+        </div>
+        <div class="arrow-down">↓ overlaid last, wins on conflicts</div>
+        <div class="layer">
+          <span class="tag">combo/variants/{base,workspaces}</span>
+          <span class="desc">Everything whose shape depends on how authorization is scoped: <b>AuthzGuard</b> resolution, <b>rbac.defaults.ts</b> catalog, seeder, composition root.</span>
+        </div>
+        <div class="arrow-down">↓ same composition algorithm, two consumers</div>
+        <div class="layer">
+          <span class="tag">cli/lib/copy.ts  ≡  scripts/materialize.mjs</span>
+          <span class="desc">sha256-manifest copy: skip files the consumer edited, prune what a previous install owned and this one doesn't. What a combo <b>proves</b> is what the CLI <b>emits</b>.</span>
+        </div>
+      </div>
+
+      <div class="flow">
+        <div class="step">
+          <div class="num">01</div>
+          <div class="name">AuthGuard</div>
+          <div class="note">Verifies Bearer token → sets <code class="inline">req.auth</code>. Never touches authz.</div>
+        </div>
+        <div class="sep">→</div>
+        <div class="step">
+          <div class="num">02</div>
+          <div class="name">AuthzGuard</div>
+          <div class="note">Resolves roles/permissions from DB behind <code class="inline">PermissionCache</code> → sets <code class="inline">req.authz</code>, <code class="inline">req.ability</code>.</div>
+        </div>
+        <div class="sep">→</div>
+        <div class="step">
+          <div class="num">03</div>
+          <div class="name">AbilityGuard</div>
+          <div class="note">Reads <code class="inline">@CheckAbility</code> metadata, enforces <code class="inline">req.ability</code>. Reads only, never resolves.</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="strengths">
+    <h2><span class="n">2</span>What's right (verified against source)</h2>
+    <div class="grid">
+
+      <div class="card good">
+        <h3>Deps-injection over interface abstraction</h3>
+        <span class="file">registry/core/session-policy.ts · registry/core/rbac.ts</span>
+        <pre><code><span class="kw">export function</span> <span class="fn">resolvePermissions</span>(rolePermissionKeys: string[], directPermissionKeys: string[]): string[] {
+  <span class="kw">return</span> [...<span class="kw">new</span> Set([...rolePermissionKeys, ...directPermissionKeys])].sort();
+}</code></pre>
+        <div class="why"><b>Why it matters:</b> a single unified <code class="inline">AuthStore</code> interface is what plan/brief.md's decision&nbsp;1 explicitly rejects as "the leaky lowest-common-denominator abstraction that made Lucia unmaintainable." Small purpose-scoped <code class="inline">*Deps</code> objects mean core has zero coupling to any combo and is testable with plain fakes — 56 unit tests with no framework bootstrapping.</div>
+      </div>
+
+      <div class="card good">
+        <h3>The boot-time route-tier check is non-vacuous</h3>
+        <span class="file">registry/combos/nestjs-prisma/test/prove-cycle.ts:74-90</span>
+        <pre><code><span class="comment">// Adds a route to a real controller that declares no tier marker, exactly as writing
+// `@Get("__tier-proof") untieredProofRoute() {}` in the source would.
+// This is what makes the "fails at startup" assertion non-vacuous: asserting that a
+// checker function throws when handed a synthetic class would prove only that the
+// function works; this proves the running application refuses to start.</span>
+<span class="kw">function</span> <span class="fn">addUntieredRoute</span>(): () =&gt; <span class="kw">void</span> { ... }</code></pre>
+        <div class="why"><b>Why it matters:</b> most "we test our guardrails" claims mock the guardrail. This mutates the real controller prototype and boots the real app — the harder, more honest test to write, and the one actually run.</div>
+      </div>
+
+      <div class="card good">
+        <h3>Permission cache: version-key invalidation, not TTL</h3>
+        <span class="file">registry/combos/nestjs-prisma/shared/src/permission-cache.ts</span>
+        <pre><code><span class="comment">// 1. Version-key invalidation, never eviction: a cache key embeds two generation
+//    counters, and bumping one makes every key built from the old value unreachable.
+// 2. Two counters: a subject counter per principal, a global policy counter.
+//    A single global counter would flush everyone on any one user's grant change.
+// 3. Negative results aren't cached — "not a member" is re-read every time.</span></code></pre>
+        <div class="why"><b>Why it matters:</b> the system's core promise is "a revocation lands on the caller's next request, not their next token." TTL-based caching breaks that promise for up to the TTL window; version-key invalidation doesn't. <code class="inline">stats</code> isn't decoration either — <code class="inline">prove-cycle</code> asserts N identical requests cause exactly one DB resolution.</div>
+      </div>
+
+      <div class="card good">
+        <h3>Workspace isolation has no existence oracle</h3>
+        <span class="file">registry/combos/nestjs-prisma/variants/workspaces/src/authz.guard.ts:32-34</span>
+        <pre><code><span class="comment">// Same answer for "no such workspace" and "not your workspace" — a caller outside
+// a workspace must not be able to probe whether it exists.</span>
+<span class="kw">if</span> (!authz) <span class="kw">throw new</span> ForbiddenException(<span class="str">"not a member of this workspace"</span>);</code></pre>
+        <div class="why"><b>Why it matters:</b> this is the detail most multi-tenant implementations get wrong under time pressure — a 404 vs 403 split leaks workspace IDs to enumeration. It's collapsed to one error deliberately, cache-keyed on <code class="inline">[userId, workspaceId]</code> so membership changes are effective immediately.</div>
+      </div>
+
+      <div class="card good">
+        <h3>No authorization in the JWT, applied consistently</h3>
+        <span class="file">registry/core/token-service.ts</span>
+        <p style="margin-top:10px">Access-token signing omits roles/permissions keys entirely when the caller passes neither — not empty arrays, absent. Every downstream guard resolves from the database. The cost (a read on every authorized request) is paid deliberately and mitigated by the cache above, not hidden.</p>
+      </div>
+
+    </div>
+  </section>
+
+  <section id="risks">
+    <h2><span class="n">3</span>What's wrong (also verified)</h2>
+    <div class="grid">
+
+      <div class="card bad">
+        <h3>Rate limiter doesn't get the cache's swap contract — and it's worse than it looks<span class="update-flag">refined</span></h3>
+        <span class="file">registry/combos/nestjs-prisma/{shared/src/rate-limit.store.ts, variants/{base,workspaces}/src/auth.service.ts}</span>
+        <pre><code><span class="comment">// rate-limit.store.ts — bare class, no DI symbol:</span>
+<span class="kw">export class</span> InMemoryRateLimitStore <span class="kw">implements</span> RateLimitDeps { ... }
+
+<span class="comment">// auth.service.ts — injects the CONCRETE CLASS directly, confirmed in base AND workspaces:</span>
+@Inject(InMemoryRateLimitStore) <span class="kw">private readonly</span> rateLimit: InMemoryRateLimitStore,</code></pre>
+        <div class="why"><b>Why it matters:</b> <code class="inline">PermissionCache</code>'s store sits behind a named DI symbol (<code class="inline">PERMISSION_CACHE_STORE</code>) built for exactly this swap. <code class="inline">InMemoryRateLimitStore</code> isn't just missing that symbol at the module level — <code class="inline">auth.service.ts</code> injects the concrete class directly, confirmed identically in both variants. A Redis swap can't be done by re-providing the module token alone; the injection site itself has to change. Same risk class as the permission cache, strictly worse fix ergonomics.</div>
+      </div>
+
+      <div class="card bad">
+        <h3>The one thing that fails open instead of closed</h3>
+        <span class="file">architectural gap — no single file</span>
+        <p style="margin-top:10px">Deploy 2+ instances with both stores still in-memory and nothing errors. You get inconsistent rate limits and stale permission grants across instances silently — not a crash, not a log line. Every other seam in this codebase (route tiers, ability checks, workspace membership) fails loudly and closed. This is the exception.</p>
+        <div class="why"><b>Why it matters:</b> the entire design philosophy elsewhere is "an ungated route can't ship silently." A horizontally-scaled deployment running on two stale in-memory caches is the operational equivalent of an ungated route, and nothing names it.</div>
+      </div>
+
+      <div class="card bad">
+        <h3>Nothing automatically enforces the one gate that matters<span class="update-flag">reworded — no CI</span></h3>
+        <span class="file">registry/combos/*/package.json (4 files, exact grep match) · repo-wide *.yml glob</span>
+        <pre><code>{ <span class="str">"test"</span>: <span class="str">"vitest run --passWithNoTests"</span> }  <span class="comment">// 0 *.test.ts files under registry/combos/**, confirmed in all 4</span></code></pre>
+        <div class="why"><b>Why it matters:</b> <code class="inline">prove-cycle</code> (145/191 assertions per variant) is the actual correctness gate for backend behavior, and it's rigorous — see above. But <code class="inline">pnpm -r test</code>, the obvious "run everything" command, silently passes on every combo with zero real assertions executed. By decision, the fix here is <b>not</b> a hosted CI runner — see <a href="#enforcement">Local Enforcement</a> below for the git-hook alternative that respects that constraint.</div>
+      </div>
+
+      <div class="card bad">
+        <h3>Client-side comments describe a backend that no longer exists — narrower than first reported<span class="update-flag">corrected count</span></h3>
+        <span class="file">apps/admin-nextjs/src/lib/ability.ts:22,31 · apps/admin-react/src/components/layout/RequireAuth.tsx:48</span>
+        <pre><code><span class="comment">/* ability.ts: ... which is what the server's PermissionGuard checks today ... */
+/* ability.ts: ... exactly the keys the server's `@RequirePermission` decorators demand ... */
+/* RequireAuth.tsx: The backend's `PermissionGuard` is the real boundary ... */</code></pre>
+        <div class="why"><b>Why it matters:</b> the real names, confirmed directly in <code class="inline">ability.guard.ts</code> / <code class="inline">route-tiers.ts</code>, are <code class="inline">AbilityGuard</code> and <code class="inline">@CheckAbility</code>. Left over from before the 2026-08-10 CASL migration. <b>Correction from the first pass of this review:</b> the client-side <code class="inline">RequirePermission</code> React component itself (used throughout every admin console's <code class="inline">App.tsx</code>/<code class="inline">app-sidebar.tsx</code>/<code class="inline">DashboardPage.tsx</code> — 8 more files) is correctly named and not a bug — it's a deliberate client-side mirror. Only the prose describing the <em>backend</em> is wrong, and it exists in exactly 2 source files (<code class="inline">ability.ts</code>, <code class="inline">RequireAuth.tsx</code>) × 2 admin apps (nextjs, react) × registry-source-plus-app-copy = 8 files total, not the vaguer "ability.ts × 4" first estimated.</div>
+      </div>
+
+      <div class="card bad">
+        <h3>Combos are hand-duplicated with no drift detector</h3>
+        <span class="file">registry/combos/{nestjs-prisma,nestjs-drizzle}/shared/src/ability.ts</span>
+        <p style="margin-top:10px">Confirmed directly: <code class="inline">nestjs-drizzle</code>'s <code class="inline">ability.ts</code> is functionally identical to <code class="inline">nestjs-prisma</code>'s but meaningfully differently worded — each combo is maintained by hand, not generated. The byte-identical rule (<code class="inline">registry/README.md</code>) only holds within one combo's two variants, never across the four combos.</p>
+        <div class="why"><b>Why it matters:</b> a fix to seam logic (say, a CASL edge case) must be manually ported to four codebases with nothing but <code class="inline">prove-cycle</code>'s assertion count — not its logic — catching drift. Assertion-count-honest is not the same as logic-identical-honest. The fix folds into the same local hook as the enforcement problem above — see next section.</div>
+      </div>
+
+    </div>
+  </section>
+
+  <section id="recs">
+    <h2><span class="n">4</span>Recommendations</h2>
+
+    <div class="rec">
+      <div class="head">
+        <h3>Enforce <code class="inline" style="background:none;border:none;color:inherit;padding:0">prove-cycle</code> locally — no CI<span class="badge p0" style="margin-left:10px">P0 · highest impact</span></h3>
+      </div>
+      <div class="meta-line"><span>Effort: <b>medium</b></span><span>Touches: <b>8 files</b> — see <a href="#enforcement">Local Enforcement</a> for two implementation options</span></div>
+      <div class="body">
+        <div class="rec-row"><div class="label">Why</div><div class="content">This is still the single highest-leverage fix — that didn't change when CI came off the table. The harness is already rigorous (non-vacuous boot-failure test, front/back CASL equivalence, cross-workspace isolation); it's wasted if nothing runs it before code leaves a machine.</div></div>
+        <div class="rec-row"><div class="label">How</div><div class="content">A <code class="inline">make prove-changed</code> target that diffs against <code class="inline">origin/main</code> and runs <code class="inline">npm run prove-cycle</code> (both variants) for every touched combo, wired to a <b>pre-push</b> git hook — not a hosted runner. Two ways to wire the hook, compared in <a href="#enforcement">Local Enforcement</a> below.</div></div>
+        <div class="rec-row"><div class="label">Also fix</div><div class="content">The decoy script: delete <code class="inline">"test": "vitest run --passWithNoTests"</code> from all 4 combo <code class="inline">package.json</code>s (confirmed present in all 4 by exact grep) so <code class="inline">pnpm -r test</code> stops implying coverage that isn't there.</div></div>
+      </div>
+    </div>
+
+    <div class="rec">
+      <div class="head">
+        <h3>Give the rate limiter the permission cache's swap contract<span class="badge p1" style="margin-left:10px">P1</span></h3>
+      </div>
+      <div class="meta-line"><span>Effort: <b>medium</b> <span class="update-flag" style="margin-left:6px">was "small"</span></span><span>Touches: <b>14 files</b> — two different mechanisms</span></div>
+      <div class="body">
+        <div class="rec-row"><div class="label">Why</div><div class="content">Same failure mode as the permission cache (process-local state, silently wrong once you scale past one instance) — and the fix is bigger than it first looked. Grepping <code class="inline">auth.service.ts</code> shows the two NestJS combos inject the <em>concrete class</em> directly, not just wire it through the module — the DI-token fix has to touch the injection site, not only the provider registration.</div></div>
+        <div class="rec-row"><div class="label">How — NestJS combos</div><div class="content"><code class="inline">nestjs-prisma</code> + <code class="inline">nestjs-drizzle</code>: add <code class="inline">RATE_LIMIT_STORE</code> symbol to <code class="inline">shared/src/rate-limit.store.ts</code> (2 files) → register it in <code class="inline">variants/{base,workspaces}/src/auth.module.ts</code> (4 files) → change <code class="inline">auth.service.ts</code>'s injection from the class token to the symbol (4 files). <b>10 files.</b></div></div>
+        <div class="rec-row"><div class="label">How — Express combos</div><div class="content"><code class="inline">express-prisma</code> + <code class="inline">express-drizzle</code> have no Nest DI — <code class="inline">create-auth-app.ts</code> does <code class="inline">new InMemoryRateLimitStore()</code> directly. Equivalent fix: accept an optional <code class="inline">options.rateLimitStore</code> override in <code class="inline">variants/{base,workspaces}/src/create-auth-app.ts</code>. <b>4 files.</b></div></div>
+        <div class="rec-row"><div class="label">Total</div><div class="content">10 (NestJS) + 4 (Express) = <b>14 files</b>. Reflects the real cost of "no shared runtime adapter" — every cross-combo fix is priced per combo, by design.</div></div>
+      </div>
+    </div>
+
+    <div class="rec">
+      <div class="head">
+        <h3>Make the horizontal-scale trap fail loud, not silent<span class="badge p1" style="margin-left:10px">P1</span></h3>
+      </div>
+      <div class="meta-line"><span>Effort: <b>small</b></span><span>Touches: <b>8 files</b> — same composition roots as Rec 2, do both in one pass</span></div>
+      <div class="body">
+        <div class="rec-row"><div class="label">Why</div><div class="content">This is the one seam in the codebase that fails open by omission, in a codebase whose entire ethos is "fail closed, name yourself." A silent multi-instance deployment on two stale in-memory caches contradicts that ethos more than any code bug would.</div></div>
+        <div class="rec-row"><div class="label">How</div><div class="content">Cheapest version: a one-line startup log warning in each of the 8 composition roots (<code class="inline">auth.module.ts</code> ×4, <code class="inline">create-auth-app.ts</code> ×4) when no explicit store override is given, naming both symbols and what breaks under replication. Since Rec 2 already touches these same 8 files, land both changes together.</div></div>
+      </div>
+    </div>
+
+    <div class="rec">
+      <div class="head">
+        <h3>Fix the stale backend-naming comments<span class="badge p2" style="margin-left:10px">P2 · quick win</span></h3>
+      </div>
+      <div class="meta-line"><span>Effort: <b>trivial</b></span><span>Touches: <b>4 hand-edited + 4 re-synced = 8 files</b> <span class="update-flag" style="margin-left:6px">recount</span></span></div>
+      <div class="body">
+        <div class="rec-row"><div class="label">Why</div><div class="content">Costs nothing to fix, costs real time to hit — a comment pointing at a class that no longer exists sends the next reader searching the backend for something renamed during the 2026-08-10 CASL migration.</div></div>
+        <div class="rec-row"><div class="label">How</div><div class="content">Hand-edit the 4 canonical registry sources: <code class="inline">registry/admin-apps/nextjs/variants/{base,workspaces}/src/lib/ability.ts</code> and <code class="inline">registry/admin-apps/react/variants/{base,workspaces}/src/components/layout/RequireAuth.tsx</code>, replacing "PermissionGuard"/"@RequirePermission" with "AbilityGuard"/"@CheckAbility". Re-sync the 4 <code class="inline">apps/admin-{nextjs,react}[-workspaces]</code> copies via <code class="inline">easy-auth add --force --into</code> — don't hand-edit those, they're consumer copies.</div></div>
+        <div class="rec-row"><div class="label">Don't touch</div><div class="content">The <code class="inline">RequirePermission</code> component itself, or its call sites in <code class="inline">App.tsx</code>/<code class="inline">app-sidebar.tsx</code>/<code class="inline">DashboardPage.tsx</code> (8 more files) — that name and code are correct.</div></div>
+      </div>
+    </div>
+
+    <div class="rec">
+      <div class="head">
+        <h3>Fix or remove the dead <code class="inline" style="background:none;border:none;color:inherit;padding:0">next lint</code> script<span class="badge p2" style="margin-left:10px">P2 · quick win</span></h3>
+      </div>
+      <div class="meta-line"><span>Effort: <b>trivial</b></span><span>Touches: <b>2 hand-edited (+2 re-synced) = 4 files</b>, or 3–4 registry files if made real</span></div>
+      <div class="body">
+        <div class="rec-row"><div class="label">Why</div><div class="content"><code class="inline">"lint": "next lint"</code> exists in exactly 4 files (2 registry source + 2 app copies, confirmed by grep) with no <code class="inline">eslint</code> dependency and no config anywhere in the app — it has never run successfully.</div></div>
+        <div class="rec-row"><div class="label">How</div><div class="content">Delete the script from the 2 canonical <code class="inline">registry/admin-apps/nextjs/variants/{base,workspaces}/package.json</code> files, re-sync the 2 <code class="inline">apps/admin-nextjs[-workspaces]</code> copies. Or make it real: add <code class="inline">eslint-config-next</code> + a minimal <code class="inline">eslint.config.mjs</code> to the same 2 registry directories — this is the only app in the repo with zero lint coverage on hand-written TSX.</div></div>
+      </div>
+    </div>
+
+  </section>
+
+  <section id="enforcement">
+    <h2><span class="n">5</span>Local Enforcement — no CI</h2>
+    <p>Both designs below run the same two checks — a fast structural drift check and the slow full <code class="inline">prove-cycle</code> proof — through git hooks instead of a hosted runner. <code class="inline">prove-cycle</code> needs a materialized, migrated, seeded variant against real Postgres, so it can only ever be a <b>pre-push</b> hook regardless of tooling; a structural drift check needs no database and can run at <b>pre-commit</b>, scoped to just the combo files you touched.</p>
+
+    <div class="options">
+      <div class="option recommended">
+        <span class="pick">Recommended</span>
+        <h4>Zero-dependency <code class="inline" style="background:none;border:none;color:inherit;padding:0">.githooks</code></h4>
+        <p style="margin:6px 0 0;font-size:13px">Native git hooks wired via <code class="inline">core.hooksPath</code>, no new dependency.</p>
+        <ul class="files">
+          <li><span class="op">edit</span><b>Makefile</b> — add <code class="inline">prove-changed</code> target</li>
+          <li><span class="op">new</span><b>.githooks/pre-push</b> — one line: <code class="inline">make prove-changed</code></li>
+          <li><span class="op">edit</span><b>package.json</b> (root) — <code class="inline">"prepare": "git config core.hooksPath .githooks"</code></li>
+          <li><span class="op">new</span><b>scripts/check-combo-drift.mjs</b> — structural check, invoked from the same target</li>
+        </ul>
+        <div class="cost"><b>4 files</b> · <b>0 new dependencies</b> · runs automatically on every <code class="inline">pnpm install</code></div>
+      </div>
+      <div class="option">
+        <h4>husky + lint-staged</h4>
+        <p style="margin:6px 0 0;font-size:13px">Conventional tooling; adds a pre-commit fast-path lint-staged gives for free.</p>
+        <ul class="files">
+          <li><span class="op">edit</span><b>package.json</b> (root) — devDeps + <code class="inline">"prepare": "husky"</code> + lint-staged config</li>
+          <li><span class="op">new</span><b>.husky/pre-commit</b> — <code class="inline">npx lint-staged</code></li>
+          <li><span class="op">new</span><b>.husky/pre-push</b> — <code class="inline">make prove-changed</code></li>
+          <li><span class="op">edit</span><b>Makefile</b> — same <code class="inline">prove-changed</code> target, reused</li>
+          <li><span class="op">new</span><b>scripts/check-combo-drift.mjs</b> — same script, now also wired to lint-staged</li>
+        </ul>
+        <div class="cost"><b>5 files</b> · <b>+2 dependencies</b> (husky, lint-staged, plus transitive tree) · pre-commit feedback on staged combo files before you even commit</div>
+      </div>
+    </div>
+
+    <div class="verdict-line">
+      <b>Call: zero-dependency <code class="inline" style="background:none;border:none;color:inherit;padding:0">.githooks</code></b>, unless the pre-commit-time drift feedback is specifically wanted. This repo carries <b>zero</b> project-wide lint/format tooling anywhere today (confirmed: no root eslint/prettier/biome config — every package handles its own toolchain independently, including the RN app, which is the only one with a real linter). Adding husky+lint-staged would be the first root-level dependency-based tooling layer in the whole repo, for a benefit — catching drift a few seconds earlier than push-time — that's marginal against that cost. Both wire the identical <code class="inline">make prove-changed</code> target either way, so nothing about the actual enforcement logic is lost by picking the cheaper option.
+    </div>
+
+    <div class="why" style="margin-top:18px">
+      <b>Honest limit of either option:</b> a pre-push hook only runs on a machine that has it configured (post <code class="inline">pnpm install</code>) and can be skipped with <code class="inline">git push --no-verify</code>. It catches "I forgot to run prove-cycle" — the common case — not a deliberate bypass. The same <code class="inline">make prove-changed</code> target both designs share is exactly what a CI workflow would call too, if that constraint is ever revisited; nothing here is thrown away by choosing local-only today.
+    </div>
+  </section>
+
+  <section id="matrix">
+    <h2><span class="n">6</span>Priority at a glance</h2>
+    <table class="matrix">
+      <tr><th>Priority</th><th>Item</th><th>Impact</th><th>Effort</th><th>Files</th></tr>
+      <tr>
+        <td><span class="badge p0">P0</span></td>
+        <td class="item">Local pre-push enforcement (prove-cycle + drift check)</td>
+        <td>Correctness gate goes from "trusted" to "enforced," no CI required</td>
+        <td>Medium</td>
+        <td class="files">4</td>
+      </tr>
+      <tr>
+        <td><span class="badge p1">P1</span></td>
+        <td class="item">Named DI token for rate-limit store</td>
+        <td>Closes the discoverability gap vs. the permission cache</td>
+        <td>Medium</td>
+        <td class="files">14</td>
+      </tr>
+      <tr>
+        <td><span class="badge p1">P1</span></td>
+        <td class="item">Loud failure on multi-instance + in-memory stores</td>
+        <td>Removes the only fail-open seam in the system</td>
+        <td>Small</td>
+        <td class="files">8<span style="color:var(--muted);font-family:var(--sans);font-weight:400"> (shared w/ above)</span></td>
+      </tr>
+      <tr>
+        <td><span class="badge p2">P2</span></td>
+        <td class="item">Fix stale PermissionGuard/@RequirePermission comments</td>
+        <td>Removes a misleading dead end for future readers</td>
+        <td>Trivial</td>
+        <td class="files">8</td>
+      </tr>
+      <tr>
+        <td><span class="badge p2">P2</span></td>
+        <td class="item">Fix or remove dead <code class="inline">next lint</code> script</td>
+        <td>Prerequisite for any future lint coverage on that app</td>
+        <td>Trivial</td>
+        <td class="files">4</td>
+      </tr>
+      <tr class="total">
+        <td colspan="2">All five, zero-dependency hook option, minimal fix on each</td>
+        <td>—</td>
+        <td>—</td>
+        <td class="files">~34<span style="color:var(--muted);font-family:var(--sans);font-weight:400"> distinct files (registry source ∪ new files, excludes CLI-re-synced consumer copies)</span></td>
+      </tr>
+    </table>
+  </section>
+
+</main>
+
+<footer>
+  Every claim above is grounded in a direct read of the file it cites — no assumption carried over from documentation without independent verification. This revision re-verified file counts by grep/glob rather than estimating from the first pass, and corrected two undercounts (rate-limit DI: 12→14; stale comments: narrowed scope, +1 file class discovered).
+  <div class="files">
+    registry/core/{session-policy,rbac,token-service,rate-limit}.ts<br>
+    registry/combos/nestjs-prisma/shared/src/{permission-cache,route-tiers,ability.guard,rate-limit.store}.ts<br>
+    registry/combos/nestjs-prisma/variants/{base,workspaces}/src/{authz.guard,auth.module,auth.service}.ts<br>
+    registry/combos/nestjs-prisma/test/prove-cycle.ts<br>
+    registry/combos/{nestjs-drizzle,express-prisma,express-drizzle}/package.json · rate-limit.store.ts · create-auth-app.ts<br>
+    apps/admin-{nextjs,react}[-workspaces]/{package.json, src/lib/ability.ts, src/components/layout/RequireAuth.tsx}<br>
+    registry/admin-apps/{nextjs,react}/variants/{base,workspaces}/{package.json, src/lib/ability.ts, src/components/layout/RequireAuth.tsx}<br>
+    cli/lib/copy.ts
+  </div>
+</footer>
+
+</body>
+</html>

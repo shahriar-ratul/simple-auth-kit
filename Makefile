@@ -1,4 +1,4 @@
-.PHONY: help install up up-build down down-v build logs ps restart portal typecheck test clean
+.PHONY: help install up up-build down down-v build logs ps restart portal typecheck test clean prove-changed prove-all
 
 help:
 	@echo "easy-auth make targets:"
@@ -14,6 +14,8 @@ help:
 	@echo "  make portal     - run the dev portal (http://localhost:8080)"
 	@echo "  make typecheck  - pnpm -r typecheck"
 	@echo "  make test       - pnpm -r test"
+	@echo "  make prove-changed - check-combo-drift + prove-cycle for combos changed vs origin/main (core changes = all 4)"
+	@echo "  make prove-all  - check-combo-drift + prove-cycle for all 4 combos, unconditionally"
 	@echo "  make clean      - docker compose down -v --remove-orphans"
 
 install:
@@ -50,6 +52,14 @@ typecheck:
 
 test:
 	pnpm -r test
+
+prove-changed:
+	node scripts/check-combo-drift.mjs
+	bash scripts/prove-changed.sh
+
+prove-all:
+	node scripts/check-combo-drift.mjs
+	for combo in nestjs-prisma nestjs-drizzle express-prisma express-drizzle; do (cd registry/combos/$$combo && npm run prove-cycle) || exit 1; done
 
 clean:
 	docker compose down -v --remove-orphans

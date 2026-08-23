@@ -8,6 +8,7 @@ import { PermissionRequired } from "@/components/permission-required";
 import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { DateTimePicker } from "@/components/ui/datetime-picker";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -21,8 +22,8 @@ export default function AuditLogPage() {
 
   const [userId, setUserId] = useState("");
   const [action, setAction] = useState("");
-  const [since, setSince] = useState("");
-  const [until, setUntil] = useState("");
+  const [since, setSince] = useState<Date | undefined>(undefined);
+  const [until, setUntil] = useState<Date | undefined>(undefined);
 
   const [entries, setEntries] = useState<AuditLogEntry[]>([]);
   const [meta, setMeta] = useState<PageMeta | undefined>(undefined);
@@ -37,8 +38,8 @@ export default function AuditLogPage() {
         const result = await authClient.listAuditLog({
           userId: userId || undefined,
           action: action || undefined,
-          since: since ? new Date(since).toISOString() : undefined,
-          until: until ? new Date(until).toISOString() : undefined,
+          since: since ? since.toISOString() : undefined,
+          until: until ? until.toISOString() : undefined,
           page,
         });
         setEntries(result.items);
@@ -86,12 +87,12 @@ export default function AuditLogPage() {
               <Input id="filterAction" value={action} onChange={(e) => setAction(e.target.value)} placeholder="role_assigned" />
             </div>
             <div className="flex flex-col gap-1.5">
-              <Label htmlFor="filterSince">Since</Label>
-              <Input id="filterSince" type="datetime-local" value={since} onChange={(e) => setSince(e.target.value)} />
+              <Label>Since</Label>
+              <DateTimePicker value={since} onChange={setSince} granularity="minute" placeholder="Since" />
             </div>
             <div className="flex flex-col gap-1.5">
-              <Label htmlFor="filterUntil">Until</Label>
-              <Input id="filterUntil" type="datetime-local" value={until} onChange={(e) => setUntil(e.target.value)} />
+              <Label>Until</Label>
+              <DateTimePicker value={until} onChange={setUntil} granularity="minute" placeholder="Until" />
             </div>
             <div className="col-span-2 flex items-end gap-2 sm:col-span-4">
               <Button type="submit" disabled={loading}>
@@ -104,8 +105,8 @@ export default function AuditLogPage() {
                 onClick={() => {
                   setUserId("");
                   setAction("");
-                  setSince("");
-                  setUntil("");
+                  setSince(undefined);
+                  setUntil(undefined);
                   void load(1);
                 }}
               >

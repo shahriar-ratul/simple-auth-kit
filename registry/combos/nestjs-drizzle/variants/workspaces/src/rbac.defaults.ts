@@ -144,11 +144,19 @@ export const DEFAULT_ROLES: readonly RoleSeed[] = [
     permissions: PERMISSION_SLUGS,
   },
   {
+    slug: "superadmin",
+    displayName: "Super Administrator",
+    description: "Carries every permission in the catalog.",
+    isDefault: false,
+    order: 1,
+    permissions: PERMISSION_SLUGS,
+  },
+  {
     slug: "member",
     displayName: "Member",
     description: "The default for a new membership. Carries no administrative permission.",
     isDefault: true,
-    order: 1,
+    order: 2,
     permissions: [],
   },
 ];
@@ -159,6 +167,9 @@ export const DEFAULT_ROLES: readonly RoleSeed[] = [
  * workspace: a slug with no `Role` row behind it resolves to zero permissions.
  */
 export const WORKSPACE_CREATOR_ROLES: string[] = ["admin", "member"];
+
+/** Role slugs given to the seeded super_admin's membership. `member` is included so they're also an ordinary member. */
+export const SEED_SUPERADMIN_ROLES: string[] = ["superadmin", "member"];
 
 /**
  * Anything that can write the catalog tables. Drizzle has no client class to name (see `db.ts`),

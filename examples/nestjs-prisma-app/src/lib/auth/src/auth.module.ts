@@ -20,7 +20,7 @@ import { LanguageRepository } from "./language.repository.js";
 import { OAuthRepository } from "./oauth.repository.js";
 import { PasswordResetRepository } from "./password-reset.repository.js";
 import { InMemoryPermissionCacheStore, PERMISSION_CACHE_STORE, PermissionCache } from "./permission-cache.js";
-import { InMemoryRateLimitStore } from "./rate-limit.store.js";
+import { InMemoryRateLimitStore, RATE_LIMIT_STORE } from "./rate-limit.store.js";
 import { RbacRepository } from "./rbac.repository.js";
 import { ResponseInterceptor } from "./response.interceptor.js";
 import { assertEveryRouteDeclaresATier } from "./route-tiers.js";
@@ -40,6 +40,15 @@ export class AuthModule {
 
     const resolved: AuthConfig = { ...defaultAuthConfig, ...config };
     const adapter = new PrismaPg({ connectionString: process.env["DATABASE_URL"] });
+
+    if (!config.permissionCacheStore || !config.rateLimitStore) {
+      console.warn(
+        "[easy-auth] permissionCacheStore/rateLimitStore not overridden — using in-memory defaults. " +
+          "Fine for a single instance; silently inconsistent (stale grants, wrong rate-limit counts) " +
+          "across replicas once you run more than one. Override permissionCacheStore/rateLimitStore " +
+          "with a shared store (e.g. Redis) in AuthModule.forRoot() before scaling out.",
+      );
+    }
     return {
       module: AuthModule,
       imports: resolved.throttle === false ? [] : [ThrottlerModule.forRoot(resolved.throttle)],
@@ -59,7 +68,7 @@ export class AuthModule {
         AuditLogGateway,
         SessionRepository,
         KeyProviderService,
-        InMemoryRateLimitStore,
+        { provide: RATE_LIMIT_STORE, useValue: config.rateLimitStore ?? new InMemoryRateLimitStore() },
         RbacRepository,
         TwoFactorRepository,
         OAuthRepository,

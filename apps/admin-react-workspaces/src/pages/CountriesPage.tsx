@@ -5,7 +5,7 @@ import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { observer } from "mobx-react-lite";
 import { useDebounce } from "use-debounce";
 import { format } from "date-fns";
-import { ChevronDownIcon, EyeIcon, PencilIcon, PlusIcon, Trash2Icon } from "lucide-react";
+import { ChevronDownIcon, EyeIcon, PencilIcon, PlusIcon, PowerIcon, Trash2Icon } from "lucide-react";
 import { AuthApiError, type CountrySummary } from "@easy-auth/auth-client";
 import { toast } from "sonner";
 import { PERMISSIONS, useAbility } from "@/lib/ability";
@@ -226,6 +226,20 @@ export const CountriesPage = observer(function CountriesPage() {
                   </Link>
                 </TooltipTrigger>
                 <TooltipContent>{canManage ? "Edit country" : `You need the "${PERMISSIONS.countriesManage}" permission to do this.`}</TooltipContent>
+              </Tooltip>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button size="icon" variant="outline" disabled={!canStatus} onClick={() => openStatusConfirm(country)}>
+                    <PowerIcon />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  {canStatus
+                    ? country.isActive
+                      ? "Deactivate this country"
+                      : "Activate this country"
+                    : `You need the "${PERMISSIONS.countriesStatus}" permission to do this.`}
+                </TooltipContent>
               </Tooltip>
               <Tooltip>
                 <TooltipTrigger asChild>

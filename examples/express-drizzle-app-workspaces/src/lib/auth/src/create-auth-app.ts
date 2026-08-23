@@ -2,6 +2,7 @@ import express, { Express } from "express";
 import swaggerUi from "swagger-ui-express";
 import { drizzle } from "drizzle-orm/node-postgres";
 import { Pool } from "pg";
+import type { RateLimitDeps } from "@/lib/auth/core/rate-limit.js";
 import { createAdminRouter } from "./admin.router.js";
 import { AuditLogRepository } from "./audit-log.repository.js";
 import { authCoreErrorMiddleware } from "./auth-core-error.middleware.js";
@@ -38,7 +39,9 @@ export function createAuthApp(config: Partial<AuthConfig> = {}): Express {
   const auditLog = new AuditLogRepository(db);
   const sessions = new SessionRepository(db, auditLog, resolvedConfig);
   const keys = new KeyProviderService();
-  const rateLimit = new InMemoryRateLimitStore();
+  // Swap the store for a Redis-backed one by passing `rateLimitStore` in `config` — nothing in
+  // this library's source changes.
+  const rateLimit: RateLimitDeps = resolvedConfig.rateLimitStore ?? new InMemoryRateLimitStore();
   // The cache seam. Swap the store for a Redis-backed one by passing `permissionCacheStore` in
   // `config` — nothing in this library's source changes. Keys are namespaced easyauth:authz:*.
   const permissionCache = new PermissionCache(resolvedConfig.permissionCacheStore ?? new InMemoryPermissionCacheStore(), resolvedConfig);
@@ -55,6 +58,15 @@ export function createAuthApp(config: Partial<AuthConfig> = {}): Express {
   // empty roles); `requireWorkspace` does not. See authz.middleware.ts.
   const requireAuthz = createAuthzMiddleware({ rbac, cache: permissionCache });
   const requireWorkspace = createWorkspaceMiddleware({ rbac, cache: permissionCache });
+
+  if (!resolvedConfig.permissionCacheStore || !resolvedConfig.rateLimitStore) {
+    console.warn(
+      "[easy-auth] permissionCacheStore/rateLimitStore not overridden — using in-memory defaults. " +
+        "Fine for a single instance; silently inconsistent (stale grants, wrong rate-limit counts) " +
+        "across replicas once you run more than one. Override permissionCacheStore/rateLimitStore " +
+        "in createAuthApp's config before scaling out.",
+    );
+  }
 
   const app = express();
   app.use(express.json());

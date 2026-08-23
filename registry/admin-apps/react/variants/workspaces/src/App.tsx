@@ -12,7 +12,9 @@ import { AddUserPage } from "@/pages/AddUserPage";
 import { UserDetailPage } from "@/pages/UserDetailPage";
 import { MembersPage } from "@/pages/MembersPage";
 import { RolesPage } from "@/pages/RolesPage";
+import { RoleDetailPage } from "@/pages/RoleDetailPage";
 import { PermissionsPage } from "@/pages/PermissionsPage";
+import { PermissionDetailPage } from "@/pages/PermissionDetailPage";
 import { AuditLogPage } from "@/pages/AuditLogPage";
 import { AccountPage } from "@/pages/AccountPage";
 import { CustomersPage } from "@/pages/CustomersPage";
@@ -66,9 +68,11 @@ export const App = observer(function App() {
               <Route path="/members" element={<MembersPage />} />
               <Route element={<RequirePermission anyOf={[PERMISSIONS.rolesManage, PERMISSIONS.rolesAssign, PERMISSIONS.permissionsGrant]} />}>
                 <Route path="/roles" element={<RolesPage />} />
+                <Route path="/roles/:id" element={<RoleDetailPage />} />
               </Route>
               <Route element={<RequirePermission anyOf={[PERMISSIONS.permissionsRead]} />}>
                 <Route path="/permissions" element={<PermissionsPage />} />
+                <Route path="/permissions/:id" element={<PermissionDetailPage />} />
               </Route>
               <Route element={<RequirePermission anyOf={[PERMISSIONS.auditLogRead]} />}>
                 <Route path="/audit-log" element={<AuditLogPage />} />

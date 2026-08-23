@@ -123,7 +123,7 @@ export default function EditRolePage() {
       <Breadcrumb
         items={[
           { title: "Roles & permissions", href: "/roles" },
-          { title: role?.name ?? "Details", href: `/roles/${id}/edit` },
+          { title: role?.name ?? "Details", href: `/roles/${id}` },
           { title: "Edit", href: `/roles/${id}/edit` },
         ]}
       />

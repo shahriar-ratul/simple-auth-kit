@@ -2,7 +2,10 @@
   "name": "easy-auth-cli",
   "private": true,
   "version": "0.0.0",
-  "description": "npx easy-auth add <combo> — copies registry source into a consumer repo. Not installed as a runtime dependency by anyone.",
+  "description": "easy-auth add <combo> — copies registry source into a consumer repo. Not installed as a runtime dependency by anyone. Run `npm link` once inside this directory to get a global `easy-auth` command (shadcn-CLI-style); or invoke directly with `npx tsx easy-auth.ts add <combo>`.",
+  "bin": {
+    "easy-auth": "./bin/easy-auth.mjs"
+  },
   "type": "module",
   "scripts": {
     "typecheck": "tsc --noEmit",

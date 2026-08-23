@@ -25,7 +25,7 @@ import { drizzle } from "drizzle-orm/node-postgres";
 import { Pool } from "pg";
 import { hashPassword } from "@/lib/auth/core/crypto.js";
 import type { Database } from "./db.js";
-import { DEFAULT_ROLES, PERMISSION_SLUGS, SEED_ADMIN_ROLES, provisionDefaultRoles } from "./rbac.defaults.js";
+import { DEFAULT_ROLES, PERMISSION_SLUGS, SEED_ADMIN_ROLES, SEED_SUPERADMIN_ROLES, provisionDefaultRoles } from "./rbac.defaults.js";
 import * as schema from "./schema.js";
 import { permissions, roleUser, roles, users } from "./schema.js";
 
@@ -82,6 +82,35 @@ async function seedAdminUser(db: Database): Promise<void> {
   console.log(`admin: holds roles ${adminRoles.map((r) => r.slug).join(", ")}`);
 }
 
+/** Same shape as seedAdminUser, for the seeded super_admin account — a distinct account holding the "superadmin" role. */
+async function seedSuperAdminUser(db: Database): Promise<void> {
+  const email = process.env["SEED_SUPERADMIN_EMAIL"];
+  const password = process.env["SEED_SUPERADMIN_PASSWORD"];
+  if (!email || !password) {
+    console.log("super admin: skipped — set SEED_SUPERADMIN_EMAIL and SEED_SUPERADMIN_PASSWORD to create one (there is no default password)");
+    return;
+  }
+  const username = process.env["SEED_SUPERADMIN_USERNAME"] || undefined;
+
+  // Their password may have been changed since; rewriting it here would silently reset it.
+  const [existing] = await db.select({ id: users.id }).from(users).where(eq(users.email, email)).limit(1);
+  // Hashed by the same function signup uses, so the seeded super admin can actually log in.
+  const user = existing ?? (await db.insert(users).values({ email, username, passwordHash: await hashPassword(password) }).returning({ id: users.id }))[0];
+  console.log(existing ? `super admin: ${email} already exists — password left unchanged` : `super admin: created ${email}${username ? ` (username ${username})` : ""}`);
+
+  const superAdminRoles = await db
+    .select({ id: roles.id, slug: roles.slug })
+    .from(roles)
+    .where(inArray(roles.slug, SEED_SUPERADMIN_ROLES));
+  if (superAdminRoles.length) {
+    await db
+      .insert(roleUser)
+      .values(superAdminRoles.map((role) => ({ userId: user.id, roleId: role.id })))
+      .onConflictDoNothing({ target: [roleUser.userId, roleUser.roleId] });
+  }
+  console.log(`super admin: holds roles ${superAdminRoles.map((r) => r.slug).join(", ")}`);
+}
+
 async function main(): Promise<void> {
   // Loads .env from the working directory if there is one. It never overrides a variable the
   // process was already given, so an explicit `SEED_ADMIN_PASSWORD=... npm run seed` still wins.
@@ -96,6 +125,7 @@ async function main(): Promise<void> {
     const db: Database = drizzle(pool, { schema });
     await seedRbacDefaults(db);
     await seedAdminUser(db);
+    await seedSuperAdminUser(db);
     console.log("seed complete.");
   } finally {
     await pool.end();

@@ -12,11 +12,13 @@ import {
   useReactTable,
 } from "@tanstack/react-table";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
-import { ArrowDownIcon, ArrowUpIcon, ChevronDownIcon, ChevronsUpDownIcon, PlusIcon } from "lucide-react";
+import { ArrowDownIcon, ArrowUpIcon, ChevronDownIcon, ChevronsUpDownIcon, EyeIcon, PlusIcon, PowerIcon } from "lucide-react";
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import { useDebounce } from "use-debounce";
 import { AuthApiError, type PermissionSummary } from "@easy-auth/auth-client";
+import { toast } from "sonner";
+import { AlertModal } from "@/components/alert-modal";
 import { Breadcrumb } from "@/components/breadcrumb";
 import { TableSkeletonLoader } from "@/components/loader/table-skeleton-loader";
 import { PermissionRequired } from "@/components/permission-required";
@@ -60,7 +62,11 @@ export default function PermissionsPage() {
   const [sorting, setSorting] = useState<SortingState>([]);
   const [pagination, setPagination] = useState<PaginationState>({ pageIndex: 0, pageSize: 20 });
 
-  const { data, isLoading, isError, error } = useQuery({
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [pendingPermission, setPendingPermission] = useState<PermissionSummary | null>(null);
+  const [pendingBusy, setPendingBusy] = useState(false);
+
+  const { data, isLoading, isError, error, refetch } = useQuery({
     queryKey: ["permissions-list"],
     queryFn: () => authClient.listPermissions(),
     enabled: canRead,
@@ -88,6 +94,27 @@ export default function PermissionsPage() {
     setSearch("");
     setStatus("");
     setPagination((p) => ({ ...p, pageIndex: 0 }));
+  }
+
+  function openStatusConfirm(permission: PermissionSummary) {
+    setPendingPermission(permission);
+    setConfirmOpen(true);
+  }
+
+  async function confirmPendingAction() {
+    if (!pendingPermission) return;
+    setPendingBusy(true);
+    try {
+      await authClient.definePermission({ slug: pendingPermission.slug, isActive: !pendingPermission.isActive });
+      toast.success(pendingPermission.isActive ? "Permission deactivated." : "Permission activated.");
+      setConfirmOpen(false);
+      setPendingPermission(null);
+      await refetch();
+    } catch (err) {
+      toast.error(err instanceof AuthApiError ? err.message : "Couldn't change this permission's status. Try again.");
+    } finally {
+      setPendingBusy(false);
+    }
   }
 
   const columns = useMemo<ColumnDef<PermissionSummary>[]>(
@@ -125,7 +152,15 @@ export default function PermissionsPage() {
         header: "Actions",
         enableSorting: false,
         cell: ({ row }) => (
-          <div className="flex justify-end">
+          <div className="flex justify-end items-center gap-1.5">
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Link href={`/permissions/${row.original.id}`} className={cn(buttonVariants({ variant: "outline", size: "icon" }))}>
+                  <EyeIcon />
+                </Link>
+              </TooltipTrigger>
+              <TooltipContent>View details</TooltipContent>
+            </Tooltip>
             <Tooltip>
               <TooltipTrigger asChild>
                 <Link
@@ -137,6 +172,20 @@ export default function PermissionsPage() {
                 </Link>
               </TooltipTrigger>
               <TooltipContent>{canDefine ? "Edit permission" : missingPermissionHint(PERMISSIONS.permissionsDefine)}</TooltipContent>
+            </Tooltip>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button size="icon" variant="outline" disabled={!canDefine} onClick={() => openStatusConfirm(row.original)}>
+                  <PowerIcon />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                {canDefine
+                  ? row.original.isActive
+                    ? "Deactivate this permission"
+                    : "Activate this permission"
+                  : missingPermissionHint(PERMISSIONS.permissionsDefine)}
+              </TooltipContent>
             </Tooltip>
           </div>
         ),
@@ -163,6 +212,18 @@ export default function PermissionsPage() {
   return (
     <div className="flex flex-col gap-4">
       <Breadcrumb items={[{ title: "Permissions", href: "/permissions" }]} />
+
+      <AlertModal
+        isOpen={confirmOpen}
+        onClose={() => setConfirmOpen(false)}
+        onConfirm={confirmPendingAction}
+        loading={pendingBusy}
+        description={
+          pendingPermission?.isActive
+            ? "This deactivates the permission — every ability that carries it stops granting immediately."
+            : "This reactivates the permission, effective immediately."
+        }
+      />
 
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">

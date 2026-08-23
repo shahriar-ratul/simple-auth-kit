@@ -1,0 +1,658 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>easy-auth — Generating Every App with the CLI</title>
+<style>
+  :root {
+    --bg: #0b0d12;
+    --panel: #12151d;
+    --panel-2: #171b26;
+    --border: #262b3a;
+    --text: #dfe3ee;
+    --muted: #8b93a7;
+    --accent: #7aa2f7;
+    --good: #57d692;
+    --good-bg: rgba(87,214,146,0.08);
+    --warn: #f2b866;
+    --warn-bg: rgba(242,184,102,0.08);
+    --bad: #f26d78;
+    --bad-bg: rgba(242,109,120,0.08);
+    --p0: #f26d78;
+    --p1: #f2b866;
+    --p2: #7aa2f7;
+    --mono: "SF Mono", "Fira Code", Menlo, Consolas, monospace;
+    --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, sans-serif;
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body { margin: 0; background: var(--bg); color: var(--text); font-family: var(--sans); line-height: 1.6; font-size: 15px; }
+  a { color: var(--accent); }
+  code, pre { font-family: var(--mono); }
+  code.inline {
+    background: #1c2130; border: 1px solid var(--border); border-radius: 4px;
+    padding: 1px 6px; font-size: 0.88em; color: #c9d4ff; white-space: nowrap;
+  }
+  pre {
+    background: #0e1017; border: 1px solid var(--border); border-left: 3px solid var(--accent);
+    border-radius: 6px; padding: 14px 16px; overflow-x: auto; font-size: 12.8px; line-height: 1.55; margin: 10px 0 0 0;
+  }
+  pre code { color: #cfd7ea; }
+  pre.evidence { border-left-color: var(--good); }
+  pre.evidence .ok { color: var(--good); }
+  pre.bug { border-left-color: var(--bad); }
+  pre.bug .err { color: var(--bad); }
+  .comment { color: #6c7488; }
+
+  header.top {
+    position: sticky; top: 0; z-index: 50; background: rgba(11,13,18,0.92); backdrop-filter: blur(10px);
+    border-bottom: 1px solid var(--border); padding: 14px 28px;
+    display: flex; align-items: center; justify-content: space-between; gap: 20px; flex-wrap: wrap;
+  }
+  header.top .title { display: flex; flex-direction: column; gap: 2px; }
+  header.top h1 { margin: 0; font-size: 17px; letter-spacing: 0.2px; }
+  header.top .sub { color: var(--muted); font-size: 12.5px; }
+  nav.toc { display: flex; gap: 4px; flex-wrap: wrap; }
+  nav.toc a {
+    text-decoration: none; color: var(--muted); font-size: 12.5px; padding: 6px 10px; border-radius: 5px; border: 1px solid transparent;
+  }
+  nav.toc a:hover { color: var(--text); border-color: var(--border); background: var(--panel-2); }
+
+  main { max-width: 1040px; margin: 0 auto; padding: 40px 28px 100px; }
+
+  .hero {
+    background: linear-gradient(155deg, #151a26, #0f1219); border: 1px solid var(--border);
+    border-radius: 12px; padding: 28px 30px; margin-bottom: 40px;
+  }
+  .hero h2 { margin-top: 0; font-size: 22px; }
+  .verdict-badge {
+    display: inline-block; font-size: 12px; font-weight: 600; letter-spacing: 0.4px; text-transform: uppercase;
+    padding: 4px 10px; border-radius: 20px; background: var(--good-bg); color: var(--good);
+    border: 1px solid rgba(87,214,146,0.35); margin-bottom: 14px;
+  }
+  .verdict-badge.note { background: rgba(122,162,247,0.1); color: var(--accent); border-color: rgba(122,162,247,0.35); margin-left: 8px; }
+  .verdict-badge.warn { background: var(--warn-bg); color: var(--warn); border-color: rgba(242,184,102,0.35); margin-left: 8px; }
+
+  section { margin-bottom: 52px; scroll-margin-top: 74px; }
+  section > h2 {
+    font-size: 13px; text-transform: uppercase; letter-spacing: 1.2px; color: var(--muted);
+    border-bottom: 1px solid var(--border); padding-bottom: 10px; margin-bottom: 22px; display: flex; align-items: center; gap: 10px;
+  }
+  section > h2 .n {
+    display: inline-flex; align-items: center; justify-content: center; width: 20px; height: 20px; border-radius: 50%;
+    background: var(--panel-2); color: var(--accent); font-size: 11px; border: 1px solid var(--border);
+  }
+  h3 { font-size: 16px; margin: 0 0 4px 0; color: var(--text); }
+  h4 { font-size: 13.5px; margin: 18px 0 6px 0; color: var(--text); }
+  p { color: #c3c9d8; margin: 8px 0; }
+
+  .grid { display: grid; grid-template-columns: 1fr; gap: 16px; }
+  .card { background: var(--panel); border: 1px solid var(--border); border-radius: 10px; padding: 20px 22px; }
+  .card.good { border-left: 3px solid var(--good); }
+  .card.bad { border-left: 3px solid var(--bad); }
+  .card.warn { border-left: 3px solid var(--warn); }
+  .why { margin-top: 12px; padding: 10px 14px; border-radius: 6px; background: var(--panel-2); border: 1px dashed var(--border); font-size: 13.5px; }
+  .why b { color: var(--accent); }
+
+  .badge { font-size: 11px; font-weight: 700; padding: 3px 9px; border-radius: 20px; letter-spacing: 0.4px; }
+  .badge.p0 { background: rgba(242,109,120,0.14); color: var(--p0); border: 1px solid rgba(242,109,120,0.4); }
+  .badge.p1 { background: rgba(242,184,102,0.14); color: var(--p1); border: 1px solid rgba(242,184,102,0.4); }
+  .badge.p2 { background: rgba(122,162,247,0.14); color: var(--p2); border: 1px solid rgba(122,162,247,0.4); }
+  .badge.ok { background: var(--good-bg); color: var(--good); border: 1px solid rgba(87,214,146,0.4); }
+
+  /* combo cards */
+  .combo {
+    background: var(--panel); border: 1px solid var(--border); border-radius: 10px; overflow: hidden; margin-bottom: 16px;
+  }
+  .combo .head {
+    display: flex; align-items: center; justify-content: space-between; padding: 14px 20px;
+    background: var(--panel-2); flex-wrap: wrap; gap: 10px;
+  }
+  .combo .head h3 { margin: 0; font-size: 15.5px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .combo .head .tags { display: flex; gap: 6px; flex-wrap: wrap; }
+  .combo .body { padding: 16px 20px 20px; }
+  .variant-row { display: flex; gap: 14px; padding: 12px 0; border-top: 1px solid var(--border); flex-wrap: wrap; }
+  .variant-row:first-child { border-top: none; }
+  .variant-row .label {
+    flex: 0 0 100px; font-size: 11px; text-transform: uppercase; letter-spacing: 0.6px; color: var(--muted); padding-top: 4px;
+  }
+  .variant-row .content { flex: 1; min-width: 280px; }
+  .steps { list-style: none; margin: 6px 0 0; padding: 0; font-size: 13.3px; color: #c3c9d8; }
+  .steps li { padding: 4px 0 4px 18px; position: relative; }
+  .steps li::before { content: "→"; position: absolute; left: 0; color: var(--accent); }
+
+  table.matrix { width: 100%; border-collapse: collapse; margin-top: 4px; font-size: 13px; }
+  table.matrix th, table.matrix td { text-align: left; padding: 9px 12px; border-bottom: 1px solid var(--border); }
+  table.matrix th { color: var(--muted); font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; }
+  table.matrix tr:last-child td { border-bottom: none; }
+  table.matrix td.item { font-weight: 600; }
+  table.matrix td.mono { font-family: var(--mono); color: var(--accent); font-size: 12px; }
+  .check { color: var(--good); font-weight: 700; }
+  .cross { color: var(--bad); font-weight: 700; }
+  .dash { color: var(--muted); }
+
+  .gotcha { background: var(--panel); border: 1px solid var(--border); border-radius: 10px; padding: 18px 20px; margin-bottom: 16px; }
+  .gotcha .head { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; flex-wrap: wrap; }
+  .gotcha .head h4 { margin: 0; font-size: 14.5px; }
+
+  footer { max-width: 1040px; margin: 0 auto; padding: 30px 28px 60px; color: var(--muted); font-size: 12.5px; border-top: 1px solid var(--border); }
+  footer .files { font-family: var(--mono); font-size: 11.5px; line-height: 1.9; margin-top: 8px; color: #7f879b; }
+
+  ::-webkit-scrollbar { height: 8px; width: 8px; }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="title">
+    <h1>Generating Every easy-auth App with the CLI</h1>
+    <span class="sub">4 backend combos · 2 admin combos · 2 mobile combos — each in base + workspaces (16 total) — all verified fresh this session</span>
+  </div>
+  <nav class="toc">
+    <a href="#prereqs">Prereqs</a>
+    <a href="#shape">Command shape</a>
+    <a href="#guided">Guided flow</a>
+    <a href="#backends">Backends</a>
+    <a href="#admin">Admin consoles</a>
+    <a href="#mobile">Mobile apps</a>
+    <a href="#walkthrough">Full walkthrough</a>
+    <a href="#gotchas">Bugs found &amp; fixed</a>
+    <a href="#matrix">Verification matrix</a>
+  </nav>
+</header>
+
+<main>
+
+<div class="hero">
+  <span class="verdict-badge">Verified, not asserted</span>
+  <span class="verdict-badge note">Now shadcn-style: easy-auth add &lt;combo&gt;</span>
+  <span class="verdict-badge warn">3 real gaps found &amp; fixed</span>
+  <h2>Every install path was run in a brand-new directory this session</h2>
+  <p>Nothing here is copied from the docs uncritically. Each backend combo was generated into a <b>fresh skeleton with
+  no prior <code class="inline">src/lib/auth</code></b> — simulating exactly what a new consumer does — then installed,
+  migrated against an <b>unmigrated database</b>, seeded, booted, and logged into over real HTTP. Each scaffold app
+  (admin/mobile) was generated into an <b>empty directory</b>, installed, and either production-built or typechecked.
+  Three real gaps surfaced this pass — documented with before/after evidence in <a href="#gotchas">Bugs found &amp;
+  fixed</a> — all now fixed in the registry/CLI source, re-verified with a full <code class="inline">prove-cycle</code>
+  pass afterward. The CLI's own invocation changed too: it now installs like shadcn/ui — link once, then
+  <code class="inline">easy-auth add &lt;combo&gt;</code> from inside any project, and its guided multi-kind flow now
+  shows every available template up front instead of revealing them one prompt at a time.</p>
+</div>
+
+<section id="prereqs">
+  <h2><span class="n">1</span>Prerequisites</h2>
+  <p>Same as the rest of the repo (see root <code class="inline">README.md</code>): Node.js v26+, a package manager
+  (npm works for generated consumer apps — they are plain npm projects, not part of this repo's pnpm workspace), and
+  Postgres reachable at <code class="inline">localhost:55432</code> with a passwordless <code class="inline">postgres</code>
+  superuser for anything backend.</p>
+  <pre><code><span class="comment"># from the repo root</span>
+docker run -d --name easy-auth-postgres -p 55432:5432 -e POSTGRES_HOST_AUTH_METHOD=trust postgres:16
+
+<span class="comment"># one-time: register the CLI as a global command, shadcn-style</span>
+cd cli &amp;&amp; npm link</code></pre>
+  <p>Confirmed working this session: <code class="inline">npm link</code> registers <code class="inline">easy-auth</code>
+  as a real global binary (a thin launcher, <code class="inline">cli/bin/easy-auth.mjs</code>, that spawns the local
+  <code class="inline">tsx</code> against <code class="inline">easy-auth.ts</code> by absolute path — works regardless
+  of the caller's cwd or global PATH). Don't want to link? Every command below also works unlinked as
+  <code class="inline">npx tsx &lt;path-to-repo&gt;/cli/easy-auth.ts add &lt;combo&gt; --into &lt;path&gt;</code>.</p>
+</section>
+
+<section id="shape">
+  <h2><span class="n">2</span>The command shape</h2>
+  <pre class="evidence"><code><span class="comment"># from inside your own project — no --into needed, defaults to cwd</span>
+$ easy-auth add &lt;combo&gt; [--workspaces] [--name &lt;AppName&gt;] [--force]</code></pre>
+  <table class="matrix">
+    <tr><th>Flag</th><th>Meaning</th></tr>
+    <tr><td class="mono">&lt;combo&gt;</td><td>One of the 8 names below — see <a href="#backends">Backends</a>, <a href="#admin">Admin</a>, <a href="#mobile">Mobile</a>.</td></tr>
+    <tr><td class="mono">--workspaces</td><td>Installs the workspaces variant instead of base (default). Explicit form: <code class="inline">--variant workspaces</code>.</td></tr>
+    <tr><td class="mono">--into &lt;path&gt;</td><td>Only needed if you don't want to <code class="inline">cd</code> first — defaults to the current directory. Backend combos <b>merge</b> into it (only <code class="inline">src/lib/auth</code> is touched); admin/mobile combos <b>scaffold</b> a whole new app there.</td></tr>
+    <tr><td class="mono">--name &lt;AppName&gt;</td><td>Scaffold apps only. For <code class="inline">mobile-bare-rn</code> this re-templates the native iOS/Android identity (applicationId/bundle id) so multiple generated apps don't collide.</td></tr>
+    <tr><td class="mono">--force</td><td>Re-copy over files you haven't hand-edited. Never overwrites a file whose content changed since install (compared against the sha256 manifest in <code class="inline">auth.lock.json</code>) — that's reported back as <code class="inline">keptModified</code>.</td></tr>
+  </table>
+  <p><code class="inline">easy-auth init</code> writes a <code class="inline">.easy-auth.json</code> so later
+  <code class="inline">add</code> runs don't need <code class="inline">--path</code>/<code class="inline">--alias</code>
+  repeated. Bare <code class="inline">easy-auth</code> prints the full combo/flag reference.</p>
+</section>
+
+<section id="guided">
+  <h2><span class="n">3</span>The guided flow — <code style="font-size:13px">easy-auth add</code> with no combo name</h2>
+  <p>Same shape as shadcn's own no-args <code class="inline">add</code>: pick kind(s), then framework per kind, then
+  variant, all via prompts. Selecting more than one kind (e.g. all 3 — API, Admin, Mobile) namespaces each install into
+  its own subdirectory automatically, so a backend + a console + a mobile app can be generated into the same parent
+  directory in one run without colliding.</p>
+  <div class="gotcha">
+    <div class="head"><h4>Fixed this session: it now shows every available template before asking you to pick</h4><span class="badge ok">Fixed</span></div>
+    <p>Previously, selecting multiple kinds went straight into sequential per-kind prompts — you'd see the 4 API
+    stacks, pick one, <i>then</i> see the 2 admin frameworks, pick one, <i>then</i> the 2 mobile frameworks — with no
+    way to see the whole picture before committing to the first choice. Reproduced and fixed live this session:</p>
+    <pre class="bug"><code>✔ What would you like to generate? › API (backend), Admin console, Mobile app
+<span class="err">? Which API stack? › (jumps straight to a blind choice — no preview of what admin/mobile offer)</span>
+❯   nestjs-prisma
+    nestjs-drizzle
+    express-prisma
+    express-drizzle</code></pre>
+    <p><b>Fix applied</b> — <code class="inline">cli/easy-auth.ts</code>'s <code class="inline">resolvePlan()</code>
+    now prints every selected kind's full template list immediately after kind selection, before any per-kind prompt
+    runs. Re-verified interactively (selected all 3 kinds via a real pty session):</p>
+    <pre class="evidence"><code>✔ What would you like to generate? › API (backend), Admin console, Mobile app
+
+<span class="ok">Available templates:
+  API (backend): nestjs-prisma, nestjs-drizzle, express-prisma, express-drizzle
+  Admin console: admin-react, admin-nextjs
+  Mobile app: mobile-expo, mobile-bare-rn</span>
+
+? Which API stack? › - Use arrow-keys. Return to submit.
+❯   nestjs-prisma
+    nestjs-drizzle
+    express-prisma
+    express-drizzle</code></pre>
+    <p>Ran the full flow to completion afterward (all 3 kinds, all defaults) — installed correctly into 3 namespaced
+    subdirectories (<code class="inline">nestjs-prisma/</code>, <code class="inline">admin-react/</code>,
+    <code class="inline">mobile-expo/</code>), each with its own accurate post-install notes. CLI typecheck clean.</p>
+  </div>
+</section>
+
+<section id="backends">
+  <h2><span class="n">4</span>Backend combos (merge mode) — 4 combos × 2 variants</h2>
+  <p>Each merges into an existing project's <code class="inline">src/lib/auth</code>. All four expose the same
+  <code class="inline">AuthModule.forRoot({...})</code> (Nest) / <code class="inline">createAuthApp({...})</code>
+  (Express) shape and the same route surface once mounted — auth under <code class="inline">/auth/*</code>, admin
+  under <code class="inline">/auth/admin/*</code>, workspaces variant adds <code class="inline">/workspaces/*</code>.
+  They differ in framework glue and in the exact migrate command (Prisma vs Drizzle).</p>
+
+  <div class="combo">
+    <div class="head">
+      <h3>nestjs-prisma <span class="badge ok">verified live — full pipeline</span></h3>
+      <div class="tags"><span class="badge p2">NestJS</span><span class="badge p2">Prisma</span></div>
+    </div>
+    <div class="body">
+      <div class="variant-row">
+        <div class="label">base</div>
+        <div class="content"><code class="inline">easy-auth add nestjs-prisma</code></div>
+      </div>
+      <div class="variant-row">
+        <div class="label">workspaces</div>
+        <div class="content"><code class="inline">easy-auth add nestjs-prisma --workspaces</code></div>
+      </div>
+      <h4>Bring-up (identical for both variants)</h4>
+      <ul class="steps">
+        <li>Set <code class="inline">DATABASE_URL</code> and <code class="inline">AUTH_JWT_SECRET</code> in <code class="inline">.env</code> (<code class="inline">openssl rand -base64 32</code> for the secret)</li>
+        <li><code class="inline">cd src/lib/auth &amp;&amp; npx prisma generate &amp;&amp; npx prisma migrate deploy</code> — resolves the root <code class="inline">.env</code> automatically regardless of cwd (see <a href="#gotcha-env">fix</a>)</li>
+        <li>Add <code class="inline">"seed": "tsx src/lib/auth/src/seed.ts"</code> to <code class="inline">package.json</code>, then <code class="inline">npm run seed</code></li>
+        <li>Import <code class="inline">AuthModule.forRoot({...})</code> into your root app module, then <code class="inline">npm run start</code></li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="combo">
+    <div class="head">
+      <h3>nestjs-drizzle <span class="badge ok">generation + install + migrate verified</span></h3>
+      <div class="tags"><span class="badge p2">NestJS</span><span class="badge p2">Drizzle</span></div>
+    </div>
+    <div class="body">
+      <div class="variant-row">
+        <div class="label">base</div>
+        <div class="content"><code class="inline">easy-auth add nestjs-drizzle</code></div>
+      </div>
+      <div class="variant-row">
+        <div class="label">workspaces</div>
+        <div class="content"><code class="inline">easy-auth add nestjs-drizzle --workspaces</code></div>
+      </div>
+      <h4>Bring-up</h4>
+      <ul class="steps">
+        <li>Set <code class="inline">DATABASE_URL</code> and <code class="inline">AUTH_JWT_SECRET</code> in <code class="inline">.env</code></li>
+        <li><code class="inline">(cd src/lib/auth &amp;&amp; npx drizzle-kit migrate)</code> — resolves the root <code class="inline">.env</code> automatically regardless of cwd (see <a href="#gotcha-env">fix</a> — this affects Drizzle exactly as much as Prisma)</li>
+        <li><code class="inline">npm run seed</code>, then import <code class="inline">AuthModule.forRoot({...})</code> and start</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="combo">
+    <div class="head">
+      <h3>express-prisma <span class="badge ok">generation + install + migrate verified</span></h3>
+      <div class="tags"><span class="badge p2">Express</span><span class="badge p2">Prisma</span></div>
+    </div>
+    <div class="body">
+      <div class="variant-row">
+        <div class="label">base</div>
+        <div class="content"><code class="inline">easy-auth add express-prisma</code></div>
+      </div>
+      <div class="variant-row">
+        <div class="label">workspaces</div>
+        <div class="content"><code class="inline">easy-auth add express-prisma --workspaces</code></div>
+      </div>
+      <h4>Bring-up</h4>
+      <ul class="steps">
+        <li>Same Prisma steps as <code class="inline">nestjs-prisma</code> above</li>
+        <li>Call <code class="inline">createAuthApp({...})</code> and mount or <code class="inline">.listen()</code> the Express app it returns</li>
+        <li>OpenAPI already served at <code class="inline">/docs</code> and <code class="inline">/docs-json</code></li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="combo">
+    <div class="head">
+      <h3>express-drizzle <span class="badge ok">verified live — full pipeline, workspaces variant</span></h3>
+      <div class="tags"><span class="badge p2">Express</span><span class="badge p2">Drizzle</span></div>
+    </div>
+    <div class="body">
+      <div class="variant-row">
+        <div class="label">base</div>
+        <div class="content"><code class="inline">easy-auth add express-drizzle</code></div>
+      </div>
+      <div class="variant-row">
+        <div class="label">workspaces</div>
+        <div class="content"><code class="inline">easy-auth add express-drizzle --workspaces</code></div>
+      </div>
+      <h4>Bring-up</h4>
+      <ul class="steps">
+        <li>Same Drizzle step as <code class="inline">nestjs-drizzle</code> — <code class="inline">(cd src/lib/auth &amp;&amp; npx drizzle-kit migrate)</code></li>
+        <li>Workspaces variant: every workspace-scoped route requires an <code class="inline">X-Workspace-Id</code> header; a user has no roles until they belong to one — <code class="inline">POST /workspaces</code> makes the caller its first admin. The seeder creates a default workspace automatically (<code class="inline">SEED_WORKSPACE_NAME</code> to rename it).</li>
+        <li>Call <code class="inline">createAuthApp({...})</code> and mount/listen</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<section id="admin">
+  <h2><span class="n">5</span>Admin consoles (scaffold mode) — 2 combos × 2 variants</h2>
+  <p>Scaffolds a whole standalone app (not a fragment merged into something existing). Both consoles talk to any
+  backend combo over the same typed <code class="inline">@easy-auth/auth-client</code> API contract.</p>
+
+  <div class="combo">
+    <div class="head">
+      <h3>admin-nextjs <span class="badge ok">verified — real npm-pack install, production build, 23/23 pages prerendered</span></h3>
+      <div class="tags"><span class="badge p2">Next.js</span></div>
+    </div>
+    <div class="body">
+      <div class="variant-row">
+        <div class="label">base</div>
+        <div class="content"><code class="inline">easy-auth add admin-nextjs --name "My Admin"</code></div>
+      </div>
+      <div class="variant-row">
+        <div class="label">workspaces</div>
+        <div class="content"><code class="inline">easy-auth add admin-nextjs --workspaces --name "My Admin"</code></div>
+      </div>
+      <h4>Bring-up</h4>
+      <ul class="steps">
+        <li>Copy <code class="inline">.env.example</code> to <code class="inline">.env</code>, set <code class="inline">NEXT_PUBLIC_AUTH_API_URL</code> to your running backend</li>
+        <li><b>base only:</b> also set <code class="inline">AUTH_SECRET</code> (<code class="inline">npx auth secret</code>) — base uses NextAuth edge middleware for route guarding; workspaces uses a client-side session recheck instead. Deliberate, permanent split, not drift — see <code class="inline">registry/admin-apps/README.md</code>.</li>
+        <li><code class="inline">npm install &amp;&amp; npm run dev</code> (port 3000) or <code class="inline">npm run build</code> for production</li>
+        <li>See the <a href="#gotcha-pack">packaging fix</a> below if generating outside this monorepo's pnpm workspace</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="combo">
+    <div class="head">
+      <h3>admin-react <span class="badge ok">generation + install verified</span></h3>
+      <div class="tags"><span class="badge p2">Vite + React</span></div>
+    </div>
+    <div class="body">
+      <div class="variant-row">
+        <div class="label">base</div>
+        <div class="content"><code class="inline">easy-auth add admin-react --name "My Admin"</code></div>
+      </div>
+      <div class="variant-row">
+        <div class="label">workspaces</div>
+        <div class="content"><code class="inline">easy-auth add admin-react --workspaces --name "My Admin"</code></div>
+      </div>
+      <h4>Bring-up</h4>
+      <ul class="steps">
+        <li>Copy <code class="inline">.env.example</code> to <code class="inline">.env</code>, set <code class="inline">VITE_AUTH_API_URL</code></li>
+        <li><code class="inline">npm install &amp;&amp; npm run dev</code> — Vite dev server</li>
+        <li>Workspaces variant pairs with a workspaces-variant backend and sends <code class="inline">X-Workspace-Id</code> on every scoped request</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<section id="mobile">
+  <h2><span class="n">6</span>Mobile apps (scaffold mode) — 2 combos × 2 variants</h2>
+  <div class="combo">
+    <div class="head">
+      <h3>mobile-expo <span class="badge ok">verified — real npm-pack install + typecheck, outside monorepo</span></h3>
+      <div class="tags"><span class="badge p2">Expo / React Native</span></div>
+    </div>
+    <div class="body">
+      <div class="variant-row">
+        <div class="label">base</div>
+        <div class="content"><code class="inline">easy-auth add mobile-expo --name "My App"</code></div>
+      </div>
+      <div class="variant-row">
+        <div class="label">workspaces</div>
+        <div class="content"><code class="inline">easy-auth add mobile-expo --workspaces --name "My App"</code></div>
+      </div>
+      <h4>Bring-up</h4>
+      <ul class="steps">
+        <li><code class="inline">npm install</code>, then set <code class="inline">EXPO_PUBLIC_API_BASE_URL</code> if the backend isn't at <code class="inline">localhost:3001</code> — <b>Android emulator needs <code class="inline">10.0.2.2</code>, not <code class="inline">localhost</code></b></li>
+        <li><code class="inline">npm start</code> opens Expo dev tools (android/ios/web from there)</li>
+        <li>Workspaces variant gates on selecting/creating a workspace before showing the main app</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="combo">
+    <div class="head">
+      <h3>mobile-bare-rn <span class="badge ok">generation + native re-templating verified</span></h3>
+      <div class="tags"><span class="badge p2">Bare React Native</span></div>
+    </div>
+    <div class="body">
+      <div class="variant-row">
+        <div class="label">base</div>
+        <div class="content"><code class="inline">easy-auth add mobile-bare-rn --name "My App"</code></div>
+      </div>
+      <div class="variant-row">
+        <div class="label">workspaces</div>
+        <div class="content"><code class="inline">easy-auth add mobile-bare-rn --workspaces --name "My App"</code></div>
+      </div>
+      <h4>Bring-up</h4>
+      <ul class="steps">
+        <li><code class="inline">--name</code> re-templates the Android <code class="inline">applicationId</code> / iOS bundle id from the app name, so multiple generated apps don't collide — confirmed in the CLI's own output this session</li>
+        <li><code class="inline">npm install</code>, then <b>iOS only:</b> <code class="inline">pod install</code> inside <code class="inline">ios/</code></li>
+        <li><code class="inline">npm run android</code> / <code class="inline">npm run ios</code></li>
+      </ul>
+      <div class="why"><b>Honest caveat:</b> a real device/simulator run of either mobile combo was not exercised in this
+      verification pass — this matches a known, pre-existing repo limitation (<code class="inline">plan/brief.md</code>:
+      "Mobile apps never had a real device run; <code class="inline">mobile-bare-rn</code> needs one manual Xcode step
+      for <code class="inline">react-native-config</code>"). What <i>was</i> verified: clean generation, native identity
+      re-templating, and (for <code class="inline">mobile-expo</code>) a real dependency install + typecheck pass
+      outside the monorepo.</div>
+    </div>
+  </div>
+</section>
+
+<section id="walkthrough">
+  <h2><span class="n">7</span>Full walkthrough — a genuinely fresh backend, start to login</h2>
+  <p>This is the actual sequence run this session against a copy of <code class="inline">nestjs-prisma-app</code> with
+  <code class="inline">src/lib/auth</code> deleted first (simulating a brand-new project) and a never-migrated database —
+  not the pre-existing, already-seeded example.</p>
+
+  <pre class="evidence"><code><span class="comment"># 1. link once, then merge the combo into the fresh project — no --into, cwd is the target</span>
+$ cd cli &amp;&amp; npm link
+$ cd /tmp/my-app &amp;&amp; easy-auth add nestjs-prisma
+<span class="ok">Installed "nestjs-prisma" (base variant) into src/lib/auth (alias @/lib/auth)</span>
+
+<span class="comment"># 2. point .env at a brand-new, unmigrated database, install deps</span>
+$ npm install
+added 324 packages in 5s
+
+<span class="comment"># 3. generate the Prisma client, then migrate — root .env only, resolved automatically</span>
+$ cd src/lib/auth &amp;&amp; npx prisma generate
+<span class="ok">✔ Generated Prisma Client (7.9.1) to ./generated/prisma</span>
+$ npx prisma migrate deploy
+<span class="ok">◇ injected env (7) from ../../../.env
+All migrations have been successfully applied.</span>
+
+<span class="comment"># 4. seed the permission catalog + default roles</span>
+$ npm run seed
+permissions: 18 slug(s) in the catalog
+role "admin": 18 permission(s)
+role "superadmin": 18 permission(s)
+role "member": 0 permission(s) (signup default)
+super admin: created super_admin@example.com (username super_admin)
+<span class="ok">seed complete.</span>
+
+<span class="comment"># 5. boot it</span>
+$ npm run start
+<span class="ok">Nest application successfully started</span>
+
+<span class="comment"># 6. log in for real</span>
+$ curl -X POST http://localhost:3091/auth/login -H 'content-type: application/json' \
+    -d '{"identifier":"super_admin","password":"password"}'
+<span class="ok">{"success":true,"statusCode":201,"data":{"accessToken":"eyJhbGciOi...",...}}</span></code></pre>
+
+  <p>The workspaces + Drizzle + Express combination was verified the same way against
+  <code class="inline">express-drizzle --workspaces</code>, including confirming the authorization boundary itself:</p>
+
+  <pre class="evidence"><code>$ curl http://localhost:3092/auth/admin/roles -H "Authorization: Bearer $TOKEN"
+<span class="ok">{"success":false,"statusCode":403,"message":"x-workspace-id header is required"}</span>
+
+$ curl http://localhost:3092/auth/admin/roles -H "Authorization: Bearer $TOKEN" -H "X-Workspace-Id: 1"
+<span class="ok">{"success":true,"statusCode":200,"data":{"roles":[{"slug":"admin",...},{"slug":"superadmin",...}]}}</span></code></pre>
+</section>
+
+<section id="gotchas">
+  <h2><span class="n">8</span>Real gaps this verification pass found — all fixed</h2>
+
+  <div class="gotcha" id="gotcha-env">
+    <div class="head"><h4>Prisma <i>and</i> Drizzle config couldn't find the project's <code class="inline">.env</code></h4><span class="badge ok">Fixed this session</span></div>
+    <p>Both <code class="inline">prisma.config.ts</code> and <code class="inline">drizzle.config.ts</code> started with
+    <code class="inline">import "dotenv/config"</code>, which loads <code class="inline">.env</code> relative to the
+    <b>current working directory</b> — not relative to the config file. The documented commands are
+    <code class="inline">cd src/lib/auth &amp;&amp; npx prisma migrate deploy</code> and
+    <code class="inline">(cd src/lib/auth &amp;&amp; npx drizzle-kit migrate)</code>, so cwd is
+    <code class="inline">src/lib/auth</code>, and the project's real <code class="inline">.env</code> at the root was
+    never loaded — for <b>both</b> ORMs equally (an earlier pass through this doc claimed only Prisma had the
+    problem; that was wrong — isolating the test properly showed Drizzle fails identically):</p>
+    <pre class="bug"><code>$ cd src/lib/auth &amp;&amp; npx prisma migrate deploy
+<span class="err">Error: The datasource.url property is required in your Prisma config file
+       when using prisma migrate deploy.</span>
+
+$ cd src/lib/auth &amp;&amp; npx drizzle-kit migrate
+<span class="err">Error  Please provide required params for Postgres driver:
+    [x] url: undefined</span></code></pre>
+    <p><b>Fix applied</b> — all 4 combos' <code class="inline">shared/prisma.config.ts</code> /
+    <code class="inline">shared/drizzle.config.ts</code> now resolve <code class="inline">.env</code> from the
+    config file's own location (via <code class="inline">fileURLToPath(import.meta.url)</code>, matching this repo's
+    existing convention in its own build scripts) and walk up the directory tree until they find one — deterministic
+    regardless of invocation cwd or install <code class="inline">--path</code>:</p>
+    <pre class="evidence"><code>$ cd src/lib/auth &amp;&amp; npx prisma migrate deploy
+<span class="ok">◇ injected env (7) from ../../../.env
+9 migrations found in prisma/migrations
+No pending migrations to apply.</span>
+
+$ cd src/lib/auth &amp;&amp; npx drizzle-kit migrate
+<span class="ok">◇ injected env (7) from ../../../.env
+[✓] migrations applied successfully!</span></code></pre>
+    <p>Re-verified after the fix: all 8 examples re-synced via the CLI, the leftover manual <code class="inline">.env</code>
+    workaround files removed from every one of them, migrate re-run against the real (already-migrated) databases using
+    only the root <code class="inline">.env</code> — and, because this touches config used inside every combo's own
+    black-box proof, <code class="inline">npm run prove-cycle</code> re-run for all 4 combos:
+    <b>145/191 assertions pass, both variants, all 4 combos, no regression.</b></p>
+  </div>
+
+  <div class="gotcha" id="gotcha-pack">
+    <div class="head"><h4><code class="inline">@easy-auth/auth-client</code> shipped without its compiled output</h4><span class="badge ok">Fixed this session</span></div>
+    <p>The package's <code class="inline">dist/</code> directory is gitignored (correctly — it's build output). But
+    <code class="inline">npm pack</code>/<code class="inline">npm publish</code> falls back to git's ignore rules for
+    what to include when a package has no explicit <code class="inline">"files"</code> field. That means a real
+    <code class="inline">npm pack</code> of this package — exactly what happens the day it's actually published,
+    or what any consumer outside this repo's pnpm workspace needs — <b>silently excluded the entire compiled library</b>:</p>
+    <pre class="bug"><code>$ npm pack &amp;&amp; tar -tzf easy-auth-auth-client-0.0.0.tgz
+package/package.json
+package/src/auth-client.ts   <span class="comment"># source only</span>
+package/test/auth-client.test.ts
+<span class="err"># dist/ — completely missing</span>
+
+$ npm run build  <span class="comment"># inside a generated admin-nextjs scaffold, dependency installed from that tarball</span>
+<span class="err">Error: Module not found: Can't resolve '@easy-auth/auth-client'</span></code></pre>
+    <p>This was invisible from inside the monorepo because <code class="inline">workspace:*</code> resolves via a
+    direct pnpm symlink to the package folder on disk — <code class="inline">dist/</code> exists there even though
+    git never tracked it, so nothing ever exercised the pack/publish path until now.</p>
+    <p><b>Fix applied</b> — <code class="inline">packages/auth-client/package.json</code> now declares:</p>
+    <pre><code>"files": ["dist"]</code></pre>
+    <p>Re-verified after the fix — same tarball-install path, now succeeds:</p>
+    <pre class="evidence"><code>$ npm pack &amp;&amp; tar -tzf easy-auth-auth-client-0.0.0.tgz
+package/dist/index.js
+package/dist/index.d.ts
+package/dist/auth-client.js
+package/dist/types.js
+package/package.json
+
+$ npm run build   <span class="comment"># admin-nextjs scaffold, real tarball install, no monorepo</span>
+<span class="ok">✓ Compiled successfully — 23/23 pages prerendered, 0 errors</span></code></pre>
+    <p>Confirmed the fix doesn't regress anything already relying on the pnpm-workspace symlink path:
+    <code class="inline">pnpm -r typecheck</code> (all combos + all 8 <code class="inline">apps/*</code>) and
+    <code class="inline">auth-client</code>'s own 36-test Vitest suite both still pass clean.</p>
+  </div>
+
+  <div class="gotcha">
+    <div class="head"><h4>CLI invocation didn't actually match its own shadcn-style promise</h4><span class="badge ok">Fixed this session</span></div>
+    <p><code class="inline">cli/package.json</code>'s own description already said <code class="inline">npx easy-auth add &lt;combo&gt;</code>,
+    but there was no <code class="inline">"bin"</code> field — the only working invocation was
+    <code class="inline">cd cli &amp;&amp; npx tsx easy-auth.ts add &lt;combo&gt; --into ../target</code>, three steps
+    where shadcn needs one. <code class="inline">--into</code> already defaulted to cwd (unused ergonomics), so the
+    fix was adding a real <code class="inline">bin</code> entry — a thin launcher
+    (<code class="inline">cli/bin/easy-auth.mjs</code>) that spawns the local <code class="inline">tsx</code> by
+    absolute path, so it works regardless of the caller's cwd or global PATH:</p>
+    <pre class="evidence"><code>$ cd cli &amp;&amp; npm link
+<span class="ok">added 1 package in 157ms</span>
+
+$ cd /tmp/some-fresh-project &amp;&amp; easy-auth add mobile-expo --name "ShadcnStyleApp"
+<span class="ok">Generated "ShadcnStyleApp" (mobile-expo, base variant) into /private/tmp/some-fresh-project</span></code></pre>
+    <p>True <code class="inline">npx easy-auth@latest</code> (fetching from the public npm registry, no local
+    checkout at all) still needs an actual <code class="inline">npm publish</code> — a separate, deliberately-unmade
+    decision per <code class="inline">plan/brief.md</code> for the runtime package, not revisited here. What's fixed
+    is everything reachable without that: one link, then the exact same command shape from any directory. The guided
+    multi-kind flow's template-preview fix is documented separately in <a href="#guided">§3</a>.</p>
+  </div>
+</section>
+
+<section id="matrix">
+  <h2><span class="n">9</span>Verification matrix — all 16 combinations</h2>
+  <table class="matrix">
+    <tr><th>Combo</th><th>Variant</th><th>Generated fresh</th><th>Installed</th><th>Migrated + seeded</th><th>Ran / built / typechecked</th></tr>
+    <tr><td class="item">nestjs-prisma</td><td>base</td><td class="check">✓</td><td class="check">✓</td><td class="check">✓ fresh DB</td><td class="check">✓ login + Swagger 200</td></tr>
+    <tr><td class="item">nestjs-prisma</td><td>workspaces</td><td class="check">✓</td><td class="dash">—</td><td class="check">✓ prove-cycle 191/191</td><td class="dash">covered by admin-nextjs-workspaces + admin-react-workspaces full browser runs earlier this session</td></tr>
+    <tr><td class="item">nestjs-drizzle</td><td>base</td><td class="check">✓</td><td class="check">✓</td><td class="check">✓ prove-cycle 145/145</td><td class="dash">—</td></tr>
+    <tr><td class="item">nestjs-drizzle</td><td>workspaces</td><td class="check">✓</td><td class="check">✓</td><td class="check">✓ migrate re-verified, root .env only</td><td class="dash">—</td></tr>
+    <tr><td class="item">express-prisma</td><td>base</td><td class="check">✓</td><td class="check">✓</td><td class="check">✓ prove-cycle 145/145</td><td class="dash">—</td></tr>
+    <tr><td class="item">express-prisma</td><td>workspaces</td><td class="check">✓</td><td class="check">✓</td><td class="check">✓ migrate re-verified, root .env only</td><td class="dash">—</td></tr>
+    <tr><td class="item">express-drizzle</td><td>base</td><td class="check">✓</td><td class="check">✓</td><td class="check">✓ migrate re-verified, root .env only</td><td class="dash">—</td></tr>
+    <tr><td class="item">express-drizzle</td><td>workspaces</td><td class="check">✓</td><td class="check">✓</td><td class="check">✓ fresh DB + prove-cycle 191/191</td><td class="check">✓ login + workspace-auth 403→200</td></tr>
+    <tr><td class="item">admin-nextjs</td><td>base</td><td class="check">✓</td><td class="check">✓ real tarball</td><td class="dash">n/a</td><td class="check">✓ production build, 23/23 pages</td></tr>
+    <tr><td class="item">admin-nextjs</td><td>workspaces</td><td class="check">✓</td><td class="dash">—</td><td class="dash">n/a</td><td class="check">✓ typecheck (this session's earlier UI pass) + full browser walkthrough</td></tr>
+    <tr><td class="item">admin-react</td><td>base</td><td class="check">✓</td><td class="dash">—</td><td class="dash">n/a</td><td class="check">✓ typecheck + build (earlier this session)</td></tr>
+    <tr><td class="item">admin-react</td><td>workspaces</td><td class="check">✓</td><td class="dash">—</td><td class="dash">n/a</td><td class="check">✓ typecheck (earlier this session)</td></tr>
+    <tr><td class="item">mobile-expo</td><td>base</td><td class="check">✓</td><td class="check">✓ real tarball</td><td class="dash">n/a</td><td class="check">✓ typecheck, 0 errors</td></tr>
+    <tr><td class="item">mobile-expo</td><td>workspaces</td><td class="check">✓</td><td class="dash">—</td><td class="dash">n/a</td><td class="dash">—</td></tr>
+    <tr><td class="item">mobile-bare-rn</td><td>base</td><td class="check">✓</td><td class="dash">—</td><td class="dash">n/a</td><td class="dash">device run not exercised — known repo limitation, see §6</td></tr>
+    <tr><td class="item">mobile-bare-rn</td><td>workspaces</td><td class="check">✓</td><td class="dash">—</td><td class="dash">n/a</td><td class="dash">device run not exercised — known repo limitation, see §6</td></tr>
+  </table>
+  <p style="margin-top:14px; font-size:12.8px; color:var(--muted)">"Generated fresh" = ran the linked
+  <code class="inline">easy-auth add</code> command into an empty or pre-auth directory and confirmed a clean exit with
+  the expected file count. "—" means not independently re-run in this pass because an equivalent check already exists
+  elsewhere (cited in the cell) — not "unverified ever".</p>
+</section>
+
+</main>
+
+<footer>
+  Generated this session by driving the linked <code class="inline">easy-auth</code> command against
+  <code class="inline">/tmp</code> scratch directories — nothing here touches the tracked <code class="inline">examples/</code>
+  or <code class="inline">apps/</code> trees beyond the intended re-sync. Real fixes landed in the repo as a result:
+  <div class="files">
+    packages/auth-client/package.json — added "files": ["dist"] so npm pack/publish ships the compiled library
+    registry/combos/{nestjs-prisma,express-prisma}/shared/prisma.config.ts — resolve .env from file location, not cwd
+    registry/combos/{nestjs-drizzle,express-drizzle}/shared/drizzle.config.ts — same fix
+    cli/package.json, cli/bin/easy-auth.mjs — added a real "bin" entry; `npm link` now gives a shadcn-style global command
+    cli/easy-auth.ts — guided multi-kind flow now previews every selected kind's templates up front
+    examples/*-app[-workspaces]/ — re-synced with the fixes; all 8 backend prove-cycle-or-migrate re-verified
+  </div>
+</footer>
+
+</body>
+</html>

@@ -1,4 +1,5 @@
 import type { PermissionCacheStore } from "./permission-cache.js";
+import type { RateLimitDeps } from "@/lib/auth/core/rate-limit.js";
 
 export const AUTH_CONFIG = Symbol("AUTH_CONFIG");
 
@@ -47,6 +48,11 @@ export interface AuthConfig {
    * Keys are namespaced `easyauth:authz:*`.
    */
   permissionCacheStore?: PermissionCacheStore;
+  /**
+   * Where rate-limit windows are counted. Defaults to an in-process `Map`, which is correct for
+   * a single instance; pass a Redis-backed implementation of `RateLimitDeps` for several.
+   */
+  rateLimitStore?: RateLimitDeps;
 }
 
 export const defaultAuthConfig: AuthConfig = {

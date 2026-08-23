@@ -12,23 +12,31 @@ From a fresh clone to a working login. Two paths: **docker** (one command, every
 ## Path A — docker (everything at once)
 
 ```bash
-docker compose up --build
+cp .env.example .env       # then fill in every secret: openssl rand -base64 32 for each
+docker compose up --build  # or: make up-build
 ```
 
-Brings up Postgres (internal to the compose network), all 8 example backends
-(3001–3008), and all 4 admin consoles (3000, 3010, 5173, 5174). Each backend container
-applies its migrations at startup.
+The root `.env` is required — compose interpolates the 8 per-backend `AUTH_JWT_SECRET_*`
+values and the consoles' `AUTH_SECRET` from it and refuses to start with them unset. Secrets
+never live in `docker-compose.yml` itself (see `CLAUDE.md` for the rule).
 
-**Seeding is a separate, required step** — nothing is authorized until the seeder has run.
-It's idempotent; run it any time. For the reference backend:
+This brings up Postgres (internal to the compose network, its 8 `example_*` databases created
+on first boot via `docker/postgres-init/`), all 8 example backends (ports 3001–3008, each
+applying its migrations at container startup), and all 4 admin consoles (3000, 3010, 5173,
+5174).
+
+**Seeding is a separate, required step** — a freshly migrated database has no permission
+catalog, no roles, and no users, so nothing is authorized until the seeder has run. Compose
+does not run it for you. It's idempotent; run it any time, per backend you intend to use:
 
 ```bash
-docker exec library-nestjs-prisma-app-1 sh -c \
-  'SEED_ADMIN_EMAIL=admin@example.com SEED_ADMIN_PASSWORD=Admin12345! npx tsx src/lib/auth/src/seed.ts'
+docker exec -e SEED_ADMIN_EMAIL=admin@example.com -e SEED_ADMIN_PASSWORD='Admin12345!' \
+  library-nestjs-prisma-app-1 sh -c 'node_modules/.bin/tsx src/lib/auth/src/seed.ts'
 ```
 
 That provisions the permission catalog, the default `admin`/`member` roles, and an initial
-admin user. Then log in at **http://localhost:3000** with those credentials.
+admin user. (On a workspaces-variant backend it also creates the first workspace and makes
+that admin its first member.) Then log in at **http://localhost:3000** with those credentials.
 
 Without `SEED_ADMIN_EMAIL`/`SEED_ADMIN_PASSWORD` the seeder still provisions the catalog and
 roles but skips the admin user — there is deliberately no default password. Re-running the
@@ -81,7 +89,10 @@ Log in with the seeded admin credentials.
 |---|---|---|
 | `NEXT_PUBLIC_AUTH_API_URL` | Backend URL as the **browser** sees it | `http://localhost:3001` |
 | `AUTH_API_INTERNAL_URL` | Backend URL as the console's **server side** sees it (NextAuth `authorize()`, `proxy.ts` token verify). Only differs from the public URL when the console runs somewhere `localhost:3001` isn't the backend — e.g. in docker compose it's `http://nestjs-prisma-app:3001`. | falls back to `NEXT_PUBLIC_AUTH_API_URL` |
-| `AUTH_SECRET` | NextAuth session-JWT signing secret. **Required** — generate with `openssl rand -base64 32`. | — |
+| `AUTH_SECRET` | NextAuth session-JWT signing secret (`apps/admin-nextjs` only — the other three consoles don't use NextAuth). **Required** there — generate with `openssl rand -base64 32`. | — |
+
+The Vite consoles (`apps/admin-react[-workspaces]`) take `VITE_AUTH_API_URL` instead; the
+mobile apps take `EXPO_PUBLIC_API_BASE_URL` (Expo) / `API_BASE_URL` in `.env` (bare RN).
 
 ### Backend environment variables (example apps)
 
@@ -91,7 +102,8 @@ Log in with the seeded admin credentials.
 | `AUTH_JWT_SECRET` | Access/refresh token signing secret — base64, 256-bit+. No default; the app refuses to start without it. |
 | `PORT` | Listen port (each example has its own fallback, 3001–3008) |
 | `SEED_ADMIN_EMAIL` / `SEED_ADMIN_PASSWORD` | Seeder-only: create the initial admin |
-| `DOCS_USERNAME` / `DOCS_PASSWORD` | Basic-Auth gate on `/docs` + `/reference`, enforced only when `NODE_ENV=production` |
+| `SEED_WORKSPACE_NAME` | Seeder-only, workspaces variant: name of the first workspace (default "Default workspace") |
+| `DOCS_USERNAME` / `DOCS_PASSWORD` | Basic-Auth gate on the docs UIs, enforced only when `NODE_ENV=production` |
 
 ## Port map
 
@@ -101,18 +113,30 @@ Log in with the seeded admin credentials.
 | 3001–3004 | base-variant backends: nestjs-prisma, nestjs-drizzle, express-prisma, express-drizzle |
 | 3005–3008 | workspaces-variant backends (same order) |
 | 3010 | `apps/admin-nextjs-workspaces` (console for 3005) |
-| 5173 / 5174 | `apps/admin-react` / `-workspaces` |
+| 5173 / 5174 | `apps/admin-react` / `-workspaces` (consoles for 3001 / 3005) |
 | 8080 | `apps/dev-portal` (`pnpm portal`, host-only — service status, ER diagram, schema drift) |
 | 55432 | your local Postgres (manual path) |
+
+Every backend port is a fallback, not a requirement — each app's `src/main.ts` reads
+`process.env.PORT` first.
+
+## The workspaces variant's extra step
+
+On a workspaces-variant backend (3005–3008), a caller has no roles until they belong to a
+workspace. `POST /workspaces` (no `X-Workspace-Id` needed — it acts outside every workspace)
+makes the caller that workspace's first admin; the seeder does this automatically for the
+seeded admin. Admin API calls then carry the acting workspace as an `X-Workspace-Id` header —
+the consoles' workspace picker handles this for you.
 
 ## First things to try once you're in
 
 - **Dashboard** — stat cards, recent audit activity, and the *Live activity* card: leave it
   open, log in from a second browser/incognito window, and watch the `session_created` event
-  arrive over the socket.
+  arrive over the socket (nestjs-prisma base backend only — it's the one with the gateway).
 - **Users → Add user** — create a user, assign roles via the multi-select, upload a photo
   (drag & drop).
 - **Roles** — create a role and tick permissions in the grouped grid; saves are diff-based
   attach/detach.
 - **Countries / Languages / Customers** — the same CRUD patterns over the content domains.
-- **API docs** — http://localhost:3001/docs (Swagger) and `/reference` (Scalar).
+- **API docs** — http://localhost:3001/docs (Swagger; every backend has this) and
+  http://localhost:3001/reference (Scalar; reference backend only).

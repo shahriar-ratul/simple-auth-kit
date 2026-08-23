@@ -3,6 +3,7 @@ import type { AuditLogEntry, PageMeta } from "@easy-auth/auth-client";
 import { AuthApiError } from "@easy-auth/auth-client";
 import { authClient } from "@/lib/auth-client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { DateTimePicker } from "@/components/ui/datetime-picker";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
@@ -12,11 +13,11 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 interface Filters {
   userId: string;
   action: string;
-  since: string;
-  until: string;
+  since: Date | undefined;
+  until: Date | undefined;
 }
 
-const emptyFilters: Filters = { userId: "", action: "", since: "", until: "" };
+const emptyFilters: Filters = { userId: "", action: "", since: undefined, until: undefined };
 
 export function AuditLogPage() {
   const [filters, setFilters] = useState<Filters>(emptyFilters);
@@ -34,8 +35,8 @@ export function AuditLogPage() {
         const result = await authClient.listAuditLog({
           userId: filterValues.userId || undefined,
           action: filterValues.action || undefined,
-          since: filterValues.since ? new Date(filterValues.since).toISOString() : undefined,
-          until: filterValues.until ? new Date(filterValues.until).toISOString() : undefined,
+          since: filterValues.since ? filterValues.since.toISOString() : undefined,
+          until: filterValues.until ? filterValues.until.toISOString() : undefined,
           page,
         });
         setEntries(result.items);
@@ -82,12 +83,12 @@ export function AuditLogPage() {
               />
             </div>
             <div className="flex flex-col gap-1.5">
-              <Label htmlFor="filter-since">Since</Label>
-              <Input id="filter-since" type="datetime-local" value={filters.since} onChange={(e) => setFilters((f) => ({ ...f, since: e.target.value }))} />
+              <Label>Since</Label>
+              <DateTimePicker value={filters.since} onChange={(date) => setFilters((f) => ({ ...f, since: date }))} granularity="minute" placeholder="Since" />
             </div>
             <div className="flex flex-col gap-1.5">
-              <Label htmlFor="filter-until">Until</Label>
-              <Input id="filter-until" type="datetime-local" value={filters.until} onChange={(e) => setFilters((f) => ({ ...f, until: e.target.value }))} />
+              <Label>Until</Label>
+              <DateTimePicker value={filters.until} onChange={(date) => setFilters((f) => ({ ...f, until: date }))} granularity="minute" placeholder="Until" />
             </div>
             <div className="flex items-end gap-2 sm:col-span-2 lg:col-span-4">
               <Button type="submit" disabled={loading}>

@@ -6,7 +6,7 @@ import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import { useDebounce } from "use-debounce";
-import { ChevronDownIcon, PencilIcon, PlusIcon, Trash2Icon } from "lucide-react";
+import { ChevronDownIcon, EyeIcon, PencilIcon, PlusIcon, PowerIcon, Trash2Icon } from "lucide-react";
 import { AuthApiError, type RoleSummary } from "@easy-auth/auth-client";
 import { AlertModal } from "@/components/alert-modal";
 import { Breadcrumb } from "@/components/breadcrumb";
@@ -162,6 +162,14 @@ export default function RolesPage() {
             <div className="flex justify-end items-center gap-1.5">
               <Tooltip>
                 <TooltipTrigger asChild>
+                  <Link href={`/roles/${role.id}`} className={cn(buttonVariants({ variant: "outline", size: "icon" }))}>
+                    <EyeIcon />
+                  </Link>
+                </TooltipTrigger>
+                <TooltipContent>View details</TooltipContent>
+              </Tooltip>
+              <Tooltip>
+                <TooltipTrigger asChild>
                   <Link
                     href={`/roles/${role.id}/edit`}
                     aria-disabled={!canManage}
@@ -171,6 +179,16 @@ export default function RolesPage() {
                   </Link>
                 </TooltipTrigger>
                 <TooltipContent>{canManage ? "Edit role" : missingPermissionHint(PERMISSIONS.rolesManage)}</TooltipContent>
+              </Tooltip>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button size="icon" variant="outline" disabled={!canManage} onClick={() => openStatusConfirm(role)}>
+                    <PowerIcon />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  {canManage ? (role.isActive ? "Deactivate this role" : "Activate this role") : missingPermissionHint(PERMISSIONS.rolesManage)}
+                </TooltipContent>
               </Tooltip>
               <Tooltip>
                 <TooltipTrigger asChild>

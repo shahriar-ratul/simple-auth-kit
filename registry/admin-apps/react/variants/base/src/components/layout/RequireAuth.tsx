@@ -45,7 +45,7 @@ export const RequireAuth = observer(function RequireAuth() {
  * holding any one of the listed permissions, which is how a page made of several independently
  * gated cards (Roles & Permissions) opens for someone who can use only part of it.
  *
- * The backend's `PermissionGuard` is the real boundary — this exists so a page that would answer
+ * The backend's `AbilityGuard` is the real boundary — this exists so a page that would answer
  * 403 isn't offered in the first place, and it reads the same permission keys the guard does.
  */
 export function RequirePermission({ anyOf }: { anyOf: readonly string[] }) {

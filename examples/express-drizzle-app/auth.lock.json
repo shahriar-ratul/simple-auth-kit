@@ -1,6 +1,6 @@
 {
   "combo": "express-drizzle",
-  "installedAt": "2026-08-13T03:56:48.294Z",
+  "installedAt": "2026-08-23T19:57:16.258Z",
   "files": {
     "core/.gitignore": "32dc6c42e34b0e1b8c9a5780abe9f951874d9082690a6e035e064f96dfd06ee6",
     "core/crypto.ts": "9411c998b33f4ba97078fb6ff5beee1823bfb8c14a324c0e24e1967640e0c985",
@@ -13,10 +13,10 @@
     "core/two-factor.ts": "8b92cca7148fd53e7d382310a11b5573b894afa6df0b0dbce39c559ca795f626",
     "core/types.ts": "f043ab4ed2c461558f15514a61201529492396763f2bb0f5b85c8bed8304bda9",
     ".gitignore": "f76aa2c406a2892e774a5c5014daf04101796250fe60c7082b57fe8567cfe78d",
-    "drizzle.config.ts": "8c8b90cbf33203ddc40d51d46e903c4ad8e967d8d1ab183f40a315e11d461f13",
+    "drizzle.config.ts": "1d0b5b405e8f85a451d2d4596f4f217b6ef9f0ff6c11280386e99a85bd928278",
     "src/ability.ts": "a9aec301524cf1e708ddec7acb7cf563b54fa05bacf0021068f551e8d2ef39f5",
     "src/auth-core-error.middleware.ts": "59688a09d16320961b79a8b6072e945cbbd3d5089a97c0cb680e27fb60d7d8bc",
-    "src/auth.config.ts": "0502c1b01697061dd3e1e2573f315f428d6914587248bc4801578361fadf6fae",
+    "src/auth.config.ts": "ee1c80cd7e6e3ea83cedb4764a80d9a45816e658d13d523605037cb441ee55fb",
     "src/auth.middleware.ts": "b2aa1af17a27a89e8eba11ddf33acdb70bca1c5deae18ec20410dcd7564ee543",
     "src/auth.router.ts": "658384e9de19361cfe7410b57871ae5b57a103db0481ce31d2051fe5ad7f692e",
     "src/db.ts": "e7c452a026d4f8bf0f58dea741c32ad580690fa34362ea605cc636a29f4453bd",
@@ -35,7 +35,7 @@
     "src/route-tiers.ts": "b4757e8c50c6650332eb2e7492671392ecb25cc549cedbb2f4c464fb39e17b3c",
     "src/session.repository.ts": "5be7ed297800a34e62595fc39f0e08a4afcde6a7d18f24569cd058938b714b25",
     "src/two-factor.repository.ts": "1fa872053f3928e6d9cb5c87f26de7c9c6bd1b5f6574499285666c7725980b22",
-    ".env.example": "99c57831255cae48a83eed7a9e3392cc7ca8124a7a3808f18cc05d7fb7632e9a",
+    ".env.example": "d529ec6cceaae9a4bc1cf60e57c76622201afb50dcf59dff51f205556175f963",
     "drizzle/0000_init.sql": "684bf36980d83f4581e59369f4754e239fa5dec49849ebb952885580121ed593",
     "drizzle/0001_add_is_active_field.sql": "dcba7ba62356487f1e273cc5a0d0b0b16fcec06692754218135021f0babcdeba",
     "drizzle/meta/0000_snapshot.json": "74ea8dcc40703e8503da46246c860cb1d83c94e6e2f2299b43bc7d7d83ac2f5d",
@@ -43,14 +43,14 @@
     "drizzle/meta/_journal.json": "7e1f72efb2af7cad2b5cd1146dfcb1ba187de07e96542e3ec93c6eee0184555b",
     "src/admin.router.ts": "b7e41687c42aa45d9d7abfff2588a13328f58e47eef8141029215f5a3e70dad8",
     "src/audit-log.repository.ts": "404da8b34a91c27ef21cc79e86263aa27e9b149f748f0429d25c651fc113c44d",
-    "src/auth.service.ts": "05f5f094be1be64869090d1b326b9be661cf9e1b012c05e4be70be7b1a929737",
+    "src/auth.service.ts": "600e59cbc8ac8050d873dea3987182d4a0bc6c478938c27892c8c85690b327e0",
     "src/authz.middleware.ts": "9eba94d48bc89552bf5adc1a36217a7e555bad24b7aca4e0b5c1f931c085c40d",
-    "src/create-auth-app.ts": "19c35d4479a893550b2dc41d17eacd37c0ac639075baa298321fe6e4c13df8d4",
+    "src/create-auth-app.ts": "d2f8ff3393d55d34432809bf7ef5d8b578632ca7d8c10403799f76ac126b46ac",
     "src/openapi-admin.ts": "cadf12a4ba6da160a0ba34151275bc2e1c41029fddcaaeb495b932248ebe37ec",
-    "src/rbac.defaults.ts": "dde549b5501ff2f5a34e1c8a3bd59c315bf49d99efca0cd33cde68f9e67df0c3",
+    "src/rbac.defaults.ts": "4cb95f8d0e0ca2cdc791cf3fc5b2ec94fe11d6335a72abdea6bfe483c7db4481",
     "src/rbac.repository.ts": "a9af97762ee506fa7c68e520b4dfb32f2074ccf85ea618c7615e4a256dafcb67",
     "src/schema.ts": "ba46f370814ad8ceea3f386aa3e3aea99a352ef9caacd1f7bdb20be6c7520c94",
-    "src/seed.ts": "c275ffebe81d7b2603ae4db93649a874d34317898a8c5f85f2672efa31be247c"
+    "src/seed.ts": "6e9032619441d84eb232c2aa2c85a6d2314b2e78f7bd10a51b1a028b697b4888"
   },
   "variant": "base"
 }

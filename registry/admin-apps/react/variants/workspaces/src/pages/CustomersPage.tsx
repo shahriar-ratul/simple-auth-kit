@@ -5,7 +5,7 @@ import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { observer } from "mobx-react-lite";
 import { useDebounce } from "use-debounce";
 import { format } from "date-fns";
-import { ChevronDownIcon, EyeIcon, PencilIcon, PlusIcon, Trash2Icon } from "lucide-react";
+import { ChevronDownIcon, EyeIcon, PencilIcon, PlusIcon, PowerIcon, Trash2Icon } from "lucide-react";
 import { AuthApiError, type CustomerSummary } from "@easy-auth/auth-client";
 import { toast } from "sonner";
 import { PERMISSIONS, useAbility } from "@/lib/ability";
@@ -257,6 +257,20 @@ export const CustomersPage = observer(function CustomersPage() {
                   </Link>
                 </TooltipTrigger>
                 <TooltipContent>{canManage ? "Edit customer" : `You need the "${PERMISSIONS.customersManage}" permission to do this.`}</TooltipContent>
+              </Tooltip>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button size="icon" variant="outline" disabled={!canStatus} onClick={() => openStatusConfirm(customer)}>
+                    <PowerIcon />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  {canStatus
+                    ? customer.isActive
+                      ? "Deactivate this customer"
+                      : "Activate this customer"
+                    : `You need the "${PERMISSIONS.customersStatus}" permission to do this.`}
+                </TooltipContent>
               </Tooltip>
               <Tooltip>
                 <TooltipTrigger asChild>

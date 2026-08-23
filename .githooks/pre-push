@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+# Local (no-CI) enforcement of the prove-cycle gate: git invokes hooks with an unspecified cwd,
+# so resolve the repo root explicitly rather than assuming this runs from the top.
+set -euo pipefail
+cd "$(git rev-parse --show-toplevel)"
+make prove-changed

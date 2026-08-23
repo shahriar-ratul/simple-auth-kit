@@ -123,17 +123,28 @@ export const DEFAULT_ROLES: readonly RoleSeed[] = [
     permissions: PERMISSION_SLUGS,
   },
   {
+    slug: "superadmin",
+    displayName: "Super Admin",
+    description: "Carries every permission in the catalog — same authority as admin, held by the seeded super_admin account (see SEED_SUPERADMIN_* in seed.ts).",
+    isDefault: false,
+    order: 1,
+    permissions: PERMISSION_SLUGS,
+  },
+  {
     slug: "member",
     displayName: "Member",
     description: "The signup default. Carries no administrative permission.",
     isDefault: true,
-    order: 1,
+    order: 2,
     permissions: [],
   },
 ];
 
 /** Role slugs given to the seeded admin. `member` is included so the admin is also an ordinary user. */
 export const SEED_ADMIN_ROLES: string[] = ["admin", "member"];
+
+/** Role slugs given to the seeded super_admin. `member` is included so they're also an ordinary user. */
+export const SEED_SUPERADMIN_ROLES: string[] = ["superadmin", "member"];
 
 /** Anything that can write the catalog tables: the PrismaClient, or a `$transaction` client. */
 export type RbacWriter = Pick<PrismaClient, "permission" | "role" | "permissionRole">;

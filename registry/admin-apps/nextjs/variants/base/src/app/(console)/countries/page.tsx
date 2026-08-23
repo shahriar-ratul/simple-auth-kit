@@ -7,7 +7,7 @@ import Link from "next/link";
 import { useMemo, useState } from "react";
 import { useDebounce } from "use-debounce";
 import { format } from "date-fns";
-import { ChevronDownIcon, EyeIcon, PencilIcon, PlusIcon, Trash2Icon } from "lucide-react";
+import { ChevronDownIcon, EyeIcon, PencilIcon, PlusIcon, PowerIcon, Trash2Icon } from "lucide-react";
 import { AuthApiError, type CountrySummary } from "@easy-auth/auth-client";
 import { AlertModal } from "@/components/alert-modal";
 import { Breadcrumb } from "@/components/breadcrumb";
@@ -217,6 +217,16 @@ export default function CountriesPage() {
                   </Link>
                 </TooltipTrigger>
                 <TooltipContent>{canManage ? "Edit country" : missingPermissionHint(PERMISSIONS.countriesManage)}</TooltipContent>
+              </Tooltip>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button size="icon" variant="outline" disabled={!canStatus} onClick={() => openStatusConfirm(country)}>
+                    <PowerIcon />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  {canStatus ? (country.isActive ? "Deactivate this country" : "Activate this country") : missingPermissionHint(PERMISSIONS.countriesStatus)}
+                </TooltipContent>
               </Tooltip>
               <Tooltip>
                 <TooltipTrigger asChild>

@@ -6,7 +6,7 @@ import { type ColumnDef, type PaginationState, type SortingState, getCoreRowMode
 import { observer } from "mobx-react-lite";
 import { Link } from "react-router-dom";
 import { useDebounce } from "use-debounce";
-import { ChevronDownIcon, EyeIcon, PlusIcon, Trash2Icon } from "lucide-react";
+import { ChevronDownIcon, EyeIcon, PlusIcon, PowerIcon, Trash2Icon } from "lucide-react";
 import { toast } from "sonner";
 import { PERMISSIONS, useAbility } from "@/lib/ability";
 import { authClient } from "@/lib/auth-client";
@@ -252,6 +252,16 @@ export const UsersPage = observer(function UsersPage() {
                   </Link>
                 </TooltipTrigger>
                 <TooltipContent>View details</TooltipContent>
+              </Tooltip>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button size="icon" variant="outline" disabled={!canBlock} onClick={() => openStatusConfirm(user)}>
+                    <PowerIcon />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  {canBlock ? (user.isActive ? "Deactivate this user" : "Activate this user") : "You don't have permission to change this user's status."}
+                </TooltipContent>
               </Tooltip>
               <Tooltip>
                 <TooltipTrigger asChild>

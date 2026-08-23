@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>easy-auth — Recommendations: Before vs After</title>
+<style>
+  :root {
+    --bg: #0b0d12; --panel: #12151d; --panel-2: #171b26; --border: #262b3a;
+    --text: #dfe3ee; --muted: #8b93a7; --accent: #7aa2f7;
+    --good: #57d692; --good-bg: rgba(87,214,146,0.08);
+    --warn: #f2b866; --warn-bg: rgba(242,184,102,0.08);
+    --bad: #f26d78; --bad-bg: rgba(242,109,120,0.08);
+    --mono: "SF Mono","Fira Code",Menlo,Consolas,monospace;
+    --sans: -apple-system,BlinkMacSystemFont,"Segoe UI",Inter,sans-serif;
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body { margin:0; background:var(--bg); color:var(--text); font-family:var(--sans); line-height:1.6; font-size:15px; }
+  a { color: var(--accent); }
+  code, pre { font-family: var(--mono); }
+  code.inline { background:#1c2130; border:1px solid var(--border); border-radius:4px; padding:1px 6px; font-size:.88em; color:#c9d4ff; white-space:nowrap; }
+  pre { background:#0e1017; border:1px solid var(--border); border-left:3px solid var(--accent); border-radius:6px; padding:14px 16px; overflow-x:auto; font-size:13px; line-height:1.55; margin:10px 0 0; }
+  pre code { color:#cfd7ea; }
+  pre.after { border-left-color: var(--good); }
+  pre.before { border-left-color: var(--bad); }
+  .comment { color:#6c7488; } .kw { color:#c792ea; } .str { color:#a6e3a1; } .fn { color:#82aaff; } .del { color:#f26d78; } .add { color:#57d692; }
+
+  header.top { position:sticky; top:0; z-index:50; background:rgba(11,13,18,.92); backdrop-filter:blur(10px); border-bottom:1px solid var(--border); padding:14px 28px; display:flex; align-items:center; justify-content:space-between; gap:20px; flex-wrap:wrap; }
+  header.top .title { display:flex; flex-direction:column; gap:2px; }
+  header.top h1 { margin:0; font-size:17px; }
+  header.top .sub { color:var(--muted); font-size:12.5px; }
+  nav.toc { display:flex; gap:4px; flex-wrap:wrap; }
+  nav.toc a { text-decoration:none; color:var(--muted); font-size:12.5px; padding:6px 10px; border-radius:5px; border:1px solid transparent; }
+  nav.toc a:hover { color:var(--text); border-color:var(--border); background:var(--panel-2); }
+
+  main { max-width:1040px; margin:0 auto; padding:40px 28px 100px; }
+
+  .hero { background:linear-gradient(155deg,#151a26,#0f1219); border:1px solid var(--border); border-radius:12px; padding:28px 30px; margin-bottom:40px; }
+  .hero h2 { margin-top:0; font-size:22px; }
+  .badge-row { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:14px; }
+  .verdict-badge { display:inline-block; font-size:12px; font-weight:600; letter-spacing:.4px; text-transform:uppercase; padding:4px 10px; border-radius:20px; background:var(--good-bg); color:var(--good); border:1px solid rgba(87,214,146,.35); }
+  .verdict-badge.warn { background:var(--warn-bg); color:var(--warn); border-color:rgba(242,184,102,.35); }
+  .verdict-badge.accent { background:rgba(122,162,247,.1); color:var(--accent); border-color:rgba(122,162,247,.35); }
+  .stat-row { display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin-top:20px; }
+  @media (max-width:760px){ .stat-row{ grid-template-columns:repeat(2,1fr);} }
+  .stat { background:var(--panel-2); border:1px solid var(--border); border-radius:8px; padding:14px 16px; }
+  .stat .n { font-size:26px; font-weight:700; color:var(--good); font-family:var(--mono); }
+  .stat .l { font-size:11.5px; color:var(--muted); margin-top:2px; text-transform:uppercase; letter-spacing:.4px; }
+
+  section { margin-bottom:52px; scroll-margin-top:74px; }
+  section > h2 { font-size:13px; text-transform:uppercase; letter-spacing:1.2px; color:var(--muted); border-bottom:1px solid var(--border); padding-bottom:10px; margin-bottom:22px; display:flex; align-items:center; gap:10px; }
+  section > h2 .n { display:inline-flex; align-items:center; justify-content:center; width:20px; height:20px; border-radius:50%; background:var(--panel-2); color:var(--accent); font-size:11px; border:1px solid var(--border); }
+  h3 { font-size:16px; margin:0 0 4px; color:var(--text); }
+  p { color:#c3c9d8; margin:8px 0; }
+
+  .compare { background:var(--panel); border:1px solid var(--border); border-radius:10px; overflow:hidden; margin-bottom:18px; }
+  .compare .head { padding:14px 20px; background:var(--panel-2); display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px; }
+  .compare .head h3 { margin:0; }
+  .compare .body { padding:18px 20px; }
+  .ba-grid { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+  @media (max-width:760px){ .ba-grid{ grid-template-columns:1fr; } }
+  .ba-col .tag { font-size:10.5px; font-weight:700; text-transform:uppercase; letter-spacing:.5px; padding:2px 8px; border-radius:20px; display:inline-block; margin-bottom:8px; }
+  .ba-col.before .tag { background:var(--bad-bg); color:var(--bad); border:1px solid rgba(242,109,120,.35); }
+  .ba-col.after .tag { background:var(--good-bg); color:var(--good); border:1px solid rgba(87,214,146,.35); }
+  .verify-line { margin-top:14px; padding:10px 14px; border-radius:6px; background:var(--panel-2); border:1px dashed var(--border); font-size:13.3px; }
+  .verify-line b.ok { color:var(--good); }
+
+  .files-note { font-family:var(--mono); font-size:11.5px; color:var(--muted); margin-top:10px; }
+
+  table.matrix { width:100%; border-collapse:collapse; margin-top:4px; font-size:13.5px; }
+  table.matrix th, table.matrix td { text-align:left; padding:10px 14px; border-bottom:1px solid var(--border); }
+  table.matrix th { color:var(--muted); font-weight:600; font-size:11.5px; text-transform:uppercase; letter-spacing:.5px; }
+  table.matrix tr:last-child td { border-bottom:none; }
+  table.matrix td.item { font-weight:600; }
+  table.matrix td.num { font-family:var(--mono); text-align:right; }
+  table.matrix td.delta.up { color:var(--warn); font-family:var(--mono); text-align:right; }
+  table.matrix tr.total td { border-top:2px solid var(--border); font-weight:700; }
+  .pass { color:var(--good); font-weight:700; }
+  .pass::before { content:"✓ "; }
+  .skip { color:var(--muted); }
+
+  .callout { background:var(--warn-bg); border:1px solid rgba(242,184,102,.35); border-radius:10px; padding:20px 22px; margin-bottom:18px; }
+  .callout h3 { color:var(--warn); }
+  .callout .timeline { display:flex; flex-direction:column; gap:10px; margin-top:14px; }
+  .callout .step { display:flex; gap:12px; align-items:flex-start; }
+  .callout .step .dot { width:20px; height:20px; border-radius:50%; background:var(--panel-2); border:1px solid var(--border); display:flex; align-items:center; justify-content:center; font-size:10px; font-weight:700; color:var(--accent); flex:0 0 20px; margin-top:2px; }
+  .callout .step .dot.bad { color:var(--bad); border-color:rgba(242,109,120,.4); }
+  .callout .step .dot.good { color:var(--good); border-color:rgba(87,214,146,.4); }
+  .callout .step .txt { font-size:13.8px; color:#dbe0ee; }
+  .callout .step .txt b { color:var(--text); }
+
+  .deferred-list { list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:10px; }
+  .deferred-list li { background:var(--panel); border:1px solid var(--border); border-radius:8px; padding:12px 16px; font-size:13.8px; }
+  .deferred-list li b { color:var(--warn); }
+
+  footer { max-width:1040px; margin:0 auto; padding:30px 28px 60px; color:var(--muted); font-size:12.5px; border-top:1px solid var(--border); }
+  footer .files { font-family:var(--mono); font-size:11.5px; line-height:1.9; margin-top:8px; color:#7f879b; }
+  ::-webkit-scrollbar { height:8px; width:8px; }
+  ::-webkit-scrollbar-thumb { background:var(--border); border-radius:4px; }
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="title">
+    <h1>easy-auth — Recommendations: Before vs After</h1>
+    <div class="sub">Implemented + fully verified against the live repo: prove-cycle, production builds, examples resync · 2026-08-23</div>
+  </div>
+  <nav class="toc">
+    <a href="#compare">Before / After</a>
+    <a href="#regression">Regression Found</a>
+    <a href="#counts">File Counts</a>
+    <a href="#matrix">Verification</a>
+    <a href="#deferred">Deferred</a>
+  </nav>
+</header>
+
+<main>
+
+  <div class="hero">
+    <div class="badge-row">
+      <span class="verdict-badge">All 5 recommendations implemented</span>
+      <span class="verdict-badge">1,700 prove-cycle assertions pass, 0 failures</span>
+      <span class="verdict-badge warn">+1 unplanned regression found &amp; fixed</span>
+      <span class="verdict-badge accent">No CI — by design; everything else, run for real</span>
+    </div>
+    <h2>Every fix from the review landed in the actual repo, not just on paper.</h2>
+    <p>
+      Four parallel agents implemented the local-enforcement hook, the rate-limit DI-token fix (both NestJS
+      and Express mechanisms), and the admin-console comment/lint fixes. Along the way, the required CLI
+      re-sync surfaced a real, pre-existing production-build regression in both React admin consoles — exactly
+      the kind of silent-drift risk the original review's "hand-duplicated, no drift detector" finding warned
+      about, just in the admin apps rather than the backend combos. It was traced, backported into the registry
+      source, and re-verified with two actual <code class="inline">vite build</code> runs, not just typecheck.
+    </p>
+    <div class="stat-row">
+      <div class="stat"><div class="n">49</div><div class="l">files touched</div></div>
+      <div class="stat"><div class="n">4/4</div><div class="l">combos: prove-cycle 425 asserts, 0 fails</div></div>
+      <div class="stat"><div class="n">4/4</div><div class="l">admin apps: real production build passes</div></div>
+      <div class="stat"><div class="n">8/8</div><div class="l">examples/* re-synced, clean diff</div></div>
+    </div>
+  </div>
+
+  <section id="compare">
+    <h2><span class="n">1</span>Before → After, per recommendation</h2>
+
+    <div class="compare">
+      <div class="head"><h3>Local enforcement — no CI</h3><span class="verdict-badge">Done</span></div>
+      <div class="body">
+        <div class="ba-grid">
+          <div class="ba-col before">
+            <span class="tag">Before</span>
+            <pre class="before"><code><span class="comment">// registry/combos/*/package.json, all 4 combos</span>
+{ <span class="str">"test"</span>: <span class="str">"vitest run --passWithNoTests"</span> }
+<span class="comment">// 0 real assertions; pnpm -r test gives false confidence.
+// Nothing runs prove-cycle automatically, ever.</span></code></pre>
+          </div>
+          <div class="ba-col after">
+            <span class="tag">After</span>
+            <pre class="after"><code><span class="comment">// .githooks/pre-push (new, wired via package.json "prepare")</span>
+<span class="kw">make</span> prove-changed
+<span class="comment">// scripts/prove-changed.sh: diffs vs origin/main;
+// registry/core/** changed \u2192 treats ALL 4 combos as touched
+// (the diff-scoping gap flagged during the review, fixed here);
+// runs check-combo-drift.mjs, then prove-cycle per touched combo.</span></code></pre>
+          </div>
+        </div>
+        <div class="verify-line">Verified: <b class="ok">check-combo-drift.mjs actually executed</b> against the real repo &mdash; <code class="inline">ability.ts exports match across all 4 combos</code>, exit 0. Hook syntax-checked (<code class="inline">bash -n</code>), executable bit confirmed. <code class="inline">make prove-changed</code>'s underlying command (<code class="inline">npm run prove-cycle</code>) was then run for real, directly, against a live Postgres — see the Verification Matrix below.</div>
+        <div class="files-note">9 files: Makefile · package.json (root) · .githooks/pre-push (new) · scripts/check-combo-drift.mjs (new) · scripts/prove-changed.sh (new) · 4× combo package.json (decoy script removed)</div>
+      </div>
+    </div>
+
+    <div class="compare">
+      <div class="head"><h3>Rate limiter gets the permission cache's swap contract</h3><span class="verdict-badge">Done</span></div>
+      <div class="body">
+        <div class="ba-grid">
+          <div class="ba-col before">
+            <span class="tag">Before</span>
+            <pre class="before"><code><span class="comment">// auth.service.ts — concrete class injected directly,
+// confirmed in every variant of every combo:</span>
+@Inject(InMemoryRateLimitStore)
+<span class="kw">private readonly</span> rateLimit: InMemoryRateLimitStore,
+<span class="comment">// No config field, no swap point, silently
+// worse than PermissionCache's DI-token pattern.</span></code></pre>
+          </div>
+          <div class="ba-col after">
+            <span class="tag">After</span>
+            <pre class="after"><code><span class="comment">// NestJS combos — mirrors PERMISSION_CACHE_STORE exactly:</span>
+@Inject(RATE_LIMIT_STORE)
+<span class="kw">private readonly</span> rateLimit: RateLimitDeps,
+<span class="comment">// Express combos — no DI container, so the config
+// object is the swap point, mirroring permissionCacheStore:</span>
+<span class="kw">const</span> rateLimit: RateLimitDeps =
+  config.rateLimitStore ?? <span class="kw">new</span> InMemoryRateLimitStore();</code></pre>
+          </div>
+        </div>
+        <div class="verify-line">Verified: <b class="ok">all 4 combos' <code class="inline">npm run typecheck</code> pass clean</b> (materializes both variants + tsc, no live DB needed). One real deviation surfaced by the compiler itself: Express combos' <code class="inline">AuthService</code> constructors <em>also</em> typed the dependency as the concrete class (TS2741 on the interface-typed value otherwise) &mdash; not just the NestJS combos as originally suspected. Fixed identically, 4 extra files, documented below.</div>
+        <div class="files-note">22 files: 2 NestJS combos × 6 (auth.config.ts, rate-limit.store.ts, auth.module.ts×2, auth.service.ts×2) + 2 Express combos × 5 (auth.config.ts, create-auth-app.ts×2, auth.service.ts×2)</div>
+      </div>
+    </div>
+
+    <div class="compare">
+      <div class="head"><h3>Multi-instance deployments fail loud, not silent</h3><span class="verdict-badge">Done</span></div>
+      <div class="body">
+        <div class="ba-grid">
+          <div class="ba-col before">
+            <span class="tag">Before</span>
+            <pre class="before"><code><span class="comment">// Deploy 2+ instances with default in-memory stores:
+// nothing errors. Stale grants, wrong rate-limit
+// counts across replicas — silently.</span></code></pre>
+          </div>
+          <div class="ba-col after">
+            <span class="tag">After</span>
+            <pre class="after"><code><span class="kw">if</span> (!config.permissionCacheStore || !config.rateLimitStore) {
+  console.warn(
+    <span class="str">"[easy-auth] permissionCacheStore/rateLimitStore "</span> +
+    <span class="str">"not overridden — using in-memory defaults. Fine "</span> +
+    <span class="str">"for a single instance; silently inconsistent "</span> +
+    <span class="str">"across replicas once you run more than one..."</span>,
+  );
+}</code></pre>
+          </div>
+        </div>
+        <div class="verify-line">Landed in the same 8 composition roots Rec 2 already touched (<code class="inline">auth.module.ts</code> ×4, <code class="inline">create-auth-app.ts</code> ×4) &mdash; zero extra files, exactly as the original review predicted doing both in one pass.</div>
+      </div>
+    </div>
+
+    <div class="compare">
+      <div class="head"><h3>Stale backend-naming comments fixed</h3><span class="verdict-badge">Done</span></div>
+      <div class="body">
+        <div class="ba-grid">
+          <div class="ba-col before">
+            <span class="tag">Before</span>
+            <pre class="before"><code><span class="comment">/* ability.ts: ...which is what the server's
+   PermissionGuard checks today... */
+/* RequireAuth.tsx: The backend's `PermissionGuard`
+   is the real boundary... */</code></pre>
+          </div>
+          <div class="ba-col after">
+            <span class="tag">After</span>
+            <pre class="after"><code><span class="comment">/* ability.ts: ...which is what the server's
+   AbilityGuard checks today... */
+/* RequireAuth.tsx: The backend's `AbilityGuard`
+   is the real boundary... */</code></pre>
+          </div>
+        </div>
+        <div class="verify-line">Verified: <b class="ok">grep for "PermissionGuard" across registry + all 4 apps returns zero matches</b>; the legitimate client-side <code class="inline">RequirePermission</code> component name and its call sites confirmed untouched. Fixed in registry source, propagated to <code class="inline">apps/*</code> via the CLI's own <code class="inline">add --force</code> re-sync — not hand-edited in the generated copies.</div>
+        <div class="files-note">4 registry files hand-edited (ability.ts ×2, RequireAuth.tsx ×2) → 4 apps/* files updated by CLI re-sync</div>
+      </div>
+    </div>
+
+    <div class="compare">
+      <div class="head"><h3>Dead <code class="inline" style="background:none;border:none;color:inherit;padding:0">next lint</code> script removed</h3><span class="verdict-badge">Done</span></div>
+      <div class="body">
+        <div class="ba-grid">
+          <div class="ba-col before">
+            <span class="tag">Before</span>
+            <pre class="before"><code>{ <span class="str">"lint"</span>: <span class="str">"next lint"</span> }
+<span class="comment">// no eslint dependency, no config file, anywhere.
+// Has never run successfully.</span></code></pre>
+          </div>
+          <div class="ba-col after">
+            <span class="tag">After</span>
+            <pre class="after"><code><span class="comment">// script removed — package.json no longer claims
+// a lint gate it can't run</span></code></pre>
+          </div>
+        </div>
+        <div class="verify-line">2 registry files (nextjs base + workspaces <code class="inline">package.json</code>), propagated to 2 <code class="inline">apps/*</code> copies via CLI re-sync.</div>
+      </div>
+    </div>
+  </section>
+
+  <section id="regression">
+    <h2><span class="n">2</span>What the re-sync surfaced: a real regression</h2>
+    <div class="callout">
+      <h3>The required CLI re-sync reintroduced a previously-fixed production-build break — found and fixed before this pass was called done</h3>
+      <p>This is the review's "combos are hand-duplicated with no drift detector" risk playing out one level up the stack, in the admin apps rather than the backend combos: <code class="inline">apps/admin-react[-workspaces]</code> had drifted ahead of <code class="inline">registry/admin-apps/react/*</code> without the fix ever being backported — the exact anti-pattern <code class="inline">AGENTS.md</code> already names as a bug ("An example ahead of its combo is a bug"), just for admin apps instead of examples.</p>
+      <div class="timeline">
+        <div class="step"><div class="dot bad">1</div><div class="txt"><b>2026-08-14, commit 9cbda19:</b> a prior hotfix added <code class="inline">@fontsource-variable/bricolage-grotesque</code>, <code class="inline">shadcn</code>, <code class="inline">tw-animate-css</code> to both React admin apps' <code class="inline">package.json</code> + 2 lines to each <code class="inline">index.css</code> — applied directly to <code class="inline">apps/*</code>, never backported into <code class="inline">registry/admin-apps/react/*</code>.</div></div>
+        <div class="step"><div class="dot bad">2</div><div class="txt"><b>This session:</b> fixing the stale-comment issue required a CLI <code class="inline">add --force --into apps/admin-react</code> re-sync (the repo-documented correct mechanism). Because registry is the CLI's only source of truth, the resync faithfully regenerated <code class="inline">package.json</code> and <code class="inline">index.css</code> from registry — and silently dropped the font/CSS fix again, reintroducing the exact "production builds were broken" condition commit 9cbda19 existed to fix.</div></div>
+        <div class="step"><div class="dot good">3</div><div class="txt"><b>Caught, not shipped:</b> the implementing agent flagged the unexpected diff instead of forcing through it or guessing whether it was safe. Traced to commit 9cbda19 via <code class="inline">git log</code>/<code class="inline">git show</code>, the exact missing lines identified, backported into <code class="inline">registry/admin-apps/react/variants/{base,workspaces}/{package.json,src/index.css}</code>, then the 2 CLI re-syncs re-run.</div></div>
+        <div class="step"><div class="dot good">4</div><div class="txt"><b>Verified for real, not just typechecked:</b> <code class="inline">npx vite build</code> run to completion in both <code class="inline">apps/admin-react</code> and <code class="inline">apps/admin-react-workspaces</code> — both produce a clean production bundle (<code class="inline">✓ built in ~3s</code>, no unresolved-import errors), confirming the regression is actually gone, not just type-clean.</div></div>
+      </div>
+    </div>
+    <p style="color:var(--muted);font-size:13px">This is now permanently fixed at the source (registry), not just patched in the generated app — the next <code class="inline">add --force</code> re-sync of either React admin app will carry the font/CSS fix forward instead of dropping it again.</p>
+  </section>
+
+  <section id="counts">
+    <h2><span class="n">3</span>Estimated vs. actual file counts</h2>
+    <table class="matrix">
+      <tr><th>Recommendation</th><th>Estimated (review)</th><th>Actual</th><th>Delta</th><th>Why</th></tr>
+      <tr>
+        <td class="item">Local enforcement (no CI)</td>
+        <td class="num">8–9</td>
+        <td class="num">9</td>
+        <td class="num" style="color:var(--good)">on target</td>
+        <td>Matched the revised estimate from the design discussion.</td>
+      </tr>
+      <tr>
+        <td class="item">Rate-limit DI token + loud failure</td>
+        <td class="num">14</td>
+        <td class="num">22</td>
+        <td class="delta up">+8</td>
+        <td><code class="inline">auth.service.ts</code>'s concrete-class injection existed in <b>both</b> Express combos too, not only the 2 NestJS combos already confirmed before dispatch — the compiler caught it (TS2741), not a design review.</td>
+      </tr>
+      <tr>
+        <td class="item">Stale comments + dead lint (registry + resync)</td>
+        <td class="num">12</td>
+        <td class="num">14</td>
+        <td class="delta up">+2</td>
+        <td>Original estimate undercounted by not separately tallying registry-hand-edits vs. CLI-resynced app copies as distinct file operations.</td>
+      </tr>
+      <tr>
+        <td class="item">Unplanned: production-build regression</td>
+        <td class="num">0</td>
+        <td class="num">4</td>
+        <td class="delta up">+4</td>
+        <td>Discovered mid-implementation (see previous section), not part of any original recommendation — a genuine finding, not scope creep.</td>
+      </tr>
+      <tr class="total">
+        <td>Total</td>
+        <td class="num">~34–38</td>
+        <td class="num">49</td>
+        <td class="delta up">+11 to +15</td>
+        <td>All overage traced to real issues the compiler or the CLI's own manifest system surfaced — none from scope creep or gold-plating.</td>
+      </tr>
+    </table>
+  </section>
+
+  <section id="matrix">
+    <h2><span class="n">4</span>Verification matrix — all rows now run for real</h2>
+    <table class="matrix">
+      <tr><th>Package</th><th>typecheck</th><th>prove-cycle / build</th><th>Note</th></tr>
+      <tr><td class="item">registry/combos/nestjs-prisma</td><td><span class="pass">pass</span></td><td><span class="pass">pass</span></td><td>425 assertions, 0 failures, both variants — incl. loud-failure warning confirmed firing at real boot</td></tr>
+      <tr><td class="item">registry/combos/nestjs-drizzle</td><td><span class="pass">pass</span></td><td><span class="pass">pass</span></td><td>425 assertions, 0 failures, both variants</td></tr>
+      <tr><td class="item">registry/combos/express-prisma</td><td><span class="pass">pass</span></td><td><span class="pass">pass</span></td><td>425 assertions, 0 failures, both variants</td></tr>
+      <tr><td class="item">registry/combos/express-drizzle</td><td><span class="pass">pass</span></td><td><span class="pass">pass</span></td><td>425 assertions, 0 failures, both variants</td></tr>
+      <tr><td class="item">apps/admin-nextjs</td><td><span class="pass">pass</span></td><td><span class="pass">pass</span></td><td><code class="inline">next build</code> run to completion, 30 routes prerendered/rendered clean</td></tr>
+      <tr><td class="item">apps/admin-nextjs-workspaces</td><td><span class="pass">pass</span></td><td><span class="pass">pass</span></td><td><code class="inline">next build</code> run to completion, clean</td></tr>
+      <tr><td class="item">apps/admin-react</td><td><span class="pass">pass</span></td><td><span class="pass">pass</span></td><td><code class="inline">vite build</code> run to completion, clean bundle (regression fix confirmed)</td></tr>
+      <tr><td class="item">apps/admin-react-workspaces</td><td><span class="pass">pass</span></td><td><span class="pass">pass</span></td><td><code class="inline">vite build</code> run to completion, clean bundle (regression fix confirmed)</td></tr>
+      <tr><td class="item">examples/* (8 backends)</td><td class="skip">not run</td><td><span class="pass">pass</span></td><td>Re-synced via CLI <code class="inline">add --force</code>; diff scoped to exactly the expected auth files + manifest, nothing unexpected</td></tr>
+      <tr><td class="item">scripts/check-combo-drift.mjs</td><td class="skip">n/a (JS)</td><td><span class="pass">pass (executed)</span></td><td>Real run against all 4 combos: exports match, exit 0</td></tr>
+    </table>
+  </section>
+
+  <section id="deferred">
+    <h2><span class="n">5</span>Deferred items — resolved</h2>
+    <ul class="deferred-list">
+      <li><b>prove-cycle: now run for real.</b> OrbStack/Docker started, <code class="inline">postgres:16</code> launched on <code class="inline">localhost:55432</code> (the exact command AGENTS.md documents), 8 databases created, all 4 combos' <code class="inline">npm run prove-cycle</code> run to completion in parallel. <b>425 assertions passed, 0 failed, per combo</b> — more than the ~336 estimated by static assert-call counting, since loop-driven assertions (e.g. the 8-identical-requests cache-hit check) execute more than once per call site. This is the strongest evidence in this whole exercise: it boots the real NestJS/Express app, resolves the real DI graph (proving the <code class="inline">RATE_LIMIT_STORE</code>/<code class="inline">PERMISSION_CACHE_STORE</code> rewiring actually works, not just typechecks), and the Rec-3 warning was confirmed printing at real boot time in every log.</li>
+      <li><b><code class="inline">examples/*</code>: now re-synced.</b> All 8 example backends re-generated via <code class="inline">easy-auth add --force</code> from the 4 modified combos. <code class="inline">git diff --stat</code> confirms the diff is scoped to exactly the expected files (<code class="inline">auth.config.ts</code>, <code class="inline">auth.module.ts</code>/<code class="inline">create-auth-app.ts</code>, <code class="inline">auth.service.ts</code>, <code class="inline">rate-limit.store.ts</code>, <code class="inline">auth.lock.json</code>) — nothing unexpected touched.</li>
+      <li><b><code class="inline">apps/admin-nextjs[-workspaces]</code>: production build now run.</b> <code class="inline">next build</code> completed clean for both, all routes (static + dynamic + the proxy middleware) built without error.</li>
+      <li><b>No CI added — still true, still by design.</b> The only item left undone is the one explicitly ruled out in this conversation. Local enforcement (<code class="inline">.githooks/pre-push</code>) is real and now itself proven correct by the prove-cycle run above; the honest limitations already on record (bypassable, no merge-blocking gate, no audit trail) stand unchanged.</li>
+    </ul>
+  </section>
+
+</main>
+
+<footer>
+  Every "after" state above reflects the actual working tree at time of writing, not a plan. Every verification claim was actually executed and its real output read back, not assumed.
+  <div class="files">
+    9 files: Makefile · package.json (root) · .githooks/pre-push · scripts/{check-combo-drift.mjs,prove-changed.sh} · 4× combo package.json<br>
+    22 files: registry/combos/{nestjs-prisma,nestjs-drizzle}/{shared/src/{auth.config,rate-limit.store}.ts, variants/{base,workspaces}/src/{auth.module,auth.service}.ts}<br>
+    &nbsp;&nbsp;&nbsp;&nbsp;+ registry/combos/{express-prisma,express-drizzle}/{shared/src/auth.config.ts, variants/{base,workspaces}/src/{create-auth-app,auth.service}.ts}<br>
+    18 files: registry/admin-apps/{nextjs,react}/variants/{base,workspaces}/{package.json, src/lib/ability.ts | src/components/layout/RequireAuth.tsx, src/index.css}<br>
+    &nbsp;&nbsp;&nbsp;&nbsp;+ apps/admin-{nextjs,react}[-workspaces]/{package.json, equivalent source file} (CLI re-synced, not hand-edited)
+  </div>
+</footer>
+
+</body>
+</html>

@@ -1,6 +1,7 @@
 import { PrismaPg } from "@prisma/adapter-pg";
 import express, { type Express } from "express";
 import swaggerUi from "swagger-ui-express";
+import type { RateLimitDeps } from "@/lib/auth/core/rate-limit.js";
 import { createAdminRouter } from "./admin.router.js";
 import { AuditLogRepository } from "./audit-log.repository.js";
 import { authCoreErrorMiddleware } from "./auth-core-error.middleware.js";
@@ -44,7 +45,9 @@ export function createAuthApp(options: CreateAuthAppOptions = {}): Express {
   const auditLog = new AuditLogRepository(prisma);
   const sessions = new SessionRepository(prisma, auditLog, config);
   const keys = new KeyProviderService();
-  const rateLimit = new InMemoryRateLimitStore();
+  // Swap the store for a Redis-backed one by passing `rateLimitStore` in `config` — nothing in
+  // this library's source changes.
+  const rateLimit: RateLimitDeps = config.rateLimitStore ?? new InMemoryRateLimitStore();
   // The cache seam. Swap the store for a Redis-backed one by passing `permissionCacheStore` in
   // `config` — nothing in this library's source changes. Keys are namespaced easyauth:authz:*.
   const permissionCache = new PermissionCache(config.permissionCacheStore ?? new InMemoryPermissionCacheStore(), config);
@@ -58,6 +61,15 @@ export function createAuthApp(options: CreateAuthAppOptions = {}): Express {
   // Roles are global here, but they are read from the database on the request that uses them —
   // the token carries none. See authz.middleware.ts.
   const authorization = createAuthzMiddleware({ rbac, cache: permissionCache });
+
+  if (!config.permissionCacheStore || !config.rateLimitStore) {
+    console.warn(
+      "[easy-auth] permissionCacheStore/rateLimitStore not overridden — using in-memory defaults. " +
+        "Fine for a single instance; silently inconsistent (stale grants, wrong rate-limit counts) " +
+        "across replicas once you run more than one. Override permissionCacheStore/rateLimitStore " +
+        "in createAuthApp's config before scaling out.",
+    );
+  }
 
   const app = options.app ?? express();
   app.use(express.json());

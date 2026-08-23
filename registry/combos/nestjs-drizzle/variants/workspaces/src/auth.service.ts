@@ -13,7 +13,7 @@ import {
   verifyIdTokenAndExtractProfile,
 } from "@/lib/auth/core/oauth.js";
 import { requestPasswordReset as coreRequestPasswordReset, resetPassword as coreResetPassword } from "@/lib/auth/core/password-reset.js";
-import { checkRateLimit } from "@/lib/auth/core/rate-limit.js";
+import { checkRateLimit, type RateLimitDeps } from "@/lib/auth/core/rate-limit.js";
 import {
   blockUser,
   createSession,
@@ -33,7 +33,7 @@ import { DRIZZLE_DB, type Database } from "./db.js";
 import { KeyProviderService } from "./key-provider.js";
 import { OAuthRepository } from "./oauth.repository.js";
 import { PasswordResetRepository } from "./password-reset.repository.js";
-import { InMemoryRateLimitStore } from "./rate-limit.store.js";
+import { RATE_LIMIT_STORE } from "./rate-limit.store.js";
 import type { Revoker } from "@/lib/auth/core/types.js";
 import type { AuthzContext } from "./authz.guard.js";
 import { MemberListFilter, MemberListResult, MemberSummary, PermissionInput, PermissionSummary, RbacRepository, RoleSummary, toMemberSummary } from "./rbac.repository.js";
@@ -72,7 +72,7 @@ export class AuthService {
     @Inject(DRIZZLE_DB) private readonly db: Database,
     @Inject(SessionRepository) private readonly sessions: SessionRepository,
     @Inject(KeyProviderService) private readonly keys: KeyProviderService,
-    @Inject(InMemoryRateLimitStore) private readonly rateLimit: InMemoryRateLimitStore,
+    @Inject(RATE_LIMIT_STORE) private readonly rateLimit: RateLimitDeps,
     @Inject(AuditLogRepository) private readonly auditLog: AuditLogRepository,
     @Inject(RbacRepository) private readonly rbac: RbacRepository,
     @Inject(TwoFactorRepository) private readonly twoFactor: TwoFactorRepository,

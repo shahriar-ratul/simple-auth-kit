@@ -1,18 +1,23 @@
 import { type FormEvent, useCallback, useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import type { DefinePermissionInput, PermissionSummary } from "@easy-auth/auth-client";
 import { AuthApiError } from "@easy-auth/auth-client";
+import { EyeIcon, PowerIcon } from "lucide-react";
+import { toast } from "sonner";
 import { PERMISSIONS, useAbility } from "@/lib/ability";
 import { authClient } from "@/lib/auth-client";
+import { cn } from "@/lib/cn";
+import { AlertModal } from "@/components/alert-modal";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Modal } from "@/components/ui/modal";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
 /** One dialog serves both create (slug editable) and edit (slug fixed) — `definePermission` upserts on slug. */
-type DialogState = { mode: "create" } | { mode: "edit"; permission: PermissionSummary };
+export type DialogState = { mode: "create" } | { mode: "edit"; permission: PermissionSummary };
 
 interface PermissionGroup {
   name: string;
@@ -45,6 +50,9 @@ export function PermissionsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [dialogState, setDialogState] = useState<DialogState | null>(null);
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [pendingPermission, setPendingPermission] = useState<PermissionSummary | null>(null);
+  const [pendingBusy, setPendingBusy] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -62,6 +70,27 @@ export function PermissionsPage() {
     void load();
   }, [load]);
 
+  function openStatusConfirm(permission: PermissionSummary) {
+    setPendingPermission(permission);
+    setConfirmOpen(true);
+  }
+
+  async function confirmPendingAction() {
+    if (!pendingPermission) return;
+    setPendingBusy(true);
+    try {
+      const updated = await authClient.definePermission({ slug: pendingPermission.slug, isActive: !pendingPermission.isActive });
+      setPermissions((prev) => prev.map((p) => (p.id === updated.id ? updated : p)));
+      toast.success(pendingPermission.isActive ? "Permission deactivated." : "Permission activated.");
+      setConfirmOpen(false);
+      setPendingPermission(null);
+    } catch (err) {
+      toast.error(err instanceof AuthApiError ? err.message : "Couldn't change this permission's status. Try again.");
+    } finally {
+      setPendingBusy(false);
+    }
+  }
+
   const groups = groupPermissions(permissions);
 
   return (
@@ -73,6 +102,18 @@ export function PermissionsPage() {
         </div>
         {canDefine ? <Button onClick={() => setDialogState({ mode: "create" })}>New permission</Button> : null}
       </div>
+
+      <AlertModal
+        isOpen={confirmOpen}
+        onClose={() => setConfirmOpen(false)}
+        onConfirm={confirmPendingAction}
+        loading={pendingBusy}
+        description={
+          pendingPermission?.isActive
+            ? "This deactivates the permission — every ability that carries it stops granting immediately."
+            : "This reactivates the permission, effective immediately."
+        }
+      />
 
       <Card>
         <CardContent className="pt-6">
@@ -93,7 +134,7 @@ export function PermissionsPage() {
                         <TableHead>Display name</TableHead>
                         <TableHead>Description</TableHead>
                         <TableHead>Status</TableHead>
-                        {canDefine ? <TableHead className="text-right">Actions</TableHead> : null}
+                        <TableHead className="text-right">Actions</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -107,13 +148,32 @@ export function PermissionsPage() {
                           <TableCell>
                             <Badge variant={permission.isActive ? "success" : "destructive"}>{permission.isActive ? "Active" : "Inactive"}</Badge>
                           </TableCell>
-                          {canDefine ? (
-                            <TableCell className="text-right">
-                              <Button size="sm" variant="outline" onClick={() => setDialogState({ mode: "edit", permission })}>
-                                Edit
-                              </Button>
-                            </TableCell>
-                          ) : null}
+                          <TableCell className="text-right">
+                            <div className="flex justify-end gap-2">
+                              <Link
+                                to={`/permissions/${permission.id}`}
+                                className={cn(buttonVariants({ variant: "outline", size: "icon" }))}
+                                title="View details"
+                              >
+                                <EyeIcon />
+                              </Link>
+                              {canDefine ? (
+                                <>
+                                  <Button
+                                    size="icon"
+                                    variant="outline"
+                                    title={permission.isActive ? "Deactivate this permission" : "Activate this permission"}
+                                    onClick={() => openStatusConfirm(permission)}
+                                  >
+                                    <PowerIcon />
+                                  </Button>
+                                  <Button size="sm" variant="outline" onClick={() => setDialogState({ mode: "edit", permission })}>
+                                    Edit
+                                  </Button>
+                                </>
+                              ) : null}
+                            </div>
+                          </TableCell>
                         </TableRow>
                       ))}
                     </TableBody>
@@ -143,7 +203,7 @@ export function PermissionsPage() {
   );
 }
 
-function DefinePermissionDialog({
+export function DefinePermissionDialog({
   state,
   onClose,
   onSaved,

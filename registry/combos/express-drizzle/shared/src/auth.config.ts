@@ -1,3 +1,4 @@
+import type { RateLimitDeps } from "@/lib/auth/core/rate-limit.js";
 import type { PermissionCacheStore } from "./permission-cache.js";
 
 export interface GoogleOAuthCredentials {
@@ -43,6 +44,11 @@ export interface AuthConfig {
    * Keys are namespaced `easyauth:authz:*`.
    */
   permissionCacheStore?: PermissionCacheStore;
+  /**
+   * Where rate-limit counters live. Defaults to an in-process `Map`, which is correct for a
+   * single instance; pass a Redis-backed implementation of `RateLimitDeps` for several.
+   */
+  rateLimitStore?: RateLimitDeps;
   /** Wire your own mailer here — if unset, requestPasswordReset() just returns the token without emailing it. */
   sendPasswordResetEmail?: (email: string, token: string) => Promise<void>;
 }

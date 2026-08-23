@@ -12,7 +12,7 @@ import {
   verifyIdTokenAndExtractProfile,
 } from "@/lib/auth/core/oauth.js";
 import { requestPasswordReset as coreRequestPasswordReset, resetPassword as coreResetPassword } from "@/lib/auth/core/password-reset.js";
-import { checkRateLimit } from "@/lib/auth/core/rate-limit.js";
+import { checkRateLimit, type RateLimitDeps } from "@/lib/auth/core/rate-limit.js";
 import {
   blockUser,
   createSession,
@@ -33,7 +33,6 @@ import type { Database } from "./db.js";
 import { KeyProviderService } from "./key-provider.js";
 import { OAuthRepository } from "./oauth.repository.js";
 import { PasswordResetRepository } from "./password-reset.repository.js";
-import { InMemoryRateLimitStore } from "./rate-limit.store.js";
 import type { Revoker } from "@/lib/auth/core/types.js";
 import { PermissionInput, PermissionSummary, RbacRepository, RoleSummary, toUserSummary, UserListFilter, UserListResult, UserSummary } from "./rbac.repository.js";
 import { sessions, users } from "./schema.js";
@@ -73,7 +72,7 @@ export class AuthService {
     private readonly db: Database,
     private readonly sessions: SessionRepository,
     private readonly keys: KeyProviderService,
-    private readonly rateLimit: InMemoryRateLimitStore,
+    private readonly rateLimit: RateLimitDeps,
     private readonly auditLog: AuditLogRepository,
     private readonly rbac: RbacRepository,
     private readonly twoFactor: TwoFactorRepository,

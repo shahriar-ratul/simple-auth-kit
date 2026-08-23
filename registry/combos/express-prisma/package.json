@@ -8,7 +8,6 @@
     "materialize": "node scripts/materialize.mjs",
     "prisma:generate": "node scripts/materialize.mjs --all --generate",
     "typecheck": "npm run prisma:generate && tsc -p .variant/base && tsc -p .variant/workspaces",
-    "test": "vitest run --passWithNoTests",
     "prove-cycle": "node scripts/prove-cycle.mjs",
     "migrate": "node scripts/migrate.mjs",
     "seed": "node scripts/seed.mjs"

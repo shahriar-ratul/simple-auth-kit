@@ -25,7 +25,7 @@ import type { CurrentUser } from "@easy-auth/auth-client";
  * `hasPermission` and every call site below it keep working unchanged, because they already
  * phrase the question as "can I do this", not "is this string in that array". Until the field
  * exists we build the same shape of ability out of `permissions`, which is what the server's
- * PermissionGuard checks today — so the two cannot disagree.
+ * AbilityGuard checks today — so the two cannot disagree.
  */
 
 /** Permission keys are atomic capability flags, not action/subject pairs — see `PERMISSIONS`. */
@@ -34,7 +34,7 @@ export type AppAbility = Ability<string>;
 /**
  * The workspace backend's permission catalog (`rbac.defaults.ts`), mirrored here so a screen
  * names a capability rather than spelling a string. These are exactly the keys the server's
- * `@RequirePermission` decorators demand: hiding a control on one of them and getting a 403 from
+ * `@CheckAbility` decorators demand: hiding a control on one of them and getting a 403 from
  * the matching route are the same fact, reported twice.
  *
  * `membersManage` is the one key the plain backend has no equivalent for — adding and removing

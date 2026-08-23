@@ -114,7 +114,7 @@ export default function EditPermissionPage() {
       <Breadcrumb
         items={[
           { title: "Permissions", href: "/permissions" },
-          { title: editing?.slug ?? "Details", href: `/permissions/${id}/edit` },
+          { title: editing?.slug ?? "Details", href: `/permissions/${id}` },
           { title: "Edit", href: `/permissions/${id}/edit` },
         ]}
       />

@@ -5,7 +5,7 @@ import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { observer } from "mobx-react-lite";
 import { useDebounce } from "use-debounce";
 import { format } from "date-fns";
-import { ChevronDownIcon, EyeIcon, PencilIcon, PlusIcon, Trash2Icon } from "lucide-react";
+import { ChevronDownIcon, EyeIcon, PencilIcon, PlusIcon, PowerIcon, Trash2Icon } from "lucide-react";
 import { AuthApiError, type LanguageSummary } from "@easy-auth/auth-client";
 import { toast } from "sonner";
 import { PERMISSIONS, useAbility } from "@/lib/ability";
@@ -203,6 +203,20 @@ export const LanguagesPage = observer(function LanguagesPage() {
                   </Link>
                 </TooltipTrigger>
                 <TooltipContent>{canManage ? "Edit language" : `You need the "${PERMISSIONS.languagesManage}" permission to do this.`}</TooltipContent>
+              </Tooltip>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button size="icon" variant="outline" disabled={!canStatus} onClick={() => openStatusConfirm(language)}>
+                    <PowerIcon />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  {canStatus
+                    ? language.isActive
+                      ? "Deactivate this language"
+                      : "Activate this language"
+                    : `You need the "${PERMISSIONS.languagesStatus}" permission to do this.`}
+                </TooltipContent>
               </Tooltip>
               <Tooltip>
                 <TooltipTrigger asChild>

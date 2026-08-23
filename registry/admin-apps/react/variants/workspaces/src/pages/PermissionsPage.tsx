@@ -2,11 +2,15 @@ import { type FormEvent, useCallback, useEffect, useMemo, useState } from "react
 import type { PermissionSummary } from "@easy-auth/auth-client";
 import { AuthApiError } from "@easy-auth/auth-client";
 import { observer } from "mobx-react-lite";
+import { Link } from "react-router-dom";
+import { EyeIcon, PowerIcon } from "lucide-react";
 import { PERMISSIONS, useAbility } from "@/lib/ability";
 import { authClient } from "@/lib/auth-client";
 import { useWorkspaceStore } from "@/stores/store-context";
+import { AlertModal } from "@/components/alert-modal";
+import { cn } from "@/lib/cn";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -31,6 +35,9 @@ export const PermissionsPage = observer(function PermissionsPage() {
   const [notice, setNotice] = useState<string | null>(null);
   const [editing, setEditing] = useState<PermissionSummary | null>(null);
   const [creating, setCreating] = useState(false);
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [pendingPermission, setPendingPermission] = useState<PermissionSummary | null>(null);
+  const [pendingBusy, setPendingBusy] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -78,6 +85,27 @@ export const PermissionsPage = observer(function PermissionsPage() {
     setCreating(false);
   }
 
+  function openStatusConfirm(permission: PermissionSummary) {
+    setPendingPermission(permission);
+    setConfirmOpen(true);
+  }
+
+  async function confirmPendingAction() {
+    if (!pendingPermission) return;
+    setPendingBusy(true);
+    try {
+      const updated = await authClient.definePermission({ slug: pendingPermission.slug, isActive: !pendingPermission.isActive });
+      setPermissions((prev) => prev.map((p) => (p.id === updated.id ? updated : p)));
+      setNotice(pendingPermission.isActive ? "Permission deactivated." : "Permission activated.");
+      setConfirmOpen(false);
+      setPendingPermission(null);
+    } catch (err) {
+      setError(err instanceof AuthApiError ? err.message : "Couldn't change this permission's status. Try again.");
+    } finally {
+      setPendingBusy(false);
+    }
+  }
+
   return (
     <div className="flex flex-col gap-6">
       <div className="flex items-start justify-between gap-4">
@@ -87,6 +115,18 @@ export const PermissionsPage = observer(function PermissionsPage() {
         </div>
         {canDefine ? <Button onClick={() => setCreating(true)}>New permission</Button> : null}
       </div>
+
+      <AlertModal
+        isOpen={confirmOpen}
+        onClose={() => setConfirmOpen(false)}
+        onConfirm={confirmPendingAction}
+        loading={pendingBusy}
+        description={
+          pendingPermission?.isActive
+            ? "This deactivates the permission — every ability that carries it stops granting immediately."
+            : "This reactivates the permission, effective immediately."
+        }
+      />
 
       <Card>
         <CardContent className="pt-6">
@@ -107,7 +147,7 @@ export const PermissionsPage = observer(function PermissionsPage() {
                         <TableHead>Name</TableHead>
                         <TableHead>Slug</TableHead>
                         <TableHead>Status</TableHead>
-                        {canDefine ? <TableHead className="text-right">Actions</TableHead> : null}
+                        <TableHead className="text-right">Actions</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -123,13 +163,24 @@ export const PermissionsPage = observer(function PermissionsPage() {
                           <TableCell>
                             <Badge variant={permission.isActive ? "success" : "secondary"}>{permission.isActive ? "Active" : "Inactive"}</Badge>
                           </TableCell>
-                          {canDefine ? (
-                            <TableCell className="text-right">
-                              <Button size="sm" variant="outline" onClick={() => setEditing(permission)}>
-                                Edit
-                              </Button>
-                            </TableCell>
-                          ) : null}
+                          <TableCell className="text-right">
+                            <div className="flex justify-end gap-2">
+                              <Link to={`/permissions/${permission.id}`} className={cn(buttonVariants({ size: "sm", variant: "outline" }))}>
+                                <EyeIcon />
+                                View
+                              </Link>
+                              {canDefine ? (
+                                <>
+                                  <Button size="sm" variant="outline" onClick={() => setEditing(permission)}>
+                                    Edit
+                                  </Button>
+                                  <Button size="icon" variant="outline" onClick={() => openStatusConfirm(permission)}>
+                                    <PowerIcon />
+                                  </Button>
+                                </>
+                              ) : null}
+                            </div>
+                          </TableCell>
                         </TableRow>
                       ))}
                     </TableBody>

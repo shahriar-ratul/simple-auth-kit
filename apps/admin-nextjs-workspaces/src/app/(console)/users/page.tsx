@@ -7,7 +7,7 @@ import { observer } from "mobx-react-lite";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { useDebounce } from "use-debounce";
-import { ChevronDownIcon, EyeIcon, PlusIcon, Trash2Icon } from "lucide-react";
+import { ChevronDownIcon, EyeIcon, PlusIcon, PowerIcon, Trash2Icon } from "lucide-react";
 import { AuthApiError, userIdOf, type RoleSummary, type UserSummary } from "@easy-auth/auth-client";
 import { AlertModal } from "@/components/alert-modal";
 import { Breadcrumb } from "@/components/breadcrumb";
@@ -250,6 +250,14 @@ export default observer(function UsersPage() {
                   </Link>
                 </TooltipTrigger>
                 <TooltipContent>View details</TooltipContent>
+              </Tooltip>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button size="icon" variant="outline" disabled={!canBlock} onClick={() => openStatusConfirm(user)}>
+                    <PowerIcon />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>{canBlock ? (user.isActive ? "Deactivate this user" : "Activate this user") : missingPermissionHint(PERMISSIONS.usersBlock)}</TooltipContent>
               </Tooltip>
               <Tooltip>
                 <TooltipTrigger asChild>

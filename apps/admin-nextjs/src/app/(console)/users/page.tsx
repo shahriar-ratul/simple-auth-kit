@@ -6,7 +6,7 @@ import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { useDebounce } from "use-debounce";
-import { ChevronDownIcon, EyeIcon, PencilIcon, PlusIcon, Trash2Icon } from "lucide-react";
+import { ChevronDownIcon, EyeIcon, PencilIcon, PlusIcon, PowerIcon, Trash2Icon } from "lucide-react";
 import { AuthApiError, userIdOf, type RoleSummary, type UserSummary } from "@easy-auth/auth-client";
 import { AlertModal } from "@/components/alert-modal";
 import { Breadcrumb } from "@/components/breadcrumb";
@@ -259,6 +259,14 @@ export default function UsersPage() {
                   </Button>
                 </TooltipTrigger>
                 <TooltipContent>{canManage ? "Delete user" : missingPermissionHint(PERMISSIONS.usersManage)}</TooltipContent>
+              </Tooltip>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button size="icon" variant="outline" disabled={!canBlock} onClick={() => openStatusConfirm(user)}>
+                    <PowerIcon />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>{canBlock ? (user.isActive ? "Deactivate this user" : "Activate this user") : missingPermissionHint(PERMISSIONS.usersBlock)}</TooltipContent>
               </Tooltip>
               <Tooltip>
                 <TooltipTrigger asChild>

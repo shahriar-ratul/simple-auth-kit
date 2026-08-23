@@ -1,18 +1,28 @@
-# Admin console — `apps/admin-nextjs`
+# Admin consoles
 
-Next.js 16 (App Router) console for the base-variant backend. It is a deliberate replica of an
-external reference admin panel (see `plan/brief.md` decisions 24–27) — pages, interaction
-patterns, and auth library all match the reference; it diverges only where the library's own
-settled decisions require it.
+Four consoles, one feature set. `apps/admin-nextjs` is the reference implementation — a
+deliberate replica of an external reference admin panel (see `plan/brief.md` decisions 24–27):
+pages, interaction patterns, and auth library all match the reference; it diverges only where
+the library's own settled decisions require it. The other three carry the same pages and
+patterns, ported.
 
-## Stack
+| App | Stack | Port | Backend | Route guard |
+|---|---|---|---|---|
+| `apps/admin-nextjs` | Next.js 16 App Router | 3000 | 3001 (base) | **NextAuth v5 + edge `proxy.ts`** |
+| `apps/admin-nextjs-workspaces` | Next.js 16 App Router | 3010 | 3005 (workspaces) | client-side, `(console)/layout.tsx` re-verify per navigation |
+| `apps/admin-react` | Vite + React Router | 5173 | 3001 (base) | client-side, `RequireAuth.tsx` re-verify per navigation |
+| `apps/admin-react-workspaces` | Vite + React Router | 5174 | 3005 (workspaces) | client-side, `RequireAuth.tsx` (+ workspace picker) |
 
-Next.js 16 · React 19 · **NextAuth v5** (credentials) · shadcn/ui (57 components in
-`src/components/ui/`) on Tailwind v4 · MobX (`src/lib/stores/`) + CASL (`src/lib/ability.ts`)
-· react-hook-form + zod · TanStack Table · `@easy-auth/auth-client` as the **only** HTTP layer
-(no axios) · socket.io-client for the live feed · Bricolage Grotesque via `next/font`.
+All four: React 19 · shadcn/ui (radix-nova, oklch tokens) on Tailwind v4 · MobX stores + CASL
+(`src/lib/ability.ts`) · react-hook-form + zod · TanStack Table · `@easy-auth/auth-client` as
+the **only** HTTP layer (no axios) · socket.io-client · Bricolage Grotesque.
 
-## Auth flow — the part worth understanding first
+The registry templates under `registry/admin-apps/{nextjs,react}` mirror these apps 1:1
+(`apps/` is where you run and verify; the registry is what the CLI ships). The two guard
+models are a **deliberate, permanent trust-model split**, not drift to reconcile — see
+`registry/admin-apps/README.md` before "unifying" anything.
+
+## Auth flow — the reference console (`apps/admin-nextjs`)
 
 Three cooperating pieces:
 
@@ -49,6 +59,26 @@ inside docker compose the backend is `http://nestjs-prisma-app:3001`, not `local
 `AUTH_SECRET` is required (see getting-started.md). `trustHost: true` is set because this is a
 self-hosted app with no fixed public URL.
 
+## Auth flow — the other three consoles
+
+No NextAuth, no server side to guard from. Each calls `AuthStore.verifySession()`
+(`authClient.me()`) on **every route change**, not just on mount — same effective guarantee (a
+revoked backend session is caught at the next navigation), different trust model (the check
+runs in the browser, so a compromised client can't be forced to run it). The 401/403 branching
+mirrors `proxy.ts`: a bare 401 isn't a verdict (auth-client already retried once via refresh
+internally — an `AuthApiError` reaching the guard means that path is exhausted); a network or
+parse error is treated as "backend unreachable, not session-invalid". A stale-response guard
+keeps a slow check from navigating the user away from a page they already left.
+
+## Workspaces consoles: the active workspace
+
+The `-workspaces` consoles carry one extra concept: an **active workspace**, whose id is sent
+as `X-Workspace-Id` on admin calls. `GET /auth/me` answers with that workspace's roles and
+permissions — being an admin in one workspace says nothing about any other. A
+newly-authenticated user with no workspace lands on a picker (create one or join an existing
+one) before the rest of the app is reachable; a Members page (`members:manage`) manages
+admission and per-member roles.
+
 ## Permission gating
 
 `GET /auth/me` returns the caller's resolved permission slugs; the MobX auth store holds them
@@ -59,9 +89,12 @@ backend enforces independently; UI gating is convenience, not security.
 
 ## Page inventory
 
+Routes shown Next.js-style; the React consoles serve the same pages via React Router
+(`[id]` → `:id`).
+
 | Route | Backing slugs | What's there |
 |---|---|---|
-| `/login`, `/signup` | public | RHF+Zod credentials form → NextAuth `signIn`; 2FA step; `callbackUrl` honored |
+| `/login`, `/signup` | public | RHF+Zod credentials form; 2FA step; `callbackUrl` honored (reference console) |
 | `/dashboard` | per-card | Stat cards (users/roles/permissions), recent audit feed, quick actions, **Live activity** card (socket.io, connection badge: Live/Connecting/Offline) |
 | `/users`, `/users/new`, `/users/[id]`, `/users/[id]/edit` | `users:*`, `roles:assign` | Full table treatment (below), role multi-select filter + assignment (diff-based), photo dropzone, block/unblock + activate/deactivate in a danger zone |
 | `/customers` (+ new/[id]/edit) | `customers:*` | Same shape, no roles; DOB/gender/joined-date pickers, verified-flag badges |
@@ -70,7 +103,14 @@ backend enforces independently; UI gating is convenience, not security.
 | `/roles` | `roles:manage` | Permission matrix grouped in cards, sorted by group/order; saves are diff-based attach/detach |
 | `/permissions` | `permissions:read/define` | Sortable columns; group combobox derives groupOrder/order |
 | `/audit-log` | `audit-log:read` | Paginated audit entries |
-| `/account` | authed | Profile view↔edit toggle, sessions, 2FA enrollment (QR), change-password dialog (show/hide toggles, cross-field confirm) |
+| `/account` | authed | Profile view↔edit toggle, sessions, 2FA enrollment (QR), change-password dialog |
+| `/members`, `/workspaces` | `members:manage` | Workspaces consoles only |
+
+The consoles differ in small structural ways rather than features — e.g. the workspaces
+consoles fold role/user editing into dialogs where the base consoles use separate routes, and
+`admin-nextjs-workspaces` ships the live-feed hook without wiring it into its dashboard.
+Content-domain pages talk to endpoints only the nestjs-prisma backend serves — pointed at
+another combo, those pages 404 at the API layer.
 
 ## UI patterns (the recipes every page follows)
 
@@ -94,11 +134,3 @@ backend enforces independently; UI gating is convenience, not security.
 To add a new domain's pages, copy the closest existing group (customers is the most complete
 template) — list + schema + new + `[id]` + `[id]/edit` — and add the sidebar entry gated on the
 new `:read`/`:manage` slugs. See development.md for the backend half.
-
-## The other three consoles
-
-`admin-nextjs-workspaces` (same console, workspace-scoped: active-workspace picker,
-`X-Workspace-Id` on admin calls), `admin-react` / `admin-react-workspaces` (Vite + React Router
-equivalents). They share `auth-client` and the feature set through the earlier build phases but
-have **not** received the NextAuth/proxy auth flow or the countries/languages/customers pages —
-`admin-nextjs` is the reference implementation to port from.
