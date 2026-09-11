@@ -15,13 +15,11 @@ cd nestjs-drizzle-app
 
 ```bash
 npm install
-cp src/lib/auth/.env.example src/lib/auth/.env
-# edit src/lib/auth/.env: DATABASE_URL=postgresql://<user>:<password>@<host>:5432/<db>?schema=public
+cp src/lib/auth/.env.example .env
+# edit .env: DATABASE_URL=postgresql://<user>:<password>@<host>:5432/<db>?schema=public
 
 echo "AUTH_JWT_SECRET=$(openssl rand -base64 32)" >> .env   # required, no default
 
-# drizzle-kit resolves ./src/schema.ts and ./drizzle relative to the working directory,
-# so this must run from src/lib/auth
 npx drizzle-kit migrate
 ```
 

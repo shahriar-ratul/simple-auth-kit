@@ -21,8 +21,8 @@ cd nestjs-prisma
 ```bash
 npm install
 
-cp src/lib/auth/.env.example src/lib/auth/.env
-# edit src/lib/auth/.env:
+cp src/lib/auth/.env.example .env
+# edit .env:
 #   DATABASE_URL=postgresql://<user>:<password>@<host>:5432/<db>?schema=public
 
 # Required — the app refuses to start without it. Changing it invalidates every issued token.
