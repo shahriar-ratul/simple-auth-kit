@@ -31,7 +31,7 @@ does not run it for you. It's idempotent; run it any time, per backend you inten
 
 ```bash
 docker exec -e SEED_ADMIN_EMAIL=admin@example.com -e SEED_ADMIN_PASSWORD='Admin12345!' \
-  library-nestjs-prisma-app-1 sh -c 'node_modules/.bin/tsx src/lib/auth/src/seed.ts'
+  simple-auth-kit-nestjs-prisma-app-1 sh -c 'node_modules/.bin/tsx src/lib/auth/src/seed.ts'
 ```
 
 That provisions the permission catalog, the default `admin`/`member` roles, and an initial
