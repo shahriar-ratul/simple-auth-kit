@@ -2,6 +2,7 @@
   "name": "simple-auth-kit-registry",
   "private": true,
   "version": "0.0.0",
+  "license": "MIT",
   "description": "Source registry for the shadcn-style auth library CLI. Not published — the CLI copies files out of registry/ into consumer repos. Monorepo: each combo under registry/combos/* is its own package with only the deps it needs.",
   "type": "module",
   "scripts": {
