@@ -36,7 +36,7 @@ run it.
 Examples are CLI snapshots, not symlinks. After changing a combo:
 
 ```bash
-cd cli && npx tsx easy-auth.ts add nestjs-prisma --force --into ../examples/nestjs-prisma-app
+cd cli && npx tsx simple-auth-kit.ts add nestjs-prisma --force --into ../examples/nestjs-prisma-app
 cd ../examples/nestjs-prisma-app
 (cd src/lib/auth && npx prisma generate && npx prisma migrate deploy)
 ```
@@ -131,14 +131,12 @@ serialization; docker-internal URL split — see `AUTH_API_INTERNAL_URL` in gett
   `docker exec ... seed.ts` step (getting-started.md) before anything is authorized. The seed
   credentials are deliberately not baked into compose.
 - The CLI's `diff` command is a stub (prints the lockfile manifest only).
-- Scaffolded admin/mobile apps depend on `@easy-auth/auth-client` as `workspace:*`, which
-  doesn't resolve outside this monorepo (see cli.md).
 - Mobile apps: verified by typecheck/bundling/Metro boot, not by a recent device run;
   `mobile-bare-rn` needs a one-time manual Xcode step for `react-native-config`. Generated
   `mobile-bare-rn` apps get unique native identities via the CLI's renamer, but an actual
   Xcode/Gradle build of a generated app hasn't been run in this environment.
 - Docker consoles run `next dev`/`vite` dev servers, not production builds (deliberate — the
-  compose Dockerfiles build `@easy-auth/auth-client` from the repo root context).
+  compose Dockerfiles build `@simple-auth-kit/auth-client` from the repo root context).
 - `AsyncStorage` (mobile apps) is unencrypted-at-rest by deliberate choice — `TokenStorage` is
   an injected interface; swapping in `expo-secure-store`/Keychain later doesn't touch call
   sites (see the decision log).

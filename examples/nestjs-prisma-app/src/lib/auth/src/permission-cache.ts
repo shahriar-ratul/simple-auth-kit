@@ -8,7 +8,7 @@
 //      changes; a global *policy* counter, bumped by role-composition or permission-activation
 //      changes. A single global counter would flush everyone on any one user's grant change.
 //   3. The store is an injected interface with an in-memory default — swap in Redis via
-//      `AuthModule.forRoot` without touching this file. Keys are namespaced `easyauth:authz:*`.
+//      `AuthModule.forRoot` without touching this file. Keys are namespaced `simpleauthkit:authz:*`.
 //
 // Authentication is deliberately not cached here: token validity/denylist/blocked-user checks
 // happen on `AuthGuard`, which never reads this cache. Negative results aren't cached either —
@@ -19,7 +19,7 @@ import { AUTH_CONFIG, AuthConfig } from "./auth.config.js";
 /** DI token for the store. Provide your own to `AuthModule.forRoot({ permissionCacheStore })`. */
 export const PERMISSION_CACHE_STORE = Symbol("PERMISSION_CACHE_STORE");
 
-export const CACHE_NAMESPACE = "easyauth:authz";
+export const CACHE_NAMESPACE = "simpleauthkit:authz";
 
 // Small and string-valued: each op maps onto one Redis command (GET, MGET, SET EX, INCR).
 export interface PermissionCacheStore {

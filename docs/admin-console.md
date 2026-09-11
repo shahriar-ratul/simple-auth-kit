@@ -14,7 +14,7 @@ patterns, ported.
 | `apps/admin-react-workspaces` | Vite + React Router | 5174 | 3005 (workspaces) | client-side, `RequireAuth.tsx` (+ workspace picker) |
 
 All four: React 19 · shadcn/ui (radix-nova, oklch tokens) on Tailwind v4 · MobX stores + CASL
-(`src/lib/ability.ts`) · react-hook-form + zod · TanStack Table · `@easy-auth/auth-client` as
+(`src/lib/ability.ts`) · react-hook-form + zod · TanStack Table · `@simple-auth-kit/auth-client` as
 the **only** HTTP layer (no axios) · socket.io-client · Bricolage Grotesque.
 
 The registry templates under `registry/admin-apps/{nextjs,react}` mirror these apps 1:1
@@ -29,14 +29,14 @@ Three cooperating pieces:
 **1. `src/auth.ts` — NextAuth v5, Credentials provider.** `authorize()` calls the backend's
 real login through `auth-client` (server-side instance using `src/lib/server-token-storage.ts`),
 which writes the access/refresh token pair into the **same cookie the browser client uses**
-(`easy_auth_tokens`, JSON pair). NextAuth's own session JWT rides on top carrying `expired_at`;
+(`simple_auth_kit_tokens`, JSON pair). NextAuth's own session JWT rides on top carrying `expired_at`;
 the `jwt` callback returns `null` past expiry, forcing sign-out. 2FA is preserved: a 2FA-enabled
 account makes `authorize()` throw a `CredentialsSignin` whose `code` is
 `2fa_required:<challengeToken>`; the login page catches that code and re-submits with
 `{challengeToken, code}`.
 
 So there are **two cookies**: NextAuth's session cookie (is someone logged in, for the edge
-guard) and `easy_auth_tokens` (the actual Bearer tokens every API call attaches). The backend
+guard) and `simple_auth_kit_tokens` (the actual Bearer tokens every API call attaches). The backend
 contract is untouched — NextAuth is orchestration, not a token owner.
 
 **2. `src/proxy.ts` — the edge route guard** (Next 16's rename of `middleware.ts`), wrapping

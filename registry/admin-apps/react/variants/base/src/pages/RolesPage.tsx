@@ -1,7 +1,7 @@
 import { type FormEvent, useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import type { PermissionSummary, RoleSummary, UserSummary } from "@easy-auth/auth-client";
-import { AuthApiError, userIdOf } from "@easy-auth/auth-client";
+import type { PermissionSummary, RoleSummary, UserSummary } from "@simple-auth-kit/auth-client";
+import { AuthApiError, userIdOf } from "@simple-auth-kit/auth-client";
 import { EyeIcon, PowerIcon } from "lucide-react";
 import { toast } from "sonner";
 import { PERMISSIONS, useAbility } from "@/lib/ability";

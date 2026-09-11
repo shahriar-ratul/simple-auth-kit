@@ -1,6 +1,6 @@
 import NextAuth, { CredentialsSignin, type NextAuthConfig } from "next-auth";
 import Credentials from "next-auth/providers/credentials";
-import { AuthClient } from "@easy-auth/auth-client";
+import { AuthClient } from "@simple-auth-kit/auth-client";
 import { AUTH_API_INTERNAL_URL } from "@/lib/env";
 import { serverCookieTokenStorage } from "@/lib/server-token-storage";
 

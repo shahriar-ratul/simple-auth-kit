@@ -8,7 +8,7 @@ import { useMemo, useState } from "react";
 import { useDebounce } from "use-debounce";
 import { format } from "date-fns";
 import { ChevronDownIcon, EyeIcon, PencilIcon, PlusIcon, PowerIcon, Trash2Icon } from "lucide-react";
-import { AuthApiError, type CustomerSummary } from "@easy-auth/auth-client";
+import { AuthApiError, type CustomerSummary } from "@simple-auth-kit/auth-client";
 import { AlertModal } from "@/components/alert-modal";
 import { Breadcrumb } from "@/components/breadcrumb";
 import { TableSkeletonLoader } from "@/components/loader/table-skeleton-loader";

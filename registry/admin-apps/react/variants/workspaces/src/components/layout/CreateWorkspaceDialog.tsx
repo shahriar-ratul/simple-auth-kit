@@ -1,5 +1,5 @@
 import { type FormEvent, useState } from "react";
-import { AuthApiError } from "@easy-auth/auth-client";
+import { AuthApiError } from "@simple-auth-kit/auth-client";
 import { useWorkspaceStore } from "@/stores/store-context";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";

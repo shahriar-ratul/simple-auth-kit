@@ -46,7 +46,7 @@ export class AuthModule {
 
     if (!config.permissionCacheStore || !config.rateLimitStore) {
       console.warn(
-        "[easy-auth] permissionCacheStore/rateLimitStore not overridden — using in-memory defaults. " +
+        "[simple-auth-kit] permissionCacheStore/rateLimitStore not overridden — using in-memory defaults. " +
           "Fine for a single instance; silently inconsistent (stale grants, wrong rate-limit counts) " +
           "across replicas once you run more than one. Override permissionCacheStore/rateLimitStore " +
           "with a shared store (e.g. Redis) in AuthModule.forRoot() before scaling out.",
@@ -59,7 +59,7 @@ export class AuthModule {
         { provide: AUTH_CONFIG, useValue: { ...defaultAuthConfig, ...config } },
         { provide: DRIZZLE_DB, useValue: db },
         // The cache seam. Swap the store for a Redis-backed one by passing `permissionCacheStore`
-        // to forRoot — nothing in this library's source changes. Keys are namespaced easyauth:authz:*.
+        // to forRoot — nothing in this library's source changes. Keys are namespaced simpleauthkit:authz:*.
         { provide: PERMISSION_CACHE_STORE, useValue: config.permissionCacheStore ?? new InMemoryPermissionCacheStore() },
         PermissionCache,
         { provide: APP_FILTER, useClass: AuthCoreErrorFilter },

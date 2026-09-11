@@ -1,6 +1,6 @@
 {
   "name": "admin-nextjs-workspaces",
-  "description": "Next.js admin console for the workspace-aware (--workspaces) easy-auth backend, via @easy-auth/auth-client. Workspace switcher, member management, and everything else scoped to the active workspace. See admin-nextjs for the plain counterpart.",
+  "description": "Next.js admin console for the workspace-aware (--workspaces) simple-auth-kit backend, via @simple-auth-kit/auth-client. Workspace switcher, member management, and everything else scoped to the active workspace. See admin-nextjs for the plain counterpart.",
   "private": true,
   "version": "0.0.0",
   "type": "module",
@@ -13,7 +13,7 @@
   "dependencies": {
     "@casl/ability": "^7.0.1",
     "@casl/react": "^7.0.1",
-    "@easy-auth/auth-client": "workspace:*",
+    "@simple-auth-kit/auth-client": "^1.0.0",
     "@tanstack/react-query": "^5.90.12",
     "@tanstack/react-table": "^8.21.3",
     "class-variance-authority": "^0.7.1",

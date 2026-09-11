@@ -1,6 +1,6 @@
 "use client";
 
-import type { PermissionSummary } from "@easy-auth/auth-client";
+import type { PermissionSummary } from "@simple-auth-kit/auth-client";
 import { Card } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 

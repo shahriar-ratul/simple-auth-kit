@@ -1,4 +1,4 @@
-import type { PermissionSummary } from "@easy-auth/auth-client";
+import type { PermissionSummary } from "@simple-auth-kit/auth-client";
 
 // This app has no zod dependency, so unlike the plain admin app the form shape lives here as a
 // plain type and the pages validate by hand — the semantics (slug and group required) are the same.

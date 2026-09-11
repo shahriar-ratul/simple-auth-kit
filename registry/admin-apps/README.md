@@ -12,14 +12,14 @@ file must not branch on which variant it's in" discipline — but a different `i
 ## `installMode: "scaffold"`, not `"merge"`
 
 Backend combos merge a source fragment into an *existing* project's `src/lib/auth`. An admin
-console isn't a fragment — it's a whole standalone app. `easy-auth add admin-react --into <dir>`
+console isn't a fragment — it's a whole standalone app. `simple-auth-kit add admin-react --into <dir>`
 writes `shared/` then `variants/<variant>/` **directly into `<dir>`**: `package.json`, `src/App.tsx`,
 everything. `cli/lib/copy.ts`'s `SCAFFOLD_NEVER_COPY` (vs. the api-combo `NEVER_COPY`) reflects
 this: `package.json`/`tsconfig.json` are real, consumer-facing content here, not the registry's own
 dev wiring.
 
 `package.json`'s `name`/`description` are templated from `--name` (falling back to the target
-directory's basename) after the copy — see `installScaffold` in `cli/easy-auth.ts`.
+directory's basename) after the copy — see `installScaffold` in `cli/simple-auth-kit.ts`.
 
 ## `admin-react`: the clean case
 
@@ -63,11 +63,9 @@ byte-identical rule exists to prevent.
 generated for it and never pruned) — harmless, just asymmetric file counts between the two
 variants; not evidence of drift to reconcile.
 
-## Known limitation: `@easy-auth/auth-client`
+## `@simple-auth-kit/auth-client`
 
-Both products' `package.json` declare `"@easy-auth/auth-client": "workspace:*"`, which only
-resolves inside this monorepo's pnpm workspace — the package is `private: true` and not published
-to npm. A `scaffold`-mode generated app is meant to stand alone, so this is a real gap for anyone
-generating one outside the monorepo, not a cosmetic one. Each combo's `postInstall` notes call it
-out. Publishing the package is a separate decision (versioning, what API-stability guarantee it
-carries) — out of scope for this registry extraction.
+Both products' `package.json` declare `"@simple-auth-kit/auth-client": "^1.0.0"`, resolved from
+the published package on npm: https://www.npmjs.com/package/@simple-auth-kit/auth-client. A
+`scaffold`-mode generated app stands alone with a plain `npm install` — no monorepo/pnpm
+workspace required.

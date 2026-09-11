@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useState } from "react";
 import { observer } from "mobx-react-lite";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import type { UserSummary } from "@easy-auth/auth-client";
-import { AuthApiError } from "@easy-auth/auth-client";
+import type { UserSummary } from "@simple-auth-kit/auth-client";
+import { AuthApiError } from "@simple-auth-kit/auth-client";
 import { PencilIcon } from "lucide-react";
 import { toast } from "sonner";
 import { PERMISSIONS, useAbility } from "@/lib/ability";

@@ -3,12 +3,12 @@
 This is the source the CLI copies into consumer projects. Nothing here is ever installed as a
 dependency.
 
-Every combo ships in **two variants**, chosen by the consumer at `easy-auth add` time:
+Every combo ships in **two variants**, chosen by the consumer at `simple-auth-kit add` time:
 
 | Variant | CLI | What it is |
 |---|---|---|
-| `base` | `easy-auth add <combo>` (default) | Roles and permissions are global to the deployment. Real join tables (`RoleUser`, `PermissionRole`, `PermissionUser`); direct grants attach to the user. |
-| `workspaces` | `easy-auth add <combo> --workspaces` | A user belongs to any number of workspaces and holds different roles in each. `Workspace` + `WorkspaceMember`; `Role` unique per `[workspaceId, slug]`; membership-scoped join tables (`RoleMember`, `PermissionMember`); direct grants attach to the *membership*. Workspace-scoped requests carry `X-Workspace-Id`. |
+| `base` | `simple-auth-kit add <combo>` (default) | Roles and permissions are global to the deployment. Real join tables (`RoleUser`, `PermissionRole`, `PermissionUser`); direct grants attach to the user. |
+| `workspaces` | `simple-auth-kit add <combo> --workspaces` | A user belongs to any number of workspaces and holds different roles in each. `Workspace` + `WorkspaceMember`; `Role` unique per `[workspaceId, slug]`; membership-scoped join tables (`RoleMember`, `PermissionMember`); direct grants attach to the *membership*. Workspace-scoped requests carry `X-Workspace-Id`. |
 
 The emitted project contains exactly one variant. A consumer cannot tell the other exists.
 

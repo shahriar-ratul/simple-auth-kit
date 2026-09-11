@@ -1,7 +1,7 @@
 import { type FormEvent, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import type { PermissionSummary } from "@easy-auth/auth-client";
-import { AuthApiError } from "@easy-auth/auth-client";
+import type { PermissionSummary } from "@simple-auth-kit/auth-client";
+import { AuthApiError } from "@simple-auth-kit/auth-client";
 import { toast } from "sonner";
 import { PERMISSIONS, useAbility } from "@/lib/ability";
 import { authClient } from "@/lib/auth-client";

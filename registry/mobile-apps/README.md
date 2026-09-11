@@ -59,7 +59,7 @@ values and diffing their `applicationId`/bundle id/package paths) and that the T
 installs and typechecks cleanly. If a native build ever fails on a freshly generated app, start by
 checking whether some other identity-bearing file wasn't caught by step 2 or 3 above.
 
-## Known limitation: `@easy-auth/auth-client`
+## `@simple-auth-kit/auth-client`
 
-Same as `registry/admin-apps/README.md` — `"@easy-auth/auth-client": "workspace:*"` only resolves
-inside this monorepo's pnpm workspace. Called out in both combos' `postInstall` notes.
+Same as `registry/admin-apps/README.md` — resolved from the published npm package, no
+monorepo/pnpm workspace required.

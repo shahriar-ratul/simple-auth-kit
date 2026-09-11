@@ -15,6 +15,7 @@ allowBuilds:
 minimumReleaseAgeExclude:
   - pg-protocol@1.16.0
   - pg@8.23.0
+  - '@simple-auth-kit/auth-client@1.0.0'
 
 overrides:
   # react-native-css@3.0.7 (the engine under nativewind@5.0.0-preview.4) drives lightningcss

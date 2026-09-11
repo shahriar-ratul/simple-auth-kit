@@ -3,7 +3,7 @@
 import { useAbility } from "@casl/react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, type FormEvent } from "react";
-import { userIdOf, type CreateUserInput, type RoleSummary } from "@easy-auth/auth-client";
+import { userIdOf, type CreateUserInput, type RoleSummary } from "@simple-auth-kit/auth-client";
 import { toast } from "sonner";
 import { Breadcrumb } from "@/components/breadcrumb";
 import { FormErrorAlert } from "@/components/form-error-alert";

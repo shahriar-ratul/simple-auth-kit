@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { format } from "date-fns";
-import { type CreateCustomerInput } from "@easy-auth/auth-client";
+import { type CreateCustomerInput } from "@simple-auth-kit/auth-client";
 import { toast } from "sonner";
 import { Breadcrumb } from "@/components/breadcrumb";
 import { FormErrorAlert } from "@/components/form-error-alert";

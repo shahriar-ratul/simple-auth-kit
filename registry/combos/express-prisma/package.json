@@ -1,5 +1,5 @@
 {
-  "name": "@easy-auth/combo-express-prisma",
+  "name": "@simple-auth-kit/combo-express-prisma",
   "private": true,
   "version": "0.0.0",
   "description": "Structural diff of nestjs-prisma: same schema and repositories, Express routers/middleware instead of NestJS controllers/guards. Two variants (base, workspaces) composed from shared/ + variants/<variant>/.",

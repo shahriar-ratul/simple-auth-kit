@@ -3,7 +3,7 @@
 import { useAbility } from "@casl/react";
 import { observer } from "mobx-react-lite";
 import { useCallback, useEffect, useState } from "react";
-import type { DefinePermissionInput, PermissionSummary } from "@easy-auth/auth-client";
+import type { DefinePermissionInput, PermissionSummary } from "@simple-auth-kit/auth-client";
 import { AlertModal } from "@/components/alert-modal";
 import { PermissionRequired } from "@/components/permission-required";
 import { Alert } from "@/components/ui/alert";

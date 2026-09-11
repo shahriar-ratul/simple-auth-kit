@@ -5,7 +5,7 @@ import { observer } from "mobx-react-lite";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
-import { AuthApiError, type PermissionSummary } from "@easy-auth/auth-client";
+import { AuthApiError, type PermissionSummary } from "@simple-auth-kit/auth-client";
 import { PencilIcon } from "lucide-react";
 import { toast } from "sonner";
 import { Breadcrumb } from "@/components/breadcrumb";

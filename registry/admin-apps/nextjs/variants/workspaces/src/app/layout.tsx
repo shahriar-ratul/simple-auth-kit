@@ -11,8 +11,8 @@ import { cn } from "@/lib/utils";
 const geist = Geist({subsets:['latin'],variable:'--font-sans'});
 
 export const metadata: Metadata = {
-  title: "easy-auth Admin — Workspaces",
-  description: "Admin console for the workspace-aware easy-auth backend — workspaces, members, users, roles & permissions, audit log, and account settings.",
+  title: "simple-auth-kit Admin — Workspaces",
+  description: "Admin console for the workspace-aware simple-auth-kit backend — workspaces, members, users, roles & permissions, audit log, and account settings.",
 };
 
 export default function RootLayout({ children }: { children: ReactNode }) {

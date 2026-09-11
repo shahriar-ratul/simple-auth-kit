@@ -17,7 +17,7 @@ import { errorResponse } from "./openapi-fragment.js";
 export const openApiSpec: Record<string, unknown> = {
   openapi: "3.0.3",
   info: {
-    title: "easy-auth API",
+    title: "simple-auth-kit API",
     description: "express-prisma combo — signup/login, sessions, TOTP 2FA, OAuth, password reset, RBAC.",
     version: "1.0",
   },

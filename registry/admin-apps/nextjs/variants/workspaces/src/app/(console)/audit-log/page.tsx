@@ -3,7 +3,7 @@
 import { useAbility } from "@casl/react";
 import { observer } from "mobx-react-lite";
 import { useCallback, useEffect, useState } from "react";
-import type { AuditLogEntry, PageMeta } from "@easy-auth/auth-client";
+import type { AuditLogEntry, PageMeta } from "@simple-auth-kit/auth-client";
 import { PermissionRequired } from "@/components/permission-required";
 import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";

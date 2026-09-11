@@ -1,5 +1,5 @@
 import { z } from "zod";
-import type { PermissionSummary } from "@easy-auth/auth-client";
+import type { PermissionSummary } from "@simple-auth-kit/auth-client";
 import type { ComboboxOptions } from "@/components/ui/combobox";
 
 export const permissionSchema = z.object({

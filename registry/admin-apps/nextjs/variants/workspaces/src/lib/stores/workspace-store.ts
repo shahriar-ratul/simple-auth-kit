@@ -1,7 +1,7 @@
 "use client";
 
 import { makeAutoObservable, runInAction } from "mobx";
-import type { WorkspaceSummary } from "@easy-auth/auth-client";
+import type { WorkspaceSummary } from "@simple-auth-kit/auth-client";
 import { getActiveWorkspaceId, setActiveWorkspaceId } from "../active-workspace";
 import { authClient } from "../auth-client";
 import { AuthStore } from "./auth-store";

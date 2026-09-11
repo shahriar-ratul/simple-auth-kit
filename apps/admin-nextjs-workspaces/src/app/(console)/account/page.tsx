@@ -3,7 +3,7 @@
 import { observer } from "mobx-react-lite";
 import { QRCodeSVG } from "qrcode.react";
 import { useEffect, useState } from "react";
-import { AuthApiError, type SessionSummary } from "@easy-auth/auth-client";
+import { AuthApiError, type SessionSummary } from "@simple-auth-kit/auth-client";
 import { toast } from "sonner";
 import { ChangePasswordDialog } from "@/components/change-password-dialog";
 import { PhotoUpload } from "@/components/photo-upload";

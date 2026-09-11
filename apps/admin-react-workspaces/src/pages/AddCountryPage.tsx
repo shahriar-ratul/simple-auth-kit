@@ -1,7 +1,7 @@
 import { type FormEvent, useState } from "react";
 import { observer } from "mobx-react-lite";
 import { useNavigate } from "react-router-dom";
-import type { CreateCountryInput } from "@easy-auth/auth-client";
+import type { CreateCountryInput } from "@simple-auth-kit/auth-client";
 import { toast } from "sonner";
 import { authClient } from "@/lib/auth-client";
 import { errorMessage, errorMessages } from "@/lib/error";

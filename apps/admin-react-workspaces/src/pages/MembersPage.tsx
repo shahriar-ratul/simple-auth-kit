@@ -1,7 +1,7 @@
 import { type FormEvent, useCallback, useEffect, useState } from "react";
 import { observer } from "mobx-react-lite";
-import type { WorkspaceMember } from "@easy-auth/auth-client";
-import { AuthApiError } from "@easy-auth/auth-client";
+import type { WorkspaceMember } from "@simple-auth-kit/auth-client";
+import { AuthApiError } from "@simple-auth-kit/auth-client";
 import { PERMISSIONS, useAbility } from "@/lib/ability";
 import { authClient } from "@/lib/auth-client";
 import { useAuthStore, useWorkspaceStore } from "@/stores/store-context";

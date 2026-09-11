@@ -1,6 +1,6 @@
 import { type FormEvent, useCallback, useEffect, useState } from "react";
-import type { PermissionSummary, RoleSummary, UserSummary } from "@easy-auth/auth-client";
-import { AuthApiError, userIdOf } from "@easy-auth/auth-client";
+import type { PermissionSummary, RoleSummary, UserSummary } from "@simple-auth-kit/auth-client";
+import { AuthApiError, userIdOf } from "@simple-auth-kit/auth-client";
 import { observer } from "mobx-react-lite";
 import { Link } from "react-router-dom";
 import { EyeIcon, PowerIcon } from "lucide-react";

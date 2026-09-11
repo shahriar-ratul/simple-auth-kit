@@ -6,16 +6,16 @@ reasoning is `plan/brief.md` — this doc is the tour; that file is the law.
 ## Distribution: a registry, not a package
 
 The library is **copied, never installed**. `registry/` holds the source of truth; the CLI
-(`cli/easy-auth.ts`) copies it into a consumer repo:
+(`cli/simple-auth-kit.ts`) copies it into a consumer repo:
 
 ```bash
-npx easy-auth add nestjs-prisma               # backend, base variant (the default)
-npx easy-auth add nestjs-prisma --workspaces  # backend, workspace-aware variant
-npx easy-auth add admin-react --into ./admin  # a whole admin console app
-npx easy-auth add                             # guided multi-kind flow (api + admin + mobile)
+npx simple-auth-kit add nestjs-prisma               # backend, base variant (the default)
+npx simple-auth-kit add nestjs-prisma --workspaces  # backend, workspace-aware variant
+npx simple-auth-kit add admin-react --into ./admin  # a whole admin console app
+npx simple-auth-kit add                             # guided multi-kind flow (api + admin + mobile)
 ```
 
-- Zero `@easy-auth/*` in any consumer's `package.json`.
+- Zero `@simple-auth-kit/*` in any consumer's `package.json`.
 - Updates use a content-hash lockfile (`auth.lock.json`): re-running `add` skips files the
   consumer has modified; `--force` overrides.
 - A consumer installs **one** variant and cannot tell the other exists.
@@ -125,7 +125,7 @@ everything has been mirrored everywhere, and the docs shouldn't pretend otherwis
 nestjs-prisma base backend carries the API surface of a second reference (`namaz-app/api`),
 minus its Quran content domain and its second self-service auth stack. Decisions 24–27 in
 `plan/brief.md` govern this: NextAuth v5 adopted directly as the session orchestrator (a thin
-wrapper — the backend Bearer contract is unchanged), `@easy-auth/auth-client` stays the only
+wrapper — the backend Bearer contract is unchanged), `@simple-auth-kit/auth-client` stays the only
 HTTP layer (no axios), and flat-list dropdowns use `?activeOnly=true` on the normal list
 endpoints rather than parallel `/common/all-*` controllers.
 

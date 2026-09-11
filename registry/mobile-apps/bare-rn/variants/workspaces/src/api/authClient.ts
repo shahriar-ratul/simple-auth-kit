@@ -1,4 +1,4 @@
-import { AuthClient } from '@easy-auth/auth-client';
+import { AuthClient } from '@simple-auth-kit/auth-client';
 import Config from 'react-native-config';
 import { asyncStorageTokenStorage } from './tokenStorage';
 import { activeWorkspaceIdResolver } from '../workspace/activeWorkspace';
@@ -9,7 +9,7 @@ import { activeWorkspaceIdResolver } from '../workspace/activeWorkspace';
 // hosts.
 const baseUrl = Config.API_BASE_URL ?? 'http://localhost:3005';
 
-// This app targets the workspaces backend variant (`easy-auth add <combo> --workspaces`), so it
+// This app targets the workspaces backend variant (`simple-auth-kit add <combo> --workspaces`), so it
 // configures a workspace resolver. Which calls then carry `X-Workspace-Id` is not decided here and
 // not decided per call site: inside AuthClient only `scopedRequest()` can send it, so `login`,
 // `signup`, `sessions`, `logout*`, `POST /workspaces` and `GET /workspaces` structurally cannot —

@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, FlatList, Pressable, RefreshControl, Text, View } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
-import type { WorkspaceSummary } from '@easy-auth/auth-client';
+import type { WorkspaceSummary } from '@simple-auth-kit/auth-client';
 import { FormInput } from '../components/FormInput';
 import { PrimaryButton } from '../components/PrimaryButton';
 import { useActiveWorkspaceId } from '../workspace/activeWorkspace';

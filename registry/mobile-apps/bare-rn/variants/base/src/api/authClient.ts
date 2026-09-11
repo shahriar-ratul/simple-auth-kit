@@ -1,4 +1,4 @@
-import { AuthClient } from '@easy-auth/auth-client';
+import { AuthClient } from '@simple-auth-kit/auth-client';
 import Config from 'react-native-config';
 import { asyncStorageTokenStorage } from './tokenStorage';
 

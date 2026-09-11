@@ -3,7 +3,7 @@
 import { useAbility } from "@casl/react";
 import { observer } from "mobx-react-lite";
 import { useCallback, useEffect, useState } from "react";
-import type { WorkspaceMember } from "@easy-auth/auth-client";
+import type { WorkspaceMember } from "@simple-auth-kit/auth-client";
 import { Alert } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";

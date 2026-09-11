@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
-import type { RoleSummary, UserSummary } from "@easy-auth/auth-client";
-import { AuthApiError, userIdOf } from "@easy-auth/auth-client";
+import type { RoleSummary, UserSummary } from "@simple-auth-kit/auth-client";
+import { AuthApiError, userIdOf } from "@simple-auth-kit/auth-client";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { type ColumnDef, type PaginationState, type SortingState, getCoreRowModel, getSortedRowModel, useReactTable } from "@tanstack/react-table";
 import { observer } from "mobx-react-lite";

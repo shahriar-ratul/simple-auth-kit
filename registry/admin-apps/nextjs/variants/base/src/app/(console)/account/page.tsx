@@ -6,7 +6,7 @@ import Link from "next/link";
 import { QRCodeSVG } from "qrcode.react";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
-import { AuthApiError, type SessionSummary } from "@easy-auth/auth-client";
+import { AuthApiError, type SessionSummary } from "@simple-auth-kit/auth-client";
 import { toast } from "sonner";
 import { z } from "zod";
 import { Breadcrumb } from "@/components/breadcrumb";

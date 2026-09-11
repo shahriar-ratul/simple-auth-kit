@@ -1,7 +1,7 @@
 import { type FormEvent, useEffect, useState } from "react";
 import { observer } from "mobx-react-lite";
 import { QRCodeSVG } from "qrcode.react";
-import { AuthApiError } from "@easy-auth/auth-client";
+import { AuthApiError } from "@simple-auth-kit/auth-client";
 import { toast } from "sonner";
 import { useAuthStore } from "@/stores/store-context";
 import { authClient } from "@/lib/auth-client";

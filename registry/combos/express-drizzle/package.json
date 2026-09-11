@@ -1,5 +1,5 @@
 {
-  "name": "@easy-auth/combo-express-drizzle",
+  "name": "@simple-auth-kit/combo-express-drizzle",
   "private": true,
   "version": "0.0.0",
   "description": "Structural diff of the nestjs-prisma reference combo: Express + Drizzle, no NestJS at all. Two variants (base, workspaces) composed from shared/ + variants/<variant>/.",

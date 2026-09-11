@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { observer } from "mobx-react-lite";
 import { Link } from "react-router-dom";
 import { RadioIcon } from "lucide-react";
-import { AuthApiError } from "@easy-auth/auth-client";
+import { AuthApiError } from "@simple-auth-kit/auth-client";
 import { PERMISSIONS, useAbility } from "@/lib/ability";
 import { authClient } from "@/lib/auth-client";
 import { cn } from "@/lib/cn";

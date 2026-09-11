@@ -2,7 +2,7 @@
   "name": "example-express-prisma-app",
   "private": true,
   "version": "0.0.0",
-  "description": "A fresh consumer project demonstrating `easy-auth add express-prisma` end to end.",
+  "description": "A fresh consumer project demonstrating `simple-auth-kit add express-prisma` end to end.",
   "type": "module",
   "scripts": {
     "start": "tsx src/main.ts",

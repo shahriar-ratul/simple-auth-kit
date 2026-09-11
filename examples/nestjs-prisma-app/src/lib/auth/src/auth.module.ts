@@ -43,7 +43,7 @@ export class AuthModule {
 
     if (!config.permissionCacheStore || !config.rateLimitStore) {
       console.warn(
-        "[easy-auth] permissionCacheStore/rateLimitStore not overridden — using in-memory defaults. " +
+        "[simple-auth-kit] permissionCacheStore/rateLimitStore not overridden — using in-memory defaults. " +
           "Fine for a single instance; silently inconsistent (stale grants, wrong rate-limit counts) " +
           "across replicas once you run more than one. Override permissionCacheStore/rateLimitStore " +
           "with a shared store (e.g. Redis) in AuthModule.forRoot() before scaling out.",

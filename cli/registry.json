@@ -1,7 +1,10 @@
 {
   "core": {
     "dir": "core",
-    "peerDependencies": ["argon2", "jose"]
+    "peerDependencies": [
+      "argon2",
+      "jose"
+    ]
   },
   "variants": {
     "base": {
@@ -18,8 +21,24 @@
       "dir": "combos/nestjs-prisma",
       "sharedDir": "shared",
       "variantsDir": "variants",
-      "variants": ["base", "workspaces"],
-      "peerDependencies": ["@nestjs/common", "@nestjs/core", "@nestjs/platform-express", "@nestjs/swagger", "@nestjs/throttler", "reflect-metadata", "rxjs", "express", "@prisma/client", "@prisma/adapter-pg", "prisma", "@casl/ability"],
+      "variants": [
+        "base",
+        "workspaces"
+      ],
+      "peerDependencies": [
+        "@nestjs/common",
+        "@nestjs/core",
+        "@nestjs/platform-express",
+        "@nestjs/swagger",
+        "@nestjs/throttler",
+        "reflect-metadata",
+        "rxjs",
+        "express",
+        "@prisma/client",
+        "@prisma/adapter-pg",
+        "prisma",
+        "@casl/ability"
+      ],
       "postInstall": [
         "Set DATABASE_URL in .env (see .env.example)",
         "Set AUTH_JWT_SECRET in .env — a base64-encoded 256-bit (or longer) secret, e.g.: openssl rand -base64 32. The app refuses to start without it; there is no default and nothing is generated for you. Changing it invalidates every outstanding token.",
@@ -42,8 +61,23 @@
       "dir": "combos/nestjs-drizzle",
       "sharedDir": "shared",
       "variantsDir": "variants",
-      "variants": ["base", "workspaces"],
-      "peerDependencies": ["@nestjs/common", "@nestjs/core", "@nestjs/platform-express", "@nestjs/swagger", "reflect-metadata", "rxjs", "express", "drizzle-orm", "pg", "drizzle-kit", "@casl/ability"],
+      "variants": [
+        "base",
+        "workspaces"
+      ],
+      "peerDependencies": [
+        "@nestjs/common",
+        "@nestjs/core",
+        "@nestjs/platform-express",
+        "@nestjs/swagger",
+        "reflect-metadata",
+        "rxjs",
+        "express",
+        "drizzle-orm",
+        "pg",
+        "drizzle-kit",
+        "@casl/ability"
+      ],
       "postInstall": [
         "Set DATABASE_URL in .env (see .env.example)",
         "Set AUTH_JWT_SECRET in .env — a base64-encoded 256-bit (or longer) secret, e.g.: openssl rand -base64 32. The app refuses to start without it; there is no default and nothing is generated for you. Changing it invalidates every outstanding token.",
@@ -65,8 +99,18 @@
       "dir": "combos/express-prisma",
       "sharedDir": "shared",
       "variantsDir": "variants",
-      "variants": ["base", "workspaces"],
-      "peerDependencies": ["express", "@prisma/client", "@prisma/adapter-pg", "prisma", "swagger-ui-express", "@casl/ability"],
+      "variants": [
+        "base",
+        "workspaces"
+      ],
+      "peerDependencies": [
+        "express",
+        "@prisma/client",
+        "@prisma/adapter-pg",
+        "prisma",
+        "swagger-ui-express",
+        "@casl/ability"
+      ],
       "postInstall": [
         "Set DATABASE_URL in .env (see .env.example)",
         "Set AUTH_JWT_SECRET in .env — a base64-encoded 256-bit (or longer) secret, e.g.: openssl rand -base64 32. The app refuses to start without it; there is no default and nothing is generated for you. Changing it invalidates every outstanding token.",
@@ -89,8 +133,18 @@
       "dir": "combos/express-drizzle",
       "sharedDir": "shared",
       "variantsDir": "variants",
-      "variants": ["base", "workspaces"],
-      "peerDependencies": ["express", "drizzle-orm", "pg", "drizzle-kit", "swagger-ui-express", "@casl/ability"],
+      "variants": [
+        "base",
+        "workspaces"
+      ],
+      "peerDependencies": [
+        "express",
+        "drizzle-orm",
+        "pg",
+        "drizzle-kit",
+        "swagger-ui-express",
+        "@casl/ability"
+      ],
       "postInstall": [
         "Set DATABASE_URL in .env (see .env.example)",
         "Set AUTH_JWT_SECRET in .env — a base64-encoded 256-bit (or longer) secret, e.g.: openssl rand -base64 32. The app refuses to start without it; there is no default and nothing is generated for you. Changing it invalidates every outstanding token.",
@@ -112,15 +166,17 @@
       "dir": "admin-apps/react",
       "sharedDir": "shared",
       "variantsDir": "variants",
-      "variants": ["base", "workspaces"],
+      "variants": [
+        "base",
+        "workspaces"
+      ],
       "kind": "admin",
       "installMode": "scaffold",
       "peerDependencies": [],
       "postInstall": [
-        "Copy .env.example to .env and set VITE_AUTH_API_URL to your running easy-auth backend's URL",
+        "Copy .env.example to .env and set VITE_AUTH_API_URL to your running simple-auth-kit backend's URL",
         "Run: npm install (or pnpm install) in the generated directory",
-        "Run: npm run dev — starts the Vite dev server",
-        "Known limitation: package.json declares \"@easy-auth/auth-client\": \"workspace:*\", which only resolves inside this monorepo's pnpm workspace — the package isn't published to npm yet. If you're generating this app outside the monorepo, replace that line with a real version once published, or vendor packages/auth-client/src into the generated app yourself."
+        "Run: npm run dev — starts the Vite dev server"
       ],
       "variantPostInstall": {
         "workspaces": [
@@ -132,15 +188,17 @@
       "dir": "mobile-apps/expo",
       "sharedDir": "shared",
       "variantsDir": "variants",
-      "variants": ["base", "workspaces"],
+      "variants": [
+        "base",
+        "workspaces"
+      ],
       "kind": "mobile",
       "installMode": "scaffold",
       "peerDependencies": [],
       "postInstall": [
         "Run: npm install (or pnpm install) in the generated directory",
         "Set EXPO_PUBLIC_API_BASE_URL if your backend isn't at http://localhost:3001 — on an Android emulator that's http://10.0.2.2:3001, not localhost",
-        "Run: npm start — opens the Expo dev tools (android/ios/web from there)",
-        "Known limitation: package.json declares \"@easy-auth/auth-client\": \"workspace:*\", which only resolves inside this monorepo's pnpm workspace — the package isn't published to npm yet. If you're generating this app outside the monorepo, replace that line with a real version once published, or vendor packages/auth-client/src into the generated app yourself."
+        "Run: npm start — opens the Expo dev tools (android/ios/web from there)"
       ],
       "variantPostInstall": {
         "workspaces": [
@@ -152,17 +210,22 @@
       "dir": "mobile-apps/bare-rn",
       "sharedDir": "shared",
       "variantsDir": "variants",
-      "variants": ["base", "workspaces"],
+      "variants": [
+        "base",
+        "workspaces"
+      ],
       "kind": "mobile",
       "installMode": "scaffold",
-      "nativeIdentity": { "name": "MobileBareRn", "package": "com.mobilebarern" },
+      "nativeIdentity": {
+        "name": "MobileBareRn",
+        "package": "com.mobilebarern"
+      },
       "peerDependencies": [],
       "postInstall": [
         "Run: npm install (or pnpm install) in the generated directory",
         "iOS only: run pod install inside ios/ before the first build",
         "Set the backend URL your platform actually needs — see src/api/authClient.ts (Android emulator: 10.0.2.2, not localhost)",
-        "Run: npm run android (or npm run ios) — the Android applicationId / iOS bundle id were re-templated from --name so multiple generated apps don't collide",
-        "Known limitation: package.json declares \"@easy-auth/auth-client\": \"workspace:*\", which only resolves inside this monorepo's pnpm workspace — the package isn't published to npm yet. If you're generating this app outside the monorepo, replace that line with a real version once published, or vendor packages/auth-client/src into the generated app yourself."
+        "Run: npm run android (or npm run ios) — the Android applicationId / iOS bundle id were re-templated from --name so multiple generated apps don't collide"
       ],
       "variantPostInstall": {
         "workspaces": [
@@ -174,15 +237,17 @@
       "dir": "admin-apps/nextjs",
       "sharedDir": "shared",
       "variantsDir": "variants",
-      "variants": ["base", "workspaces"],
+      "variants": [
+        "base",
+        "workspaces"
+      ],
       "kind": "admin",
       "installMode": "scaffold",
       "peerDependencies": [],
       "postInstall": [
-        "Copy .env.example to .env and set NEXT_PUBLIC_AUTH_API_URL to your running easy-auth backend's URL",
+        "Copy .env.example to .env and set NEXT_PUBLIC_AUTH_API_URL to your running simple-auth-kit backend's URL",
         "Run: npm install (or pnpm install) in the generated directory",
         "Run: npm run dev — starts the Next.js dev server on port 3000",
-        "Known limitation: package.json declares \"@easy-auth/auth-client\": \"workspace:*\", which only resolves inside this monorepo's pnpm workspace — the package isn't published to npm yet. If you're generating this app outside the monorepo, replace that line with a real version once published, or vendor packages/auth-client/src into the generated app yourself.",
         "Note: base and workspaces variants deliberately use different route-guarding trust models — base uses NextAuth edge middleware (src/proxy.ts), workspaces uses a client-side session recheck on every navigation. Both are correct for their own architecture; see registry/admin-apps/README.md for why they aren't unified."
       ],
       "variantPostInstall": {

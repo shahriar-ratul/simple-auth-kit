@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>easy-auth — Architecture Review</title>
+<title>simple-auth-kit — Architecture Review</title>
 <style>
   :root {
     --bg: #0b0d12;
@@ -257,7 +257,7 @@
 
 <header class="top">
   <div class="title">
-    <h1>easy-auth — Architecture Review</h1>
+    <h1>simple-auth-kit — Architecture Review</h1>
     <div class="sub">Grounded in direct source reads · registry/core, registry/combos/nestjs-prisma, cli/lib · updated 2026-08-23 · no-CI constraint applied</div>
   </div>
   <nav class="toc">
@@ -484,7 +484,7 @@
       <div class="meta-line"><span>Effort: <b>trivial</b></span><span>Touches: <b>4 hand-edited + 4 re-synced = 8 files</b> <span class="update-flag" style="margin-left:6px">recount</span></span></div>
       <div class="body">
         <div class="rec-row"><div class="label">Why</div><div class="content">Costs nothing to fix, costs real time to hit — a comment pointing at a class that no longer exists sends the next reader searching the backend for something renamed during the 2026-08-10 CASL migration.</div></div>
-        <div class="rec-row"><div class="label">How</div><div class="content">Hand-edit the 4 canonical registry sources: <code class="inline">registry/admin-apps/nextjs/variants/{base,workspaces}/src/lib/ability.ts</code> and <code class="inline">registry/admin-apps/react/variants/{base,workspaces}/src/components/layout/RequireAuth.tsx</code>, replacing "PermissionGuard"/"@RequirePermission" with "AbilityGuard"/"@CheckAbility". Re-sync the 4 <code class="inline">apps/admin-{nextjs,react}[-workspaces]</code> copies via <code class="inline">easy-auth add --force --into</code> — don't hand-edit those, they're consumer copies.</div></div>
+        <div class="rec-row"><div class="label">How</div><div class="content">Hand-edit the 4 canonical registry sources: <code class="inline">registry/admin-apps/nextjs/variants/{base,workspaces}/src/lib/ability.ts</code> and <code class="inline">registry/admin-apps/react/variants/{base,workspaces}/src/components/layout/RequireAuth.tsx</code>, replacing "PermissionGuard"/"@RequirePermission" with "AbilityGuard"/"@CheckAbility". Re-sync the 4 <code class="inline">apps/admin-{nextjs,react}[-workspaces]</code> copies via <code class="inline">simple-auth-kit add --force --into</code> — don't hand-edit those, they're consumer copies.</div></div>
         <div class="rec-row"><div class="label">Don't touch</div><div class="content">The <code class="inline">RequirePermission</code> component itself, or its call sites in <code class="inline">App.tsx</code>/<code class="inline">app-sidebar.tsx</code>/<code class="inline">DashboardPage.tsx</code> (8 more files) — that name and code are correct.</div></div>
       </div>
     </div>

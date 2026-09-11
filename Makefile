@@ -1,7 +1,7 @@
 .PHONY: help install up up-build down down-v build logs ps restart portal typecheck test clean prove-changed prove-all
 
 help:
-	@echo "easy-auth make targets:"
+	@echo "simple-auth-kit make targets:"
 	@echo "  make install    - pnpm install (registry, cli, packages, apps)"
 	@echo "  make up         - docker compose up (foreground)"
 	@echo "  make up-build   - docker compose up --build (foreground, rebuilds images)"

@@ -1,6 +1,6 @@
 {
   "name": "mobile-expo",
-  "description": "Expo end-user mobile app consuming the plain (non-workspaces) easy-auth backend variant via @easy-auth/auth-client. See apps/mobile-expo-workspaces for the workspace-aware counterpart.",
+  "description": "Expo end-user mobile app consuming the plain (non-workspaces) simple-auth-kit backend variant via @simple-auth-kit/auth-client. See apps/mobile-expo-workspaces for the workspace-aware counterpart.",
   "private": true,
   "version": "0.0.0",
   "main": "index.ts",
@@ -12,7 +12,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@easy-auth/auth-client": "workspace:*",
+    "@simple-auth-kit/auth-client": "^1.0.0",
     "@react-native-async-storage/async-storage": "2.2.0",
     "@react-navigation/native": "^7.3.16",
     "@react-navigation/native-stack": "^7.18.8",

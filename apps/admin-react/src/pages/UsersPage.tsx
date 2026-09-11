@@ -6,7 +6,7 @@ import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { useDebounce } from "use-debounce";
 import { ChevronDownIcon, EyeIcon, PlusIcon, PowerIcon, Trash2Icon } from "lucide-react";
 import { toast } from "sonner";
-import { AuthApiError, userIdOf, type RoleSummary, type UserSummary } from "@easy-auth/auth-client";
+import { AuthApiError, userIdOf, type RoleSummary, type UserSummary } from "@simple-auth-kit/auth-client";
 import { PERMISSIONS, useAbility } from "@/lib/ability";
 import { authClient } from "@/lib/auth-client";
 import { cn } from "@/lib/cn";

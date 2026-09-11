@@ -1,7 +1,7 @@
 import { RadioIcon } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { AuthApiError, type AuditLogEntry } from "@easy-auth/auth-client";
+import { AuthApiError, type AuditLogEntry } from "@simple-auth-kit/auth-client";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useLiveAuditFeed, type LiveFeedStatus } from "@/hooks/use-live-audit-feed";

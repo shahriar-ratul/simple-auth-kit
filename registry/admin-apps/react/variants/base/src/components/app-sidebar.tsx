@@ -117,7 +117,7 @@ export function AppSidebar() {
                   <ShieldCheckIcon className="size-4" />
                 </div>
                 <div className="grid flex-1 text-left text-sm leading-tight">
-                  <span className="truncate font-medium">easy-auth</span>
+                  <span className="truncate font-medium">simple-auth-kit</span>
                   <span className="truncate text-xs text-muted-foreground">admin console</span>
                 </div>
               </Link>

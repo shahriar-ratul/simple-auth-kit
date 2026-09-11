@@ -3,7 +3,7 @@ import { auth } from "@/auth";
 import { AUTH_API_INTERNAL_URL } from "@/lib/env";
 import { apiAuthPrefix, authRoutes, DEFAULT_LOGIN_REDIRECT, publicRoutes } from "@/routes";
 
-const TOKEN_COOKIE = "easy_auth_tokens";
+const TOKEN_COOKIE = "simple_auth_kit_tokens";
 
 function loginRedirect(nextUrl: URL) {
   let callbackUrl = nextUrl.pathname;

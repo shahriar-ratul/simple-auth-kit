@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { observer } from "mobx-react-lite";
 import { useNavigate, useParams } from "react-router-dom";
-import { AuthApiError, type PermissionSummary, type RoleSummary } from "@easy-auth/auth-client";
+import { AuthApiError, type PermissionSummary, type RoleSummary } from "@simple-auth-kit/auth-client";
 import { toast } from "sonner";
 import { PERMISSIONS, useAbility } from "@/lib/ability";
 import { authClient } from "@/lib/auth-client";

@@ -1,7 +1,7 @@
 "use client";
 
 import { makeAutoObservable, runInAction } from "mobx";
-import type { CurrentUser, SessionSummary } from "@easy-auth/auth-client";
+import type { CurrentUser, SessionSummary } from "@simple-auth-kit/auth-client";
 import { authClient } from "../auth-client";
 
 export type LoginOutcome = { status: "success" } | { status: "twoFactorRequired"; challengeToken: string };

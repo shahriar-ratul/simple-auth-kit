@@ -29,7 +29,7 @@ Every error:
 { "success": false, "statusCode": 403, "message": "...", "error": "Forbidden" }
 ```
 
-`@easy-auth/auth-client` unwraps the envelope once in its transport layer — client code only
+`@simple-auth-kit/auth-client` unwraps the envelope once in its transport layer — client code only
 ever sees `data`.
 
 ## Pagination

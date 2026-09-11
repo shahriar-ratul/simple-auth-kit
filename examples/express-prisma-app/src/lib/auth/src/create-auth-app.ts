@@ -49,7 +49,7 @@ export function createAuthApp(options: CreateAuthAppOptions = {}): Express {
   // this library's source changes.
   const rateLimit: RateLimitDeps = config.rateLimitStore ?? new InMemoryRateLimitStore();
   // The cache seam. Swap the store for a Redis-backed one by passing `permissionCacheStore` in
-  // `config` — nothing in this library's source changes. Keys are namespaced easyauth:authz:*.
+  // `config` — nothing in this library's source changes. Keys are namespaced simpleauthkit:authz:*.
   const permissionCache = new PermissionCache(config.permissionCacheStore ?? new InMemoryPermissionCacheStore(), config);
   const rbac = new RbacRepository(prisma, permissionCache);
   const twoFactor = new TwoFactorRepository(prisma);
@@ -64,7 +64,7 @@ export function createAuthApp(options: CreateAuthAppOptions = {}): Express {
 
   if (!config.permissionCacheStore || !config.rateLimitStore) {
     console.warn(
-      "[easy-auth] permissionCacheStore/rateLimitStore not overridden — using in-memory defaults. " +
+      "[simple-auth-kit] permissionCacheStore/rateLimitStore not overridden — using in-memory defaults. " +
         "Fine for a single instance; silently inconsistent (stale grants, wrong rate-limit counts) " +
         "across replicas once you run more than one. Override permissionCacheStore/rateLimitStore " +
         "in createAuthApp's config before scaling out.",

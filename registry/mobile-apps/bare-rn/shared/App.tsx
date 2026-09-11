@@ -1,5 +1,5 @@
 /**
- * mobile-bare-rn — end-user auth app for the easy-auth backend.
+ * mobile-bare-rn — end-user auth app for the simple-auth-kit backend.
  *
  * @format
  */

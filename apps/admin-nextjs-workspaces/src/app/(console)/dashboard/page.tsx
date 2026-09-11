@@ -4,7 +4,7 @@ import { useAbility } from "@casl/react";
 import { observer } from "mobx-react-lite";
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import type { AuditLogEntry } from "@easy-auth/auth-client";
+import type { AuditLogEntry } from "@simple-auth-kit/auth-client";
 import { Alert } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";

@@ -13,7 +13,7 @@ import { deleteCookie, getCookie, setCookie } from "cookies-next/client";
  *
  * A cookie rather than component state, so a reload lands you back in the workspace you were in.
  */
-const COOKIE_NAME = "easy_auth_workspace";
+const COOKIE_NAME = "simple_auth_kit_workspace";
 const COOKIE_MAX_AGE_SECONDS = 60 * 60 * 24 * 365;
 
 /** Read once, then kept in memory: the resolver runs on every scoped request. */

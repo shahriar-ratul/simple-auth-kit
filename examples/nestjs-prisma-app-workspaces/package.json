@@ -2,7 +2,7 @@
   "name": "example-nestjs-prisma-app-workspaces",
   "private": true,
   "version": "0.0.0",
-  "description": "A fresh consumer project demonstrating `easy-auth add nestjs-prisma --workspaces` end to end — not part of the registry's pnpm workspace, installed with plain npm like any real consumer would. See examples/nestjs-prisma-app for the base-variant counterpart.",
+  "description": "A fresh consumer project demonstrating `simple-auth-kit add nestjs-prisma --workspaces` end to end — not part of the registry's pnpm workspace, installed with plain npm like any real consumer would. See examples/nestjs-prisma-app for the base-variant counterpart.",
   "type": "module",
   "scripts": {
     "start": "tsx src/main.ts",

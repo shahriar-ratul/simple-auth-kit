@@ -1,5 +1,5 @@
 import { ChevronDownIcon, XIcon } from "lucide-react";
-import type { RoleSummary } from "@easy-auth/auth-client";
+import type { RoleSummary } from "@simple-auth-kit/auth-client";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";

@@ -1,7 +1,7 @@
 import { makeAutoObservable, runInAction } from "mobx";
-import type { AuthClient, WorkspaceSummary } from "@easy-auth/auth-client";
+import type { AuthClient, WorkspaceSummary } from "@simple-auth-kit/auth-client";
 
-const ACTIVE_WORKSPACE_KEY = "easy-auth-active-workspace";
+const ACTIVE_WORKSPACE_KEY = "simple-auth-kit-active-workspace";
 
 /**
  * Owns "which workspace am I in". `AuthClient` is configured with a resolver pointing at

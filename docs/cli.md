@@ -1,29 +1,29 @@
-# The `easy-auth` CLI
+# The `simple-auth-kit` CLI
 
-`cli/easy-auth.ts` copies `registry/` source into a target project and records what it wrote
+`cli/simple-auth-kit.ts` copies `registry/` source into a target project and records what it wrote
 in a lockfile. The product catalog lives in `cli/registry.json`. Distribution model and UX are
 deliberately shadcn/ui-shaped: nothing is ever installed as a runtime dependency, and once
-linked, usage is a single `easy-auth add <combo>` run from inside your own project — same shape
+linked, usage is a single `simple-auth-kit add <combo>` run from inside your own project — same shape
 as `npx shadcn add <component>`.
 
 ## Install once, use anywhere
 
 ```bash
-cd cli && npm link          # once — registers a global `easy-auth` command
+cd cli && npm link          # once — registers a global `simple-auth-kit` command
 ```
 
 From then on, in **any** project on the machine:
 
 ```bash
 cd ~/your-project
-easy-auth add nestjs-prisma           # or any other combo, optionally --workspaces
+simple-auth-kit add nestjs-prisma           # or any other combo, optionally --workspaces
 ```
 
 No `--into` needed — it already defaults to the current directory, exactly like `cd`-ing into
 your project before running an installer. Prefer not to link? The unlinked form works
-identically: `npx tsx <path-to-this-repo>/cli/easy-auth.ts add <combo> --into <path>`.
+identically: `npx tsx <path-to-this-repo>/cli/simple-auth-kit.ts add <combo> --into <path>`.
 
-`easy-auth` alone prints the full command/combo reference; `easy-auth add` with no combo name
+`simple-auth-kit` alone prints the full command/combo reference; `simple-auth-kit add` with no combo name
 launches a guided prompt (pick kind, framework, variant) instead of requiring every flag up
 front. See `docs/cli-generation-guide.html` for a fully-verified walkthrough of all 16
 combo×variant combinations, real terminal output included.
@@ -32,7 +32,7 @@ combo×variant combinations, real terminal output included.
 
 | Command | What it does |
 |---|---|
-| `init` | Writes `.easy-auth.json` in the target (`path`, `alias`, `ignore`) so later `add` runs don't need flags. |
+| `init` | Writes `.simple-auth-kit.json` in the target (`path`, `alias`, `ignore`) so later `add` runs don't need flags. |
 | `add <combo>` | Installs one product (see modes below). |
 | `add` (no combo) | Guided multi-kind flow: pick kinds (api/admin/mobile) and a framework per kind via prompts — or drive it entirely with `--kind`/`--framework`. |
 | `diff` | **Stub** — prints "not implemented yet" plus the file list from `auth.lock.json`. |
@@ -88,20 +88,18 @@ outright, and each one's prune step would delete the other's files. With a singl
 the install lands directly in the target root, as before. When namespaced, a given `--name`
 is suffixed per combo (`<name>-<comboName>`) so sibling apps don't collide on package name.
 
-## Known limitation: `@easy-auth/auth-client`
+## `@simple-auth-kit/auth-client`
 
-The scaffolded admin/mobile apps declare `"@easy-auth/auth-client": "workspace:*"`, which only
-resolves inside this monorepo's pnpm workspace — the package is private and unpublished. A
-scaffolded app generated **outside** the monorepo won't install until that dependency is
-resolved by hand. Each combo's post-install notes call it out; publishing the package is a
-separate, deliberately-unmade decision.
+The scaffolded admin/mobile apps declare `"@simple-auth-kit/auth-client": "^1.0.0"`, resolved
+from the published package on npm — a scaffolded app generated outside the monorepo installs
+with a plain `npm install`, no manual dependency resolution needed.
 
 ## Keeping the in-repo examples in sync
 
 `examples/*` are themselves CLI output. After changing a combo:
 
 ```bash
-cd cli && npx tsx easy-auth.ts add <combo> [--workspaces] --force --into ../examples/<app>
+cd cli && npx tsx simple-auth-kit.ts add <combo> [--workspaces] --force --into ../examples/<app>
 ```
 
 `--force` is fine there — the examples hold no hand edits inside the managed `src/lib/auth/`

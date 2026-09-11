@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>easy-auth — Recommendations: Before vs After</title>
+<title>simple-auth-kit — Recommendations: Before vs After</title>
 <style>
   :root {
     --bg: #0b0d12; --panel: #12151d; --panel-2: #171b26; --border: #262b3a;
@@ -104,7 +104,7 @@
 
 <header class="top">
   <div class="title">
-    <h1>easy-auth — Recommendations: Before vs After</h1>
+    <h1>simple-auth-kit — Recommendations: Before vs After</h1>
     <div class="sub">Implemented + fully verified against the live repo: prove-cycle, production builds, examples resync · 2026-08-23</div>
   </div>
   <nav class="toc">
@@ -214,7 +214,7 @@
             <span class="tag">After</span>
             <pre class="after"><code><span class="kw">if</span> (!config.permissionCacheStore || !config.rateLimitStore) {
   console.warn(
-    <span class="str">"[easy-auth] permissionCacheStore/rateLimitStore "</span> +
+    <span class="str">"[simple-auth-kit] permissionCacheStore/rateLimitStore "</span> +
     <span class="str">"not overridden — using in-memory defaults. Fine "</span> +
     <span class="str">"for a single instance; silently inconsistent "</span> +
     <span class="str">"across replicas once you run more than one..."</span>,
@@ -349,7 +349,7 @@
     <h2><span class="n">5</span>Deferred items — resolved</h2>
     <ul class="deferred-list">
       <li><b>prove-cycle: now run for real.</b> OrbStack/Docker started, <code class="inline">postgres:16</code> launched on <code class="inline">localhost:55432</code> (the exact command AGENTS.md documents), 8 databases created, all 4 combos' <code class="inline">npm run prove-cycle</code> run to completion in parallel. <b>425 assertions passed, 0 failed, per combo</b> — more than the ~336 estimated by static assert-call counting, since loop-driven assertions (e.g. the 8-identical-requests cache-hit check) execute more than once per call site. This is the strongest evidence in this whole exercise: it boots the real NestJS/Express app, resolves the real DI graph (proving the <code class="inline">RATE_LIMIT_STORE</code>/<code class="inline">PERMISSION_CACHE_STORE</code> rewiring actually works, not just typechecks), and the Rec-3 warning was confirmed printing at real boot time in every log.</li>
-      <li><b><code class="inline">examples/*</code>: now re-synced.</b> All 8 example backends re-generated via <code class="inline">easy-auth add --force</code> from the 4 modified combos. <code class="inline">git diff --stat</code> confirms the diff is scoped to exactly the expected files (<code class="inline">auth.config.ts</code>, <code class="inline">auth.module.ts</code>/<code class="inline">create-auth-app.ts</code>, <code class="inline">auth.service.ts</code>, <code class="inline">rate-limit.store.ts</code>, <code class="inline">auth.lock.json</code>) — nothing unexpected touched.</li>
+      <li><b><code class="inline">examples/*</code>: now re-synced.</b> All 8 example backends re-generated via <code class="inline">simple-auth-kit add --force</code> from the 4 modified combos. <code class="inline">git diff --stat</code> confirms the diff is scoped to exactly the expected files (<code class="inline">auth.config.ts</code>, <code class="inline">auth.module.ts</code>/<code class="inline">create-auth-app.ts</code>, <code class="inline">auth.service.ts</code>, <code class="inline">rate-limit.store.ts</code>, <code class="inline">auth.lock.json</code>) — nothing unexpected touched.</li>
       <li><b><code class="inline">apps/admin-nextjs[-workspaces]</code>: production build now run.</b> <code class="inline">next build</code> completed clean for both, all routes (static + dynamic + the proxy middleware) built without error.</li>
       <li><b>No CI added — still true, still by design.</b> The only item left undone is the one explicitly ruled out in this conversation. Local enforcement (<code class="inline">.githooks/pre-push</code>) is real and now itself proven correct by the prove-cycle run above; the honest limitations already on record (bypassable, no merge-blocking gate, no audit trail) stand unchanged.</li>
     </ul>

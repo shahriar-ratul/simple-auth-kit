@@ -2,7 +2,7 @@
   "name": "example-nestjs-drizzle-app",
   "private": true,
   "version": "0.0.0",
-  "description": "A fresh consumer project demonstrating `easy-auth add nestjs-drizzle` end to end.",
+  "description": "A fresh consumer project demonstrating `simple-auth-kit add nestjs-drizzle` end to end.",
   "type": "module",
   "scripts": {
     "start": "tsx src/main.ts",

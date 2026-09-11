@@ -2,7 +2,7 @@
   "name": "mobile-bare-rn-workspaces",
   "version": "0.0.1",
   "private": true,
-  "description": "Bare React Native CLI end-user mobile app consuming the workspaces easy-auth backend variant (easy-auth add <combo> --workspaces) — login/signup, 2FA, profile, sessions, workspace selection. A deliberate copy of apps/mobile-bare-rn rather than a shared abstraction: a consumer installs one variant, not both. Uses the shared @easy-auth/auth-client package; state via Zustand, navigation via React Navigation.",
+  "description": "Bare React Native CLI end-user mobile app consuming the workspaces simple-auth-kit backend variant (simple-auth-kit add <combo> --workspaces) — login/signup, 2FA, profile, sessions, workspace selection. A deliberate copy of apps/mobile-bare-rn rather than a shared abstraction: a consumer installs one variant, not both. Uses the shared @simple-auth-kit/auth-client package; state via Zustand, navigation via React Navigation.",
   "scripts": {
     "android": "react-native run-android",
     "ios": "react-native run-ios",
@@ -12,7 +12,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@easy-auth/auth-client": "workspace:*",
+    "@simple-auth-kit/auth-client": "^1.0.0",
     "@react-native-async-storage/async-storage": "^3.1.1",
     "@react-native/new-app-screen": "0.86.2",
     "@react-navigation/native": "^7.3.16",

@@ -2,7 +2,7 @@
   "name": "example-express-prisma-app-workspaces",
   "private": true,
   "version": "0.0.0",
-  "description": "A fresh consumer project demonstrating `easy-auth add express-prisma --workspaces` end to end. See examples/express-prisma-app for the base-variant counterpart.",
+  "description": "A fresh consumer project demonstrating `simple-auth-kit add express-prisma --workspaces` end to end. See examples/express-prisma-app for the base-variant counterpart.",
   "type": "module",
   "scripts": {
     "start": "tsx src/main.ts",

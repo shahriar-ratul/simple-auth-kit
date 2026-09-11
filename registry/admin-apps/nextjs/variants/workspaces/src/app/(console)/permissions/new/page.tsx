@@ -4,7 +4,7 @@ import { useAbility } from "@casl/react";
 import { observer } from "mobx-react-lite";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState, type FormEvent } from "react";
-import type { DefinePermissionInput, PermissionSummary } from "@easy-auth/auth-client";
+import type { DefinePermissionInput, PermissionSummary } from "@simple-auth-kit/auth-client";
 import { toast } from "sonner";
 import { Breadcrumb } from "@/components/breadcrumb";
 import { FormErrorAlert } from "@/components/form-error-alert";

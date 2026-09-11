@@ -4,7 +4,7 @@ import {
   type AuthTokens,
   type CurrentUser,
   type TwoFactorChallenge,
-} from '@easy-auth/auth-client';
+} from '@simple-auth-kit/auth-client';
 import { authClient } from '../api/authClient';
 import { useWorkspaceStore } from './workspaceStore';
 import { getActiveWorkspaceId, hydrateActiveWorkspace, setActiveWorkspaceId } from '../workspace/activeWorkspace';

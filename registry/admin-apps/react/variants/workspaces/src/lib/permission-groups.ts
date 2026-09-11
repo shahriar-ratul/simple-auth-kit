@@ -1,4 +1,4 @@
-import type { PermissionSummary } from "@easy-auth/auth-client";
+import type { PermissionSummary } from "@simple-auth-kit/auth-client";
 
 /** Distinct group names, in catalog order — feeds the group datalist on the permission forms. */
 export function deriveGroupNames(permissions: PermissionSummary[]): string[] {

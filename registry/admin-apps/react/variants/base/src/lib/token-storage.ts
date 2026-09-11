@@ -1,7 +1,7 @@
 import { deleteCookie, getCookie, setCookie } from "cookies-next/client";
-import type { AuthTokens, TokenStorage } from "@easy-auth/auth-client";
+import type { AuthTokens, TokenStorage } from "@simple-auth-kit/auth-client";
 
-const COOKIE_NAME = "easy-auth-tokens";
+const COOKIE_NAME = "simple-auth-kit-tokens";
 
 /**
  * Frontend-managed cookie storage for the shared AuthClient — per the project's resolved

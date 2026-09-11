@@ -2,7 +2,7 @@
 
 import { useAbility } from "@casl/react";
 import { useCallback, useEffect, useState } from "react";
-import type { AuditLogEntry, PageMeta } from "@easy-auth/auth-client";
+import type { AuditLogEntry, PageMeta } from "@simple-auth-kit/auth-client";
 import { Breadcrumb } from "@/components/breadcrumb";
 import { PermissionRequired } from "@/components/permission-required";
 import { Alert } from "@/components/ui/alert";

@@ -6,7 +6,7 @@ import { useParams, useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { format } from "date-fns";
-import { AuthApiError, type RoleSummary, type UpdateUserInput, type UserSummary } from "@easy-auth/auth-client";
+import { AuthApiError, type RoleSummary, type UpdateUserInput, type UserSummary } from "@simple-auth-kit/auth-client";
 import { toast } from "sonner";
 import { Breadcrumb } from "@/components/breadcrumb";
 import { FormErrorAlert } from "@/components/form-error-alert";

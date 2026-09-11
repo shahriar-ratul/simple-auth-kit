@@ -42,7 +42,7 @@ export function setupDocs(app: INestApplication, opts: DocsOptions = {}): OpenAP
   const document = SwaggerModule.createDocument(
     app,
     new DocumentBuilder()
-      .setTitle(opts.title ?? "easy-auth API")
+      .setTitle(opts.title ?? "simple-auth-kit API")
       .setDescription(opts.description ?? "nestjs-prisma reference combo — signup/login, sessions, TOTP 2FA, OAuth, password reset, RBAC, audit log")
       .setVersion(opts.version ?? "1.0")
       .addBearerAuth()

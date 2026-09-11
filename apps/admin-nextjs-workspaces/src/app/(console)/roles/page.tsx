@@ -5,7 +5,7 @@ import { observer } from "mobx-react-lite";
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { PlusIcon } from "lucide-react";
-import { AuthApiError, userIdOf, type PermissionSummary, type RoleSummary, type UserSummary } from "@easy-auth/auth-client";
+import { AuthApiError, userIdOf, type PermissionSummary, type RoleSummary, type UserSummary } from "@simple-auth-kit/auth-client";
 import { toast } from "sonner";
 import { AlertModal } from "@/components/alert-modal";
 import { PermissionGroupSelect } from "@/components/permission-group-select";

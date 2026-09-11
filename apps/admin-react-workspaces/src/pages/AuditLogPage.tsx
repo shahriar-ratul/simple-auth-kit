@@ -1,7 +1,7 @@
 import { type FormEvent, useEffect, useState } from "react";
 import { observer } from "mobx-react-lite";
-import type { AuditLogEntry, PageMeta } from "@easy-auth/auth-client";
-import { AuthApiError } from "@easy-auth/auth-client";
+import type { AuditLogEntry, PageMeta } from "@simple-auth-kit/auth-client";
+import { AuthApiError } from "@simple-auth-kit/auth-client";
 import { authClient } from "@/lib/auth-client";
 import { useWorkspaceStore } from "@/stores/store-context";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";

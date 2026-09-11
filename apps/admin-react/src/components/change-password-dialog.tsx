@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from "react";
 import { EyeIcon, EyeOffIcon } from "lucide-react";
-import { AuthApiError } from "@easy-auth/auth-client";
+import { AuthApiError } from "@simple-auth-kit/auth-client";
 import { Button } from "@/components/ui/button";
 import { Modal } from "@/components/ui/modal";
 import { Input } from "@/components/ui/input";

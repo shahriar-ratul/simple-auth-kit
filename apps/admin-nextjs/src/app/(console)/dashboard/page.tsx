@@ -5,7 +5,7 @@ import { KeySquareIcon, RadioIcon, ScrollTextIcon, ShieldCheckIcon, UserPlusIcon
 import { observer } from "mobx-react-lite";
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import type { AuditLogEntry } from "@easy-auth/auth-client";
+import type { AuditLogEntry } from "@simple-auth-kit/auth-client";
 import { Breadcrumb } from "@/components/breadcrumb";
 import { Skeleton } from "@/components/loader/skeleton";
 import { Alert } from "@/components/ui/alert";

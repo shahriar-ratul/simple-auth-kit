@@ -1,6 +1,6 @@
 "use client";
 
-import type { AuditLogEntry } from "@easy-auth/auth-client";
+import type { AuditLogEntry } from "@simple-auth-kit/auth-client";
 import { useEffect, useRef, useState } from "react";
 import { io, type Socket } from "socket.io-client";
 import { AUTH_API_URL } from "@/lib/env";

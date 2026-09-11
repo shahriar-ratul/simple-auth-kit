@@ -42,7 +42,7 @@ export interface AuthConfig {
   // permission-cache.ts. Set to 0 to resolve from the database on every request.
   permissionCacheTtlSeconds: number;
   // Defaults to an in-process Map; pass a Redis-backed PermissionCacheStore for multiple
-  // instances. Keys are namespaced `easyauth:authz:*`.
+  // instances. Keys are namespaced `simpleauthkit:authz:*`.
   permissionCacheStore?: PermissionCacheStore;
   // Defaults to an in-process Map; pass a Redis-backed RateLimitDeps for multiple instances.
   rateLimitStore?: RateLimitDeps;
@@ -66,6 +66,6 @@ export const defaultAuthConfig: AuthConfig = {
   throttle: defaultThrottleBuckets,
   refreshTokenTtlSeconds: 60 * 60 * 24 * 30,
   sessionTtlSeconds: 60 * 60 * 24 * 30,
-  twoFactorIssuer: "easy-auth",
+  twoFactorIssuer: "simple-auth-kit",
   oauthProviders: {},
 };

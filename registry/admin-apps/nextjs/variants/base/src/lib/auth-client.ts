@@ -1,4 +1,4 @@
-import { AuthClient } from "@easy-auth/auth-client";
+import { AuthClient } from "@simple-auth-kit/auth-client";
 import { AUTH_API_URL } from "./env";
 import { cookieTokenStorage } from "./token-storage";
 

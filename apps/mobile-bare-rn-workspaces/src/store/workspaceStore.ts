@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { AuthApiError, type WorkspaceSummary } from '@easy-auth/auth-client';
+import { AuthApiError, type WorkspaceSummary } from '@simple-auth-kit/auth-client';
 import { authClient } from '../api/authClient';
 import { setActiveWorkspaceId, useActiveWorkspaceId } from '../workspace/activeWorkspace';
 

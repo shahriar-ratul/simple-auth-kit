@@ -41,7 +41,7 @@ export interface AuthConfig {
   /**
    * Where resolved permissions are cached. Defaults to an in-process `Map`, which is correct for
    * a single instance; pass a Redis-backed implementation of `PermissionCacheStore` for several.
-   * Keys are namespaced `easyauth:authz:*`.
+   * Keys are namespaced `simpleauthkit:authz:*`.
    */
   permissionCacheStore?: PermissionCacheStore;
   /**
@@ -58,6 +58,6 @@ export const defaultAuthConfig: AuthConfig = {
   permissionCacheTtlSeconds: 300,
   refreshTokenTtlSeconds: 60 * 60 * 24 * 30,
   sessionTtlSeconds: 60 * 60 * 24 * 30,
-  twoFactorIssuer: "easy-auth",
+  twoFactorIssuer: "simple-auth-kit",
   oauthProviders: {},
 };

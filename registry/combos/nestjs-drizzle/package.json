@@ -1,5 +1,5 @@
 {
-  "name": "@easy-auth/combo-nestjs-drizzle",
+  "name": "@simple-auth-kit/combo-nestjs-drizzle",
   "private": true,
   "version": "0.0.0",
   "description": "Structural diff of nestjs-prisma: same NestJS controller/guard/module shape and the same two variants (base, workspaces) composed from shared/ + variants/<variant>/, with Drizzle instead of Prisma for schema + queries.",

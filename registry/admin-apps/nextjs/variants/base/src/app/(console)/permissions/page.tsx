@@ -16,7 +16,7 @@ import { ArrowDownIcon, ArrowUpIcon, ChevronDownIcon, ChevronsUpDownIcon, EyeIco
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import { useDebounce } from "use-debounce";
-import { AuthApiError, type PermissionSummary } from "@easy-auth/auth-client";
+import { AuthApiError, type PermissionSummary } from "@simple-auth-kit/auth-client";
 import { toast } from "sonner";
 import { AlertModal } from "@/components/alert-modal";
 import { Breadcrumb } from "@/components/breadcrumb";

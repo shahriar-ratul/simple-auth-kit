@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useState } from "react";
 import { ActivityIndicator, FlatList, Pressable, RefreshControl, Text, TextInput, View } from "react-native";
 import { useNavigation } from "@react-navigation/native";
-import type { WorkspaceSummary } from "@easy-auth/auth-client";
+import type { WorkspaceSummary } from "@simple-auth-kit/auth-client";
 import { useActiveWorkspaceId } from "../workspace/activeWorkspace";
 import { useAuthStore } from "../store/authStore";
 import { useWorkspaceStore } from "../store/workspaceStore";

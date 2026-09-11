@@ -1,5 +1,5 @@
 {
-  "name": "easy-auth-registry",
+  "name": "simple-auth-kit-registry",
   "private": true,
   "version": "0.0.0",
   "description": "Source registry for the shadcn-style auth library CLI. Not published — the CLI copies files out of registry/ into consumer repos. Monorepo: each combo under registry/combos/* is its own package with only the deps it needs.",
@@ -8,7 +8,7 @@
     "prepare": "git config core.hooksPath .githooks",
     "typecheck": "pnpm -r --if-present run typecheck",
     "test": "pnpm -r --if-present run test",
-    "cli": "pnpm --filter easy-auth-cli run cli",
+    "cli": "pnpm --filter simple-auth-kit-cli run cli",
     "portal": "pnpm --filter dev-portal run dev"
   },
   "devDependencies": {

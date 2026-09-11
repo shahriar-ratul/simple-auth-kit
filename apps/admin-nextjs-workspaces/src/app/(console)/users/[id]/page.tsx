@@ -4,7 +4,7 @@ import { useAbility } from "@casl/react";
 import { observer } from "mobx-react-lite";
 import { useParams, useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
-import { AuthApiError, type RoleSummary, type UpdateUserInput, type UserSummary } from "@easy-auth/auth-client";
+import { AuthApiError, type RoleSummary, type UpdateUserInput, type UserSummary } from "@simple-auth-kit/auth-client";
 import { toast } from "sonner";
 import { Breadcrumb } from "@/components/breadcrumb";
 import { PermissionRequired } from "@/components/permission-required";

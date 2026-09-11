@@ -1,6 +1,6 @@
 import { makeAutoObservable, runInAction } from "mobx";
-import type { AuthClient, CurrentUser, SessionSummary, TwoFactorChallenge } from "@easy-auth/auth-client";
-import { AuthApiError } from "@easy-auth/auth-client";
+import type { AuthClient, CurrentUser, SessionSummary, TwoFactorChallenge } from "@simple-auth-kit/auth-client";
+import { AuthApiError } from "@simple-auth-kit/auth-client";
 
 /**
  * Session lifecycle hooks. On this variant a session is not complete until the workspace list

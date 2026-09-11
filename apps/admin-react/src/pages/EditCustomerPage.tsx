@@ -1,6 +1,6 @@
 import { type FormEvent, useCallback, useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { AuthApiError, type CustomerSummary, type UpdateCustomerInput } from "@easy-auth/auth-client";
+import { AuthApiError, type CustomerSummary, type UpdateCustomerInput } from "@simple-auth-kit/auth-client";
 import { format } from "date-fns";
 import { toast } from "sonner";
 import { authClient } from "@/lib/auth-client";

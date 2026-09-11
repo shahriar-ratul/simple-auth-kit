@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import { AuthApiError, type CurrentUser } from "@easy-auth/auth-client";
+import { AuthApiError, type CurrentUser } from "@simple-auth-kit/auth-client";
 import { authClient } from "../api/authClient";
 
 export interface LoginResult {

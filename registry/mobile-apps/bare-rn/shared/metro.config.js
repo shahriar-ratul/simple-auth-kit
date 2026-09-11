@@ -13,7 +13,7 @@ const { withNativeWind } = require('nativewind/metro');
  *
  * pnpm workspace note: pnpm's node_modules are symlinks into a central content-addressed
  * store, which Metro doesn't follow by default. `unstable_enableSymlinks` plus watching the
- * monorepo root (so Metro's file watcher can see packages like @easy-auth/auth-client that
+ * monorepo root (so Metro's file watcher can see packages like @simple-auth-kit/auth-client that
  * live outside this app's directory) is the standard, documented fix.
  * See: https://metrobundler.dev/docs/configuration/#unstable_enablesymlinks-experimental
  *

@@ -1,6 +1,6 @@
 {
   "name": "mobile-expo-workspaces",
-  "description": "Expo end-user mobile app consuming the workspaces easy-auth backend variant (easy-auth add <combo> --workspaces) via @easy-auth/auth-client. A deliberate copy of apps/mobile-expo rather than a shared abstraction: a consumer installs one variant, not both.",
+  "description": "Expo end-user mobile app consuming the workspaces simple-auth-kit backend variant (simple-auth-kit add <combo> --workspaces) via @simple-auth-kit/auth-client. A deliberate copy of apps/mobile-expo rather than a shared abstraction: a consumer installs one variant, not both.",
   "private": true,
   "version": "0.0.0",
   "main": "index.ts",
@@ -12,7 +12,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@easy-auth/auth-client": "workspace:*",
+    "@simple-auth-kit/auth-client": "^1.0.0",
     "@react-native-async-storage/async-storage": "2.2.0",
     "@react-navigation/native": "^7.3.16",
     "@react-navigation/native-stack": "^7.18.8",

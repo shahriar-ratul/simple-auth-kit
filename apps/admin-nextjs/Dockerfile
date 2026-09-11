@@ -1,5 +1,5 @@
 # Build context MUST be the repo root (not this directory) — this app is a pnpm workspace
-# member that depends on @easy-auth/auth-client via `workspace:*`, which is compiled to
+# member that depends on @simple-auth-kit/auth-client via `workspace:*`, which is compiled to
 # dist/ and must be built from source (it's not consumed as raw TS). That requires the
 # whole workspace (pnpm-workspace.yaml, the lockfile, packages/auth-client) in scope.
 #
@@ -23,7 +23,7 @@ COPY . .
 # esbuild's without explicit approval; --config here only affects this image layer, not the
 # repo's own pnpm config.
 RUN pnpm install --frozen-lockfile --filter "admin-nextjs..." --config.dangerously-allow-all-builds=true
-RUN pnpm --filter @easy-auth/auth-client run build
+RUN pnpm --filter @simple-auth-kit/auth-client run build
 
 WORKDIR /repo/apps/admin-nextjs
 EXPOSE 3000

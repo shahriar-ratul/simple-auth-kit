@@ -2,7 +2,7 @@
   "name": "example-express-drizzle-app-workspaces",
   "private": true,
   "version": "0.0.0",
-  "description": "A fresh consumer project demonstrating `easy-auth add express-drizzle --workspaces` end to end. See examples/express-drizzle-app for the base-variant counterpart.",
+  "description": "A fresh consumer project demonstrating `simple-auth-kit add express-drizzle --workspaces` end to end. See examples/express-drizzle-app for the base-variant counterpart.",
   "type": "module",
   "scripts": {
     "start": "tsx src/main.ts",

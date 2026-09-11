@@ -1,5 +1,5 @@
 {
-  "name": "@easy-auth/combo-nestjs-prisma",
+  "name": "@simple-auth-kit/combo-nestjs-prisma",
   "private": true,
   "version": "0.0.0",
   "description": "Reference combo: NestJS + Prisma. Two variants (base, workspaces) composed from shared/ + variants/<variant>/ — every other combo is a structural diff against this one.",

@@ -2,7 +2,7 @@
 // Composes a runnable copy of one variant of this combo into `.variant/<variant>/`.
 //
 // A variant is `shared/` + `variants/<variant>/` overlaid on top of each other — exactly what
-// `easy-auth add <combo> [--workspaces]` copies into a consumer's project. Composing it here
+// `simple-auth-kit add <combo> [--workspaces]` copies into a consumer's project. Composing it here
 // too means the thing this package typechecks and runs `prove-cycle` against is byte-for-byte
 // the thing the CLI emits, rather than a second wiring that can drift from it.
 //

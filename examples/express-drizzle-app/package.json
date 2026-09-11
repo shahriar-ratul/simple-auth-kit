@@ -2,7 +2,7 @@
   "name": "example-express-drizzle-app",
   "private": true,
   "version": "0.0.0",
-  "description": "A fresh consumer project demonstrating `easy-auth add express-drizzle` end to end.",
+  "description": "A fresh consumer project demonstrating `simple-auth-kit add express-drizzle` end to end.",
   "type": "module",
   "scripts": {
     "start": "tsx src/main.ts",

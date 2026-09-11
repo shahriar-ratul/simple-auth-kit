@@ -47,10 +47,10 @@ describe("two-factor: TOTP", () => {
   });
 
   it("buildTotpProvisioningUri embeds the issuer, account name, and secret", () => {
-    const uri = buildTotpProvisioningUri({ secret: RFC_SECRET, accountName: "alice@example.com", issuer: "easy-auth" });
+    const uri = buildTotpProvisioningUri({ secret: RFC_SECRET, accountName: "alice@example.com", issuer: "simple-auth-kit" });
     expect(uri).toContain("otpauth://totp/");
     expect(uri).toContain(`secret=${RFC_SECRET}`);
-    expect(decodeURIComponent(uri)).toContain("easy-auth:alice@example.com");
+    expect(decodeURIComponent(uri)).toContain("simple-auth-kit:alice@example.com");
   });
 });
 

@@ -1,6 +1,6 @@
 import { AbilityBuilder, PureAbility } from "@casl/ability";
 import { createContextualCan } from "@casl/react";
-import type { CurrentUser } from "@easy-auth/auth-client";
+import type { CurrentUser } from "@simple-auth-kit/auth-client";
 import { createContext, useContext } from "react";
 
 /**

@@ -1,6 +1,6 @@
 import { type FormEvent, useCallback, useState } from "react";
-import type { AuditLogEntry, PageMeta } from "@easy-auth/auth-client";
-import { AuthApiError } from "@easy-auth/auth-client";
+import type { AuditLogEntry, PageMeta } from "@simple-auth-kit/auth-client";
+import { AuthApiError } from "@simple-auth-kit/auth-client";
 import { authClient } from "@/lib/auth-client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { DateTimePicker } from "@/components/ui/datetime-picker";

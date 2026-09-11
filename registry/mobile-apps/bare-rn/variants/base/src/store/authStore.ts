@@ -4,7 +4,7 @@ import {
   type AuthTokens,
   type CurrentUser,
   type TwoFactorChallenge,
-} from '@easy-auth/auth-client';
+} from '@simple-auth-kit/auth-client';
 import { authClient } from '../api/authClient';
 
 export interface Credentials {

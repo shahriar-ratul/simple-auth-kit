@@ -7,7 +7,7 @@ import Link from "next/link";
 import { useMemo, useState } from "react";
 import { useDebounce } from "use-debounce";
 import { ChevronDownIcon, EyeIcon, PencilIcon, PlusIcon, PowerIcon, Trash2Icon } from "lucide-react";
-import { AuthApiError, type RoleSummary } from "@easy-auth/auth-client";
+import { AuthApiError, type RoleSummary } from "@simple-auth-kit/auth-client";
 import { AlertModal } from "@/components/alert-modal";
 import { Breadcrumb } from "@/components/breadcrumb";
 import { TableSkeletonLoader } from "@/components/loader/table-skeleton-loader";

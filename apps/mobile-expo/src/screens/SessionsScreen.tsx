@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useState } from "react";
 import { ActivityIndicator, FlatList, Pressable, RefreshControl, Text, View } from "react-native";
-import { AuthApiError, type SessionSummary } from "@easy-auth/auth-client";
+import { AuthApiError, type SessionSummary } from "@simple-auth-kit/auth-client";
 import { authClient } from "../api/authClient";
 import { useAuthStore } from "../store/authStore";
 

@@ -5,7 +5,7 @@ import { useAbility } from "@casl/react";
 import { useParams, useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
-import { AuthApiError, type CustomerSummary, type UpdateCustomerInput } from "@easy-auth/auth-client";
+import { AuthApiError, type CustomerSummary, type UpdateCustomerInput } from "@simple-auth-kit/auth-client";
 import { format } from "date-fns";
 import { toast } from "sonner";
 import { Breadcrumb } from "@/components/breadcrumb";

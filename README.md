@@ -1,7 +1,7 @@
-# easy-auth
+# simple-auth-kit
 
 A shadcn-style auth library: source lives in `registry/`, a CLI copies it into consumer
-projects (`easy-auth add <combo> [--workspaces]`). Three kinds of installable product —
+projects (`simple-auth-kit add <combo> [--workspaces]`). Three kinds of installable product —
 backend combos (`api`), admin consoles (`admin`), and mobile apps (`mobile`) — each in a
 **base** and a **workspaces** variant. This repo also contains a full reference deployment:
 8 runnable example backends, 4 admin consoles, 4 mobile apps, a shared typed API client, and
@@ -11,6 +11,44 @@ a dev portal watching all of it.
 architecture, the CLI, the full backend API reference, the admin console internals, and the
 development workflows. This README stays the operational quick reference.
 
+## Clone a single app (no full-repo clone needed)
+
+Every backend, admin console, and mobile app in this repo has its own `README.md` with setup
+steps. Each one can be pulled on its own with [`degit`](https://github.com/Rich-Harris/degit)
+— it fetches just that folder's files (no `.git` history, nothing else from the repo):
+
+```bash
+# Backends (examples/)
+npx degit shahriar-ratul/simple-auth-kit/examples/nestjs-prisma-app              nestjs-prisma-app
+npx degit shahriar-ratul/simple-auth-kit/examples/nestjs-prisma-app-workspaces   nestjs-prisma-app-workspaces
+npx degit shahriar-ratul/simple-auth-kit/examples/nestjs-drizzle-app             nestjs-drizzle-app
+npx degit shahriar-ratul/simple-auth-kit/examples/nestjs-drizzle-app-workspaces  nestjs-drizzle-app-workspaces
+npx degit shahriar-ratul/simple-auth-kit/examples/express-prisma-app            express-prisma-app
+npx degit shahriar-ratul/simple-auth-kit/examples/express-prisma-app-workspaces express-prisma-app-workspaces
+npx degit shahriar-ratul/simple-auth-kit/examples/express-drizzle-app           express-drizzle-app
+npx degit shahriar-ratul/simple-auth-kit/examples/express-drizzle-app-workspaces express-drizzle-app-workspaces
+
+# Admin consoles (apps/)
+npx degit shahriar-ratul/simple-auth-kit/apps/admin-nextjs              admin-nextjs
+npx degit shahriar-ratul/simple-auth-kit/apps/admin-nextjs-workspaces   admin-nextjs-workspaces
+npx degit shahriar-ratul/simple-auth-kit/apps/admin-react               admin-react
+npx degit shahriar-ratul/simple-auth-kit/apps/admin-react-workspaces    admin-react-workspaces
+
+# Mobile apps (apps/)
+npx degit shahriar-ratul/simple-auth-kit/apps/mobile-expo               mobile-expo
+npx degit shahriar-ratul/simple-auth-kit/apps/mobile-expo-workspaces    mobile-expo-workspaces
+npx degit shahriar-ratul/simple-auth-kit/apps/mobile-bare-rn            mobile-bare-rn
+npx degit shahriar-ratul/simple-auth-kit/apps/mobile-bare-rn-workspaces mobile-bare-rn-workspaces
+
+# Shared client package
+npx degit shahriar-ratul/simple-auth-kit/packages/auth-client           auth-client
+```
+
+Every app above depends on the published
+[`@simple-auth-kit/auth-client`](https://www.npmjs.com/package/@simple-auth-kit/auth-client) —
+a plain `npm install` resolves it, no monorepo/pnpm workspace required.
+`apps/dev-portal` is repo-tooling only and has no standalone clone path — see its README.
+
 ## Repo structure
 
 | Path | What it is |
@@ -19,9 +57,9 @@ development workflows. This README stays the operational quick reference.
 | `registry/combos/{nestjs-prisma,nestjs-drizzle,express-prisma,express-drizzle}/` | The 4 `api` products: framework+ORM wiring around `registry/core/`, each with a `base` and a `workspaces` variant. `nestjs-prisma` is the reference combo. Merged into an existing project's `src/lib/auth`. |
 | `registry/admin-apps/{nextjs,react}/` | The 2 `admin` products: whole admin-console apps, scaffolded standalone into a target directory. Extracted from (and mirrored by) `apps/admin-*`. |
 | `registry/mobile-apps/{expo,bare-rn}/` | The 2 `mobile` products: whole React Native apps, scaffolded standalone. `bare-rn` gets per-app native identity (bundle id / applicationId) retemplated by the CLI. |
-| `cli/` | The `easy-auth` CLI (`init`, `add`, `diff`) + `registry.json` product manifest. Multi-kind runs namespace each product into its own subdirectory. See `docs/cli.md`. |
-| `examples/{nestjs-prisma,nestjs-drizzle,express-prisma,express-drizzle}-app[-workspaces]/` | Fresh consumer projects, each demonstrating `easy-auth add <combo> [--workspaces]` end to end — 8 in total. These are the **runnable backends**. |
-| `packages/auth-client/` | Shared, framework-agnostic API client used by all 8 client apps below (`@easy-auth/auth-client`, consumed from `dist/`). |
+| `cli/` | The `simple-auth-kit` CLI (`init`, `add`, `diff`) + `registry.json` product manifest. Multi-kind runs namespace each product into its own subdirectory. See `docs/cli.md`. |
+| `examples/{nestjs-prisma,nestjs-drizzle,express-prisma,express-drizzle}-app[-workspaces]/` | Fresh consumer projects, each demonstrating `simple-auth-kit add <combo> [--workspaces]` end to end — 8 in total. These are the **runnable backends**. |
+| `packages/auth-client/` | Shared, framework-agnostic API client used by all 8 client apps below (`@simple-auth-kit/auth-client`, consumed from `dist/`). |
 | `apps/admin-nextjs[-workspaces]/`, `apps/admin-react[-workspaces]/` | The 4 admin consoles — users, roles & permissions, audit log, content domains, 2FA, live activity feed. `apps/admin-nextjs` is the reference console (NextAuth v5 + edge `proxy.ts` guard; the other three re-verify sessions client-side per navigation — a deliberate split, see `docs/admin-console.md`). |
 | `apps/mobile-expo[-workspaces]/`, `apps/mobile-bare-rn[-workspaces]/` | End-user mobile apps — login, 2FA, sessions — two React Native toolchains, each in base and workspaces versions. |
 | `apps/dev-portal/` | Next.js control panel for this repo (`pnpm portal`, port 8080): live per-service status with start/stop/restart, plus an ER diagram + schema-drift table built by replaying every combo's migrations into a throwaway database. For working on this repo — never shipped to consumers. |
@@ -34,13 +72,13 @@ Distribution model matches shadcn/ui: nothing is ever installed as a runtime dep
 is copied. Once linked, usage is a single command run from inside your own project:
 
 ```bash
-cd cli && npm link                    # once — registers a global `easy-auth` command
+cd cli && npm link                    # once — registers a global `simple-auth-kit` command
 cd ~/your-project
-easy-auth add nestjs-prisma           # or any combo below, optionally --workspaces
+simple-auth-kit add nestjs-prisma           # or any combo below, optionally --workspaces
 ```
 
 No `--into` needed — it already defaults to the current directory. Prefer not to link? The
-unlinked form works identically: `npx tsx <path-to-this-repo>/cli/easy-auth.ts add <combo>`.
+unlinked form works identically: `npx tsx <path-to-this-repo>/cli/simple-auth-kit.ts add <combo>`.
 
 | Kind | Combos | Installs as |
 |---|---|---|
@@ -48,8 +86,8 @@ unlinked form works identically: `npx tsx <path-to-this-repo>/cli/easy-auth.ts a
 | `admin` | `admin-nextjs`, `admin-react` | a whole new standalone app, scaffolded at the target |
 | `mobile` | `mobile-expo`, `mobile-bare-rn` | a whole new standalone app, scaffolded at the target |
 
-Add `--workspaces` to any of them for the workspaces variant. Run `easy-auth add` with no combo
-name for a guided prompt (pick kind, framework, variant); run `easy-auth` alone for the full
+Add `--workspaces` to any of them for the workspaces variant. Run `simple-auth-kit add` with no combo
+name for a guided prompt (pick kind, framework, variant); run `simple-auth-kit` alone for the full
 command/flag reference. Every install prints its own next steps — env vars to set, the migration
 command, seeding. Full details: `docs/cli.md`. A fully-verified walkthrough with real terminal
 output for all 16 combo×variant combinations: `docs/cli-generation-guide.html`.
@@ -61,7 +99,7 @@ output for all 16 combo×variant combinations: `docs/cli-generation-guide.html`.
 - A local PostgreSQL server reachable at **`localhost:55432`** with a passwordless `postgres`
   superuser (that's what every `.env` in this repo points at). Easiest way to get that:
   ```bash
-  docker run -d --name easy-auth-postgres -p 55432:5432 -e POSTGRES_HOST_AUTH_METHOD=trust postgres:16
+  docker run -d --name simple-auth-kit-postgres -p 55432:5432 -e POSTGRES_HOST_AUTH_METHOD=trust postgres:16
   ```
   (Already have Postgres running elsewhere? Just repoint the `DATABASE_URL` in whichever
   `.env` files you're using instead.)
@@ -134,7 +172,7 @@ Every backend serves Swagger UI at `/docs`. Each backend's entrypoint applies it
 at container startup (gated on Postgres's healthcheck); `DATABASE_URL`/`PORT` come from each
 service's `environment:` block, and secrets are interpolated from the gitignored root `.env` —
 compose refuses to start with them unset. The admin apps run in dev mode with the repo root
-as build context (they compile `@easy-auth/auth-client` from source).
+as build context (they compile `@simple-auth-kit/auth-client` from source).
 
 Not included: the mobile apps (need a simulator/device — see below), `registry/*` (library
 source, not a deployable app), and `cli/` (a tool, not a service).
@@ -207,12 +245,12 @@ npm run prove-cycle                     # black-box test, both variants, 300+ as
 After changing anything in `registry/core/` or a combo, re-sync any `examples/*-app` you're
 using (the CLI copy is a snapshot, not a live symlink):
 ```bash
-cd cli && npx tsx easy-auth.ts add <combo> [--workspaces] --force --into ../examples/<app>
+cd cli && npx tsx simple-auth-kit.ts add <combo> [--workspaces] --force --into ../examples/<app>
 ```
 
 ## `packages/auth-client`
 
-Shared TypeScript client all 8 client apps import (`@easy-auth/auth-client`, workspace
+Shared TypeScript client all 8 client apps import (`@simple-auth-kit/auth-client`, workspace
 package). It's compiled to `dist/` (not consumed as raw TS) — rebuild after changing it:
 ```bash
 cd packages/auth-client
@@ -285,8 +323,7 @@ pnpm -r test        # vitest suites: registry/core (56), packages/auth-client (3
   map in `docs/architecture.md`.
 - `docker compose up` migrates but does **not** seed — run the seeder per backend before
   expecting a login to work.
-- The CLI's `diff` command is a stub; scaffolded apps depend on the unpublished
-  `@easy-auth/auth-client` (`workspace:*`) and won't install outside this monorepo as-is.
+- The CLI's `diff` command is a stub.
 - Mobile apps are verified via typecheck, bundling, and Metro/Expo boot — do your own device
   smoke test before relying on them. `AsyncStorage` is unencrypted-at-rest by deliberate,
   documented choice (`plan/brief.md`; `TokenStorage` is an injected interface, so upgrading to

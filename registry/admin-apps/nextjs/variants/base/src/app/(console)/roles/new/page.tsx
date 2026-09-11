@@ -5,7 +5,7 @@ import { useAbility } from "@casl/react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
-import { AuthApiError, type PermissionSummary } from "@easy-auth/auth-client";
+import { AuthApiError, type PermissionSummary } from "@simple-auth-kit/auth-client";
 import { toast } from "sonner";
 import { Breadcrumb } from "@/components/breadcrumb";
 import { FormErrorAlert } from "@/components/form-error-alert";

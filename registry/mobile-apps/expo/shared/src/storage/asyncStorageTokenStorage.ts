@@ -1,5 +1,5 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import type { AuthTokens, TokenStorage } from "@easy-auth/auth-client";
+import type { AuthTokens, TokenStorage } from "@simple-auth-kit/auth-client";
 
 /**
  * TokenStorage backed by @react-native-async-storage/async-storage.
@@ -8,7 +8,7 @@ import type { AuthTokens, TokenStorage } from "@easy-auth/auth-client";
  * storage) — a project-level decision, not an oversight. The whole `AuthTokens`
  * object is JSON-stringified into a single storage key.
  */
-const STORAGE_KEY = "easy-auth/tokens";
+const STORAGE_KEY = "simple-auth-kit/tokens";
 
 export const asyncStorageTokenStorage: TokenStorage = {
   async get(): Promise<AuthTokens | null> {

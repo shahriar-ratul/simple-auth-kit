@@ -1,14 +1,14 @@
 "use client";
 
 import { deleteCookie, getCookie, setCookie } from "cookies-next/client";
-import type { AuthTokens, TokenStorage } from "@easy-auth/auth-client";
+import type { AuthTokens, TokenStorage } from "@simple-auth-kit/auth-client";
 
 // Per the project's resolved decision (see plan/README.md): frontend-managed cookies, not
 // backend-issued httpOnly ones. The backend's `Authorization: Bearer` contract is unchanged —
 // this is purely where the client caches the token pair between page loads. A plain (readable)
 // cookie is fine here since nothing server-side in this app ever needs to see it; the browser
 // attaches it to no request automatically, `AuthClient` reads it and sets the header itself.
-const COOKIE_NAME = "easy_auth_tokens";
+const COOKIE_NAME = "simple_auth_kit_tokens";
 const COOKIE_MAX_AGE_SECONDS = 60 * 60 * 24 * 30; // 30 days — well past the refresh token's own TTL, which is what actually gates session length
 
 export const cookieTokenStorage: TokenStorage = {

@@ -28,7 +28,7 @@
 //   3. **The store is an injected interface with an in-memory default.** Same style as
 //      `TokenStorage` in packages/auth-client: a consumer swaps in Redis by passing a store to
 //      `createAuthApp`, without editing a line of this library. Keys are namespaced
-//      (`easyauth:authz:*`) so a shared Redis stays separable. No Redis dependency is added here.
+//      (`simpleauthkit:authz:*`) so a shared Redis stays separable. No Redis dependency is added here.
 //
 // What is deliberately *not* cached: authentication. Whether a token is valid, denylisted, or
 // belongs to a blocked user is decided on the authentication path (`AuthGuard`), which never
@@ -38,7 +38,7 @@
 import type { AuthConfig } from "./auth.config.js";
 
 /** Every key this library writes starts here, so a shared Redis can be separated by prefix. */
-export const CACHE_NAMESPACE = "easyauth:authz";
+export const CACHE_NAMESPACE = "simpleauthkit:authz";
 
 /**
  * The four operations a permission cache needs. Deliberately small and string-valued: every one

@@ -1,7 +1,7 @@
 import { type FormEvent, useCallback, useEffect, useState } from "react";
 import { observer } from "mobx-react-lite";
 import { useNavigate, useParams } from "react-router-dom";
-import { AuthApiError, type LanguageSummary, type UpdateLanguageInput } from "@easy-auth/auth-client";
+import { AuthApiError, type LanguageSummary, type UpdateLanguageInput } from "@simple-auth-kit/auth-client";
 import { toast } from "sonner";
 import { authClient } from "@/lib/auth-client";
 import { errorMessage, errorMessages } from "@/lib/error";

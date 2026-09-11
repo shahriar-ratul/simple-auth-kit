@@ -110,7 +110,7 @@ export interface RenameResult {
  * mirroring what `react-native rename` tooling does, since the alternative (surgically
  * parsing build.gradle / a semi-structured .pbxproj) is far more fragile for no real benefit.
  *
- * Returns what moved and what changed so the caller (easy-auth.ts) can keep auth.lock.json's
+ * Returns what moved and what changed so the caller (simple-auth-kit.ts) can keep auth.lock.json's
  * manifest in sync with what's actually on disk — otherwise a future re-sync would see every
  * renamed/rewritten native file as "removed" or "user-modified" for no real reason.
  */

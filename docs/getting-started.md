@@ -52,7 +52,7 @@ docker compose down        # stop everything; add -v to also drop the Postgres v
 checked-in `.env` points at):
 
 ```bash
-docker run -d --name easy-auth-postgres -p 55432:5432 \
+docker run -d --name simple-auth-kit-postgres -p 55432:5432 \
   -e POSTGRES_HOST_AUTH_METHOD=trust postgres:16
 psql -h localhost -p 55432 -U postgres -c "CREATE DATABASE example_nestjs_prisma"
 ```

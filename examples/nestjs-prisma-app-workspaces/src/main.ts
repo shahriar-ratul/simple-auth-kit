@@ -21,7 +21,7 @@ async function main() {
   const document = SwaggerModule.createDocument(
     app,
     new DocumentBuilder()
-      .setTitle("easy-auth API")
+      .setTitle("simple-auth-kit API")
       .setDescription("nestjs-prisma reference combo, workspaces variant — signup/login, sessions, TOTP 2FA, OAuth, password reset, RBAC, audit log, workspace membership")
       .setVersion("1.0")
       .addBearerAuth()

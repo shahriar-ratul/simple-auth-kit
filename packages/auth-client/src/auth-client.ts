@@ -47,7 +47,7 @@ export interface AuthClientOptions {
   /**
    * The workspace that workspace-scoped calls act in.
    *
-   * Leave it out entirely against the plain backend variant (`easy-auth add <combo>`): nothing
+   * Leave it out entirely against the plain backend variant (`simple-auth-kit add <combo>`): nothing
    * then ever sends `X-Workspace-Id`, and no call site has to mention workspaces. Against the
    * workspaces variant (`--workspaces`) set it once — a string for a fixed workspace, or a
    * function resolved per request so the app's own store stays the owner of "which workspace am

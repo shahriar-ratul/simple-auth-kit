@@ -11,8 +11,8 @@ import { cn } from "@/lib/utils";
 const bricolageGrotesque = Bricolage_Grotesque({ subsets: ["latin"], variable: "--font-sans" });
 
 export const metadata: Metadata = {
-  title: "easy-auth Admin",
-  description: "Admin console for the easy-auth backend — users, roles & permissions, audit log, and account settings.",
+  title: "simple-auth-kit Admin",
+  description: "Admin console for the simple-auth-kit backend — users, roles & permissions, audit log, and account settings.",
 };
 
 export default function RootLayout({ children }: { children: ReactNode }) {

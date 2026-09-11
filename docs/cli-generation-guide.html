@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>easy-auth — Generating Every App with the CLI</title>
+<title>simple-auth-kit — Generating Every App with the CLI</title>
 <style>
   :root {
     --bg: #0b0d12;
@@ -147,7 +147,7 @@
 
 <header class="top">
   <div class="title">
-    <h1>Generating Every easy-auth App with the CLI</h1>
+    <h1>Generating Every simple-auth-kit App with the CLI</h1>
     <span class="sub">4 backend combos · 2 admin combos · 2 mobile combos — each in base + workspaces (16 total) — all verified fresh this session</span>
   </div>
   <nav class="toc">
@@ -167,7 +167,7 @@
 
 <div class="hero">
   <span class="verdict-badge">Verified, not asserted</span>
-  <span class="verdict-badge note">Now shadcn-style: easy-auth add &lt;combo&gt;</span>
+  <span class="verdict-badge note">Now shadcn-style: simple-auth-kit add &lt;combo&gt;</span>
   <span class="verdict-badge warn">3 real gaps found &amp; fixed</span>
   <h2>Every install path was run in a brand-new directory this session</h2>
   <p>Nothing here is copied from the docs uncritically. Each backend combo was generated into a <b>fresh skeleton with
@@ -177,7 +177,7 @@
   Three real gaps surfaced this pass — documented with before/after evidence in <a href="#gotchas">Bugs found &amp;
   fixed</a> — all now fixed in the registry/CLI source, re-verified with a full <code class="inline">prove-cycle</code>
   pass afterward. The CLI's own invocation changed too: it now installs like shadcn/ui — link once, then
-  <code class="inline">easy-auth add &lt;combo&gt;</code> from inside any project, and its guided multi-kind flow now
+  <code class="inline">simple-auth-kit add &lt;combo&gt;</code> from inside any project, and its guided multi-kind flow now
   shows every available template up front instead of revealing them one prompt at a time.</p>
 </div>
 
@@ -188,21 +188,21 @@
   Postgres reachable at <code class="inline">localhost:55432</code> with a passwordless <code class="inline">postgres</code>
   superuser for anything backend.</p>
   <pre><code><span class="comment"># from the repo root</span>
-docker run -d --name easy-auth-postgres -p 55432:5432 -e POSTGRES_HOST_AUTH_METHOD=trust postgres:16
+docker run -d --name simple-auth-kit-postgres -p 55432:5432 -e POSTGRES_HOST_AUTH_METHOD=trust postgres:16
 
 <span class="comment"># one-time: register the CLI as a global command, shadcn-style</span>
 cd cli &amp;&amp; npm link</code></pre>
-  <p>Confirmed working this session: <code class="inline">npm link</code> registers <code class="inline">easy-auth</code>
-  as a real global binary (a thin launcher, <code class="inline">cli/bin/easy-auth.mjs</code>, that spawns the local
-  <code class="inline">tsx</code> against <code class="inline">easy-auth.ts</code> by absolute path — works regardless
+  <p>Confirmed working this session: <code class="inline">npm link</code> registers <code class="inline">simple-auth-kit</code>
+  as a real global binary (a thin launcher, <code class="inline">cli/bin/simple-auth-kit.mjs</code>, that spawns the local
+  <code class="inline">tsx</code> against <code class="inline">simple-auth-kit.ts</code> by absolute path — works regardless
   of the caller's cwd or global PATH). Don't want to link? Every command below also works unlinked as
-  <code class="inline">npx tsx &lt;path-to-repo&gt;/cli/easy-auth.ts add &lt;combo&gt; --into &lt;path&gt;</code>.</p>
+  <code class="inline">npx tsx &lt;path-to-repo&gt;/cli/simple-auth-kit.ts add &lt;combo&gt; --into &lt;path&gt;</code>.</p>
 </section>
 
 <section id="shape">
   <h2><span class="n">2</span>The command shape</h2>
   <pre class="evidence"><code><span class="comment"># from inside your own project — no --into needed, defaults to cwd</span>
-$ easy-auth add &lt;combo&gt; [--workspaces] [--name &lt;AppName&gt;] [--force]</code></pre>
+$ simple-auth-kit add &lt;combo&gt; [--workspaces] [--name &lt;AppName&gt;] [--force]</code></pre>
   <table class="matrix">
     <tr><th>Flag</th><th>Meaning</th></tr>
     <tr><td class="mono">&lt;combo&gt;</td><td>One of the 8 names below — see <a href="#backends">Backends</a>, <a href="#admin">Admin</a>, <a href="#mobile">Mobile</a>.</td></tr>
@@ -211,13 +211,13 @@ $ easy-auth add &lt;combo&gt; [--workspaces] [--name &lt;AppName&gt;] [--force]<
     <tr><td class="mono">--name &lt;AppName&gt;</td><td>Scaffold apps only. For <code class="inline">mobile-bare-rn</code> this re-templates the native iOS/Android identity (applicationId/bundle id) so multiple generated apps don't collide.</td></tr>
     <tr><td class="mono">--force</td><td>Re-copy over files you haven't hand-edited. Never overwrites a file whose content changed since install (compared against the sha256 manifest in <code class="inline">auth.lock.json</code>) — that's reported back as <code class="inline">keptModified</code>.</td></tr>
   </table>
-  <p><code class="inline">easy-auth init</code> writes a <code class="inline">.easy-auth.json</code> so later
+  <p><code class="inline">simple-auth-kit init</code> writes a <code class="inline">.simple-auth-kit.json</code> so later
   <code class="inline">add</code> runs don't need <code class="inline">--path</code>/<code class="inline">--alias</code>
-  repeated. Bare <code class="inline">easy-auth</code> prints the full combo/flag reference.</p>
+  repeated. Bare <code class="inline">simple-auth-kit</code> prints the full combo/flag reference.</p>
 </section>
 
 <section id="guided">
-  <h2><span class="n">3</span>The guided flow — <code style="font-size:13px">easy-auth add</code> with no combo name</h2>
+  <h2><span class="n">3</span>The guided flow — <code style="font-size:13px">simple-auth-kit add</code> with no combo name</h2>
   <p>Same shape as shadcn's own no-args <code class="inline">add</code>: pick kind(s), then framework per kind, then
   variant, all via prompts. Selecting more than one kind (e.g. all 3 — API, Admin, Mobile) namespaces each install into
   its own subdirectory automatically, so a backend + a console + a mobile app can be generated into the same parent
@@ -233,7 +233,7 @@ $ easy-auth add &lt;combo&gt; [--workspaces] [--name &lt;AppName&gt;] [--force]<
     nestjs-drizzle
     express-prisma
     express-drizzle</code></pre>
-    <p><b>Fix applied</b> — <code class="inline">cli/easy-auth.ts</code>'s <code class="inline">resolvePlan()</code>
+    <p><b>Fix applied</b> — <code class="inline">cli/simple-auth-kit.ts</code>'s <code class="inline">resolvePlan()</code>
     now prints every selected kind's full template list immediately after kind selection, before any per-kind prompt
     runs. Re-verified interactively (selected all 3 kinds via a real pty session):</p>
     <pre class="evidence"><code>✔ What would you like to generate? › API (backend), Admin console, Mobile app
@@ -270,11 +270,11 @@ $ easy-auth add &lt;combo&gt; [--workspaces] [--name &lt;AppName&gt;] [--force]<
     <div class="body">
       <div class="variant-row">
         <div class="label">base</div>
-        <div class="content"><code class="inline">easy-auth add nestjs-prisma</code></div>
+        <div class="content"><code class="inline">simple-auth-kit add nestjs-prisma</code></div>
       </div>
       <div class="variant-row">
         <div class="label">workspaces</div>
-        <div class="content"><code class="inline">easy-auth add nestjs-prisma --workspaces</code></div>
+        <div class="content"><code class="inline">simple-auth-kit add nestjs-prisma --workspaces</code></div>
       </div>
       <h4>Bring-up (identical for both variants)</h4>
       <ul class="steps">
@@ -294,11 +294,11 @@ $ easy-auth add &lt;combo&gt; [--workspaces] [--name &lt;AppName&gt;] [--force]<
     <div class="body">
       <div class="variant-row">
         <div class="label">base</div>
-        <div class="content"><code class="inline">easy-auth add nestjs-drizzle</code></div>
+        <div class="content"><code class="inline">simple-auth-kit add nestjs-drizzle</code></div>
       </div>
       <div class="variant-row">
         <div class="label">workspaces</div>
-        <div class="content"><code class="inline">easy-auth add nestjs-drizzle --workspaces</code></div>
+        <div class="content"><code class="inline">simple-auth-kit add nestjs-drizzle --workspaces</code></div>
       </div>
       <h4>Bring-up</h4>
       <ul class="steps">
@@ -317,11 +317,11 @@ $ easy-auth add &lt;combo&gt; [--workspaces] [--name &lt;AppName&gt;] [--force]<
     <div class="body">
       <div class="variant-row">
         <div class="label">base</div>
-        <div class="content"><code class="inline">easy-auth add express-prisma</code></div>
+        <div class="content"><code class="inline">simple-auth-kit add express-prisma</code></div>
       </div>
       <div class="variant-row">
         <div class="label">workspaces</div>
-        <div class="content"><code class="inline">easy-auth add express-prisma --workspaces</code></div>
+        <div class="content"><code class="inline">simple-auth-kit add express-prisma --workspaces</code></div>
       </div>
       <h4>Bring-up</h4>
       <ul class="steps">
@@ -340,11 +340,11 @@ $ easy-auth add &lt;combo&gt; [--workspaces] [--name &lt;AppName&gt;] [--force]<
     <div class="body">
       <div class="variant-row">
         <div class="label">base</div>
-        <div class="content"><code class="inline">easy-auth add express-drizzle</code></div>
+        <div class="content"><code class="inline">simple-auth-kit add express-drizzle</code></div>
       </div>
       <div class="variant-row">
         <div class="label">workspaces</div>
-        <div class="content"><code class="inline">easy-auth add express-drizzle --workspaces</code></div>
+        <div class="content"><code class="inline">simple-auth-kit add express-drizzle --workspaces</code></div>
       </div>
       <h4>Bring-up</h4>
       <ul class="steps">
@@ -359,7 +359,7 @@ $ easy-auth add &lt;combo&gt; [--workspaces] [--name &lt;AppName&gt;] [--force]<
 <section id="admin">
   <h2><span class="n">5</span>Admin consoles (scaffold mode) — 2 combos × 2 variants</h2>
   <p>Scaffolds a whole standalone app (not a fragment merged into something existing). Both consoles talk to any
-  backend combo over the same typed <code class="inline">@easy-auth/auth-client</code> API contract.</p>
+  backend combo over the same typed <code class="inline">@simple-auth-kit/auth-client</code> API contract.</p>
 
   <div class="combo">
     <div class="head">
@@ -369,11 +369,11 @@ $ easy-auth add &lt;combo&gt; [--workspaces] [--name &lt;AppName&gt;] [--force]<
     <div class="body">
       <div class="variant-row">
         <div class="label">base</div>
-        <div class="content"><code class="inline">easy-auth add admin-nextjs --name "My Admin"</code></div>
+        <div class="content"><code class="inline">simple-auth-kit add admin-nextjs --name "My Admin"</code></div>
       </div>
       <div class="variant-row">
         <div class="label">workspaces</div>
-        <div class="content"><code class="inline">easy-auth add admin-nextjs --workspaces --name "My Admin"</code></div>
+        <div class="content"><code class="inline">simple-auth-kit add admin-nextjs --workspaces --name "My Admin"</code></div>
       </div>
       <h4>Bring-up</h4>
       <ul class="steps">
@@ -393,11 +393,11 @@ $ easy-auth add &lt;combo&gt; [--workspaces] [--name &lt;AppName&gt;] [--force]<
     <div class="body">
       <div class="variant-row">
         <div class="label">base</div>
-        <div class="content"><code class="inline">easy-auth add admin-react --name "My Admin"</code></div>
+        <div class="content"><code class="inline">simple-auth-kit add admin-react --name "My Admin"</code></div>
       </div>
       <div class="variant-row">
         <div class="label">workspaces</div>
-        <div class="content"><code class="inline">easy-auth add admin-react --workspaces --name "My Admin"</code></div>
+        <div class="content"><code class="inline">simple-auth-kit add admin-react --workspaces --name "My Admin"</code></div>
       </div>
       <h4>Bring-up</h4>
       <ul class="steps">
@@ -419,11 +419,11 @@ $ easy-auth add &lt;combo&gt; [--workspaces] [--name &lt;AppName&gt;] [--force]<
     <div class="body">
       <div class="variant-row">
         <div class="label">base</div>
-        <div class="content"><code class="inline">easy-auth add mobile-expo --name "My App"</code></div>
+        <div class="content"><code class="inline">simple-auth-kit add mobile-expo --name "My App"</code></div>
       </div>
       <div class="variant-row">
         <div class="label">workspaces</div>
-        <div class="content"><code class="inline">easy-auth add mobile-expo --workspaces --name "My App"</code></div>
+        <div class="content"><code class="inline">simple-auth-kit add mobile-expo --workspaces --name "My App"</code></div>
       </div>
       <h4>Bring-up</h4>
       <ul class="steps">
@@ -442,11 +442,11 @@ $ easy-auth add &lt;combo&gt; [--workspaces] [--name &lt;AppName&gt;] [--force]<
     <div class="body">
       <div class="variant-row">
         <div class="label">base</div>
-        <div class="content"><code class="inline">easy-auth add mobile-bare-rn --name "My App"</code></div>
+        <div class="content"><code class="inline">simple-auth-kit add mobile-bare-rn --name "My App"</code></div>
       </div>
       <div class="variant-row">
         <div class="label">workspaces</div>
-        <div class="content"><code class="inline">easy-auth add mobile-bare-rn --workspaces --name "My App"</code></div>
+        <div class="content"><code class="inline">simple-auth-kit add mobile-bare-rn --workspaces --name "My App"</code></div>
       </div>
       <h4>Bring-up</h4>
       <ul class="steps">
@@ -472,7 +472,7 @@ $ easy-auth add &lt;combo&gt; [--workspaces] [--name &lt;AppName&gt;] [--force]<
 
   <pre class="evidence"><code><span class="comment"># 1. link once, then merge the combo into the fresh project — no --into, cwd is the target</span>
 $ cd cli &amp;&amp; npm link
-$ cd /tmp/my-app &amp;&amp; easy-auth add nestjs-prisma
+$ cd /tmp/my-app &amp;&amp; simple-auth-kit add nestjs-prisma
 <span class="ok">Installed "nestjs-prisma" (base variant) into src/lib/auth (alias @/lib/auth)</span>
 
 <span class="comment"># 2. point .env at a brand-new, unmigrated database, install deps</span>
@@ -555,27 +555,27 @@ $ cd src/lib/auth &amp;&amp; npx drizzle-kit migrate
   </div>
 
   <div class="gotcha" id="gotcha-pack">
-    <div class="head"><h4><code class="inline">@easy-auth/auth-client</code> shipped without its compiled output</h4><span class="badge ok">Fixed this session</span></div>
+    <div class="head"><h4><code class="inline">@simple-auth-kit/auth-client</code> shipped without its compiled output</h4><span class="badge ok">Fixed this session</span></div>
     <p>The package's <code class="inline">dist/</code> directory is gitignored (correctly — it's build output). But
     <code class="inline">npm pack</code>/<code class="inline">npm publish</code> falls back to git's ignore rules for
     what to include when a package has no explicit <code class="inline">"files"</code> field. That means a real
     <code class="inline">npm pack</code> of this package — exactly what happens the day it's actually published,
     or what any consumer outside this repo's pnpm workspace needs — <b>silently excluded the entire compiled library</b>:</p>
-    <pre class="bug"><code>$ npm pack &amp;&amp; tar -tzf easy-auth-auth-client-0.0.0.tgz
+    <pre class="bug"><code>$ npm pack &amp;&amp; tar -tzf simple-auth-kit-auth-client-0.0.0.tgz
 package/package.json
 package/src/auth-client.ts   <span class="comment"># source only</span>
 package/test/auth-client.test.ts
 <span class="err"># dist/ — completely missing</span>
 
 $ npm run build  <span class="comment"># inside a generated admin-nextjs scaffold, dependency installed from that tarball</span>
-<span class="err">Error: Module not found: Can't resolve '@easy-auth/auth-client'</span></code></pre>
+<span class="err">Error: Module not found: Can't resolve '@simple-auth-kit/auth-client'</span></code></pre>
     <p>This was invisible from inside the monorepo because <code class="inline">workspace:*</code> resolves via a
     direct pnpm symlink to the package folder on disk — <code class="inline">dist/</code> exists there even though
     git never tracked it, so nothing ever exercised the pack/publish path until now.</p>
     <p><b>Fix applied</b> — <code class="inline">packages/auth-client/package.json</code> now declares:</p>
     <pre><code>"files": ["dist"]</code></pre>
     <p>Re-verified after the fix — same tarball-install path, now succeeds:</p>
-    <pre class="evidence"><code>$ npm pack &amp;&amp; tar -tzf easy-auth-auth-client-0.0.0.tgz
+    <pre class="evidence"><code>$ npm pack &amp;&amp; tar -tzf simple-auth-kit-auth-client-0.0.0.tgz
 package/dist/index.js
 package/dist/index.d.ts
 package/dist/auth-client.js
@@ -591,19 +591,19 @@ $ npm run build   <span class="comment"># admin-nextjs scaffold, real tarball in
 
   <div class="gotcha">
     <div class="head"><h4>CLI invocation didn't actually match its own shadcn-style promise</h4><span class="badge ok">Fixed this session</span></div>
-    <p><code class="inline">cli/package.json</code>'s own description already said <code class="inline">npx easy-auth add &lt;combo&gt;</code>,
+    <p><code class="inline">cli/package.json</code>'s own description already said <code class="inline">npx simple-auth-kit add &lt;combo&gt;</code>,
     but there was no <code class="inline">"bin"</code> field — the only working invocation was
-    <code class="inline">cd cli &amp;&amp; npx tsx easy-auth.ts add &lt;combo&gt; --into ../target</code>, three steps
+    <code class="inline">cd cli &amp;&amp; npx tsx simple-auth-kit.ts add &lt;combo&gt; --into ../target</code>, three steps
     where shadcn needs one. <code class="inline">--into</code> already defaulted to cwd (unused ergonomics), so the
     fix was adding a real <code class="inline">bin</code> entry — a thin launcher
-    (<code class="inline">cli/bin/easy-auth.mjs</code>) that spawns the local <code class="inline">tsx</code> by
+    (<code class="inline">cli/bin/simple-auth-kit.mjs</code>) that spawns the local <code class="inline">tsx</code> by
     absolute path, so it works regardless of the caller's cwd or global PATH:</p>
     <pre class="evidence"><code>$ cd cli &amp;&amp; npm link
 <span class="ok">added 1 package in 157ms</span>
 
-$ cd /tmp/some-fresh-project &amp;&amp; easy-auth add mobile-expo --name "ShadcnStyleApp"
+$ cd /tmp/some-fresh-project &amp;&amp; simple-auth-kit add mobile-expo --name "ShadcnStyleApp"
 <span class="ok">Generated "ShadcnStyleApp" (mobile-expo, base variant) into /private/tmp/some-fresh-project</span></code></pre>
-    <p>True <code class="inline">npx easy-auth@latest</code> (fetching from the public npm registry, no local
+    <p>True <code class="inline">npx simple-auth-kit@latest</code> (fetching from the public npm registry, no local
     checkout at all) still needs an actual <code class="inline">npm publish</code> — a separate, deliberately-unmade
     decision per <code class="inline">plan/brief.md</code> for the runtime package, not revisited here. What's fixed
     is everything reachable without that: one link, then the exact same command shape from any directory. The guided
@@ -633,7 +633,7 @@ $ cd /tmp/some-fresh-project &amp;&amp; easy-auth add mobile-expo --name "Shadcn
     <tr><td class="item">mobile-bare-rn</td><td>workspaces</td><td class="check">✓</td><td class="dash">—</td><td class="dash">n/a</td><td class="dash">device run not exercised — known repo limitation, see §6</td></tr>
   </table>
   <p style="margin-top:14px; font-size:12.8px; color:var(--muted)">"Generated fresh" = ran the linked
-  <code class="inline">easy-auth add</code> command into an empty or pre-auth directory and confirmed a clean exit with
+  <code class="inline">simple-auth-kit add</code> command into an empty or pre-auth directory and confirmed a clean exit with
   the expected file count. "—" means not independently re-run in this pass because an equivalent check already exists
   elsewhere (cited in the cell) — not "unverified ever".</p>
 </section>
@@ -641,15 +641,15 @@ $ cd /tmp/some-fresh-project &amp;&amp; easy-auth add mobile-expo --name "Shadcn
 </main>
 
 <footer>
-  Generated this session by driving the linked <code class="inline">easy-auth</code> command against
+  Generated this session by driving the linked <code class="inline">simple-auth-kit</code> command against
   <code class="inline">/tmp</code> scratch directories — nothing here touches the tracked <code class="inline">examples/</code>
   or <code class="inline">apps/</code> trees beyond the intended re-sync. Real fixes landed in the repo as a result:
   <div class="files">
     packages/auth-client/package.json — added "files": ["dist"] so npm pack/publish ships the compiled library
     registry/combos/{nestjs-prisma,express-prisma}/shared/prisma.config.ts — resolve .env from file location, not cwd
     registry/combos/{nestjs-drizzle,express-drizzle}/shared/drizzle.config.ts — same fix
-    cli/package.json, cli/bin/easy-auth.mjs — added a real "bin" entry; `npm link` now gives a shadcn-style global command
-    cli/easy-auth.ts — guided multi-kind flow now previews every selected kind's templates up front
+    cli/package.json, cli/bin/simple-auth-kit.mjs — added a real "bin" entry; `npm link` now gives a shadcn-style global command
+    cli/simple-auth-kit.ts — guided multi-kind flow now previews every selected kind's templates up front
     examples/*-app[-workspaces]/ — re-synced with the fixes; all 8 backend prove-cycle-or-migrate re-verified
   </div>
 </footer>

@@ -1,7 +1,7 @@
 import { type FormEvent, useState } from "react";
 import { observer } from "mobx-react-lite";
 import { type Location, useLocation, useNavigate } from "react-router-dom";
-import { AuthApiError } from "@easy-auth/auth-client";
+import { AuthApiError } from "@simple-auth-kit/auth-client";
 import { useAuthStore } from "@/stores/store-context";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";

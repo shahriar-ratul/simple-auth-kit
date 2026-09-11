@@ -1,6 +1,6 @@
 import { type FormEvent, useEffect, useState } from "react";
-import type { CreateUserInput, RoleSummary } from "@easy-auth/auth-client";
-import { AuthApiError, userIdOf } from "@easy-auth/auth-client";
+import type { CreateUserInput, RoleSummary } from "@simple-auth-kit/auth-client";
+import { AuthApiError, userIdOf } from "@simple-auth-kit/auth-client";
 import { observer } from "mobx-react-lite";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";

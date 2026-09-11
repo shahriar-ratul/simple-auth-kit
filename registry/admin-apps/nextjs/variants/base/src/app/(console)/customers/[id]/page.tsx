@@ -4,7 +4,7 @@ import { useAbility } from "@casl/react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
-import { AuthApiError, type CustomerSummary } from "@easy-auth/auth-client";
+import { AuthApiError, type CustomerSummary } from "@simple-auth-kit/auth-client";
 import { format } from "date-fns";
 import { PencilIcon } from "lucide-react";
 import { toast } from "sonner";

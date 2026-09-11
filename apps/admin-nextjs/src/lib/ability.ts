@@ -1,5 +1,5 @@
 import { Ability, AbilityBuilder } from "@casl/ability";
-import type { CurrentUser } from "@easy-auth/auth-client";
+import type { CurrentUser } from "@simple-auth-kit/auth-client";
 
 /**
  * The one place the console decides what the signed-in user may do. Every screen asks this

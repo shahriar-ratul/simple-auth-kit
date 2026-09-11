@@ -1,4 +1,4 @@
-import { AuthApiError } from "@easy-auth/auth-client";
+import { AuthApiError } from "@simple-auth-kit/auth-client";
 
 export function errorMessage(err: unknown): string {
   if (err instanceof AuthApiError) return err.message;

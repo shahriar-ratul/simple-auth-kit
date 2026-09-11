@@ -1,6 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { create } from 'zustand';
-import type { WorkspaceIdResolver } from '@easy-auth/auth-client';
+import type { WorkspaceIdResolver } from '@simple-auth-kit/auth-client';
 
 /**
  * The single source of truth for "which workspace am I acting in", and the app side of
@@ -14,7 +14,7 @@ import type { WorkspaceIdResolver } from '@easy-auth/auth-client';
  * Persisted to AsyncStorage so a relaunch lands back in the workspace you were last in.
  * Unencrypted, for the same reason the tokens are — see `asyncStorageTokenStorage`.
  */
-const STORAGE_KEY = 'easy-auth/active-workspace';
+const STORAGE_KEY = 'simple-auth-kit/active-workspace';
 
 interface ActiveWorkspaceState {
   workspaceId: string | null;

@@ -62,7 +62,7 @@ export default observer(function ConsoleLayout({ children }: { children: ReactNo
           <div className="flex items-center gap-2">
             <SidebarTrigger />
             <Separator orientation="vertical" className="mr-2 h-4" />
-            <span className="text-sm font-medium text-muted-foreground">easy-auth admin</span>
+            <span className="text-sm font-medium text-muted-foreground">simple-auth-kit admin</span>
           </div>
           <div className="flex items-center gap-2">
             <WorkspaceSwitcher />
