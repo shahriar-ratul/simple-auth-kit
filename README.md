@@ -12,16 +12,13 @@ the backend API reference, the admin console internals, and development workflow
 
 No clone needed — the CLI is [published on npm](https://www.npmjs.com/package/@simple-auth-kit/cli)
 with the registry it installs from bundled in. Add `--workspaces` to any of these for the
-workspaces variant. `npx @simple-auth-kit/cli` alone, in a real terminal, launches a guided
-picker (`--help` prints the full command reference instead); `npx @simple-auth-kit/cli update`
-later re-syncs whatever you installed, no arguments needed.
-Full details: [`docs/cli.md`](docs/cli.md).
+workspaces variant. `npx @simple-auth-kit/cli update` later re-syncs whatever you installed, no
+arguments needed. Full details: [`docs/cli.md`](docs/cli.md).
 
-**Not sure yet which combo you want?** `init` writes `.simple-auth-kit.json` (install path,
-alias), then walks you through the same picker (`add` with no arguments also does, without the
-config file):
+**Not sure yet which combo you want?** Run it bare (or `init`) and it'll ask — pick a kind
+(api/admin/mobile), then a framework, then base or workspaces:
 ```bash
-npx @simple-auth-kit/cli init
+npx @simple-auth-kit/cli
 ```
 
 **Already know what you want?** Run the exact combo directly:
