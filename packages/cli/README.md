@@ -17,14 +17,15 @@ Package: https://www.npmjs.com/package/@simple-auth-kit/cli
 ## Commands
 
 ```bash
-npx @simple-auth-kit/cli init                       # fresh setup: guided "what do you need" picker
-npx @simple-auth-kit/cli add <combo> [--workspaces]  # install a specific combo
-npx @simple-auth-kit/cli add                         # guided picker, same flow as init (no config write)
-npx @simple-auth-kit/cli update [--check]             # re-installs whatever add last recorded — no args needed
+npx @simple-auth-kit/cli                              # don't know which combo yet? asks: kind, then framework, then variant
+npx @simple-auth-kit/cli add <combo> [--workspaces]   # already know? install it directly
+npx @simple-auth-kit/cli update [--check]             # re-installs whatever you installed last — no args needed
 npx @simple-auth-kit/cli diff                         # shows the actual content diff for every file that differs from the registry (api combos only)
-npx @simple-auth-kit/cli                              # bare, in a real terminal: same guided picker as `add`
 npx @simple-auth-kit/cli --help                       # full command/flag reference + available combos
 ```
+
+`init` and bare `add` do the same guided walkthrough as running the CLI with no arguments at all;
+`init` additionally writes `.simple-auth-kit.json` (install path, alias) first.
 
 `--into <path>` targets any directory (defaults to the current one). In a real terminal,
 without `--force` or `--check`, a file that's changed locally since install prompts you —
