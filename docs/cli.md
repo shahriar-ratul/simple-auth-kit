@@ -16,13 +16,10 @@ npx @simple-auth-kit/cli add nestjs-prisma      # or any other combo, optionally
 npx @simple-auth-kit/cli update                 # later: re-syncs whatever add installed, no args needed
 ```
 
-No `--into` needed — it already defaults to the current directory. Run `npx @simple-auth-kit/cli`
-with no arguments in a real terminal and it goes straight into a guided prompt (pick kind,
-framework, variant) instead of requiring every flag up front — same flow as `add` with no combo
-name. Outside a TTY (scripts/CI), a bare invocation instead prints the full command/combo
-reference; pass `--help` to get that reference on demand from a real terminal too. See
-`docs/cli-generation-guide.html` for a fully-verified walkthrough of all 16 combo×variant
-combinations, real terminal output included.
+No `--into` needed — it already defaults to the current directory. Not sure which combo you want?
+See the Commands table below — running the CLI with no arguments launches a guided picker instead
+of requiring every flag up front. See `docs/cli-generation-guide.html` for a fully-verified
+walkthrough of all 16 combo×variant combinations, real terminal output included.
 
 ## From a monorepo checkout (developing this repo)
 
@@ -38,9 +35,10 @@ the published form above. Prefer not to link? The unlinked form works identicall
 
 | Command | What it does |
 |---|---|
-| `init` | Writes `.simple-auth-kit.json` in the target (`path`, `alias`, `ignore`), then launches the same guided flow as bare `add` to actually install something — pass `--config-only` for the old write-and-stop behavior. |
-| `add <combo>` | Installs one product (see modes below). |
-| `add` (no combo) | Guided multi-kind flow: pick kinds (api/admin/mobile) and a framework per kind via prompts — or drive it entirely with `--kind`/`--framework`. |
+| *(no command)* | In a real terminal: the guided picker — pick kind(s) (api/admin/mobile), a framework per kind, then base or workspaces. Outside a TTY: prints the full command/combo reference instead (same as `--help`). |
+| `init` | Same guided picker as above, but first writes `.simple-auth-kit.json` in the target (`path`, `alias`, `ignore`) so later installs remember it. `--config-only` writes that file and stops, without installing anything. |
+| `add <combo>` | Skip the picker — install one named product directly (see modes below). |
+| `add` (no combo) | Same guided picker as bare invocation — this is the form `--kind`/`--framework` drive non-interactively. |
 | `update [--check]` | Re-installs whatever combo+variant `auth.lock.json` already records — no need to name the combo again. `--check` reports what would change without writing anything (merge-mode combos only). |
 | `diff` | Shows the actual content diff (unified diff format) for every tracked file that differs from the current registry — whether that's an upstream change or your own edit. Read-only. Merge-mode (api) combos only. |
 
