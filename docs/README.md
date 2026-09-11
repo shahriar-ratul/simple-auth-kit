@@ -11,6 +11,8 @@ how to run it, and how to work on it.
 | [backend-api.md](backend-api.md) | You're calling or extending the backend: every endpoint, the response envelope, pagination, permission slugs, the realtime feed — and which combos have which features. |
 | [admin-console.md](admin-console.md) | You're working on any of the 4 admin consoles: auth-guard models, page inventory, UI patterns, env vars. |
 | [development.md](development.md) | You're changing code: the combo dev loop, regenerating examples, the auth-client rebuild gotcha, the add-a-domain recipe. |
+| [clone-apps.md](clone-apps.md) | You want just one app's source — `degit` commands per backend/console/mobile app, no full clone. |
+| [dev-portal.md](dev-portal.md) | You want the dev portal's live status board, ER diagram, and schema-drift check explained. |
 
 Three other places hold context these docs deliberately don't duplicate:
 
