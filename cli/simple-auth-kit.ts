@@ -15,7 +15,7 @@
 // workspaces support — or reads the same choices from --kind/--framework/--workspaces for
 // non-interactive/scripted use.
 import { basename, dirname, join, relative, resolve } from "node:path";
-import { access, mkdir, readFile, writeFile } from "node:fs/promises";
+import { access, mkdir, readdir, readFile, writeFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 import prompts from "prompts";
 import { copyDir, copyOneFile, CopyResult, NEVER_COPY, pruneRemovedFiles, SCAFFOLD_NEVER_COPY, sha256, toPosix } from "./lib/copy.js";
@@ -33,7 +33,7 @@ const KIND_LABELS: Record<Kind, string> = { api: "API (backend)", admin: "Admin 
 const KIND_FRAMEWORK_NOUN: Record<Kind, string> = { api: "API stack", admin: "admin framework", mobile: "mobile framework" };
 
 /** Flags that take no value. Everything else consumes the next argv entry. */
-const BOOLEAN_FLAGS = new Set(["workspaces", "force", "check"]);
+const BOOLEAN_FLAGS = new Set(["workspaces", "force", "check", "config-only"]);
 
 interface SimpleAuthKitConfig {
   path: string;
@@ -133,6 +133,51 @@ async function pathExists(path: string): Promise<boolean> {
   }
 }
 
+/** True if `dir` doesn't exist yet, or exists and has nothing in it (dotfiles like `.git`
+ * excepted — a repo you've already `git init`'d shouldn't count as "occupied"). */
+async function isEmptyDir(dir: string): Promise<boolean> {
+  try {
+    const entries = await readdir(dir);
+    return entries.every((name) => name.startsWith("."));
+  } catch {
+    return true; // doesn't exist — mkdir'd on demand by the copy, nothing in the way
+  }
+}
+
+/**
+ * In an interactive session, with neither `--force` nor `--check`: runs `runDry` (expected to be
+ * a dry-run copy pass — nothing written) to find files that would otherwise be silently skipped
+ * as locally modified, and lets the user pick which of those — if any — to overwrite anyway.
+ * shadcn-CLI-style "this file already exists, overwrite?", asked once as a multi-select rather
+ * than one prompt per file. Falls through to the existing non-interactive behavior (silent skip,
+ * reported at the end by printInstallSummary) outside a TTY or under --check, since there's
+ * nothing useful to prompt into either case.
+ */
+async function resolveForcePaths(runDry: () => Promise<{ result: CopyResult }>, flags: Record<string, string | true>): Promise<Set<string>> {
+  if (flags.force === true || flags.check === true || !isTTY()) return new Set();
+
+  const { result } = await runDry();
+  if (!result.skipped.length) return new Set();
+
+  console.log(`\n${result.skipped.length} file(s) have changed locally since the last install:`);
+  const picked = await ask<string[]>({
+    type: "multiselect",
+    name: "paths",
+    message: "Overwrite any of these with the latest version? (unselected ones are left alone)",
+    choices: result.skipped.map((file) => ({ title: file, value: file, selected: false })),
+    instructions: false,
+  });
+  return new Set(picked ?? []);
+}
+
+/**
+ * The fresh-setup entry point: writes .simple-auth-kit.json (so merge-mode combos have an
+ * install path/alias to anchor to), then launches the same guided "what do you need"
+ * kind/framework/workspaces flow as bare `add` (interactive prompts, or --kind/--framework for
+ * non-interactive/scripted use) to actually install something — matching how `shadcn init` is
+ * the fresh-project entry point, not just a config file. Pass --config-only to get the old
+ * behavior back (write the config and stop there, no install).
+ */
 async function cmdInit(targetRoot: string, flags: Record<string, string | true>) {
   const config: SimpleAuthKitConfig = {
     path: flagString(flags.path) ?? DEFAULT_CONFIG.path,
@@ -141,6 +186,11 @@ async function cmdInit(targetRoot: string, flags: Record<string, string | true>)
   };
   await writeFile(join(targetRoot, CONFIG_FILENAME), JSON.stringify(config, null, 2) + "\n", "utf8");
   console.log(`Wrote ${CONFIG_FILENAME} — combos will install into ${config.path} (import alias ${config.alias})`);
+
+  if (flags["config-only"] === true) return;
+
+  console.log("");
+  await cmdCreate(targetRoot, flags);
 }
 
 function resolveVariant(combo: ComboEntry, comboName: string, requested: string): string | null {
@@ -226,9 +276,7 @@ async function installMerge(comboName: string, combo: ComboEntry, variant: strin
   const lock = await loadLock(targetRoot);
   const previous = lock.files ?? {};
   const force = flags.force === true;
-  const dryRun = flags.check === true;
-
-  const result: CopyResult = { manifest: {}, skipped: [], ignored: [], updated: [] };
+  const checkOnly = flags.check === true;
 
   const comboDir = join(REGISTRY_ROOT, combo.dir);
   const sharedDir = join(comboDir, combo.sharedDir ?? "shared");
@@ -251,27 +299,49 @@ async function installMerge(comboName: string, combo: ComboEntry, variant: strin
         },
       ]
     : undefined;
-  const copyOpts = { aliasFrom: "@/lib/auth/core", aliasTo: `${alias}/core`, extraRewrites, previous, force, ignore: config.ignore, neverCopy: NEVER_COPY, dryRun };
 
-  await copyDir(join(REGISTRY_ROOT, registry.core.dir), join(destRoot, "core"), copyOpts, destRoot, result);
-  await copyDir(sharedDir, destRoot, { ...copyOpts, neverCopy: skipFromShared }, destRoot, result);
-  await copyDir(variantDir, destRoot, { ...copyOpts, neverCopy: skipFromVariant }, destRoot, result);
+  const runCopy = async (opts: { force: boolean; forcePaths: Set<string>; dryRun: boolean }) => {
+    const result: CopyResult = { manifest: {}, skipped: [], ignored: [], updated: [] };
+    const copyOpts = {
+      aliasFrom: "@/lib/auth/core",
+      aliasTo: `${alias}/core`,
+      extraRewrites,
+      previous,
+      force: opts.force,
+      forcePaths: opts.forcePaths,
+      ignore: config.ignore,
+      neverCopy: NEVER_COPY,
+      dryRun: opts.dryRun,
+    };
 
-  if (orm) {
-    await copyOneFile(join(sharedDir, orm.configFile), join(targetRoot, orm.configFile), destRoot, copyOpts, result);
-    await copyDir(join(variantDir, orm.dataDir), join(targetRoot, orm.dataDir), copyOpts, destRoot, result);
-  }
+    await copyDir(join(REGISTRY_ROOT, registry.core.dir), join(destRoot, "core"), copyOpts, destRoot, result);
+    await copyDir(sharedDir, destRoot, { ...copyOpts, neverCopy: skipFromShared }, destRoot, result);
+    await copyDir(variantDir, destRoot, { ...copyOpts, neverCopy: skipFromVariant }, destRoot, result);
 
-  // Switching variants has to remove the old variant's files, or the project ends up with both wired in.
-  const pruned = await pruneRemovedFiles(destRoot, previous, result, { force, ignore: config.ignore, dryRun });
+    if (orm) {
+      await copyOneFile(join(sharedDir, orm.configFile), join(targetRoot, orm.configFile), destRoot, copyOpts, result);
+      await copyDir(join(variantDir, orm.dataDir), join(targetRoot, orm.dataDir), copyOpts, destRoot, result);
+    }
 
-  if (dryRun) {
+    // Switching variants has to remove the old variant's files, or the project ends up with both wired in.
+    const pruned = await pruneRemovedFiles(destRoot, previous, result, { force: opts.force, ignore: config.ignore, dryRun: opts.dryRun });
+    return { result, pruned };
+  };
+
+  if (checkOnly) {
+    const { result, pruned } = await runCopy({ force, forcePaths: new Set(), dryRun: true });
     console.log(`\nCheck only — nothing written. "${comboName}" (${variant} variant) in ${installPath} (alias ${alias}):`);
     printInstallSummary(result, pruned);
     const silent = !result.updated.length && !result.skipped.length && !pruned.removed.length && !pruned.keptModified.length;
     if (silent) console.log(`\nUp to date — nothing would change.`);
     return;
   }
+
+  // Interactive + no --force: find locally-modified conflicts first (a dry run, nothing written),
+  // and let the user pick which — if any — to overwrite anyway, shadcn-"this file already exists"
+  // style, instead of the non-interactive default of silently leaving all of them alone.
+  const forcePaths = await resolveForcePaths(() => runCopy({ force: false, forcePaths: new Set(), dryRun: true }), flags);
+  const { result, pruned } = await runCopy({ force, forcePaths, dryRun: false });
 
   await writeFile(
     join(targetRoot, "auth.lock.json"),
@@ -295,14 +365,32 @@ async function installScaffold(comboName: string, combo: ComboEntry, variant: st
   const previous = lock.files ?? {};
   const force = flags.force === true;
 
-  const copyOpts = { previous, force, neverCopy: SCAFFOLD_NEVER_COPY };
-  const result: CopyResult = { manifest: {}, skipped: [], ignored: [], updated: [] };
+  // Only enforced on a genuinely fresh install (no auth.lock.json yet) — re-running this on an
+  // already-scaffolded app (an update) is expected and that directory is obviously non-empty.
+  const isFreshInstall = !lock.combo;
+  if (isFreshInstall && !force && !(await isEmptyDir(targetRoot))) {
+    console.error(
+      `${targetRoot} is not empty — "${comboName}" is a scaffold-mode combo (writes a whole new standalone project: package.json, src/, everything) and needs an empty directory. Use a different --into, empty it first, or pass --force to install into it anyway.`,
+    );
+    process.exitCode = 1;
+    return;
+  }
 
   const comboDir = join(REGISTRY_ROOT, combo.dir);
-  await copyDir(join(comboDir, combo.sharedDir ?? "shared"), targetRoot, copyOpts, targetRoot, result);
-  await copyDir(join(comboDir, combo.variantsDir ?? "variants", variant), targetRoot, copyOpts, targetRoot, result);
 
-  const pruned = await pruneRemovedFiles(targetRoot, previous, result, { force });
+  const runCopy = async (opts: { force: boolean; forcePaths: Set<string>; dryRun: boolean }) => {
+    const result: CopyResult = { manifest: {}, skipped: [], ignored: [], updated: [] };
+    const copyOpts = { previous, force: opts.force, forcePaths: opts.forcePaths, neverCopy: SCAFFOLD_NEVER_COPY, dryRun: opts.dryRun };
+    await copyDir(join(comboDir, combo.sharedDir ?? "shared"), targetRoot, copyOpts, targetRoot, result);
+    await copyDir(join(comboDir, combo.variantsDir ?? "variants", variant), targetRoot, copyOpts, targetRoot, result);
+    const pruned = await pruneRemovedFiles(targetRoot, previous, result, { force: opts.force, dryRun: opts.dryRun });
+    return { result, pruned };
+  };
+
+  // Same shadcn-style "this file already exists, overwrite?" prompt as installMerge — see
+  // resolveForcePaths. A no-op dry run on a genuinely fresh install (nothing to conflict with).
+  const forcePaths = await resolveForcePaths(() => runCopy({ force: false, forcePaths: new Set(), dryRun: true }), flags);
+  const { result, pruned } = await runCopy({ force, forcePaths, dryRun: false });
 
   const appName = flagString(flags.name) ?? basename(targetRoot);
 
@@ -591,11 +679,14 @@ async function main() {
     default: {
       const registry = await loadRegistry();
       console.log("Usage: simple-auth-kit <init|add|update|diff> [...]");
+      console.log(`  init [--config-only] [--kind ...] [--into <path>]  (fresh setup: guided "what do you need" picker, like bare "add")`);
+      console.log(`      --config-only: just write .simple-auth-kit.json and stop, no install`);
       console.log(`  add <combo> [--workspaces] [--force] [--into <path>] [--path <dir>] [--alias <alias>]`);
-      console.log(`  update [--check] [--force] [--into <path>]  (re-installs whatever combo+variant auth.lock.json already records)`);
-      console.log(`      --check: report what would change, without writing anything (merge-mode combos only)`);
       console.log(`  add [--kind api,admin,mobile] [--framework <name>,...] [--workspaces] [--into <path>] [--name <appName>]`);
       console.log(`      (bare "add", or "add" with --kind but no combo, launches a guided prompt for whatever's missing)`);
+      console.log(`  update [--check] [--force] [--into <path>]  (re-installs whatever combo+variant auth.lock.json already records)`);
+      console.log(`      --check: report what would change, without writing anything (merge-mode combos only)`);
+      console.log(`  In a TTY, without --force or --check: a file changed locally since install prompts to overwrite, per file.`);
       console.log(`\nAvailable combos:`);
       for (const kind of ["api", "admin", "mobile"] as Kind[]) {
         const names = combosByKind(registry, kind).map(([name]) => name);

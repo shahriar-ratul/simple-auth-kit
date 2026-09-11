@@ -35,6 +35,10 @@ export interface CopyOptions {
   previous?: Record<string, string>;
   /** Overwrite user-modified files anyway. */
   force?: boolean;
+  /** Paths (relative to destRoot, same form as `previous`'s keys) to overwrite even though
+   * they're locally modified — a per-file version of `force`, for when only some conflicts were
+   * approved (e.g. via an interactive per-file prompt) rather than all of them. */
+  forcePaths?: Set<string>;
   /** Paths (relative to destRoot, POSIX separators) this install must not write or delete. */
   ignore?: string[];
   /** Overrides the default skip-by-name set (see NEVER_COPY / SCAFFOLD_NEVER_COPY). */
@@ -92,7 +96,8 @@ export async function copyOneFile(srcPath: string, destPath: string, destRoot: s
 
   const existing = await readIfExists(destPath);
   const recorded = opts.previous?.[rel];
-  if (!opts.force && existing !== null && recorded !== undefined && sha256(existing) !== recorded) {
+  const forced = opts.force || opts.forcePaths?.has(rel);
+  if (!forced && existing !== null && recorded !== undefined && sha256(existing) !== recorded) {
     result.skipped.push(rel);
     result.manifest[rel] = sha256(existing);
     return;

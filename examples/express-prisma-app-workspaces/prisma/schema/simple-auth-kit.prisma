@@ -1,30 +1,86 @@
-// Roles and permissions are global to this deployment: a user has one set of roles, and it
-// applies everywhere.
+// A user belongs to any number of workspaces and carries a different set of roles in each, so
+// every authorization-bearing row hangs off the *membership*, never off the user. That is the
+// whole shape of this schema: `WorkspaceMember` is the principal for authorization, `User` is
+// the principal for authentication.
 //
-// Authorization is resolved from the database on every request — user → roles → role permissions,
-// unioned with the user's direct grants — and the access token carries no authorization at all.
-// That is what makes a grant or a revocation take effect on the caller's *next request* rather
-// than their next token. The cost is bounded: three indexed reads on join tables, constant in the
-// number of users.
+// Sessions and the access token stay user-level and workspace-agnostic on purpose — a request
+// names the workspace it is acting in (X-Workspace-Id), the guard resolves the membership on the
+// `[userId, workspaceId]` unique index, and the permissions that membership carries *there* are
+// read from the database on that request. The token carries no authorization at all.
 //
 // Table and column names are snake_case/plural at the database level and camelCase in TypeScript;
 // Prisma maps between them, so nothing in the application code spells a column name.
-// Stays relative to *this file's own location*, which differs by context: the registry's own
-// dev/typecheck loop (scripts/materialize.mjs) keeps this schema as a sibling of src/, so
-// "../generated/prisma" lands next to it, matching every "../generated/prisma/client.js" import
-// in src/. A real CLI install moves this file (+ prisma/) to the project root while src/ stays
-// nested inside the merged auth-lib directory — the CLI rewrites those same import strings in
-// the copied files to match (see installMerge's extraRewrites in cli/simple-auth-kit.ts), rather
-// than this field trying to be two things at once.
+// This is one file among possibly several under prisma/schema/ — Prisma's multi-file schema
+// support (stable since well before the version this repo pins) merges every .prisma file in
+// that folder into one logical schema automatically. Named simple-auth-kit.prisma specifically
+// so a consumer's own models, added as a sibling file in this same folder, are picked up by
+// `prisma generate`/`migrate` too, without the CLI ever touching that sibling file — it only
+// ever manages this one, by its exact name.
+//
+// `output` stays relative to *this file's own location*, which differs by context: the
+// registry's own dev/typecheck loop (scripts/materialize.mjs) keeps prisma/ as a sibling of
+// src/, so "../../generated/prisma" (two levels up from prisma/schema/) lands next to src/,
+// matching every "../generated/prisma/client.js" import there. A real CLI install moves
+// prisma.config.ts + prisma/ to the project root while src/ stays nested inside the merged
+// auth-lib directory — the CLI rewrites those same import strings in the copied files to match
+// (see installMerge's extraRewrites in cli/simple-auth-kit.ts), rather than this field trying to
+// be two things at once.
 generator client {
   provider = "prisma-client"
-  output   = "../generated/prisma"
+  output   = "../../generated/prisma"
 }
 
 datasource db {
   provider = "postgresql"
 }
 
+model Workspace {
+  id            BigInt    @id @default(autoincrement())
+  uuid          String    @unique @default(uuid())
+  name          String
+  isActive      Boolean   @default(true) @map("is_active")
+  createdBy     BigInt?   @map("created_by")
+  updatedBy     BigInt?   @map("updated_by")
+  isDeleted     Boolean   @default(false) @map("is_deleted")
+  deletedAt     DateTime? @map("deleted_at") @db.Timestamptz(6)
+  deletedBy     BigInt?   @map("deleted_by")
+  deletedReason String?   @map("deleted_reason") @db.VarChar(255)
+  createdAt     DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt     DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  members WorkspaceMember[]
+  roles   Role[]
+
+  createdByUser User? @relation("WorkspaceCreatedBy", fields: [createdBy], references: [id], onDelete: SetNull)
+  updatedByUser User? @relation("WorkspaceUpdatedBy", fields: [updatedBy], references: [id], onDelete: SetNull)
+  deletedByUser User? @relation("WorkspaceDeletedBy", fields: [deletedBy], references: [id], onDelete: SetNull)
+
+  @@index([isActive], map: "workspaces_is_active_idx")
+  @@index([isDeleted], map: "workspaces_is_deleted_idx")
+  @@map("workspaces")
+}
+
+/// The authorization principal. `[userId, workspaceId]` is unique, making the per-request
+/// membership lookup a single indexed read.
+model WorkspaceMember {
+  id          BigInt   @id @default(autoincrement())
+  uuid        String   @unique @default(uuid())
+  userId      BigInt   @map("user_id")
+  workspaceId BigInt   @map("workspace_id")
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  user        User               @relation(fields: [userId], references: [id])
+  workspace   Workspace          @relation(fields: [workspaceId], references: [id])
+  roles       RoleMember[]
+  permissions PermissionMember[]
+
+  @@unique([userId, workspaceId])
+  @@index([workspaceId], map: "workspace_members_workspace_id_idx")
+  @@map("workspace_members")
+}
+
+/// Authentication only. Deliberately has no roles — a user who is an admin in one workspace and
+/// a plain member in another has no single global role.
 model User {
   id               BigInt    @id @default(autoincrement())
   uuid             String    @unique @default(uuid())
@@ -55,15 +111,14 @@ model User {
   createdAt        DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt        DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
 
-  roles                RoleUser[]
-  permissions          PermissionUser[]
+  memberships          WorkspaceMember[]
   sessions             Session[]             @relation("UserSessions")
   oauthAccounts        OAuthAccount[]
   passwordResetTokens  PasswordResetToken[]
   twoFactorBackupCodes TwoFactorBackupCode[]
 
-  // Named relations: Session/Role/Permission each point at User multiple times, so Prisma needs
-  // an explicit name per back-reference.
+  // Named relations: Session/Role/Permission/Workspace each point at User multiple times, so
+  // Prisma needs an explicit name per back-reference.
   revokedSessions Session[] @relation("UserRevokedSessions")
   createdSessions Session[] @relation("SessionCreatedBy")
   updatedSessions Session[] @relation("SessionUpdatedBy")
@@ -82,18 +137,24 @@ model User {
   permissionsCreated Permission[] @relation("PermissionCreatedBy")
   permissionsUpdated Permission[] @relation("PermissionUpdatedBy")
   permissionsDeleted Permission[] @relation("PermissionDeletedBy")
+  workspacesCreated  Workspace[]  @relation("WorkspaceCreatedBy")
+  workspacesUpdated  Workspace[]  @relation("WorkspaceUpdatedBy")
+  workspacesDeleted  Workspace[]  @relation("WorkspaceDeletedBy")
 
   @@index([isDeleted], map: "users_is_deleted_idx")
   @@map("users")
 }
 
-/// `slug` is the identifier grants/revocations key off, so renaming `name`/`displayName` never
-/// breaks one. `isDefault` is what a newly signed-up user is given. `isActive: false` suspends a
-/// role without deleting it; `isDeleted` removes it from every listing outright.
+/// A named bundle of permissions, scoped per workspace — two workspaces may each define
+/// `billing-manager` with entirely different permissions. `slug` and `name` are each unique
+/// *within* a workspace, not globally: two workspaces defining a role called "Admin" is a core
+/// proven property of this variant. `isDefault` is what a new member is given. `isActive: false`
+/// suspends a role without deleting it; `isDeleted` removes it from every listing outright.
 model Role {
   id            BigInt    @id @default(autoincrement())
   uuid          String    @unique @default(uuid())
-  slug          String    @unique @db.VarChar(255)
+  workspaceId   BigInt    @map("workspace_id")
+  slug          String    @db.VarChar(255)
   name          String    @db.VarChar(255)
   displayName   String    @map("display_name") @db.VarChar(255)
   description   String?
@@ -109,23 +170,27 @@ model Role {
   createdAt     DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt     DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
 
-  users       RoleUser[]
+  workspace   Workspace        @relation(fields: [workspaceId], references: [id])
+  members     RoleMember[]
   permissions PermissionRole[]
 
   createdByUser User? @relation("RoleCreatedBy", fields: [createdBy], references: [id], onDelete: SetNull)
   updatedByUser User? @relation("RoleUpdatedBy", fields: [updatedBy], references: [id], onDelete: SetNull)
   deletedByUser User? @relation("RoleDeletedBy", fields: [deletedBy], references: [id], onDelete: SetNull)
 
-  @@index([isDefault], map: "roles_is_default_idx")
+  @@unique([workspaceId, slug])
+  @@unique([workspaceId, name])
+  @@index([workspaceId, isDefault], map: "roles_workspace_default_idx")
   @@index([isActive, order], map: "roles_active_order_idx")
   @@index([isDeleted], map: "roles_is_deleted_idx")
   @@map("roles")
 }
 
-/// One capability, identified by its `slug` (`users:read`, `roles:assign`) — the same string
-/// used in `@CheckAbility` and `ability.can`. `group`/`groupOrder`/`order` back the admin
-/// console's permission matrix. `isActive: false` switches a capability off deployment-wide
-/// without unpicking every role that grants it; `isDeleted` removes it from every listing.
+/// One capability, identified by its `slug` (`users:read`, `members:manage`) — the same string
+/// used in `@CheckAbility` and `ability.can`. Not workspace-scoped: the same capabilities are
+/// reused across workspaces' role definitions; what differs per workspace is which roles carry
+/// them. `group`/`groupOrder`/`order` back the admin console's permission matrix. `isActive:
+/// false` switches a capability off deployment-wide; `isDeleted` removes it from every listing.
 model Permission {
   id            BigInt    @id @default(autoincrement())
   uuid          String    @unique @default(uuid())
@@ -146,8 +211,8 @@ model Permission {
   createdAt     DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt     DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
 
-  roles PermissionRole[]
-  users PermissionUser[]
+  roles   PermissionRole[]
+  members PermissionMember[]
 
   createdByUser User? @relation("PermissionCreatedBy", fields: [createdBy], references: [id], onDelete: SetNull)
   updatedByUser User? @relation("PermissionUpdatedBy", fields: [updatedBy], references: [id], onDelete: SetNull)
@@ -159,19 +224,20 @@ model Permission {
   @@map("permissions")
 }
 
-/// Which roles a user holds.
-model RoleUser {
-  userId    BigInt   @map("user_id")
+/// Which roles a membership holds. Because `Role` carries `workspaceId`, a membership cannot be
+/// assigned a role belonging to another workspace.
+model RoleMember {
+  memberId  BigInt   @map("member_id")
   roleId    BigInt   @map("role_id")
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-  role Role @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  member WorkspaceMember @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  role   Role            @relation(fields: [roleId], references: [id], onDelete: Cascade)
 
-  @@id([userId, roleId])
-  @@index([roleId], map: "role_user_role_id_idx")
-  @@map("role_user")
+  @@id([memberId, roleId])
+  @@index([roleId], map: "role_member_role_id_idx")
+  @@map("role_member")
 }
 
 /// What each role carries.
@@ -189,19 +255,20 @@ model PermissionRole {
   @@map("permission_role")
 }
 
-/// Direct per-user permission grants, additive to whatever the user's roles already carry.
-model PermissionUser {
-  userId       BigInt   @map("user_id")
+/// Direct permission grants, additive to the membership's roles. Attached to the *membership*,
+/// not the user, so a grant made inside one workspace doesn't follow the person into another.
+model PermissionMember {
+  memberId     BigInt   @map("member_id")
   permissionId BigInt   @map("permission_id")
   createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt    DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
 
-  user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
-  permission Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+  member     WorkspaceMember @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  permission Permission      @relation(fields: [permissionId], references: [id], onDelete: Cascade)
 
-  @@id([userId, permissionId])
-  @@index([permissionId], map: "permission_user_permission_id_idx")
-  @@map("permission_user")
+  @@id([memberId, permissionId])
+  @@index([permissionId], map: "permission_member_permission_id_idx")
+  @@map("permission_member")
 }
 
 /// Links a social-login identity to a User. `[provider, providerAccountId]` is the OIDC `sub`
@@ -257,25 +324,28 @@ model TwoFactorBackupCode {
 /// The RBAC/User/Session tables also carry their own `createdBy`/`updatedBy`/`deletedBy` — a
 /// denormalized copy of the same fact, kept so a row-level "who touched this" read needs no join.
 model AuditLog {
-  id        BigInt   @id @default(autoincrement())
-  uuid      String   @unique @default(uuid())
-  userId    BigInt?  @map("user_id") // who the event is about; null if not attributable to one user
-  name      String // human-readable label for `action`, e.g. "Role assigned"
-  action    String // AuditEvent discriminant, e.g. "role_assigned"
-  info      Json // the rest of the AuditEvent's fields
-  remarks   String? // free-text note
-  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+  id          BigInt   @id @default(autoincrement())
+  uuid        String   @unique @default(uuid())
+  workspaceId BigInt?  @map("workspace_id") // null for events outside any workspace (login, password reset, ...)
+  userId      BigInt?  @map("user_id") // who the event is about; null if not attributable to one user
+  name        String // human-readable label for `action`, e.g. "Role assigned"
+  action      String // AuditEvent discriminant, e.g. "role_assigned"
+  info        Json // the rest of the AuditEvent's fields
+  remarks     String? // free-text note
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
 
+  @@index([workspaceId, createdAt], map: "audit_logs_workspace_created_idx")
   @@index([userId, createdAt], map: "audit_logs_user_created_idx")
   @@index([createdAt], map: "audit_logs_created_idx")
   @@map("audit_logs")
 }
 
-/// One row per logged-in device. Stores no usable credential: `currentRefreshJti` is the id of
-/// the currently-valid refresh token, not the token itself. `expiresAt` is an absolute cap set
-/// once at creation, never extended — `rotateRefreshToken` in core enforces it. `isRevoked` is
-/// derived from `revokedAt` by the repository, never set independently.
+/// One row per logged-in device, independent of any workspace. Stores no usable credential:
+/// `currentRefreshJti` is the id of the currently-valid refresh token, not the token itself.
+/// `expiresAt` is an absolute cap set once at creation, never extended — `rotateRefreshToken`
+/// in core enforces it. `isRevoked` is derived from `revokedAt` by the repository, never set
+/// independently.
 model Session {
   id                BigInt    @id @default(autoincrement())
   uuid              String    @unique @default(uuid())

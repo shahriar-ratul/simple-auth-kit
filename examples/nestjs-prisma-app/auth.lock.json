@@ -1,6 +1,6 @@
 {
   "combo": "nestjs-prisma",
-  "installedAt": "2026-09-11T09:34:29.400Z",
+  "installedAt": "2026-09-11T10:55:50.173Z",
   "files": {
     "core/.gitignore": "32dc6c42e34b0e1b8c9a5780abe9f951874d9082690a6e035e064f96dfd06ee6",
     "core/crypto.ts": "9411c998b33f4ba97078fb6ff5beee1823bfb8c14a324c0e24e1967640e0c985",
@@ -50,7 +50,7 @@
     "src/rbac.defaults.ts": "218bf8949624857cc936a88f43ecee22cd06ad58f6e72392a8f5f0d0403bc353",
     "src/rbac.repository.ts": "843826f7e4f4981aea7d84c26f21ad5864c418965c66b331e1d06f220f6f23cd",
     "src/seed.ts": "edf0cc43fa233303010b5c79519e4a1f50ea7963d581ab805f20477c0d9eba57",
-    "../../../prisma.config.ts": "9f857a04e8bf9cdb707f7533bd32caca038717f8992d73beb569078f9ebdbe11",
+    "../../../prisma.config.ts": "54c16438ebcb944d594bcd3c564c50c62d459c2ce7c1ab6fe09b394ba36b38dd",
     "../../../prisma/migrations/20260810084937_init/migration.sql": "54626c7f1219279ca3258844d57b618ced6f97552a01421a2cdc1c97966587d7",
     "../../../prisma/migrations/20260810122546_add_profile_audit_soft_delete/migration.sql": "86b7efa6a112f461ee7af2ca7a2ab5c273c5641a0ce3740b0123b7f285080072",
     "../../../prisma/migrations/20260810123620_add_display_name/migration.sql": "14e9ad61cf315e5a04afd31ca3b916d8d36bafae1d569b1d99cafc0bab1cb373",
@@ -61,7 +61,7 @@
     "../../../prisma/migrations/20260811183529_add_countries_languages_customers/migration.sql": "f82c9f938af11587630a75ca442665e9132eee1bb1df0e4196f4e04ce906c00f",
     "../../../prisma/migrations/20260812121128_add_user_profile_details/migration.sql": "48b9a6d895c6c1e6531d43e95a5bb34e7ac3b341d17bc97d8eb79f7eac20afa4",
     "../../../prisma/migrations/migration_lock.toml": "99836963713b4f5b269ad49af0ed3d7b0b2e336115c2f92dc9ac683d139d0900",
-    "../../../prisma/schema.prisma": "98f5cce23169c881f4bf3d66d85714d1f1b475663dd3e58262e68c3229bf1e4c"
+    "../../../prisma/schema/simple-auth-kit.prisma": "82db1c153c14a42b98b362e88841923c5ee67d42e8eb29fbe070a9b39fc651fa"
   },
   "variant": "base"
 }

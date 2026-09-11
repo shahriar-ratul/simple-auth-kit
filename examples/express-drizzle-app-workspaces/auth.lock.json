@@ -1,7 +1,7 @@
 {
   "combo": "express-drizzle",
   "variant": "workspaces",
-  "installedAt": "2026-09-11T09:24:53.485Z",
+  "installedAt": "2026-09-11T10:56:35.784Z",
   "files": {
     "core/.gitignore": "32dc6c42e34b0e1b8c9a5780abe9f951874d9082690a6e035e064f96dfd06ee6",
     "core/crypto.ts": "9411c998b33f4ba97078fb6ff5beee1823bfb8c14a324c0e24e1967640e0c985",
@@ -49,7 +49,7 @@
     "src/seed.ts": "ee815e85b081a6b48fc64124e75e77d0747ddc37e54cf4ecf39b7ffb7dd422eb",
     "src/workspace.repository.ts": "01b452641a63be2b91fd79e012fcfd84ede54e99a21f6b8ad3bf10e9e7fa95d6",
     "src/workspace.router.ts": "e25c84021756485f3b02bf1c3e1b721ba9629f9a58ebf76825264f3901981490",
-    "../../../drizzle.config.ts": "d08a7a1b929335f3da85b16edab34abb4b4c6115c139d838be89408162c7a84f",
+    "../../../drizzle.config.ts": "ed9a91fd2aaddc5ad1b6532e2590da30b2e737655d2da3781285e31fbc4a80fe",
     "../../../drizzle/0000_init.sql": "5227591837913498b86ef79ad2bc9afef72b8f077fb583cf6b4639738d49399e",
     "../../../drizzle/0001_add_is_active_field.sql": "dcba7ba62356487f1e273cc5a0d0b0b16fcec06692754218135021f0babcdeba",
     "../../../drizzle/meta/0000_snapshot.json": "cefdec403c8cef776e10b7ce7337bde10af396871043888cf75bfbbaa7420fc6",

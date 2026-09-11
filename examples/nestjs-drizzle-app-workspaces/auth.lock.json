@@ -1,7 +1,7 @@
 {
   "combo": "nestjs-drizzle",
   "variant": "workspaces",
-  "installedAt": "2026-09-11T09:24:52.785Z",
+  "installedAt": "2026-09-11T10:56:35.131Z",
   "files": {
     "core/.gitignore": "32dc6c42e34b0e1b8c9a5780abe9f951874d9082690a6e035e064f96dfd06ee6",
     "core/crypto.ts": "9411c998b33f4ba97078fb6ff5beee1823bfb8c14a324c0e24e1967640e0c985",
@@ -48,7 +48,7 @@
     "src/seed.ts": "1dc35a7a477157d489202649533707d09cbd24705ae2f141cb5c0cc987929404",
     "src/workspace.controller.ts": "1d5f7351d67b43093a2cdb892d58493e067fee1d6d65f6dc47d4e54e15bfeba9",
     "src/workspace.repository.ts": "d871f241647cfbf3e7c76370ab9bd625b3c7b653c86a32357b15f481262c6aeb",
-    "../../../drizzle.config.ts": "4ec1fa43dd6b3e085170f429acf983f28fcd24986f624d5f2c770fe4dc719cba",
+    "../../../drizzle.config.ts": "d1b6177b08f6458dcf804ebb043dd3261781e2ebce7ea199ba14406478180097",
     "../../../drizzle/0000_init.sql": "5227591837913498b86ef79ad2bc9afef72b8f077fb583cf6b4639738d49399e",
     "../../../drizzle/0001_add_is_active_field.sql": "dcba7ba62356487f1e273cc5a0d0b0b16fcec06692754218135021f0babcdeba",
     "../../../drizzle/0002_calm_tyger_tiger.sql": "6f309745361131edfee14827acccdb9985c4633c02a637a2a7671ec9ae6da745",

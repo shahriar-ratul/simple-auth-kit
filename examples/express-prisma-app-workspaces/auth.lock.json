@@ -1,7 +1,7 @@
 {
   "combo": "express-prisma",
   "variant": "workspaces",
-  "installedAt": "2026-09-11T09:34:30.332Z",
+  "installedAt": "2026-09-11T10:55:51.254Z",
   "files": {
     "core/.gitignore": "32dc6c42e34b0e1b8c9a5780abe9f951874d9082690a6e035e064f96dfd06ee6",
     "core/crypto.ts": "9411c998b33f4ba97078fb6ff5beee1823bfb8c14a324c0e24e1967640e0c985",
@@ -47,10 +47,10 @@
     "src/seed.ts": "621ecdf9b9c6e1dedab3a6a5e7860f5b7313037986a7741d958d5ecc91440e99",
     "src/workspace.repository.ts": "252f36cf9b5c2a3717e957091528ff6b91c766029004fca40b4307fb1099a7ee",
     "src/workspace.router.ts": "e25c84021756485f3b02bf1c3e1b721ba9629f9a58ebf76825264f3901981490",
-    "../../../prisma.config.ts": "9f857a04e8bf9cdb707f7533bd32caca038717f8992d73beb569078f9ebdbe11",
+    "../../../prisma.config.ts": "54c16438ebcb944d594bcd3c564c50c62d459c2ce7c1ab6fe09b394ba36b38dd",
     "../../../prisma/migrations/20260810165502_init/migration.sql": "88ad4530f6833f120563f67c7dd50d4dbdcfb5c246487c7f6b14e0cab90030cb",
     "../../../prisma/migrations/20260811151051_add_is_active_field/migration.sql": "4470e24d54ae588313e63a93d2c7691bab4895bf7b49bbeebcf3a96d4bcfe717",
     "../../../prisma/migrations/migration_lock.toml": "99836963713b4f5b269ad49af0ed3d7b0b2e336115c2f92dc9ac683d139d0900",
-    "../../../prisma/schema.prisma": "1323aeedb578aea2bd98316f43c74de765733985a16cb7b4d960fdc3ba860a4d"
+    "../../../prisma/schema/simple-auth-kit.prisma": "2bfa9c29c0ef459da744e2eda3882a317f0fe18c1d40e5e990032aba2aa5e41c"
   }
 }

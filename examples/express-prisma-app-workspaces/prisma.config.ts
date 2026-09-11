@@ -25,7 +25,10 @@ function loadNearestEnv(startDir: string): void {
 loadNearestEnv(dirname(fileURLToPath(import.meta.url)));
 
 export default defineConfig({
-  schema: "prisma/schema.prisma",
+  // A folder, not a file — Prisma's multi-file schema support merges every .prisma file inside
+  // it. A consumer's own models go in their own sibling file under prisma/schema/, never
+  // touched by the CLI (it only ever manages prisma/schema/simple-auth-kit.prisma, by name).
+  schema: "prisma/schema",
   migrations: {
     path: "prisma/migrations",
   },
