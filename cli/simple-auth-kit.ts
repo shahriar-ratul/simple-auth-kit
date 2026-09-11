@@ -33,7 +33,7 @@ const KIND_LABELS: Record<Kind, string> = { api: "API (backend)", admin: "Admin 
 const KIND_FRAMEWORK_NOUN: Record<Kind, string> = { api: "API stack", admin: "admin framework", mobile: "mobile framework" };
 
 /** Flags that take no value. Everything else consumes the next argv entry. */
-const BOOLEAN_FLAGS = new Set(["workspaces", "force"]);
+const BOOLEAN_FLAGS = new Set(["workspaces", "force", "check"]);
 
 interface SimpleAuthKitConfig {
   path: string;
@@ -160,6 +160,10 @@ function requestedVariant(flags: Record<string, string | true>): string {
 }
 
 function printInstallSummary(result: CopyResult, pruned: { removed: string[]; keptModified: string[] }) {
+  if (result.updated.length) {
+    console.log(`\nUpdated (new or changed since last install):`);
+    for (const file of result.updated) console.log(`  ${file}`);
+  }
   if (result.skipped.length) {
     console.log(`\nLeft alone — modified since the last install (re-run with --force to overwrite):`);
     for (const file of result.skipped) console.log(`  ${file}`);
@@ -222,8 +226,9 @@ async function installMerge(comboName: string, combo: ComboEntry, variant: strin
   const lock = await loadLock(targetRoot);
   const previous = lock.files ?? {};
   const force = flags.force === true;
+  const dryRun = flags.check === true;
 
-  const result: CopyResult = { manifest: {}, skipped: [], ignored: [] };
+  const result: CopyResult = { manifest: {}, skipped: [], ignored: [], updated: [] };
 
   const comboDir = join(REGISTRY_ROOT, combo.dir);
   const sharedDir = join(comboDir, combo.sharedDir ?? "shared");
@@ -246,7 +251,7 @@ async function installMerge(comboName: string, combo: ComboEntry, variant: strin
         },
       ]
     : undefined;
-  const copyOpts = { aliasFrom: "@/lib/auth/core", aliasTo: `${alias}/core`, extraRewrites, previous, force, ignore: config.ignore, neverCopy: NEVER_COPY };
+  const copyOpts = { aliasFrom: "@/lib/auth/core", aliasTo: `${alias}/core`, extraRewrites, previous, force, ignore: config.ignore, neverCopy: NEVER_COPY, dryRun };
 
   await copyDir(join(REGISTRY_ROOT, registry.core.dir), join(destRoot, "core"), copyOpts, destRoot, result);
   await copyDir(sharedDir, destRoot, { ...copyOpts, neverCopy: skipFromShared }, destRoot, result);
@@ -258,7 +263,15 @@ async function installMerge(comboName: string, combo: ComboEntry, variant: strin
   }
 
   // Switching variants has to remove the old variant's files, or the project ends up with both wired in.
-  const pruned = await pruneRemovedFiles(destRoot, previous, result, { force, ignore: config.ignore });
+  const pruned = await pruneRemovedFiles(destRoot, previous, result, { force, ignore: config.ignore, dryRun });
+
+  if (dryRun) {
+    console.log(`\nCheck only — nothing written. "${comboName}" (${variant} variant) in ${installPath} (alias ${alias}):`);
+    printInstallSummary(result, pruned);
+    const silent = !result.updated.length && !result.skipped.length && !pruned.removed.length && !pruned.keptModified.length;
+    if (silent) console.log(`\nUp to date — nothing would change.`);
+    return;
+  }
 
   await writeFile(
     join(targetRoot, "auth.lock.json"),
@@ -283,7 +296,7 @@ async function installScaffold(comboName: string, combo: ComboEntry, variant: st
   const force = flags.force === true;
 
   const copyOpts = { previous, force, neverCopy: SCAFFOLD_NEVER_COPY };
-  const result: CopyResult = { manifest: {}, skipped: [], ignored: [] };
+  const result: CopyResult = { manifest: {}, skipped: [], ignored: [], updated: [] };
 
   const comboDir = join(REGISTRY_ROOT, combo.dir);
   await copyDir(join(comboDir, combo.sharedDir ?? "shared"), targetRoot, copyOpts, targetRoot, result);
@@ -501,6 +514,45 @@ async function cmdCreate(targetRoot: string, flags: Record<string, string | true
   }
 }
 
+/**
+ * Re-installs whatever combo+variant this project already has, read straight from
+ * auth.lock.json — no need to remember or re-type what you originally ran `add` with. Defaults
+ * to the safe (non-`--force`) merge: anything you haven't touched updates automatically, and
+ * anything you have is left alone and reported, exactly like a first install. Pass `--force`
+ * yourself if you really do want to overwrite local edits.
+ */
+async function cmdUpdate(targetRoot: string, flags: Record<string, string | true>) {
+  const lock = await loadLock(targetRoot);
+  if (!lock.combo || !lock.variant) {
+    console.error(`No auth.lock.json (or it's missing combo/variant) in ${targetRoot} — nothing to update. Use "add <combo>" for a first install.`);
+    process.exitCode = 1;
+    return;
+  }
+
+  const registry = await loadRegistry();
+  const combo = registry.combos[lock.combo];
+  if (!combo) {
+    console.error(`auth.lock.json names combo "${lock.combo}", which no longer exists in this registry.`);
+    process.exitCode = 1;
+    return;
+  }
+
+  const variant = resolveVariant(combo, lock.combo, lock.variant);
+  if (!variant) {
+    process.exitCode = 1;
+    return;
+  }
+
+  if (flags.check === true && comboInstallMode(combo) === "scaffold") {
+    console.error(`--check isn't supported for "${lock.combo}" (a scaffold-mode combo) — only merge-mode (api) combos support a dry run.`);
+    process.exitCode = 1;
+    return;
+  }
+
+  console.log(`Updating "${lock.combo}" (${variant} variant) in ${targetRoot}${flags.force === true ? " — --force: local edits will be overwritten" : ""}`);
+  await installCombo(lock.combo, combo, variant, registry, targetRoot, flags);
+}
+
 async function cmdDiff(targetRoot: string) {
   const lock = await loadLock(targetRoot);
   if (!lock.files) {
@@ -530,13 +582,18 @@ async function main() {
       await cmdAdd(comboName, targetRoot, flags);
       break;
     }
+    case "update":
+      await cmdUpdate(targetRoot, flags);
+      break;
     case "diff":
       await cmdDiff(targetRoot);
       break;
     default: {
       const registry = await loadRegistry();
-      console.log("Usage: simple-auth-kit <init|add|diff> [...]");
+      console.log("Usage: simple-auth-kit <init|add|update|diff> [...]");
       console.log(`  add <combo> [--workspaces] [--force] [--into <path>] [--path <dir>] [--alias <alias>]`);
+      console.log(`  update [--check] [--force] [--into <path>]  (re-installs whatever combo+variant auth.lock.json already records)`);
+      console.log(`      --check: report what would change, without writing anything (merge-mode combos only)`);
       console.log(`  add [--kind api,admin,mobile] [--framework <name>,...] [--workspaces] [--into <path>] [--name <appName>]`);
       console.log(`      (bare "add", or "add" with --kind but no combo, launches a guided prompt for whatever's missing)`);
       console.log(`\nAvailable combos:`);

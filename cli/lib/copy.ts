@@ -39,6 +39,11 @@ export interface CopyOptions {
   ignore?: string[];
   /** Overrides the default skip-by-name set (see NEVER_COPY / SCAFFOLD_NEVER_COPY). */
   neverCopy?: Set<string>;
+  /**
+   * Compute everything (manifest, skipped/ignored/updated classification) without writing or
+   * deleting anything on disk — for a "what would change" check before actually applying it.
+   */
+  dryRun?: boolean;
 }
 
 export interface CopyResult {
@@ -48,6 +53,10 @@ export interface CopyResult {
   skipped: string[];
   /** Files left alone because they are on the ignore list. */
   ignored: string[];
+  /** Files that are new or whose content differs from what's currently on disk — written (or,
+   * under `dryRun`, would be written) this run. Anything not in skipped/ignored/updated was
+   * already byte-identical to what's being installed — genuinely nothing to do for it. */
+  updated: string[];
 }
 
 export const sha256 = (content: string) => createHash("sha256").update(content).digest("hex");
@@ -89,14 +98,23 @@ export async function copyOneFile(srcPath: string, destPath: string, destRoot: s
     return;
   }
 
+  const newHash = sha256(content);
+  if (existing !== null && sha256(existing) === newHash) {
+    result.manifest[rel] = newHash; // already byte-identical — nothing to do
+    return;
+  }
+
+  result.updated.push(rel);
+  result.manifest[rel] = newHash;
+  if (opts.dryRun) return;
+
   await mkdir(dirname(destPath), { recursive: true });
   await writeFile(destPath, content, "utf8");
-  result.manifest[rel] = sha256(content);
 }
 
 /** Recursively copies srcDir into destDir, rewriting the placeholder core import alias in .ts files. */
 export async function copyDir(srcDir: string, destDir: string, opts: CopyOptions, destRoot: string = destDir, result?: CopyResult): Promise<CopyResult> {
-  const acc: CopyResult = result ?? { manifest: {}, skipped: [], ignored: [] };
+  const acc: CopyResult = result ?? { manifest: {}, skipped: [], ignored: [], updated: [] };
   const skipNames = opts.neverCopy ?? NEVER_COPY;
   const entries = await readdir(srcDir, { withFileTypes: true });
 
@@ -142,7 +160,7 @@ export async function pruneRemovedFiles(
   destRoot: string,
   previous: Record<string, string>,
   result: CopyResult,
-  opts: { force?: boolean; ignore?: string[] } = {},
+  opts: { force?: boolean; ignore?: string[]; dryRun?: boolean } = {},
 ): Promise<{ removed: string[]; keptModified: string[] }> {
   const removed: string[] = [];
   const keptModified: string[] = [];
@@ -156,8 +174,10 @@ export async function pruneRemovedFiles(
       keptModified.push(rel);
       continue;
     }
-    await rm(join(destRoot, rel), { force: true });
-    await removeEmptyParents(dirname(join(destRoot, rel)), destRoot);
+    if (!opts.dryRun) {
+      await rm(join(destRoot, rel), { force: true });
+      await removeEmptyParents(dirname(join(destRoot, rel)), destRoot);
+    }
     removed.push(rel);
   }
 
