@@ -2,8 +2,8 @@
   "core": {
     "dir": "core",
     "peerDependencies": [
-      "argon2",
-      "jose"
+      "argon2@^0.45.1",
+      "jose@^6.2.8"
     ]
   },
   "variants": {
@@ -26,18 +26,18 @@
         "workspaces"
       ],
       "peerDependencies": [
-        "@nestjs/common",
-        "@nestjs/core",
-        "@nestjs/platform-express",
-        "@nestjs/swagger",
-        "@nestjs/throttler",
-        "reflect-metadata",
-        "rxjs",
-        "express",
-        "@prisma/client",
-        "@prisma/adapter-pg",
-        "prisma",
-        "@casl/ability"
+        "@nestjs/common@^11.1.28",
+        "@nestjs/core@^11.1.28",
+        "@nestjs/platform-express@^11.1.28",
+        "@nestjs/swagger@^11.4.6",
+        "@nestjs/throttler@^6.5.0",
+        "reflect-metadata@^0.2.2",
+        "rxjs@^7.8.2",
+        "express@^5.2.1",
+        "@prisma/client@^7.9.1",
+        "@prisma/adapter-pg@^7.9.1",
+        "prisma@^7.9.1",
+        "@casl/ability@^7.0.1"
       ],
       "postInstall": [
         "Set DATABASE_URL in .env (see .env.example)",
@@ -66,17 +66,17 @@
         "workspaces"
       ],
       "peerDependencies": [
-        "@nestjs/common",
-        "@nestjs/core",
-        "@nestjs/platform-express",
-        "@nestjs/swagger",
-        "reflect-metadata",
-        "rxjs",
-        "express",
-        "drizzle-orm",
-        "pg",
-        "drizzle-kit",
-        "@casl/ability"
+        "@nestjs/common@^11.1.28",
+        "@nestjs/core@^11.1.28",
+        "@nestjs/platform-express@^11.1.28",
+        "@nestjs/swagger@^11.4.6",
+        "reflect-metadata@^0.2.2",
+        "rxjs@^7.8.2",
+        "express@^5.2.1",
+        "drizzle-orm@^0.45.2",
+        "pg@^8.23.0",
+        "drizzle-kit@^0.31.10",
+        "@casl/ability@^7.0.1"
       ],
       "postInstall": [
         "Set DATABASE_URL in .env (see .env.example)",
@@ -104,12 +104,12 @@
         "workspaces"
       ],
       "peerDependencies": [
-        "express",
-        "@prisma/client",
-        "@prisma/adapter-pg",
-        "prisma",
-        "swagger-ui-express",
-        "@casl/ability"
+        "express@^5.2.1",
+        "@prisma/client@^7.9.1",
+        "@prisma/adapter-pg@^7.9.1",
+        "prisma@^7.9.1",
+        "swagger-ui-express@^5.0.1",
+        "@casl/ability@^7.0.1"
       ],
       "postInstall": [
         "Set DATABASE_URL in .env (see .env.example)",
@@ -138,12 +138,12 @@
         "workspaces"
       ],
       "peerDependencies": [
-        "express",
-        "drizzle-orm",
-        "pg",
-        "drizzle-kit",
-        "swagger-ui-express",
-        "@casl/ability"
+        "express@^5.2.1",
+        "drizzle-orm@^0.45.2",
+        "pg@^8.23.0",
+        "drizzle-kit@^0.31.10",
+        "swagger-ui-express@^5.0.1",
+        "@casl/ability@^7.0.1"
       ],
       "postInstall": [
         "Set DATABASE_URL in .env (see .env.example)",

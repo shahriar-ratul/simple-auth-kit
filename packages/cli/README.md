@@ -31,10 +31,13 @@ without `--force` or `--check`, a file that's changed locally since install prom
 per file — before it's overwritten; outside a TTY (CI/scripts) it's left alone by default and
 reported at the end, same as `--force` always applying and `--check` never writing anything.
 
-**Dependencies are installed for you**, shadcn-`add`-style — no separate `npm install` step.
-The package manager is auto-detected from a lockfile already in the target directory (npm if
-none found); override it with `--pm <npm|pnpm|yarn|bun>`, or skip the install entirely with
-`--skip-install` if you'd rather review `package.json` first.
+**Dependencies are installed for you**, shadcn-`add`-style — no separate `npm install` step, and
+version-pinned to match what each combo is actually built and tested against (not just bare
+package names left to resolve to "latest"). The package manager is auto-detected from a lockfile
+already in the target directory; with no lockfile to go on (a brand new directory, most
+commonly) a real terminal is asked which one to use. Override either with
+`--pm <npm|pnpm|yarn|bun>`, or skip the install entirely with `--skip-install` if you'd rather
+review `package.json` first.
 
 ## Available combos
 

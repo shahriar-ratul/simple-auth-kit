@@ -183,18 +183,41 @@ async function resolveForcePaths(runDry: () => Promise<{ result: CopyResult }>, 
 const PACKAGE_MANAGERS = ["npm", "pnpm", "yarn", "bun"] as const;
 type PackageManager = (typeof PACKAGE_MANAGERS)[number];
 
-/** Detected from whichever lockfile is already sitting in targetRoot — npm if none match,
- * matching what a fresh `npm install`-first project would have. Overridden by `--pm` when
- * given, so e.g. a first-ever install (no lockfile yet to detect from) can still pick pnpm. */
-function detectPackageManager(targetRoot: string, flags: Record<string, string | true>): PackageManager {
+/** Detected from whichever lockfile is already sitting in targetRoot — unambiguous, so used
+ * without asking. Returns null when nothing on disk says which tool to use and `--pm` wasn't
+ * given either, leaving it to the caller to ask (interactive) or default (non-interactive). */
+function detectPackageManagerFromLockfile(targetRoot: string): PackageManager | null {
+  if (existsSync(join(targetRoot, "pnpm-lock.yaml"))) return "pnpm";
+  if (existsSync(join(targetRoot, "yarn.lock"))) return "yarn";
+  if (existsSync(join(targetRoot, "bun.lockb")) || existsSync(join(targetRoot, "bun.lock"))) return "bun";
+  if (existsSync(join(targetRoot, "package-lock.json"))) return "npm";
+  return null;
+}
+
+/** `--pm` wins outright. Otherwise: a lockfile already in targetRoot is unambiguous, so it's used
+ * silently. Only when neither says anything — most commonly a scaffold install into an empty
+ * directory — and this is a real terminal do we ask; a non-interactive run in that same situation
+ * still falls back to npm rather than blocking. */
+async function resolvePackageManager(targetRoot: string, flags: Record<string, string | true>): Promise<PackageManager> {
   const requested = flagString(flags.pm);
   if (requested) {
     if ((PACKAGE_MANAGERS as readonly string[]).includes(requested)) return requested as PackageManager;
     console.error(`--pm "${requested}" isn't one of ${PACKAGE_MANAGERS.join(", ")} — falling back to auto-detection.`);
   }
-  if (existsSync(join(targetRoot, "pnpm-lock.yaml"))) return "pnpm";
-  if (existsSync(join(targetRoot, "yarn.lock"))) return "yarn";
-  if (existsSync(join(targetRoot, "bun.lockb")) || existsSync(join(targetRoot, "bun.lock"))) return "bun";
+
+  const detected = detectPackageManagerFromLockfile(targetRoot);
+  if (detected) return detected;
+
+  if (isTTY()) {
+    const picked = await ask<PackageManager>({
+      type: "select",
+      name: "pm",
+      message: "Which package manager?",
+      choices: PACKAGE_MANAGERS.map((value) => ({ title: value, value })),
+      initial: 0,
+    });
+    if (picked) return picked;
+  }
   return "npm";
 }
 
@@ -204,12 +227,12 @@ function detectPackageManager(targetRoot: string, flags: Record<string, string |
  * package.json" (the scaffold-mode case — dependencies are already declared, nothing to name).
  * Skipped entirely under `--skip-install`, or when `deps` is non-empty but there's nothing new
  * to add (an update that touched no files has nothing worth re-installing for). `--pm
- * <npm|pnpm|yarn|bun>` picks the tool explicitly instead of auto-detecting it from a lockfile.
+ * <npm|pnpm|yarn|bun>` picks the tool explicitly instead of auto-detecting/asking.
  */
-function installDependencies(targetRoot: string, deps: string[], flags: Record<string, string | true>): void {
+async function installDependencies(targetRoot: string, deps: string[], flags: Record<string, string | true>): Promise<void> {
   if (flags["skip-install"] === true) return;
 
-  const pm = detectPackageManager(targetRoot, flags);
+  const pm = await resolvePackageManager(targetRoot, flags);
   // "install everything in package.json" (zero deps named) is the same bare verb across all
   // four; naming specific packages is "install <pkgs>" for npm, "add <pkgs>" for the others.
   const args = deps.length ? [pm === "npm" ? "install" : "add", ...deps] : ["install"];
@@ -435,7 +458,7 @@ async function installMerge(comboName: string, combo: ComboEntry, variant: strin
   const peerDeps = [...new Set([...registry.core.peerDependencies, ...combo.peerDependencies])];
   console.log(`\nPeer dependencies: ${peerDeps.join(" ")}`);
   if (result.updated.length) {
-    installDependencies(targetRoot, peerDeps, flags);
+    await installDependencies(targetRoot, peerDeps, flags);
   } else if (flags["skip-install"] !== true) {
     console.log(`(nothing changed this run — skipping install)`);
   }
@@ -507,7 +530,7 @@ async function installScaffold(comboName: string, combo: ComboEntry, variant: st
   if (result.updated.length) {
     // Dependencies are already declared in package.json — no specific packages to name, just
     // "install whatever's there" (installDependencies with an empty list does exactly that).
-    installDependencies(targetRoot, [], flags);
+    await installDependencies(targetRoot, [], flags);
   } else if (flags["skip-install"] !== true) {
     console.log(`\n(nothing changed this run — skipping install)`);
   }

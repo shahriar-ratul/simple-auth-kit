@@ -58,7 +58,7 @@ the published form above. Prefer not to link? The unlinked form works identicall
 | `--force` | Overwrite files the consumer has locally modified (normally they're skipped and reported). In a TTY, without `--force`, a locally-modified file triggers a per-file "overwrite?" prompt instead of a silent skip. |
 | `--check` | `update` only: report what would change without writing anything. |
 | `--skip-install` | Don't run the package manager after copying files — the default is to install for you (see below). |
-| `--pm <npm\|pnpm\|yarn\|bun>` | Which package manager to install with — default: detected from a lockfile in the target directory, npm if none found. |
+| `--pm <npm\|pnpm\|yarn\|bun>` | Which package manager to install with — default: detected from a lockfile in the target directory, or prompted for in a TTY when neither says anything (npm otherwise). |
 | `--config-only` | `init` only: just write `.simple-auth-kit.json` and stop, no install. |
 
 ## Dependencies are installed for you
@@ -66,9 +66,17 @@ the published form above. Prefer not to link? The unlinked form works identicall
 Like `npx shadcn add`, this CLI runs the install after copying files — it doesn't just print
 the command and leave it to you. Skipped entirely under `--skip-install`, and skipped
 automatically when nothing actually changed (a no-op `update` has nothing new to install for).
-For merge-mode combos this installs the combo's declared peer dependencies by name; for
-scaffold-mode it's a bare install (dependencies are already declared in the generated
-`package.json`).
+For merge-mode combos this installs the combo's declared peer dependencies, version-pinned to
+match what that combo is actually built and proven against (not just bare package names —
+letting npm resolve "latest" on every install risks a peer-dependency conflict as soon as a
+dependency ships a new major, e.g. `@nestjs/common`); for scaffold-mode it's a bare install
+(dependencies are already declared in the generated `package.json`).
+
+Which tool: `--pm` wins outright. Otherwise a lockfile already in the target directory is
+unambiguous and used silently. Only when neither says anything — most commonly a scaffold
+install into a brand new empty directory — does a real terminal get asked "Which package
+manager?"; a non-interactive run in that same situation falls back to npm rather than
+blocking.
 
 ## Install modes
 
