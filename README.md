@@ -17,6 +17,15 @@ picker (`--help` prints the full command reference instead); `npx @simple-auth-k
 later re-syncs whatever you installed, no arguments needed.
 Full details: [`docs/cli.md`](docs/cli.md).
 
+**Not sure yet which combo you want?** `init` writes `.simple-auth-kit.json` (install path,
+alias), then walks you through the same picker (`add` with no arguments also does, without the
+config file):
+```bash
+npx @simple-auth-kit/cli init
+```
+
+**Already know what you want?** Run the exact combo directly:
+
 **`api` — merges into `src/lib/auth` of an existing project:**
 ```bash
 npx @simple-auth-kit/cli add nestjs-prisma --into .
