@@ -1,5 +1,5 @@
 import type { AuditEvent } from "@/lib/auth/core/types.js";
-import { Prisma, PrismaClient } from "../generated/prisma/client.js";
+import { Prisma, PrismaClient } from "../../../../generated/prisma/client.js";
 import { buildPageMeta, normalizeLimit, normalizePage, type Paginated } from "./pagination.js";
 import { toIdOrNull, toIdOrUndefined } from "./id.helper.js";
 

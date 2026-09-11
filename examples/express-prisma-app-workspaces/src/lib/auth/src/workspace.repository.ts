@@ -1,4 +1,4 @@
-import { PrismaClient } from "../generated/prisma/client.js";
+import { PrismaClient } from "../../../../generated/prisma/client.js";
 import { HttpError } from "./http-error.js";
 import { provisionDefaultRoles, WORKSPACE_CREATOR_ROLES } from "./rbac.defaults.js";
 import { RbacRepository } from "./rbac.repository.js";

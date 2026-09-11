@@ -2,6 +2,13 @@
 // database on every request (user → roles → role permissions, unioned with direct grants), and
 // the access token carries no authorization — a grant or revocation takes effect on the next
 // request, not the next token.
+// Stays relative to *this file's own location*, which differs by context: the registry's own
+// dev/typecheck loop (scripts/materialize.mjs) keeps this schema as a sibling of src/, so
+// "../generated/prisma" lands next to it, matching every "../generated/prisma/client.js" import
+// in src/. A real CLI install moves this file (+ prisma/) to the project root while src/ stays
+// nested inside the merged auth-lib directory — the CLI rewrites those same import strings in
+// the copied files to match (see installMerge's extraRewrites in cli/simple-auth-kit.ts), rather
+// than this field trying to be two things at once.
 generator client {
   provider = "prisma-client"
   output   = "../generated/prisma"

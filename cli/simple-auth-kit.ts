@@ -14,11 +14,11 @@
 // `prompts`) asking which kind(s) to generate, which framework per kind, and whether to include
 // workspaces support — or reads the same choices from --kind/--framework/--workspaces for
 // non-interactive/scripted use.
-import { basename, dirname, join, resolve } from "node:path";
-import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { basename, dirname, join, relative, resolve } from "node:path";
+import { access, mkdir, readFile, writeFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 import prompts from "prompts";
-import { copyDir, CopyResult, NEVER_COPY, pruneRemovedFiles, SCAFFOLD_NEVER_COPY, sha256 } from "./lib/copy.js";
+import { copyDir, copyOneFile, CopyResult, NEVER_COPY, pruneRemovedFiles, SCAFFOLD_NEVER_COPY, sha256, toPosix } from "./lib/copy.js";
 import { reconcileManifest, renameNative, type NativeIdentity } from "./lib/rename-native.js";
 
 const CLI_DIR = dirname(fileURLToPath(import.meta.url));
@@ -124,6 +124,15 @@ async function loadLock(targetRoot: string): Promise<AuthLock> {
   }
 }
 
+async function pathExists(path: string): Promise<boolean> {
+  try {
+    await access(path);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 async function cmdInit(targetRoot: string, flags: Record<string, string | true>) {
   const config: SimpleAuthKitConfig = {
     path: flagString(flags.path) ?? DEFAULT_CONFIG.path,
@@ -177,8 +186,33 @@ function printPostInstallNotes(combo: ComboEntry, variant: string) {
   }
 }
 
-/** "merge" install — today's only behavior, unchanged: core + shared + variant merged into an
- * existing project at <targetRoot>/<installPath>, with the core import alias rewritten. */
+/** An ORM combo's config file (shared/) + data directory (variants/<variant>/) that must land at
+ * the *project root* instead of merging into destRoot with everything else — each ORM's own tool
+ * (`npx prisma ...`, `npx drizzle-kit ...`) looks for its config there by default, no `cd` needed.
+ *
+ * `generatedClientImport`: only Prisma has this — its schema's `generator { output }` is relative
+ * to schema.prisma's own location, so moving prisma.config.ts/prisma/ to the project root also
+ * moves the generated client. The registry source's `src/*.ts` files import it as
+ * `"../generated/prisma/client.js"` — correct for the registry's own dev/typecheck loop (where
+ * nothing has moved), but wrong once copied into a real install, so installMerge rewrites that
+ * literal string in every copied file to the new correct relative path. Drizzle has no equivalent
+ * generated artifact to redirect. */
+const ORM_LAYOUTS: { configFile: string; dataDir: string; generatedClientImport?: string }[] = [
+  { configFile: "prisma.config.ts", dataDir: "prisma", generatedClientImport: "../generated/prisma/client.js" },
+  { configFile: "drizzle.config.ts", dataDir: "drizzle" },
+];
+
+/** "merge" install — core + shared + variant merged into an existing project at
+ * <targetRoot>/<installPath>, with the core import alias rewritten. One exception: an ORM combo's
+ * config file and data directory (see ORM_LAYOUTS) land at the *project root* instead — e.g. the
+ * Prisma combos' `prisma.config.ts` + `prisma/`, or the Drizzle combos' `drizzle.config.ts` +
+ * `drizzle/`.
+ *
+ * Both are still copied with `destRoot` (not targetRoot) as the manifest-key root, which makes
+ * `copyOneFile` compute "../"-relative keys for them — deliberate, not an oversight: those keys
+ * can never collide with a real destRoot-relative key, so `pruneRemovedFiles` below correctly
+ * removes an ORM folder a pre-migration install left nested inside destRoot, without disturbing
+ * anything else's keys. */
 async function installMerge(comboName: string, combo: ComboEntry, variant: string, registry: Registry, targetRoot: string, flags: Record<string, string | true>) {
   const config = await loadConfig(targetRoot);
   const installPath = flagString(flags.path) ?? config.path;
@@ -189,13 +223,39 @@ async function installMerge(comboName: string, combo: ComboEntry, variant: strin
   const previous = lock.files ?? {};
   const force = flags.force === true;
 
-  const copyOpts = { aliasFrom: "@/lib/auth/core", aliasTo: `${alias}/core`, previous, force, ignore: config.ignore, neverCopy: NEVER_COPY };
   const result: CopyResult = { manifest: {}, skipped: [], ignored: [] };
 
   const comboDir = join(REGISTRY_ROOT, combo.dir);
+  const sharedDir = join(comboDir, combo.sharedDir ?? "shared");
+  const variantDir = join(comboDir, combo.variantsDir ?? "variants", variant);
+
+  const orm = await (async () => {
+    for (const layout of ORM_LAYOUTS) {
+      if (await pathExists(join(sharedDir, layout.configFile))) return layout;
+    }
+    return null;
+  })();
+  const skipFromShared = orm ? new Set([...NEVER_COPY, orm.configFile]) : NEVER_COPY;
+  const skipFromVariant = orm ? new Set([...NEVER_COPY, orm.dataDir]) : NEVER_COPY;
+
+  const extraRewrites = orm?.generatedClientImport
+    ? [
+        {
+          from: orm.generatedClientImport,
+          to: toPosix(relative(join(destRoot, "src"), join(targetRoot, "generated", "prisma", "client.js"))),
+        },
+      ]
+    : undefined;
+  const copyOpts = { aliasFrom: "@/lib/auth/core", aliasTo: `${alias}/core`, extraRewrites, previous, force, ignore: config.ignore, neverCopy: NEVER_COPY };
+
   await copyDir(join(REGISTRY_ROOT, registry.core.dir), join(destRoot, "core"), copyOpts, destRoot, result);
-  await copyDir(join(comboDir, combo.sharedDir ?? "shared"), destRoot, copyOpts, destRoot, result);
-  await copyDir(join(comboDir, combo.variantsDir ?? "variants", variant), destRoot, copyOpts, destRoot, result);
+  await copyDir(sharedDir, destRoot, { ...copyOpts, neverCopy: skipFromShared }, destRoot, result);
+  await copyDir(variantDir, destRoot, { ...copyOpts, neverCopy: skipFromVariant }, destRoot, result);
+
+  if (orm) {
+    await copyOneFile(join(sharedDir, orm.configFile), join(targetRoot, orm.configFile), destRoot, copyOpts, result);
+    await copyDir(join(variantDir, orm.dataDir), join(targetRoot, orm.dataDir), copyOpts, destRoot, result);
+  }
 
   // Switching variants has to remove the old variant's files, or the project ends up with both wired in.
   const pruned = await pruneRemovedFiles(destRoot, previous, result, { force, ignore: config.ignore });

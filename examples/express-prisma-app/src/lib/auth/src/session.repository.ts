@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import type { SessionStoreDeps } from "@/lib/auth/core/session-policy.js";
 import type { AuditEvent, Revoker, SessionRecord } from "@/lib/auth/core/types.js";
-import { PrismaClient } from "../generated/prisma/client.js";
+import { PrismaClient } from "../../../../generated/prisma/client.js";
 import type { AuthConfig } from "./auth.config.js";
 import { AuditLogRepository } from "./audit-log.repository.js";
 import { toId, toIdOrNull } from "./id.helper.js";

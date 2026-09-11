@@ -142,7 +142,7 @@ npm run materialize -- base                  # compose .variant/base without com
 ```bash
 # Example backend (what you actually run)
 cd examples/nestjs-prisma-app
-(cd src/lib/auth && npx prisma generate && npx prisma migrate deploy)   # drizzle combos: npx drizzle-kit migrate
+npx prisma generate && npx prisma migrate deploy   # drizzle combos: npx drizzle-kit migrate
 npm run seed && npm run start                # -> :3001, Swagger /docs, Scalar /reference
 ```
 

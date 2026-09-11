@@ -22,7 +22,7 @@ echo "AUTH_JWT_SECRET=$(openssl rand -base64 32)" >> .env   # required, no defau
 
 # drizzle-kit resolves ./src/schema.ts and ./drizzle relative to the working directory,
 # so this must run from src/lib/auth
-(cd src/lib/auth && npx drizzle-kit migrate)
+npx drizzle-kit migrate
 ```
 
 ## Seed RBAC (required once)

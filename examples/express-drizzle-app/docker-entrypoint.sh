@@ -3,11 +3,11 @@
 # container is up, and compose's `depends_on: condition: service_healthy` already ensures
 # the DB is accepting connections before this script runs.
 #
-# drizzle.config.ts lives at src/lib/auth/drizzle.config.ts and drizzle-kit resolves
-# ./drizzle and ./src/schema.ts relative to the working directory, so this must run from
-# src/lib/auth (same working-directory requirement as the non-Docker workflow in the README).
+# drizzle.config.ts lives at the project root, alongside drizzle/ — Drizzle's own
+# convention, no cd needed (schema/out are resolved as absolute paths inside the config
+# itself, so this works regardless of cwd).
 set -e
 
-(cd src/lib/auth && npx drizzle-kit migrate)
+npx drizzle-kit migrate
 
 exec npm run start

@@ -29,7 +29,7 @@ import type { AuthConfig } from "./auth.config.js";
 import { HttpError } from "./http-error.js";
 import { AuditLogEntry, AuditLogListFilter, AuditLogRepository, toAuditLogEntry } from "./audit-log.repository.js";
 import type { Paginated } from "./pagination.js";
-import { PrismaClient } from "../generated/prisma/client.js";
+import { PrismaClient } from "../../../../generated/prisma/client.js";
 import { KeyProviderService } from "./key-provider.js";
 import { OAuthRepository } from "./oauth.repository.js";
 import { PasswordResetRepository } from "./password-reset.repository.js";

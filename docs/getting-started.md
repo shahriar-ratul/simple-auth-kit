@@ -68,7 +68,7 @@ pnpm install
 ```bash
 cd examples/nestjs-prisma-app
 npm install                       # plain npm on purpose — examples model a real consumer, outside the pnpm workspace
-(cd src/lib/auth && npx prisma generate && npx prisma migrate deploy)
+npx prisma generate && npx prisma migrate deploy
 SEED_ADMIN_EMAIL=admin@example.com SEED_ADMIN_PASSWORD='Admin12345!' npx tsx src/lib/auth/src/seed.ts
 npm run start                     # -> http://localhost:3001, Swagger at /docs, Scalar at /reference
 ```

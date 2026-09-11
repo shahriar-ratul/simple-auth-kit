@@ -28,7 +28,7 @@ import { buildTotpProvisioningUri, generateBackupCodes, generateTotpSecret, veri
 import type { Revoker } from "@/lib/auth/core/types.js";
 import { AUTH_CONFIG, AuthConfig } from "./auth.config.js";
 import { AuditLogEntry, AuditLogListFilter, AuditLogRepository, toAuditLogEntry } from "./audit-log.repository.js";
-import { PrismaClient } from "../generated/prisma/client.js";
+import { PrismaClient } from "../../../../generated/prisma/client.js";
 import { CountryInput, CountryListFilter, CountryListResult, CountryRepository, CountrySummary } from "./country.repository.js";
 import { CustomerInput, CustomerListFilter, CustomerListResult, CustomerRepository, CustomerSummary } from "./customer.repository.js";
 import { KeyProviderService } from "./key-provider.js";

@@ -4,10 +4,11 @@ import { fileURLToPath } from "node:url";
 import { config as loadDotenv } from "dotenv";
 import { defineConfig } from "prisma/config";
 
-// Consumers run this from this file's own directory (`cd src/lib/auth && npx prisma migrate
-// deploy`, per the install instructions). Plain `import "dotenv/config"` only loads `.env`
-// relative to the process's cwd, which misses the project's real `.env` at the root. Resolve
-// from this file's own location instead and walk up until a `.env` is found.
+// The CLI installs this file at the project root (<targetRoot>/prisma.config.ts, alongside
+// prisma/) — Prisma's own convention, so `npx prisma generate`/`migrate deploy` need no `cd` and
+// find it automatically. Plain `import "dotenv/config"` only loads `.env` relative to the
+// process's cwd, so resolve from this file's own location instead and walk up until a `.env` is
+// found — usually one hop, but kept general in case this ever installs somewhere non-default.
 function loadNearestEnv(startDir: string): void {
   let dir = startDir;
   for (let depth = 0; depth < 8; depth += 1) {

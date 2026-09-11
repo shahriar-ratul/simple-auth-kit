@@ -1,5 +1,5 @@
 import type { PasswordResetStoreDeps } from "@/lib/auth/core/password-reset.js";
-import { PrismaClient } from "../generated/prisma/client.js";
+import { PrismaClient } from "../../../../generated/prisma/client.js";
 import { toId } from "./id.helper.js";
 
 // Plain class, no DI container — constructed directly with a PrismaClient in

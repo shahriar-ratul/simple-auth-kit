@@ -1,9 +1,22 @@
 // A user belongs to any number of workspaces and carries a different set of roles in each, so
-// every authorization-bearing row hangs off the *membership*, never off the user:
-// `WorkspaceMember` is the principal for authorization, `User` is the principal for
-// authentication. Sessions and the access token stay user-level and workspace-agnostic — a
-// request names the workspace it acts in (X-Workspace-Id), and the guard resolves the
-// membership's permissions from the database on that request.
+// every authorization-bearing row hangs off the *membership*, never off the user. That is the
+// whole shape of this schema: `WorkspaceMember` is the principal for authorization, `User` is
+// the principal for authentication.
+//
+// Sessions and the access token stay user-level and workspace-agnostic on purpose — a request
+// names the workspace it is acting in (X-Workspace-Id), the guard resolves the membership on the
+// `[userId, workspaceId]` unique index, and the permissions that membership carries *there* are
+// read from the database on that request. The token carries no authorization at all.
+//
+// Table and column names are snake_case/plural at the database level and camelCase in TypeScript;
+// Prisma maps between them, so nothing in the application code spells a column name.
+// Stays relative to *this file's own location*, which differs by context: the registry's own
+// dev/typecheck loop (scripts/materialize.mjs) keeps this schema as a sibling of src/, so
+// "../generated/prisma" lands next to it, matching every "../generated/prisma/client.js" import
+// in src/. A real CLI install moves this file (+ prisma/) to the project root while src/ stays
+// nested inside the merged auth-lib directory — the CLI rewrites those same import strings in
+// the copied files to match (see installMerge's extraRewrites in cli/simple-auth-kit.ts), rather
+// than this field trying to be two things at once.
 generator client {
   provider = "prisma-client"
   output   = "../generated/prisma"
@@ -13,8 +26,6 @@ datasource db {
   provider = "postgresql"
 }
 
-/// `isActive: false` suspends a workspace without deleting it — every membership and role
-/// inside it survives. `isDeleted` is the harder off-switch.
 model Workspace {
   id            BigInt    @id @default(autoincrement())
   uuid          String    @unique @default(uuid())
@@ -29,11 +40,8 @@ model Workspace {
   createdAt     DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt     DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
 
-  members   WorkspaceMember[]
-  roles     Role[]
-  countries Country[]
-  languages Language[]
-  customers Customer[]
+  members WorkspaceMember[]
+  roles   Role[]
 
   createdByUser User? @relation("WorkspaceCreatedBy", fields: [createdBy], references: [id], onDelete: SetNull)
   updatedByUser User? @relation("WorkspaceUpdatedBy", fields: [updatedBy], references: [id], onDelete: SetNull)
@@ -124,18 +132,6 @@ model User {
   workspacesCreated  Workspace[]  @relation("WorkspaceCreatedBy")
   workspacesUpdated  Workspace[]  @relation("WorkspaceUpdatedBy")
   workspacesDeleted  Workspace[]  @relation("WorkspaceDeletedBy")
-
-  countriesCreated Country[] @relation("CountryCreatedBy")
-  countriesUpdated Country[] @relation("CountryUpdatedBy")
-  countriesDeleted Country[] @relation("CountryDeletedBy")
-
-  languagesCreated Language[] @relation("LanguageCreatedBy")
-  languagesUpdated Language[] @relation("LanguageUpdatedBy")
-  languagesDeleted Language[] @relation("LanguageDeletedBy")
-
-  customersCreated Customer[] @relation("CustomerCreatedBy")
-  customersUpdated Customer[] @relation("CustomerUpdatedBy")
-  customersDeleted Customer[] @relation("CustomerDeletedBy")
 
   @@index([isDeleted], map: "users_is_deleted_idx")
   @@map("users")
@@ -387,120 +383,4 @@ model DenylistedAccessToken {
   expiresAt DateTime @map("expires_at") @db.Timestamptz(6)
 
   @@map("denylisted_access_tokens")
-}
-
-/// Admin-managed reference data — a workspace's country list. `flag` is a stored image path/URL,
-/// the same string-field convention `User.photo` already uses (no multipart upload in this combo).
-/// Scoped per workspace: `code`/`isoCode` are unique *within* a workspace, not globally — two
-/// workspaces may each define "US".
-model Country {
-  id            BigInt    @id @default(autoincrement())
-  uuid          String    @unique @default(uuid())
-  workspaceId   BigInt    @map("workspace_id")
-  code          String    @db.VarChar(10)
-  name          String    @db.VarChar(100)
-  emoji         String    @db.VarChar(10)
-  phoneCode     String    @map("phone_code") @db.VarChar(10)
-  currency      String    @db.VarChar(10)
-  currencyName  String    @map("currency_name") @db.VarChar(100)
-  isoCode       String    @map("iso_code") @db.VarChar(10)
-  flag          String?
-  isActive      Boolean   @default(true) @map("is_active")
-  createdBy     BigInt?   @map("created_by")
-  updatedBy     BigInt?   @map("updated_by")
-  isDeleted     Boolean   @default(false) @map("is_deleted")
-  deletedAt     DateTime? @map("deleted_at") @db.Timestamptz(6)
-  deletedBy     BigInt?   @map("deleted_by")
-  deletedReason String?   @map("deleted_reason") @db.VarChar(255)
-  createdAt     DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt     DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
-
-  workspace Workspace @relation(fields: [workspaceId], references: [id])
-
-  createdByUser User? @relation("CountryCreatedBy", fields: [createdBy], references: [id], onDelete: SetNull)
-  updatedByUser User? @relation("CountryUpdatedBy", fields: [updatedBy], references: [id], onDelete: SetNull)
-  deletedByUser User? @relation("CountryDeletedBy", fields: [deletedBy], references: [id], onDelete: SetNull)
-
-  @@unique([workspaceId, code])
-  @@unique([workspaceId, isoCode])
-  @@index([isActive], map: "countries_is_active_idx")
-  @@index([isDeleted], map: "countries_is_deleted_idx")
-  @@map("countries")
-}
-
-/// Admin-managed reference data — a workspace's supported languages. Deliberately no `countryId`
-/// FK: the UI this backend mirrors has no country field on the language form. Scoped per
-/// workspace: `code` is unique *within* a workspace, not globally.
-model Language {
-  id            BigInt    @id @default(autoincrement())
-  uuid          String    @unique @default(uuid())
-  workspaceId   BigInt    @map("workspace_id")
-  code          String    @db.VarChar(10)
-  name          String    @db.VarChar(100)
-  nativeName    String    @map("native_name") @db.VarChar(100)
-  direction     String    @default("ltr") @db.VarChar(3)
-  isDefault     Boolean   @default(false) @map("is_default")
-  isActive      Boolean   @default(true) @map("is_active")
-  createdBy     BigInt?   @map("created_by")
-  updatedBy     BigInt?   @map("updated_by")
-  isDeleted     Boolean   @default(false) @map("is_deleted")
-  deletedAt     DateTime? @map("deleted_at") @db.Timestamptz(6)
-  deletedBy     BigInt?   @map("deleted_by")
-  deletedReason String?   @map("deleted_reason") @db.VarChar(255)
-  createdAt     DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt     DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
-
-  workspace Workspace @relation(fields: [workspaceId], references: [id])
-
-  createdByUser User? @relation("LanguageCreatedBy", fields: [createdBy], references: [id], onDelete: SetNull)
-  updatedByUser User? @relation("LanguageUpdatedBy", fields: [updatedBy], references: [id], onDelete: SetNull)
-  deletedByUser User? @relation("LanguageDeletedBy", fields: [deletedBy], references: [id], onDelete: SetNull)
-
-  @@unique([workspaceId, code])
-  @@index([isActive], map: "languages_is_active_idx")
-  @@index([isDeleted], map: "languages_is_deleted_idx")
-  @@map("languages")
-}
-
-/// End-users managed by admins within a workspace — no login capability, and deliberately not
-/// related to the RBAC `User` model above (which plays this deployment's "admin"). A `Customer`
-/// never authenticates, so it carries no password/session/role relations at all. Scoped per
-/// workspace: `username`/`email`/`phone` are unique *within* a workspace, not globally.
-model Customer {
-  id              BigInt    @id @default(autoincrement())
-  uuid            String    @unique @default(uuid())
-  workspaceId     BigInt    @map("workspace_id")
-  firstName       String?   @map("first_name") @db.VarChar(100)
-  lastName        String?   @map("last_name") @db.VarChar(100)
-  username        String?   @db.VarChar(100)
-  email           String    @db.VarChar(255)
-  phone           String?   @db.VarChar(100)
-  dob             DateTime? @db.Date
-  gender          String?   @db.VarChar(10)
-  joinedDate      DateTime  @default(now()) @map("joined_date") @db.Date
-  photo           String?
-  isEmailVerified Boolean   @default(false) @map("is_email_verified")
-  isPhoneVerified Boolean   @default(false) @map("is_phone_verified")
-  isActive        Boolean   @default(true) @map("is_active")
-  createdBy       BigInt?   @map("created_by")
-  updatedBy       BigInt?   @map("updated_by")
-  isDeleted       Boolean   @default(false) @map("is_deleted")
-  deletedAt       DateTime? @map("deleted_at") @db.Timestamptz(6)
-  deletedBy       BigInt?   @map("deleted_by")
-  deletedReason   String?   @map("deleted_reason") @db.VarChar(255)
-  createdAt       DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt       DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
-
-  workspace Workspace @relation(fields: [workspaceId], references: [id])
-
-  createdByUser User? @relation("CustomerCreatedBy", fields: [createdBy], references: [id], onDelete: SetNull)
-  updatedByUser User? @relation("CustomerUpdatedBy", fields: [updatedBy], references: [id], onDelete: SetNull)
-  deletedByUser User? @relation("CustomerDeletedBy", fields: [deletedBy], references: [id], onDelete: SetNull)
-
-  @@unique([workspaceId, username])
-  @@unique([workspaceId, email])
-  @@unique([workspaceId, phone])
-  @@index([isActive], map: "customers_is_active_idx")
-  @@index([isDeleted], map: "customers_is_deleted_idx")
-  @@map("customers")
 }

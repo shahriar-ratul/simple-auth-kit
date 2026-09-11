@@ -20,6 +20,15 @@ export interface CopyOptions {
   aliasFrom?: string;
   aliasTo?: string;
   /**
+   * Additional literal-string replacements applied to every copied `.ts`/`.tsx` file, alongside
+   * the alias rewrite above. Used by the ORM combos: `prisma`/`drizzle`'s config+data folder
+   * relocates to the project root on a real install, so the generated client's import path
+   * inside every copied source file has to change to match (see `installMerge` in
+   * `cli/simple-auth-kit.ts`) — the registry source itself keeps the path that's correct for its
+   * own dev/typecheck loop, where nothing has moved.
+   */
+  extraRewrites?: { from: string; to: string }[];
+  /**
    * The previous install's sha256-by-path manifest. A destination file whose current content
    * no longer matches what was recorded is a file the user edited, and is left alone.
    */
@@ -42,7 +51,7 @@ export interface CopyResult {
 }
 
 export const sha256 = (content: string) => createHash("sha256").update(content).digest("hex");
-const toPosix = (path: string) => path.split(sep).join("/");
+export const toPosix = (path: string) => path.split(sep).join("/");
 
 async function readIfExists(path: string): Promise<string | null> {
   try {
@@ -52,7 +61,7 @@ async function readIfExists(path: string): Promise<string | null> {
   }
 }
 
-async function copyOneFile(srcPath: string, destPath: string, destRoot: string, opts: CopyOptions, result: CopyResult): Promise<void> {
+export async function copyOneFile(srcPath: string, destPath: string, destRoot: string, opts: CopyOptions, result: CopyResult): Promise<void> {
   const rel = toPosix(relative(destRoot, destPath));
 
   if (opts.ignore?.includes(rel)) {
@@ -63,8 +72,13 @@ async function copyOneFile(srcPath: string, destPath: string, destRoot: string, 
   }
 
   let content = await readFile(srcPath, "utf8");
-  if (opts.aliasFrom && opts.aliasTo !== undefined && (destPath.endsWith(".ts") || destPath.endsWith(".tsx"))) {
-    content = content.split(opts.aliasFrom).join(opts.aliasTo);
+  if (destPath.endsWith(".ts") || destPath.endsWith(".tsx")) {
+    if (opts.aliasFrom && opts.aliasTo !== undefined) {
+      content = content.split(opts.aliasFrom).join(opts.aliasTo);
+    }
+    for (const { from, to } of opts.extraRewrites ?? []) {
+      content = content.split(from).join(to);
+    }
   }
 
   const existing = await readIfExists(destPath);

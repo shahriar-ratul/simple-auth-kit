@@ -1,4 +1,0 @@
--- AlterTable
-ALTER TABLE "users" ADD COLUMN     "dob" DATE,
-ADD COLUMN     "gender" VARCHAR(10),
-ADD COLUMN     "joined_date" DATE NOT NULL DEFAULT CURRENT_TIMESTAMP;

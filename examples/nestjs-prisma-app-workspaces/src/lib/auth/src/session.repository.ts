@@ -2,7 +2,7 @@ import { randomUUID } from "node:crypto";
 import { Inject, Injectable } from "@nestjs/common";
 import type { SessionStoreDeps } from "@/lib/auth/core/session-policy.js";
 import type { AuditEvent, Revoker, SessionRecord } from "@/lib/auth/core/types.js";
-import { PrismaClient } from "../generated/prisma/client.js";
+import { PrismaClient } from "../../../../generated/prisma/client.js";
 import { AUTH_CONFIG, AuthConfig } from "./auth.config.js";
 import { AuditLogRepository } from "./audit-log.repository.js";
 import { toId, toIdOrNull } from "./id.helper.js";

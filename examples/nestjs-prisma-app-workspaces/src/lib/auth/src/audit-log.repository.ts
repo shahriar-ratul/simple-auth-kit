@@ -1,6 +1,6 @@
 import { Inject, Injectable } from "@nestjs/common";
 import type { AuditEvent } from "@/lib/auth/core/types.js";
-import { Prisma, PrismaClient } from "../generated/prisma/client.js";
+import { Prisma, PrismaClient } from "../../../../generated/prisma/client.js";
 import { toIdOrNull, toIdOrUndefined } from "./id.helper.js";
 import { buildPageMeta, normalizeLimit, normalizePage, type Paginated } from "./pagination.js";
 

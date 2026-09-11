@@ -13,11 +13,10 @@ RUN npm ci
 COPY examples/express-prisma-app/ .
 
 # prisma.config.ts (which supplies datasource.url from DATABASE_URL, required by Prisma 7)
-# lives in src/lib/auth and its schema/migrations paths are relative to that directory, so
-# every prisma CLI invocation for this app must run with cwd = src/lib/auth.
+# lives at the project root, alongside prisma/ — Prisma's own convention, no cd needed.
 # `prisma generate` only needs the schema file, not a reachable database, so it's safe to
 # run at build time. `prisma migrate deploy` (needs Postgres) runs from the entrypoint instead.
-RUN cd src/lib/auth && npx prisma generate
+RUN npx prisma generate
 
 RUN chmod +x docker-entrypoint.sh
 

@@ -38,7 +38,7 @@ Examples are CLI snapshots, not symlinks. After changing a combo:
 ```bash
 cd cli && npx tsx simple-auth-kit.ts add nestjs-prisma --force --into ../examples/nestjs-prisma-app
 cd ../examples/nestjs-prisma-app
-(cd src/lib/auth && npx prisma generate && npx prisma migrate deploy)
+npx prisma generate && npx prisma migrate deploy
 ```
 
 `--force` overwrites even user-modified files — fine for the in-repo examples, which hold no

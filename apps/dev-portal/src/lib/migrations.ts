@@ -13,19 +13,19 @@ import { COMBOS, type ComboName } from "./types";
 const MIGRATIONS: Record<ComboName, { orm: "prisma" | "drizzle"; dir: string }> = {
   "nestjs-prisma": {
     orm: "prisma",
-    dir: "examples/nestjs-prisma-app/src/lib/auth/prisma/migrations",
+    dir: "examples/nestjs-prisma-app/prisma/migrations",
   },
   "nestjs-drizzle": {
     orm: "drizzle",
-    dir: "examples/nestjs-drizzle-app/src/lib/auth/drizzle",
+    dir: "examples/nestjs-drizzle-app/drizzle",
   },
   "express-prisma": {
     orm: "prisma",
-    dir: "examples/express-prisma-app/src/lib/auth/prisma/migrations",
+    dir: "examples/express-prisma-app/prisma/migrations",
   },
   "express-drizzle": {
     orm: "drizzle",
-    dir: "examples/express-drizzle-app/src/lib/auth/drizzle",
+    dir: "examples/express-drizzle-app/drizzle",
   },
 };
 

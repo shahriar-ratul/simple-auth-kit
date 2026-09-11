@@ -29,7 +29,7 @@
 // gets, whichever path created it, and the permissions the routes demand cannot drift apart.
 import { PrismaPg } from "@prisma/adapter-pg";
 import { hashPassword } from "@/lib/auth/core/crypto.js";
-import { PrismaClient } from "../generated/prisma/client.js";
+import { PrismaClient } from "../../../../generated/prisma/client.js";
 import { DEFAULT_ROLES, PERMISSION_SLUGS, provisionDefaultRoles, SEED_SUPERADMIN_ROLES, WORKSPACE_CREATOR_ROLES } from "./rbac.defaults.js";
 
 const DEFAULT_WORKSPACE_NAME = "Default workspace";

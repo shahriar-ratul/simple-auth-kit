@@ -19,7 +19,7 @@ cp src/lib/auth/.env.example src/lib/auth/.env
 
 echo "AUTH_JWT_SECRET=$(openssl rand -base64 32)" >> .env   # required, no default
 
-(cd src/lib/auth && npx drizzle-kit migrate)
+npx drizzle-kit migrate
 ```
 
 ## Seed (required once)

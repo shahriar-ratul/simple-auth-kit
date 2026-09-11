@@ -54,7 +54,7 @@ a plain `npm install` resolves it, no monorepo/pnpm workspace required.
 | Path | What it is |
 |---|---|
 | `registry/core/` | Framework/ORM-free auth logic (sessions, JWTs, 2FA, OAuth, password reset, RBAC). Never installed as a dependency — copied verbatim by the CLI. |
-| `registry/combos/{nestjs-prisma,nestjs-drizzle,express-prisma,express-drizzle}/` | The 4 `api` products: framework+ORM wiring around `registry/core/`, each with a `base` and a `workspaces` variant. `nestjs-prisma` is the reference combo. Merged into an existing project's `src/lib/auth`. |
+| `registry/combos/{nestjs-prisma,nestjs-drizzle,express-prisma,express-drizzle}/` | The 4 `api` products: framework+ORM wiring around `registry/core/`, each with a `base` and a `workspaces` variant. `nestjs-prisma` is the reference combo. Merged into an existing project's `src/lib/auth` — except the Prisma combos' `prisma.config.ts`/`prisma/`, which land at the project root (Prisma's own convention). |
 | `registry/admin-apps/{nextjs,react}/` | The 2 `admin` products: whole admin-console apps, scaffolded standalone into a target directory. Extracted from (and mirrored by) `apps/admin-*`. |
 | `registry/mobile-apps/{expo,bare-rn}/` | The 2 `mobile` products: whole React Native apps, scaffolded standalone. `bare-rn` gets per-app native identity (bundle id / applicationId) retemplated by the CLI. |
 | `cli/` | The `simple-auth-kit` CLI (`init`, `add`, `diff`) + `registry.json` product manifest. Multi-kind runs namespace each product into its own subdirectory. See `docs/cli.md`. |
@@ -82,7 +82,7 @@ unlinked form works identically: `npx tsx <path-to-this-repo>/cli/simple-auth-ki
 
 | Kind | Combos | Installs as |
 |---|---|---|
-| `api` (backend) | `nestjs-prisma`, `nestjs-drizzle`, `express-prisma`, `express-drizzle` | merged into `src/lib/auth` of an existing project |
+| `api` (backend) | `nestjs-prisma`, `nestjs-drizzle`, `express-prisma`, `express-drizzle` | merged into `src/lib/auth` of an existing project (Prisma combos' `prisma.config.ts`/`prisma/` land at the project root instead) |
 | `admin` | `admin-nextjs`, `admin-react` | a whole new standalone app, scaffolded at the target |
 | `mobile` | `mobile-expo`, `mobile-bare-rn` | a whole new standalone app, scaffolded at the target |
 
@@ -122,7 +122,7 @@ done
 
 # 3. Run the reference backend (what the base-variant client apps talk to)
 cd examples/nestjs-prisma-app
-(cd src/lib/auth && npx prisma generate && npx prisma migrate deploy)
+npx prisma generate && npx prisma migrate deploy
 SEED_ADMIN_EMAIL=admin@example.com SEED_ADMIN_PASSWORD='Admin12345!' npx tsx src/lib/auth/src/seed.ts
 npm run start
 # -> http://localhost:3001 (PORT env var overrides); Swagger UI at /docs, Scalar at /reference
@@ -226,9 +226,9 @@ To run any of them:
 ```bash
 cd examples/<app>
 # Prisma combos:
-(cd src/lib/auth && npx prisma generate && npx prisma migrate deploy)
+npx prisma generate && npx prisma migrate deploy
 # Drizzle combos:
-(cd src/lib/auth && npx drizzle-kit migrate)
+npx drizzle-kit migrate
 
 npm run seed        # required once per database — see the seeding note above
 npm run start

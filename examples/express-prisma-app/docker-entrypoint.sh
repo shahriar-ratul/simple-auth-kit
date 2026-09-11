@@ -4,7 +4,7 @@
 # the DB is accepting connections before this script runs.
 set -e
 
-# prisma.config.ts's schema/migrations paths are relative to src/lib/auth — see Dockerfile.
-(cd src/lib/auth && npx prisma migrate deploy)
+# prisma.config.ts lives at the project root, alongside prisma/ — see Dockerfile.
+npx prisma migrate deploy
 
 exec npm run start
