@@ -241,6 +241,15 @@ async function installDependencies(targetRoot: string, deps: string[], flags: Re
   const result = spawnSync(pm, args, { cwd: targetRoot, stdio: "inherit" });
   if (result.status !== 0) {
     console.error(`\n${pm} install exited with an error — run it yourself: cd ${targetRoot} && ${pm} ${args.join(" ")}`);
+    if (pm === "pnpm") {
+      // pnpm's default security posture blocks postinstall/preinstall scripts from any
+      // dependency it hasn't seen approved before — argon2 (native addon build) and prisma
+      // (downloads its query-engine binary) both need theirs to run, so this is the single most
+      // common reason a combo install fails under pnpm specifically (ERR_PNPM_IGNORED_BUILDS).
+      console.error(
+        `If that was "Ignored build scripts": run "pnpm approve-builds" in ${targetRoot} (interactive — lets you pick which dependencies may run install scripts, argon2/prisma included; "pnpm approve-builds --all" approves everything pending without prompting), then re-run "npx @simple-auth-kit/cli update".`,
+      );
+    }
   }
 }
 

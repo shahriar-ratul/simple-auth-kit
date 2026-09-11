@@ -65,7 +65,7 @@ variants; not evidence of drift to reconcile.
 
 ## `@simple-auth-kit/auth-client`
 
-Both products' `package.json` declare `"@simple-auth-kit/auth-client": "^1.0.0"`, resolved from
+Both products' `package.json` declare `"@simple-auth-kit/auth-client": "^1.0.2"`, resolved from
 the published package on npm: https://www.npmjs.com/package/@simple-auth-kit/auth-client. A
 `scaffold`-mode generated app stands alone with a plain `npm install` — no monorepo/pnpm
 workspace required.

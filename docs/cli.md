@@ -118,7 +118,7 @@ is suffixed per combo (`<name>-<comboName>`) so sibling apps don't collide on pa
 
 ## `@simple-auth-kit/auth-client`
 
-The scaffolded admin/mobile apps declare `"@simple-auth-kit/auth-client": "^1.0.0"`, resolved
+The scaffolded admin/mobile apps declare `"@simple-auth-kit/auth-client": "^1.0.2"`, resolved
 from the published package on npm — a scaffolded app generated outside the monorepo installs
 with a plain `npm install`, no manual dependency resolution needed.
 
