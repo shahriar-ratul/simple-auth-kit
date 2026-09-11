@@ -37,13 +37,30 @@ none found); override it with `--pm <npm|pnpm|yarn|bun>`, or skip the install en
 
 ## Available combos
 
-| Kind | Combo | Installs as |
-|---|---|---|
-| `api` | `nestjs-prisma`, `nestjs-drizzle`, `express-prisma`, `express-drizzle` | merged into `src/lib/auth` of an existing project (the Prisma/Drizzle config + schema land at the project root instead — see below) |
-| `admin` | `admin-nextjs`, `admin-react` | a whole new standalone app, scaffolded at the target (refuses a non-empty target unless `--force`) |
-| `mobile` | `mobile-expo`, `mobile-bare-rn` | a whole new standalone app, scaffolded at the target (same non-empty-target rule) |
+Add `--workspaces` to any of these for the workspaces variant.
 
-Add `--workspaces` to any `api`/`admin`/`mobile` combo for the workspaces variant.
+**`api`** — merged into `src/lib/auth` of an existing project (the Prisma/Drizzle config +
+schema land at the project root instead — see below):
+```bash
+npx @simple-auth-kit/cli add nestjs-prisma --into .
+npx @simple-auth-kit/cli add nestjs-drizzle --into .
+npx @simple-auth-kit/cli add express-prisma --into .
+npx @simple-auth-kit/cli add express-drizzle --into .
+```
+
+**`admin`** — a whole new standalone app, scaffolded at the target (refuses a non-empty target
+unless `--force`):
+```bash
+npx @simple-auth-kit/cli add admin-nextjs --into ./admin
+npx @simple-auth-kit/cli add admin-react --into ./admin
+```
+
+**`mobile`** — a whole new standalone app, scaffolded at the target (same non-empty-target
+rule):
+```bash
+npx @simple-auth-kit/cli add mobile-expo --into ./mobile
+npx @simple-auth-kit/cli add mobile-bare-rn --into ./mobile
+```
 
 ## Your own database models are safe
 

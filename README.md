@@ -10,20 +10,31 @@ the backend API reference, the admin console internals, and development workflow
 
 ## Try it
 
+No clone needed — the CLI is [published on npm](https://www.npmjs.com/package/@simple-auth-kit/cli)
+with the registry it installs from bundled in. Add `--workspaces` to any of these for the
+workspaces variant. `npx @simple-auth-kit/cli` alone prints the full command reference;
+`npx @simple-auth-kit/cli update` later re-syncs whatever you installed, no arguments needed.
+Full details: [`docs/cli.md`](docs/cli.md).
+
+**`api` — merges into `src/lib/auth` of an existing project:**
 ```bash
-npx @simple-auth-kit/cli add nestjs-prisma --into .   # or any combo below, optionally --workspaces
+npx @simple-auth-kit/cli add nestjs-prisma --into .
+npx @simple-auth-kit/cli add nestjs-drizzle --into .
+npx @simple-auth-kit/cli add express-prisma --into .
+npx @simple-auth-kit/cli add express-drizzle --into .
 ```
 
-No clone needed — the CLI is [published on npm](https://www.npmjs.com/package/@simple-auth-kit/cli)
-with the registry it installs from bundled in. `npx @simple-auth-kit/cli` alone prints the
-full command reference; `npx @simple-auth-kit/cli update` later re-syncs whatever you
-installed, no arguments needed. Full details: [`docs/cli.md`](docs/cli.md).
+**`admin` — a whole new standalone app, scaffolded at the target:**
+```bash
+npx @simple-auth-kit/cli add admin-nextjs --into ./admin
+npx @simple-auth-kit/cli add admin-react --into ./admin
+```
 
-| Kind | Combos | Installs as |
-|---|---|---|
-| `api` (backend) | `nestjs-prisma`, `nestjs-drizzle`, `express-prisma`, `express-drizzle` | merged into `src/lib/auth` of an existing project |
-| `admin` | `admin-nextjs`, `admin-react` | a whole new standalone app |
-| `mobile` | `mobile-expo`, `mobile-bare-rn` | a whole new standalone app |
+**`mobile` — a whole new standalone app, scaffolded at the target:**
+```bash
+npx @simple-auth-kit/cli add mobile-expo --into ./mobile
+npx @simple-auth-kit/cli add mobile-bare-rn --into ./mobile
+```
 
 ## The reference deployment
 
