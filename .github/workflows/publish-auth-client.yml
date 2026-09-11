@@ -8,6 +8,7 @@ on:
     branches: [main]
     paths:
       - "packages/auth-client/**"
+  workflow_dispatch:
 
 jobs:
   publish:
