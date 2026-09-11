@@ -13,28 +13,41 @@ on:
 jobs:
   publish:
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: packages/auth-client
     steps:
       - uses: actions/checkout@v4
+
+      # packages/auth-client is a real member of this repo's pnpm workspace (see
+      # pnpm-workspace.yaml — "packages/*"), so it's installed the same way the rest of the repo
+      # is: `pnpm install`. A fresh CI checkout has no pre-hoisted node_modules to fall back on
+      # (unlike a local machine that already ran a root `pnpm install`), and plain `npm install`
+      # from scratch here hits npm's known arborist crash ("Cannot read properties of null
+      # (reading 'edgesOut')") — pnpm doesn't have that bug and is this repo's actual package
+      # manager anyway. `npm publish` at the end is still plain npm — that part talks to the npm
+      # registry directly and has nothing to do with how dependencies got installed.
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11
 
       - uses: actions/setup-node@v4
         with:
           node-version: 22
           registry-url: "https://registry.npmjs.org"
+          cache: pnpm
 
       - name: Install dependencies
-        run: npm install
+        run: pnpm install --frozen-lockfile
 
       - name: Typecheck
-        run: npm run typecheck
+        working-directory: packages/auth-client
+        run: pnpm run typecheck
 
       - name: Test
-        run: npm test
+        working-directory: packages/auth-client
+        run: pnpm run test
 
       - name: Build
-        run: npm run build
+        working-directory: packages/auth-client
+        run: pnpm run build
 
       # Compares package.json's version against what's already live on npm.
       #  - same version            -> skip (safe no-op; re-running this workflow, or pushing an
@@ -48,6 +61,7 @@ jobs:
       #    backwards — that must stop the workflow, not skip quietly.
       - name: Compare versions
         id: version-check
+        working-directory: packages/auth-client
         run: |
           LOCAL_VERSION=$(node -p "require('./package.json').version")
           PKG_NAME=$(node -p "require('./package.json').name")
@@ -71,6 +85,7 @@ jobs:
 
       - name: Publish to npm
         if: steps.version-check.outputs.skip == 'false'
+        working-directory: packages/auth-client
         run: npm publish --access public
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
