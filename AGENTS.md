@@ -41,7 +41,7 @@ convention for everything under `registry/`.
 hoist every file that comes out byte-identical into `shared/`. Anything that differs — even by
 one line — stays in both `variants/*` directories. There is no third category and no conditional
 code: a file must not branch on which variant it is in."* Composition = `shared/` copied first,
-then `variants/<variant>/` copied over it — done identically by `cli/lib/copy.ts` (real installs)
+then `variants/<variant>/` copied over it — done identically by `packages/cli/lib/copy.ts` (real installs)
 and each combo's `scripts/materialize.mjs` (dev/typecheck/prove-cycle), so what a combo proves is
 exactly what the CLI emits.
 
@@ -76,8 +76,8 @@ factory functions returning closures (`createAuthMiddleware`, `createTieredRoute
 `PERMISSION_CATALOG` (a compile/register-time analogue of Nest's boot check, not the identical
 mechanism).
 
-**CLI composition & distribution**: `cli/simple-auth-kit.ts` is fully `cli/registry.json`-driven (no
-hardcoded combo logic). `cli/lib/copy.ts` computes a sha256 per destination-relative path; a file
+**CLI composition & distribution**: `packages/cli/simple-auth-kit.ts` is fully `packages/cli/registry.json`-driven (no
+hardcoded combo logic). `packages/cli/lib/copy.ts` computes a sha256 per destination-relative path; a file
 is left alone (reported as skipped) whenever its on-disk hash no longer matches the last-recorded
 manifest — i.e. user-edited — unless `--force`. `auth.lock.json` in the consumer's `targetRoot`
 persists `{combo, variant, installedAt, files: {path: sha256}}` so re-installs/variant switches
@@ -103,7 +103,7 @@ returned by `GET /auth/me`, mirroring `ability.ts`'s server-side pattern.
 | `registry/core/` | Framework/ORM-free auth logic: sessions, JWTs, 2FA, OAuth, password reset, RBAC union. |
 | `registry/combos/{nestjs-prisma,nestjs-drizzle,express-prisma,express-drizzle}/` | Backend combos; each has `shared/`, `variants/{base,workspaces}/`, `test/`, `scripts/`, `.variant/` (gitignored build output). `nestjs-prisma` is the reference. |
 | `registry/admin-apps/{nextjs,react}/`, `registry/mobile-apps/{expo,bare-rn}/` | Scaffold-mode source templates for the 4 client apps; no `prove-cycle` equivalent (verified by generate+typecheck+build only). |
-| `cli/` | `simple-auth-kit.ts` entrypoint, `lib/copy.ts` (manifest-driven copy/prune), `registry.json` (the manifest: core/variants/combos, install mode, post-install steps). |
+| `packages/cli/` | `simple-auth-kit.ts` entrypoint, `lib/copy.ts` (manifest-driven copy/prune), `registry.json` (the manifest: core/variants/combos, install mode, post-install steps). |
 | `packages/auth-client/` | One `AuthClient` class shared by all 4 consumer apps; consumed from its compiled `dist/`. |
 | `apps/` | The 8 runnable client apps (`admin-{nextjs,react}[-workspaces]`, `mobile-{expo,bare-rn}[-workspaces]`) + `dev-portal` (host-run control panel). Mirrors `registry/{admin,mobile}-apps/*` 1:1. |
 | `examples/` | 8 CLI-materialized backend snapshots (`<combo>-app[-workspaces]`), **not** part of the pnpm workspace — plain npm, models a real consumer. |
@@ -148,7 +148,7 @@ npm run seed && npm run start                # -> :3001, Swagger /docs, Scalar /
 
 ```bash
 # CLI, in-repo; also how examples/ get re-synced after a registry/core or combo change
-cd cli && npx tsx simple-auth-kit.ts add <combo> [--workspaces] --force --into ../examples/<app>
+cd packages/cli && npx tsx simple-auth-kit.ts add <combo> [--workspaces] --force --into ../../examples/<app>
 ```
 
 Apps: `npm run dev` in `apps/admin-*`/`apps/mobile-expo*` (`typecheck`; Next.js apps also declare
@@ -216,7 +216,7 @@ express-prisma, express-drizzle` order); `admin-nextjs` `3000`/`3010`; `admin-re
   seed.ts,auth.module.ts}` — variant-specific resolution, the permission catalog, the seeder, and
   the composition root (`AuthModule.forRoot` runs the boot-time tier check before any DB/port
   allocation).
-- `cli/simple-auth-kit.ts`, `cli/lib/copy.ts`, `cli/registry.json` — CLI entrypoint, manifest-driven
+- `packages/cli/simple-auth-kit.ts`, `packages/cli/lib/copy.ts`, `packages/cli/registry.json` — CLI entrypoint, manifest-driven
   copy/prune, and the manifest schema (`core`, `variants`, `combos{dir, sharedDir, variantsDir,
   variants[], peerDependencies[], postInstall[], kind?, installMode?}`; `kind`/`installMode`
   default to `"api"`/`"merge"` by omission — only the 4 admin/mobile combos declare them

@@ -9,7 +9,7 @@
     "prepare": "git config core.hooksPath .githooks",
     "typecheck": "pnpm -r --if-present run typecheck",
     "test": "pnpm -r --if-present run test",
-    "cli": "pnpm --filter simple-auth-kit-cli run cli",
+    "cli": "pnpm --filter @simple-auth-kit/cli run cli",
     "portal": "pnpm --filter dev-portal run dev"
   },
   "devDependencies": {

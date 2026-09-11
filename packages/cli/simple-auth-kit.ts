@@ -1,6 +1,7 @@
 #!/usr/bin/env node
-// Local-invocation CLI: run directly against this registry repo, e.g.
-// `pnpm --filter simple-auth-kit-cli run cli -- add nestjs-prisma --into ../my-app`.
+// Published as @simple-auth-kit/cli — `npx @simple-auth-kit/cli add nestjs-prisma --into .`.
+// Also runnable straight from a monorepo checkout: `pnpm --filter @simple-auth-kit/cli run cli
+// -- add nestjs-prisma --into ../my-app`.
 //
 // A combo ships in variants (see registry/README.md). `add <combo>` emits the default one;
 // `add <combo> --workspaces` emits the workspace variant, composed by copying the combo's
@@ -14,6 +15,7 @@
 // `prompts`) asking which kind(s) to generate, which framework per kind, and whether to include
 // workspaces support — or reads the same choices from --kind/--framework/--workspaces for
 // non-interactive/scripted use.
+import { existsSync } from "node:fs";
 import { basename, dirname, join, relative, resolve } from "node:path";
 import { access, mkdir, readdir, readFile, writeFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
@@ -22,7 +24,13 @@ import { copyDir, copyOneFile, CopyResult, NEVER_COPY, pruneRemovedFiles, SCAFFO
 import { reconcileManifest, renameNative, type NativeIdentity } from "./lib/rename-native.js";
 
 const CLI_DIR = dirname(fileURLToPath(import.meta.url));
-const REGISTRY_ROOT = resolve(CLI_DIR, "..", "registry");
+// Two contexts, and they disagree about where the registry is:
+//  - published package: registry/ is bundled as a sibling of this file (see
+//    scripts/bundle-registry.mjs, run at `prepack` time — it's never committed to git, only
+//    materialized right before `npm publish`/`npm pack`).
+//  - monorepo dev checkout: this file lives at packages/cli/, so the real registry/ is two
+//    levels up, at the repo root.
+const REGISTRY_ROOT = existsSync(join(CLI_DIR, "registry")) ? join(CLI_DIR, "registry") : resolve(CLI_DIR, "..", "..", "registry");
 const CONFIG_FILENAME = ".simple-auth-kit.json";
 const DEFAULT_VARIANT = "base";
 

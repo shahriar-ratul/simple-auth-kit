@@ -14,7 +14,7 @@ The emitted project contains exactly one variant. A consumer cannot tell the oth
 
 ## `kind`: this doc covers `api` combos specifically
 
-Every combo also has a `kind` (`api`, `admin`, or `mobile`, in `cli/registry.json` — absent means
+Every combo also has a `kind` (`api`, `admin`, or `mobile`, in `packages/cli/registry.json` — absent means
 `api`, since every combo predating that field is one) and an `installMode` (`merge` or
 `scaffold`). This file is entirely about **`kind: "api"`** combos — `registry/combos/*`, `merge`
 mode, a source fragment the CLI composes into an *existing* project's `src/lib/auth`. Everything
@@ -72,7 +72,7 @@ out byte-identical into `shared/`.** Anything that differs — even by one line 
 branch on which variant it is in.
 
 Composition is `shared/` copied first, then `variants/<variant>/` copied over the top. Both the
-CLI (`cli/lib/copy.ts`) and `scripts/materialize.mjs` do exactly this, so what the combo
+CLI (`packages/cli/lib/copy.ts`) and `scripts/materialize.mjs` do exactly this, so what the combo
 typechecks and proves is what the CLI emits.
 
 ### Which files ended up where, in the reference combo
@@ -304,7 +304,7 @@ and running its own build/typecheck, not this file's proof harness).
    is worse than one that does neither: the admin console hides UI the server would have
    allowed anyway.
 6. Add `sharedDir`, `variantsDir` and `variants: ["base", "workspaces"]` to the combo's entry in
-   `cli/registry.json`, plus the `npm run seed` line in its `postInstall` notes — the CLI never
+   `packages/cli/registry.json`, plus the `npm run seed` line in its `postInstall` notes — the CLI never
    edits a consumer's `package.json`, so the script has to be spelled out for them, and the path
    it points at is `<installPath>/src/seed.ts`, i.e. `tsx src/lib/auth/src/seed.ts` by default
    (a combo's `src/**` lands under the install directory's own `src/`, not directly in it).

@@ -36,7 +36,7 @@ run it.
 Examples are CLI snapshots, not symlinks. After changing a combo:
 
 ```bash
-cd cli && npx tsx simple-auth-kit.ts add nestjs-prisma --force --into ../examples/nestjs-prisma-app
+cd packages/cli && npx tsx simple-auth-kit.ts add nestjs-prisma --force --into ../../examples/nestjs-prisma-app
 cd ../examples/nestjs-prisma-app
 npx prisma generate && npx prisma migrate deploy
 ```

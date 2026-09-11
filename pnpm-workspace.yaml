@@ -1,7 +1,6 @@
 packages:
   - "registry/core"
   - "registry/combos/*"
-  - "cli"
   - "packages/*"
   - "apps/*"
 

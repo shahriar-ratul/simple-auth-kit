@@ -5,7 +5,7 @@ hoisting rule as `registry/admin-apps/`, `installMode: "scaffold"` (see
 `registry/admin-apps/README.md` for what that means concretely — a whole standalone app written
 into the target directory, not a fragment merged into a host project).
 
-| Product | `kind` in `cli/registry.json` | Extracted from |
+| Product | `kind` in `packages/cli/registry.json` | Extracted from |
 |---|---|---|
 | `mobile-expo` | `mobile` | `apps/mobile-expo` + `apps/mobile-expo-workspaces` |
 | `mobile-bare-rn` | `mobile` | `apps/mobile-bare-rn` + `apps/mobile-bare-rn-workspaces` |
@@ -29,8 +29,8 @@ one's `android/`/`ios/` verbatim into every generated app would mean **every app
 generates collides on the same `applicationId`/bundle id**, which is silently fine until someone
 tries to install two of them on the same device or submit both to an app store.
 
-`cli/lib/rename-native.ts` fixes this as a post-copy step, run only for this combo (via the
-`nativeIdentity` field on its `cli/registry.json` entry — `{ name: "MobileBareRn", package:
+`packages/cli/lib/rename-native.ts` fixes this as a post-copy step, run only for this combo (via the
+`nativeIdentity` field on its `packages/cli/registry.json` entry — `{ name: "MobileBareRn", package:
 "com.mobilebarern" }`), driven by `--name`:
 
 1. Moves the Android Kotlin package folder (`android/app/src/main/java/com/mobilebarern/` →

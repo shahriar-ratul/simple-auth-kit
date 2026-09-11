@@ -6,7 +6,7 @@ reasoning is `plan/brief.md` — this doc is the tour; that file is the law.
 ## Distribution: a registry, not a package
 
 The library is **copied, never installed**. `registry/` holds the source of truth; the CLI
-(`cli/simple-auth-kit.ts`) copies it into a consumer repo:
+(`packages/cli/simple-auth-kit.ts`) copies it into a consumer repo:
 
 ```bash
 npx simple-auth-kit add nestjs-prisma               # backend, base variant (the default)
@@ -22,7 +22,7 @@ npx simple-auth-kit add                             # guided multi-kind flow (ap
 
 ## Three kinds, two install modes
 
-Every registry entry has a `kind` and an `installMode` (`cli/registry.json`):
+Every registry entry has a `kind` and an `installMode` (`packages/cli/registry.json`):
 
 | Kind | Products | Install mode | What the CLI writes |
 |---|---|---|---|
@@ -45,7 +45,7 @@ registry/core/            framework/ORM-free auth logic (sessions, JWTs, 2FA, OA
 registry/combos/<combo>/  framework+ORM wiring around core — the 4 api products.
 registry/admin-apps/      admin console templates — nextjs/ and react/, each shared+variants.
 registry/mobile-apps/     mobile app templates — expo/ and bare-rn/, each shared+variants.
-cli/                      the copy tool (init / add / diff) + registry.json manifest.
+packages/cli/                      the copy tool (init / add / diff) + registry.json manifest.
 examples/<combo>-app[-workspaces]/   8 real consumer apps produced BY the CLI — the runnable
                           backends. Snapshots, not symlinks: re-sync after combo changes.
 packages/auth-client/     one typed API client used by all 8 client apps (compiled to dist/).

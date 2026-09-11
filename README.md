@@ -57,7 +57,7 @@ a plain `npm install` resolves it, no monorepo/pnpm workspace required.
 | `registry/combos/{nestjs-prisma,nestjs-drizzle,express-prisma,express-drizzle}/` | The 4 `api` products: framework+ORM wiring around `registry/core/`, each with a `base` and a `workspaces` variant. `nestjs-prisma` is the reference combo. Merged into an existing project's `src/lib/auth` — except the Prisma combos' `prisma.config.ts`/`prisma/`, which land at the project root (Prisma's own convention). |
 | `registry/admin-apps/{nextjs,react}/` | The 2 `admin` products: whole admin-console apps, scaffolded standalone into a target directory. Extracted from (and mirrored by) `apps/admin-*`. |
 | `registry/mobile-apps/{expo,bare-rn}/` | The 2 `mobile` products: whole React Native apps, scaffolded standalone. `bare-rn` gets per-app native identity (bundle id / applicationId) retemplated by the CLI. |
-| `cli/` | The `simple-auth-kit` CLI (`init`, `add`, `diff`) + `registry.json` product manifest. Multi-kind runs namespace each product into its own subdirectory. See `docs/cli.md`. |
+| `packages/cli/` | The `simple-auth-kit` CLI (`init`, `add`, `diff`) + `registry.json` product manifest. Multi-kind runs namespace each product into its own subdirectory. See `docs/cli.md`. |
 | `examples/{nestjs-prisma,nestjs-drizzle,express-prisma,express-drizzle}-app[-workspaces]/` | Fresh consumer projects, each demonstrating `simple-auth-kit add <combo> [--workspaces]` end to end — 8 in total. These are the **runnable backends**. |
 | `packages/auth-client/` | Shared, framework-agnostic API client used by all 8 client apps below (`@simple-auth-kit/auth-client`, consumed from `dist/`). |
 | `apps/admin-nextjs[-workspaces]/`, `apps/admin-react[-workspaces]/` | The 4 admin consoles — users, roles & permissions, audit log, content domains, 2FA, live activity feed. `apps/admin-nextjs` is the reference console (NextAuth v5 + edge `proxy.ts` guard; the other three re-verify sessions client-side per navigation — a deliberate split, see `docs/admin-console.md`). |
@@ -72,13 +72,13 @@ Distribution model matches shadcn/ui: nothing is ever installed as a runtime dep
 is copied. Once linked, usage is a single command run from inside your own project:
 
 ```bash
-cd cli && npm link                    # once — registers a global `simple-auth-kit` command
+cd packages/cli && npm link                    # once — registers a global `simple-auth-kit` command
 cd ~/your-project
 simple-auth-kit add nestjs-prisma           # or any combo below, optionally --workspaces
 ```
 
 No `--into` needed — it already defaults to the current directory. Prefer not to link? The
-unlinked form works identically: `npx tsx <path-to-this-repo>/cli/simple-auth-kit.ts add <combo>`.
+unlinked form works identically: `npx tsx <path-to-this-repo>/packages/cli/simple-auth-kit.ts add <combo>`.
 
 | Kind | Combos | Installs as |
 |---|---|---|
@@ -175,7 +175,7 @@ compose refuses to start with them unset. The admin apps run in dev mode with th
 as build context (they compile `@simple-auth-kit/auth-client` from source).
 
 Not included: the mobile apps (need a simulator/device — see below), `registry/*` (library
-source, not a deployable app), and `cli/` (a tool, not a service).
+source, not a deployable app), and `packages/cli/` (a tool, not a service).
 
 ```bash
 docker compose down          # stop everything (add -v to also drop the Postgres volume)
@@ -245,7 +245,7 @@ npm run prove-cycle                     # black-box test, both variants, 300+ as
 After changing anything in `registry/core/` or a combo, re-sync any `examples/*-app` you're
 using (the CLI copy is a snapshot, not a live symlink):
 ```bash
-cd cli && npx tsx simple-auth-kit.ts add <combo> [--workspaces] --force --into ../examples/<app>
+cd packages/cli && npx tsx simple-auth-kit.ts add <combo> [--workspaces] --force --into ../../examples/<app>
 ```
 
 ## `packages/auth-client`

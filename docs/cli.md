@@ -1,32 +1,36 @@
 # The `simple-auth-kit` CLI
 
-`cli/simple-auth-kit.ts` copies `registry/` source into a target project and records what it wrote
-in a lockfile. The product catalog lives in `cli/registry.json`. Distribution model and UX are
-deliberately shadcn/ui-shaped: nothing is ever installed as a runtime dependency, and once
-linked, usage is a single `simple-auth-kit add <combo>` run from inside your own project — same shape
-as `npx shadcn add <component>`.
+`packages/cli/simple-auth-kit.ts` copies `registry/` source into a target project and records what it wrote
+in a lockfile. The product catalog lives in `packages/cli/registry.json`. Distribution model and UX are
+deliberately shadcn/ui-shaped: nothing is ever installed as a runtime dependency, and usage is a
+single `add <combo>` run from inside your own project — same shape as `npx shadcn add <component>`.
 
-## Install once, use anywhere
+## From npm (recommended)
 
-```bash
-cd cli && npm link          # once — registers a global `simple-auth-kit` command
-```
-
-From then on, in **any** project on the machine:
+Published as [`@simple-auth-kit/cli`](https://www.npmjs.com/package/@simple-auth-kit/cli),
+registry bundled in — no separate clone needed:
 
 ```bash
 cd ~/your-project
-simple-auth-kit add nestjs-prisma           # or any other combo, optionally --workspaces
+npx @simple-auth-kit/cli add nestjs-prisma      # or any other combo, optionally --workspaces
+npx @simple-auth-kit/cli update                 # later: re-syncs whatever add installed, no args needed
 ```
 
-No `--into` needed — it already defaults to the current directory, exactly like `cd`-ing into
-your project before running an installer. Prefer not to link? The unlinked form works
-identically: `npx tsx <path-to-this-repo>/cli/simple-auth-kit.ts add <combo> --into <path>`.
+No `--into` needed — it already defaults to the current directory. `npx @simple-auth-kit/cli`
+alone prints the full command/combo reference; `add` with no combo name launches a guided prompt
+(pick kind, framework, variant) instead of requiring every flag up front. See
+`docs/cli-generation-guide.html` for a fully-verified walkthrough of all 16 combo×variant
+combinations, real terminal output included.
 
-`simple-auth-kit` alone prints the full command/combo reference; `simple-auth-kit add` with no combo name
-launches a guided prompt (pick kind, framework, variant) instead of requiring every flag up
-front. See `docs/cli-generation-guide.html` for a fully-verified walkthrough of all 16
-combo×variant combinations, real terminal output included.
+## From a monorepo checkout (developing this repo)
+
+```bash
+cd packages/cli && npm link          # once — registers a global `simple-auth-kit` command
+```
+
+From then on, in **any** project on the machine, `simple-auth-kit add <combo>` works exactly like
+the published form above. Prefer not to link? The unlinked form works identically: `npx tsx
+<path-to-this-repo>/packages/cli/simple-auth-kit.ts add <combo> --into <path>`.
 
 ## Commands
 
@@ -61,7 +65,7 @@ line) instead of editing it.
 **`scaffold`** (the 2 `admin` + 2 `mobile` combos): writes `shared/` + `variants/<variant>/`
 **directly into the target directory** as a complete standalone app — `package.json`,
 `src/`, configs, everything — then templates the package name from `--name`. For
-`mobile-bare-rn` it additionally runs `cli/lib/rename-native.ts`: Android package folder
+`mobile-bare-rn` it additionally runs `packages/cli/lib/rename-native.ts`: Android package folder
 move, iOS project/scheme/source renames, and a string sweep across `android/`/`ios/` +
 `app.json`, so every generated app gets a unique bundle id / `applicationId`
 (see `registry/mobile-apps/README.md` for the mechanics).
@@ -99,7 +103,7 @@ with a plain `npm install`, no manual dependency resolution needed.
 `examples/*` are themselves CLI output. After changing a combo:
 
 ```bash
-cd cli && npx tsx simple-auth-kit.ts add <combo> [--workspaces] --force --into ../examples/<app>
+cd packages/cli && npx tsx simple-auth-kit.ts add <combo> [--workspaces] --force --into ../../examples/<app>
 ```
 
 `--force` is fine there — the examples hold no hand edits inside the managed `src/lib/auth/`

@@ -4,7 +4,7 @@ Two products, each with the same `shared/` + `variants/{base,workspaces}` compos
 `registry/README.md` describes for backend combos — same byte-identical-hoisting rule, same "a
 file must not branch on which variant it's in" discipline — but a different `installMode`.
 
-| Product | `kind` in `cli/registry.json` | Extracted from |
+| Product | `kind` in `packages/cli/registry.json` | Extracted from |
 |---|---|---|
 | `admin-react` | `admin` | `apps/admin-react` + `apps/admin-react-workspaces` |
 | `admin-nextjs` | `admin` | `apps/admin-nextjs` + `apps/admin-nextjs-workspaces` |
@@ -14,12 +14,12 @@ file must not branch on which variant it's in" discipline — but a different `i
 Backend combos merge a source fragment into an *existing* project's `src/lib/auth`. An admin
 console isn't a fragment — it's a whole standalone app. `simple-auth-kit add admin-react --into <dir>`
 writes `shared/` then `variants/<variant>/` **directly into `<dir>`**: `package.json`, `src/App.tsx`,
-everything. `cli/lib/copy.ts`'s `SCAFFOLD_NEVER_COPY` (vs. the api-combo `NEVER_COPY`) reflects
+everything. `packages/cli/lib/copy.ts`'s `SCAFFOLD_NEVER_COPY` (vs. the api-combo `NEVER_COPY`) reflects
 this: `package.json`/`tsconfig.json` are real, consumer-facing content here, not the registry's own
 dev wiring.
 
 `package.json`'s `name`/`description` are templated from `--name` (falling back to the target
-directory's basename) after the copy — see `installScaffold` in `cli/simple-auth-kit.ts`.
+directory's basename) after the copy — see `installScaffold` in `packages/cli/simple-auth-kit.ts`.
 
 ## `admin-react`: the clean case
 
