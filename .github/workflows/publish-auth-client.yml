@@ -1,0 +1,59 @@
+name: Publish auth-client
+
+# Runs whenever packages/auth-client changes on main. Publishing is gated on the version in
+# package.json actually being new — bump it as part of your commit to trigger a release;
+# pushing without a version bump is a no-op (the compare-versions step just skips publish).
+on:
+  push:
+    branches: [main]
+    paths:
+      - "packages/auth-client/**"
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: packages/auth-client
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          registry-url: "https://registry.npmjs.org"
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Test
+        run: npm test
+
+      - name: Build
+        run: npm run build
+
+      # Compares package.json's version against what's already live on npm, so re-running this
+      # workflow (or pushing an unrelated change under packages/auth-client/) never re-attempts
+      # a publish of a version that's already out — npm publish would just fail on that anyway.
+      - name: Compare versions
+        id: version-check
+        run: |
+          LOCAL_VERSION=$(node -p "require('./package.json').version")
+          PUBLISHED_VERSION=$(npm view "$(node -p "require('./package.json').name")" version 2>/dev/null || echo "none")
+          echo "local version: $LOCAL_VERSION"
+          echo "published version: $PUBLISHED_VERSION"
+          if [ "$LOCAL_VERSION" = "$PUBLISHED_VERSION" ]; then
+            echo "already published — skipping"
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Publish to npm
+        if: steps.version-check.outputs.skip == 'false'
+        run: npm publish --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
