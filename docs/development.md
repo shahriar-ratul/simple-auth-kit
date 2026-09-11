@@ -130,7 +130,8 @@ serialization; docker-internal URL split — see `AUTH_API_INTERNAL_URL` in gett
 - `docker compose up` migrates but does **not** seed — every backend needs the one-time
   `docker exec ... seed.ts` step (getting-started.md) before anything is authorized. The seed
   credentials are deliberately not baked into compose.
-- The CLI's `diff` command is a stub (prints the lockfile manifest only).
+- The CLI's `diff` command only supports merge-mode (api) combos — scaffold-mode (admin/mobile)
+  diffing isn't implemented yet.
 - Mobile apps: verified by typecheck/bundling/Metro boot, not by a recent device run;
   `mobile-bare-rn` needs a one-time manual Xcode step for `react-native-config`. Generated
   `mobile-bare-rn` apps get unique native identities via the CLI's renamer, but an actual

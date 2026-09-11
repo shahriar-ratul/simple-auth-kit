@@ -36,10 +36,11 @@ the published form above. Prefer not to link? The unlinked form works identicall
 
 | Command | What it does |
 |---|---|
-| `init` | Writes `.simple-auth-kit.json` in the target (`path`, `alias`, `ignore`) so later `add` runs don't need flags. |
+| `init` | Writes `.simple-auth-kit.json` in the target (`path`, `alias`, `ignore`), then launches the same guided flow as bare `add` to actually install something — pass `--config-only` for the old write-and-stop behavior. |
 | `add <combo>` | Installs one product (see modes below). |
 | `add` (no combo) | Guided multi-kind flow: pick kinds (api/admin/mobile) and a framework per kind via prompts — or drive it entirely with `--kind`/`--framework`. |
-| `diff` | **Stub** — prints "not implemented yet" plus the file list from `auth.lock.json`. |
+| `update [--check]` | Re-installs whatever combo+variant `auth.lock.json` already records — no need to name the combo again. `--check` reports what would change without writing anything (merge-mode combos only). |
+| `diff` | Shows the actual content diff (unified diff format) for every tracked file that differs from the current registry — whether that's an upstream change or your own edit. Read-only. Merge-mode (api) combos only. |
 
 ## Flags
 
@@ -52,7 +53,20 @@ the published form above. Prefer not to link? The unlinked form works identicall
 | `--name <appName>` | Scaffold installs: templates `package.json` name/description, and drives `mobile-bare-rn`'s native identity renaming. Falls back to the target directory's basename. |
 | `--kind api,admin,mobile` | Multi-kind flow: which kinds to generate (comma list). |
 | `--framework <name>,...` | Multi-kind flow: framework per kind, positionally matched to `--kind`. |
-| `--force` | Overwrite files the consumer has locally modified (normally they're skipped and reported). |
+| `--force` | Overwrite files the consumer has locally modified (normally they're skipped and reported). In a TTY, without `--force`, a locally-modified file triggers a per-file "overwrite?" prompt instead of a silent skip. |
+| `--check` | `update` only: report what would change without writing anything. |
+| `--skip-install` | Don't run the package manager after copying files — the default is to install for you (see below). |
+| `--pm <npm\|pnpm\|yarn\|bun>` | Which package manager to install with — default: detected from a lockfile in the target directory, npm if none found. |
+| `--config-only` | `init` only: just write `.simple-auth-kit.json` and stop, no install. |
+
+## Dependencies are installed for you
+
+Like `npx shadcn add`, this CLI runs the install after copying files — it doesn't just print
+the command and leave it to you. Skipped entirely under `--skip-install`, and skipped
+automatically when nothing actually changed (a no-op `update` has nothing new to install for).
+For merge-mode combos this installs the combo's declared peer dependencies by name; for
+scaffold-mode it's a bare install (dependencies are already declared in the generated
+`package.json`).
 
 ## Install modes
 

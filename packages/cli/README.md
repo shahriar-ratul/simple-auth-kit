@@ -21,6 +21,7 @@ npx @simple-auth-kit/cli init                       # fresh setup: guided "what 
 npx @simple-auth-kit/cli add <combo> [--workspaces]  # install a specific combo
 npx @simple-auth-kit/cli add                         # guided picker, same flow as init (no config write)
 npx @simple-auth-kit/cli update [--check]             # re-installs whatever add last recorded — no args needed
+npx @simple-auth-kit/cli diff                         # shows the actual content diff for every file that differs from the registry (api combos only)
 npx @simple-auth-kit/cli                              # full command/flag reference + available combos
 ```
 
@@ -28,6 +29,11 @@ npx @simple-auth-kit/cli                              # full command/flag refere
 without `--force` or `--check`, a file that's changed locally since install prompts you —
 per file — before it's overwritten; outside a TTY (CI/scripts) it's left alone by default and
 reported at the end, same as `--force` always applying and `--check` never writing anything.
+
+**Dependencies are installed for you**, shadcn-`add`-style — no separate `npm install` step.
+The package manager is auto-detected from a lockfile already in the target directory (npm if
+none found); override it with `--pm <npm|pnpm|yarn|bun>`, or skip the install entirely with
+`--skip-install` if you'd rather review `package.json` first.
 
 ## Available combos
 

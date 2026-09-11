@@ -48,6 +48,22 @@ export interface CopyOptions {
    * deleting anything on disk — for a "what would change" check before actually applying it.
    */
   dryRun?: boolean;
+  /**
+   * When set, every file whose on-disk content differs from what's about to be written gets a
+   * `{path, oldContent, newContent}` entry pushed onto this array — for rendering an actual
+   * diff (see `cmdDiff`), not just a filename list. Typically paired with `force: true` and
+   * `dryRun: true` so a locally-modified file's difference is captured too, not silently
+   * skipped the way a real install would.
+   */
+  collectDiffs?: DiffEntry[];
+}
+
+export interface DiffEntry {
+  /** Path relative to destRoot, POSIX separators — same form as CopyResult's arrays. */
+  path: string;
+  /** null when the file doesn't exist on disk yet (a brand-new file). */
+  oldContent: string | null;
+  newContent: string;
 }
 
 export interface CopyResult {
@@ -111,6 +127,7 @@ export async function copyOneFile(srcPath: string, destPath: string, destRoot: s
 
   result.updated.push(rel);
   result.manifest[rel] = newHash;
+  opts.collectDiffs?.push({ path: rel, oldContent: existing, newContent: content });
   if (opts.dryRun) return;
 
   await mkdir(dirname(destPath), { recursive: true });
