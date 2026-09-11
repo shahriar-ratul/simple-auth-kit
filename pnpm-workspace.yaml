@@ -11,10 +11,13 @@ allowBuilds:
   esbuild: true
   prisma: true
 
-minimumReleaseAgeExclude:
-  - pg-protocol@1.16.0
-  - pg@8.23.0
-  - '@simple-auth-kit/auth-client@1.0.0'
+# This repo publishes its own packages (@simple-auth-kit/auth-client, @simple-auth-kit/cli) and
+# immediately re-installs them elsewhere in the same repo (apps/*, examples/*) — pnpm's default
+# minimumReleaseAge supply-chain check (blocks installing anything published in the last 24h)
+# fights that workflow directly: every publish broke the very next `pnpm install --frozen-lockfile`
+# in CI until the *exact* new version was hand-added to an exclude list here. Zero it out for the
+# whole repo instead of maintaining a version-pinned exclude list that's stale by construction.
+minimumReleaseAge: 0
 
 overrides:
   # react-native-css@3.0.7 (the engine under nativewind@5.0.0-preview.4) drives lightningcss
