@@ -36,21 +36,37 @@ jobs:
       - name: Build
         run: npm run build
 
-      # Compares package.json's version against what's already live on npm, so re-running this
-      # workflow (or pushing an unrelated change under packages/auth-client/) never re-attempts
-      # a publish of a version that's already out — npm publish would just fail on that anyway.
+      # Compares package.json's version against what's already live on npm.
+      #  - same version            -> skip (safe no-op; re-running this workflow, or pushing an
+      #                                unrelated change under packages/auth-client/, must not
+      #                                re-attempt a publish that would just fail anyway)
+      #  - no published version yet -> publish (first-ever release)
+      #  - strictly newer           -> publish
+      #  - anything else (lower, or not valid semver relative to published) -> FAIL the job.
+      #    `npm publish` moves the `latest` dist-tag to whatever it just published regardless of
+      #    semver order, so silently publishing a non-newer version would silently move `latest`
+      #    backwards — that must stop the workflow, not skip quietly.
       - name: Compare versions
         id: version-check
         run: |
           LOCAL_VERSION=$(node -p "require('./package.json').version")
-          PUBLISHED_VERSION=$(npm view "$(node -p "require('./package.json').name")" version 2>/dev/null || echo "none")
+          PKG_NAME=$(node -p "require('./package.json').name")
+          PUBLISHED_VERSION=$(npm view "$PKG_NAME" version 2>/dev/null || echo "")
           echo "local version: $LOCAL_VERSION"
-          echo "published version: $PUBLISHED_VERSION"
-          if [ "$LOCAL_VERSION" = "$PUBLISHED_VERSION" ]; then
+          echo "published version: ${PUBLISHED_VERSION:-<none, first publish>}"
+
+          if [ -z "$PUBLISHED_VERSION" ]; then
+            echo "no published version yet — publishing $LOCAL_VERSION"
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+          elif [ "$LOCAL_VERSION" = "$PUBLISHED_VERSION" ]; then
             echo "already published — skipping"
             echo "skip=true" >> "$GITHUB_OUTPUT"
-          else
+          elif npx --yes semver@7 -r ">$PUBLISHED_VERSION" "$LOCAL_VERSION" > /dev/null 2>&1; then
+            echo "newer than published — publishing"
             echo "skip=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "::error::package.json version ($LOCAL_VERSION) is not newer than the published version ($PUBLISHED_VERSION). Bump the version forward before merging — publishing a non-newer version would move npm's 'latest' tag backwards."
+            exit 1
           fi
 
       - name: Publish to npm
