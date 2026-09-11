@@ -1,0 +1,94 @@
+name: Publish packages
+
+# Runs whenever a publishable package's own files change on main, or registry/ changes — the
+# CLI bundles the whole registry/ tree into itself at publish time (see
+# packages/cli/scripts/bundle-registry.mjs), so a registry-only change is still relevant to it
+# even though it never touches packages/cli/ itself. Add a new package to the matrix below and
+# its directory to these paths to bring it under the same publish gate.
+#
+# Publishing is gated on the version in that package's own package.json actually being new —
+# bump it as part of your commit to trigger a release for it; pushing without a version bump is
+# a no-op for that package (the compare-versions step just skips it), independent of whether any
+# other package in the matrix does publish.
+on:
+  push:
+    branches: [main]
+    paths:
+      - "packages/auth-client/**"
+      - "packages/cli/**"
+      - "registry/**"
+  workflow_dispatch:
+
+jobs:
+  publish:
+    strategy:
+      fail-fast: false
+      matrix:
+        package:
+          # auth-client is consumed from dist/, so it needs a real build step; cli ships its
+          # TypeScript source as-is (run via tsx at the consumer's end) and has no test suite.
+          - dir: packages/auth-client
+            test: true
+            build: true
+          - dir: packages/cli
+            test: false
+            build: false
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # Every package here is a real member of this repo's pnpm workspace (see
+      # pnpm-workspace.yaml — "packages/*"), so it's installed the same way the rest of the repo
+      # is: `pnpm install`. A fresh CI checkout has no pre-hoisted node_modules to fall back on
+      # (unlike a local machine that already ran a root `pnpm install`), and plain `npm install`
+      # from scratch here hits npm's known arborist crash ("Cannot read properties of null
+      # (reading 'edgesOut')") — pnpm doesn't have that bug and is this repo's actual package
+      # manager anyway. `npm publish` at the end is still plain npm — that part talks to the npm
+      # registry directly and has nothing to do with how dependencies got installed.
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          registry-url: "https://registry.npmjs.org"
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Typecheck
+        working-directory: ${{ matrix.package.dir }}
+        run: pnpm run typecheck
+
+      - name: Test
+        if: matrix.package.test
+        working-directory: ${{ matrix.package.dir }}
+        run: pnpm run test
+
+      - name: Build
+        if: matrix.package.build
+        working-directory: ${{ matrix.package.dir }}
+        run: pnpm run build
+
+      # Publishes whenever package.json's version differs from what's already live on npm (see
+      # .github/scripts/compare-versions.mjs for the exact rule and its tradeoffs). For cli,
+      # `npm publish` also runs its own `prepack` hook first (bundle-registry.mjs), which needs
+      # the full repo checkout's registry/ to still be present — true here, actions/checkout
+      # fetches the whole repo by default.
+      - name: Compare versions
+        id: version-check
+        working-directory: ${{ matrix.package.dir }}
+        run: |
+          LOCAL_VERSION=$(node -p "require('./package.json').version")
+          PKG_NAME=$(node -p "require('./package.json').name")
+          PUBLISHED_VERSION=$(npm view "$PKG_NAME" version 2>/dev/null || echo "")
+          node ../../.github/scripts/compare-versions.mjs "$LOCAL_VERSION" "$PUBLISHED_VERSION"
+
+      - name: Publish to npm
+        if: steps.version-check.outputs.skip == 'false'
+        working-directory: ${{ matrix.package.dir }}
+        run: npm publish --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
