@@ -12,8 +12,9 @@ the backend API reference, the admin console internals, and development workflow
 
 No clone needed — the CLI is [published on npm](https://www.npmjs.com/package/@simple-auth-kit/cli)
 with the registry it installs from bundled in. Add `--workspaces` to any of these for the
-workspaces variant. `npx @simple-auth-kit/cli` alone prints the full command reference;
-`npx @simple-auth-kit/cli update` later re-syncs whatever you installed, no arguments needed.
+workspaces variant. `npx @simple-auth-kit/cli` alone, in a real terminal, launches a guided
+picker (`--help` prints the full command reference instead); `npx @simple-auth-kit/cli update`
+later re-syncs whatever you installed, no arguments needed.
 Full details: [`docs/cli.md`](docs/cli.md).
 
 **`api` — merges into `src/lib/auth` of an existing project:**

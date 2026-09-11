@@ -43,7 +43,7 @@ const KIND_LABELS: Record<Kind, string> = { api: "API (backend)", admin: "Admin 
 const KIND_FRAMEWORK_NOUN: Record<Kind, string> = { api: "API stack", admin: "admin framework", mobile: "mobile framework" };
 
 /** Flags that take no value. Everything else consumes the next argv entry. */
-const BOOLEAN_FLAGS = new Set(["workspaces", "force", "check", "config-only", "skip-install"]);
+const BOOLEAN_FLAGS = new Set(["workspaces", "force", "check", "config-only", "skip-install", "help"]);
 
 interface SimpleAuthKitConfig {
   path: string;
@@ -785,9 +785,46 @@ async function cmdDiff(targetRoot: string) {
   }
 }
 
+async function printUsage(exitCode: number) {
+  const registry = await loadRegistry();
+  console.log("Usage: simple-auth-kit <init|add|update|diff> [...]");
+  console.log(`  init [--config-only] [--kind ...] [--into <path>]  (fresh setup: guided "what do you need" picker, like bare "add")`);
+  console.log(`      --config-only: just write .simple-auth-kit.json and stop, no install`);
+  console.log(`  add <combo> [--workspaces] [--force] [--skip-install] [--into <path>] [--path <dir>] [--alias <alias>]`);
+  console.log(`  add [--kind api,admin,mobile] [--framework <name>,...] [--workspaces] [--into <path>] [--name <appName>]`);
+  console.log(`      (bare "add", or "add" with --kind but no combo, launches a guided prompt for whatever's missing)`);
+  console.log(`  update [--check] [--force] [--skip-install] [--into <path>]  (re-installs whatever combo+variant auth.lock.json already records)`);
+  console.log(`      --check: report what would change, without writing anything (merge-mode combos only)`);
+  console.log(`  diff [--into <path>]  (shows the actual content diff for every tracked file that differs from the current registry — read-only; merge-mode combos only)`);
+  console.log(`  In a TTY, without --force or --check: a file changed locally since install prompts to overwrite, per file.`);
+  console.log(`  --skip-install: don't run the package manager after copying files — the default is to install for you, shadcn-\`add\`-style.`);
+  console.log(`  --pm <npm|pnpm|yarn|bun>: which package manager to install with — default: detected from a lockfile in the target directory, npm if none found.`);
+  console.log(`\nAvailable combos:`);
+  for (const kind of ["api", "admin", "mobile"] as Kind[]) {
+    const names = combosByKind(registry, kind).map(([name]) => name);
+    if (names.length) console.log(`  ${KIND_LABELS[kind]}: ${names.join(", ")}`);
+  }
+  console.log(`\nVariants (choose one at install time):`);
+  for (const [name, variant] of Object.entries(registry.variants)) {
+    console.log(`  ${name}${variant.flag ? ` (${variant.flag})` : " (default)"} — ${variant.description}`);
+  }
+  process.exitCode = exitCode;
+}
+
 async function main() {
   const { command, positional, flags } = parseArgs(process.argv.slice(2));
   const targetRoot = resolve(process.cwd(), flagString(flags.into) ?? ".");
+
+  if (command === "--help" || command === "-h" || command === "help" || flags.help === true) {
+    await printUsage(0);
+    return;
+  }
+  if (!command && isTTY()) {
+    // Bare `npx @simple-auth-kit/cli` in a real terminal — go straight to the guided picker
+    // (same flow as `add` with no combo) instead of just printing help text.
+    await cmdCreate(targetRoot, flags);
+    return;
+  }
 
   switch (command) {
     case "init":
@@ -809,31 +846,8 @@ async function main() {
     case "diff":
       await cmdDiff(targetRoot);
       break;
-    default: {
-      const registry = await loadRegistry();
-      console.log("Usage: simple-auth-kit <init|add|update|diff> [...]");
-      console.log(`  init [--config-only] [--kind ...] [--into <path>]  (fresh setup: guided "what do you need" picker, like bare "add")`);
-      console.log(`      --config-only: just write .simple-auth-kit.json and stop, no install`);
-      console.log(`  add <combo> [--workspaces] [--force] [--skip-install] [--into <path>] [--path <dir>] [--alias <alias>]`);
-      console.log(`  add [--kind api,admin,mobile] [--framework <name>,...] [--workspaces] [--into <path>] [--name <appName>]`);
-      console.log(`      (bare "add", or "add" with --kind but no combo, launches a guided prompt for whatever's missing)`);
-      console.log(`  update [--check] [--force] [--skip-install] [--into <path>]  (re-installs whatever combo+variant auth.lock.json already records)`);
-      console.log(`      --check: report what would change, without writing anything (merge-mode combos only)`);
-      console.log(`  diff [--into <path>]  (shows the actual content diff for every tracked file that differs from the current registry — read-only; merge-mode combos only)`);
-      console.log(`  In a TTY, without --force or --check: a file changed locally since install prompts to overwrite, per file.`);
-      console.log(`  --skip-install: don't run the package manager after copying files — the default is to install for you, shadcn-\`add\`-style.`);
-      console.log(`  --pm <npm|pnpm|yarn|bun>: which package manager to install with — default: detected from a lockfile in the target directory, npm if none found.`);
-      console.log(`\nAvailable combos:`);
-      for (const kind of ["api", "admin", "mobile"] as Kind[]) {
-        const names = combosByKind(registry, kind).map(([name]) => name);
-        if (names.length) console.log(`  ${KIND_LABELS[kind]}: ${names.join(", ")}`);
-      }
-      console.log(`\nVariants (choose one at install time):`);
-      for (const [name, variant] of Object.entries(registry.variants)) {
-        console.log(`  ${name}${variant.flag ? ` (${variant.flag})` : " (default)"} — ${variant.description}`);
-      }
-      process.exitCode = command ? 1 : 0;
-    }
+    default:
+      await printUsage(command ? 1 : 0);
   }
 }
 

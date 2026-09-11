@@ -22,7 +22,8 @@ npx @simple-auth-kit/cli add <combo> [--workspaces]  # install a specific combo
 npx @simple-auth-kit/cli add                         # guided picker, same flow as init (no config write)
 npx @simple-auth-kit/cli update [--check]             # re-installs whatever add last recorded — no args needed
 npx @simple-auth-kit/cli diff                         # shows the actual content diff for every file that differs from the registry (api combos only)
-npx @simple-auth-kit/cli                              # full command/flag reference + available combos
+npx @simple-auth-kit/cli                              # bare, in a real terminal: same guided picker as `add`
+npx @simple-auth-kit/cli --help                       # full command/flag reference + available combos
 ```
 
 `--into <path>` targets any directory (defaults to the current one). In a real terminal,

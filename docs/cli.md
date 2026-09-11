@@ -16,9 +16,11 @@ npx @simple-auth-kit/cli add nestjs-prisma      # or any other combo, optionally
 npx @simple-auth-kit/cli update                 # later: re-syncs whatever add installed, no args needed
 ```
 
-No `--into` needed — it already defaults to the current directory. `npx @simple-auth-kit/cli`
-alone prints the full command/combo reference; `add` with no combo name launches a guided prompt
-(pick kind, framework, variant) instead of requiring every flag up front. See
+No `--into` needed — it already defaults to the current directory. Run `npx @simple-auth-kit/cli`
+with no arguments in a real terminal and it goes straight into a guided prompt (pick kind,
+framework, variant) instead of requiring every flag up front — same flow as `add` with no combo
+name. Outside a TTY (scripts/CI), a bare invocation instead prints the full command/combo
+reference; pass `--help` to get that reference on demand from a real terminal too. See
 `docs/cli-generation-guide.html` for a fully-verified walkthrough of all 16 combo×variant
 combinations, real terminal output included.
 
