@@ -1,15 +1,40 @@
 import { createHash } from "node:crypto";
-import { mkdir, readdir, readFile, rm, rmdir, writeFile } from "node:fs/promises";
+import {
+  mkdir,
+  readdir,
+  readFile,
+  rm,
+  rmdir,
+  writeFile,
+} from "node:fs/promises";
 import { dirname, join, relative, resolve, sep } from "node:path";
 
 // Never copied out of the registry: build output, the registry's own package/tsconfig wiring,
 // and the per-variant test harness. A consumer gets source, not this repo's scaffolding.
-export const NEVER_COPY = new Set(["node_modules", "dist", "generated", "test", "scripts", ".variant", "package.json", "tsconfig.json", ".env"]);
+export const NEVER_COPY = new Set([
+  "node_modules",
+  "dist",
+  "generated",
+  "test",
+  "scripts",
+  ".variant",
+  "package.json",
+  "tsconfig.json",
+  ".env",
+]);
 
 // For "scaffold" installs (admin/mobile apps materialized as whole standalone projects, not
 // merged into an existing one): package.json/tsconfig.json are real, consumer-facing content
 // here, not the registry's own dev wiring, so they're copied like any other file.
-export const SCAFFOLD_NEVER_COPY = new Set(["node_modules", "dist", "generated", "test", "scripts", ".variant", ".env"]);
+export const SCAFFOLD_NEVER_COPY = new Set([
+  "node_modules",
+  "dist",
+  "generated",
+  "test",
+  "scripts",
+  ".variant",
+  ".env",
+]);
 
 export interface CopyOptions {
   /**
@@ -79,7 +104,8 @@ export interface CopyResult {
   updated: string[];
 }
 
-export const sha256 = (content: string) => createHash("sha256").update(content).digest("hex");
+export const sha256 = (content: string) =>
+  createHash("sha256").update(content).digest("hex");
 export const toPosix = (path: string) => path.split(sep).join("/");
 
 async function readIfExists(path: string): Promise<string | null> {
@@ -90,7 +116,13 @@ async function readIfExists(path: string): Promise<string | null> {
   }
 }
 
-export async function copyOneFile(srcPath: string, destPath: string, destRoot: string, opts: CopyOptions, result: CopyResult): Promise<void> {
+export async function copyOneFile(
+  srcPath: string,
+  destPath: string,
+  destRoot: string,
+  opts: CopyOptions,
+  result: CopyResult,
+): Promise<void> {
   const rel = toPosix(relative(destRoot, destPath));
 
   if (opts.ignore?.includes(rel)) {
@@ -113,7 +145,12 @@ export async function copyOneFile(srcPath: string, destPath: string, destRoot: s
   const existing = await readIfExists(destPath);
   const recorded = opts.previous?.[rel];
   const forced = opts.force || opts.forcePaths?.has(rel);
-  if (!forced && existing !== null && recorded !== undefined && sha256(existing) !== recorded) {
+  if (
+    !forced &&
+    existing !== null &&
+    recorded !== undefined &&
+    sha256(existing) !== recorded
+  ) {
     result.skipped.push(rel);
     result.manifest[rel] = sha256(existing);
     return;
@@ -127,7 +164,11 @@ export async function copyOneFile(srcPath: string, destPath: string, destRoot: s
 
   result.updated.push(rel);
   result.manifest[rel] = newHash;
-  opts.collectDiffs?.push({ path: rel, oldContent: existing, newContent: content });
+  opts.collectDiffs?.push({
+    path: rel,
+    oldContent: existing,
+    newContent: content,
+  });
   if (opts.dryRun) return;
 
   await mkdir(dirname(destPath), { recursive: true });
@@ -135,15 +176,31 @@ export async function copyOneFile(srcPath: string, destPath: string, destRoot: s
 }
 
 /** Recursively copies srcDir into destDir, rewriting the placeholder core import alias in .ts files. */
-export async function copyDir(srcDir: string, destDir: string, opts: CopyOptions, destRoot: string = destDir, result?: CopyResult): Promise<CopyResult> {
-  const acc: CopyResult = result ?? { manifest: {}, skipped: [], ignored: [], updated: [] };
+export async function copyDir(
+  srcDir: string,
+  destDir: string,
+  opts: CopyOptions,
+  destRoot: string = destDir,
+  result?: CopyResult,
+): Promise<CopyResult> {
+  const acc: CopyResult = result ?? {
+    manifest: {},
+    skipped: [],
+    ignored: [],
+    updated: [],
+  };
   const skipNames = opts.neverCopy ?? NEVER_COPY;
   const entries = await readdir(srcDir, { withFileTypes: true });
 
   for (const entry of entries) {
     if (skipNames.has(entry.name)) continue;
     const srcPath = join(srcDir, entry.name);
-    const destPath = join(destDir, entry.name);
+    // Registry sources name this "gitignore" (no leading dot) because `npm publish` silently
+    // drops every literal `.gitignore` file from the package — a well-known npm packing quirk,
+    // not specific to this file. Renamed back to `.gitignore` only on the way out, so a
+    // consumer's scaffolded project still gets a real one.
+    const destName = entry.name === "gitignore" ? ".gitignore" : entry.name;
+    const destPath = join(destDir, destName);
 
     if (entry.isDirectory()) {
       await copyDir(srcPath, destPath, opts, destRoot, acc);
