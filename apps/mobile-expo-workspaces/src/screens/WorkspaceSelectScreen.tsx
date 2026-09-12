@@ -99,7 +99,7 @@ export function WorkspaceSelectScreen({ mode }: { mode: WorkspaceSelectMode }) {
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
         ListEmptyComponent={
           <Text className="text-sm text-[#666] mb-2">
-            You're not a member of any workspace yet. Create the first one below — you'll be its admin.
+            You&apos;re not a member of any workspace yet. Create the first one below — you&apos;ll be its admin.
           </Text>
         }
         renderItem={({ item }) => (

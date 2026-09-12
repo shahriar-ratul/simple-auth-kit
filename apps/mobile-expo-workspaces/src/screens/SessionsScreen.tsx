@@ -1,30 +1,19 @@
 import React, { useCallback, useEffect, useState } from "react";
 import { ActivityIndicator, FlatList, Pressable, RefreshControl, Text, View } from "react-native";
-import { AuthApiError, type SessionSummary } from "@simple-auth-kit/auth-client";
-import { authClient } from "../api/authClient";
 import { useAuthStore } from "../store/authStore";
+import { useSessionsStore } from "../store/sessionsStore";
 
 export function SessionsScreen() {
-  const [sessions, setSessions] = useState<SessionSummary[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const sessions = useSessionsStore((state) => state.sessions);
+  const isLoading = useSessionsStore((state) => state.isLoading);
+  const error = useSessionsStore((state) => state.error);
+  const load = useSessionsStore((state) => state.load);
   const [refreshing, setRefreshing] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const logoutAll = useAuthStore((state) => state.logoutAll);
   const isSubmitting = useAuthStore((state) => state.isSubmitting);
 
-  const load = useCallback(async () => {
-    setError(null);
-    try {
-      const result = await authClient.sessions();
-      setSessions(result);
-    } catch (err) {
-      setError(err instanceof AuthApiError ? err.message : "Failed to load sessions.");
-    }
-  }, []);
-
   useEffect(() => {
-    setIsLoading(true);
-    load().finally(() => setIsLoading(false));
+    load();
   }, [load]);
 
   const onRefresh = useCallback(async () => {

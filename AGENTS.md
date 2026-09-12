@@ -248,10 +248,15 @@ express-prisma, express-drizzle` order); `admin-nextjs` `3000`/`3010`; `admin-re
 - **`packages/auth-client` is consumed from `dist/`.** After changing it:
   `npm run typecheck && npm test && npm run build`. If an app can't see a new method, it's a
   stale `dist/` or a cached `tsconfig.tsbuildinfo` (delete it).
-- **No repo-wide linter/formatter.** Only `apps/mobile-bare-rn[-workspaces]` has a real toolchain
-  (`.eslintrc.js` extends `@react-native`, classic ESLint 8 config + Prettier 2.8.8, sourced from
-  `registry/mobile-apps/bare-rn/shared/`). A `biome-ignore-all` comment survives in 5 copies of one
-  shadcn-generated `multi-selector.tsx` — harmless, Biome isn't installed anywhere.
+- **No repo-wide linter/formatter.** The 4 mobile apps each have a real ESLint 9 flat-config
+  toolchain: `apps/mobile-bare-rn[-workspaces]` uses `@react-native/eslint-config/flat` (sourced
+  from `registry/mobile-apps/bare-rn/shared/eslint.config.js`) + Prettier 3; `apps/mobile-expo[-workspaces]`
+  uses `eslint-config-expo/flat`, version-matched to the pinned Expo SDK the same way
+  `@react-native/eslint-config` is version-matched to the pinned `react-native` (sourced from
+  `registry/mobile-apps/expo/shared/eslint.config.js`) + Prettier 3. Run `npm run lint` in either
+  app. No admin console or other package has a wired-up linter. A `biome-ignore-all` comment
+  survives in 5 copies of one shadcn-generated `multi-selector.tsx` — harmless, Biome isn't
+  installed anywhere.
   **Known gap**: `apps/admin-nextjs[-workspaces]` declare `"lint": "next lint"` with no `eslint`
   dependency or config anywhere in the app — don't rely on that script; it isn't wired up.
 - **Combo dev loops need Postgres at `localhost:55432`** directly (passwordless `postgres`

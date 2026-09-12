@@ -10,6 +10,7 @@ allowBuilds:
   argon2: true
   esbuild: true
   prisma: true
+  unrs-resolver: true
 
 # This repo publishes its own packages (@simple-auth-kit/auth-client, @simple-auth-kit/cli) and
 # immediately re-installs them elsewhere in the same repo (apps/*, examples/*) — pnpm's default
