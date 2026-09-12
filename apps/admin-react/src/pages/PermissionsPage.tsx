@@ -1,6 +1,15 @@
-import { type FormEvent, useCallback, useEffect, useState } from "react";
+import {
+  type FormEvent,
+  startTransition,
+  useCallback,
+  useEffect,
+  useState,
+} from "react";
 import { Link } from "react-router-dom";
-import type { DefinePermissionInput, PermissionSummary } from "@simple-auth-kit/auth-client";
+import type {
+  DefinePermissionInput,
+  PermissionSummary,
+} from "@simple-auth-kit/auth-client";
 import { AuthApiError } from "@simple-auth-kit/auth-client";
 import { EyeIcon, PowerIcon } from "lucide-react";
 import { toast } from "sonner";
@@ -14,10 +23,18 @@ import { Label } from "@/components/ui/label";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Modal } from "@/components/ui/modal";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 
 /** One dialog serves both create (slug editable) and edit (slug fixed) — `definePermission` upserts on slug. */
-export type DialogState = { mode: "create" } | { mode: "edit"; permission: PermissionSummary };
+export type DialogState =
+  { mode: "create" } | { mode: "edit"; permission: PermissionSummary };
 
 interface PermissionGroup {
   name: string;
@@ -51,7 +68,8 @@ export function PermissionsPage() {
   const [error, setError] = useState<string | null>(null);
   const [dialogState, setDialogState] = useState<DialogState | null>(null);
   const [confirmOpen, setConfirmOpen] = useState(false);
-  const [pendingPermission, setPendingPermission] = useState<PermissionSummary | null>(null);
+  const [pendingPermission, setPendingPermission] =
+    useState<PermissionSummary | null>(null);
   const [pendingBusy, setPendingBusy] = useState(false);
 
   const load = useCallback(async () => {
@@ -60,14 +78,18 @@ export function PermissionsPage() {
     try {
       setPermissions(await authClient.listPermissions());
     } catch (err) {
-      setError(err instanceof AuthApiError ? err.message : "Couldn't load permissions. Check that the backend is running, then try again.");
+      setError(
+        err instanceof AuthApiError
+          ? err.message
+          : "Couldn't load permissions. Check that the backend is running, then try again.",
+      );
     } finally {
       setLoading(false);
     }
   }, []);
 
   useEffect(() => {
-    void load();
+    startTransition(() => void load());
   }, [load]);
 
   function openStatusConfirm(permission: PermissionSummary) {
@@ -79,13 +101,26 @@ export function PermissionsPage() {
     if (!pendingPermission) return;
     setPendingBusy(true);
     try {
-      const updated = await authClient.definePermission({ slug: pendingPermission.slug, isActive: !pendingPermission.isActive });
-      setPermissions((prev) => prev.map((p) => (p.id === updated.id ? updated : p)));
-      toast.success(pendingPermission.isActive ? "Permission deactivated." : "Permission activated.");
+      const updated = await authClient.definePermission({
+        slug: pendingPermission.slug,
+        isActive: !pendingPermission.isActive,
+      });
+      setPermissions((prev) =>
+        prev.map((p) => (p.id === updated.id ? updated : p)),
+      );
+      toast.success(
+        pendingPermission.isActive
+          ? "Permission deactivated."
+          : "Permission activated.",
+      );
       setConfirmOpen(false);
       setPendingPermission(null);
     } catch (err) {
-      toast.error(err instanceof AuthApiError ? err.message : "Couldn't change this permission's status. Try again.");
+      toast.error(
+        err instanceof AuthApiError
+          ? err.message
+          : "Couldn't change this permission's status. Try again.",
+      );
     } finally {
       setPendingBusy(false);
     }
@@ -98,9 +133,16 @@ export function PermissionsPage() {
       <div className="flex items-start justify-between gap-4">
         <div>
           <h1 className="text-2xl font-semibold">Permissions</h1>
-          <p className="text-sm text-muted-foreground">The full capability catalog, grouped the way the console reads it elsewhere.</p>
+          <p className="text-sm text-muted-foreground">
+            The full capability catalog, grouped the way the console reads it
+            elsewhere.
+          </p>
         </div>
-        {canDefine ? <Button onClick={() => setDialogState({ mode: "create" })}>New permission</Button> : null}
+        {canDefine ? (
+          <Button onClick={() => setDialogState({ mode: "create" })}>
+            New permission
+          </Button>
+        ) : null}
       </div>
 
       <AlertModal
@@ -117,16 +159,22 @@ export function PermissionsPage() {
 
       <Card>
         <CardContent className="pt-6">
-          {error ? <p className="mb-4 text-sm text-destructive">{error}</p> : null}
+          {error ? (
+            <p className="mb-4 text-sm text-destructive">{error}</p>
+          ) : null}
           {loading ? (
             <p className="text-sm text-muted-foreground">Loading…</p>
           ) : permissions.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No permissions defined yet.</p>
+            <p className="text-sm text-muted-foreground">
+              No permissions defined yet.
+            </p>
           ) : (
             <div className="flex flex-col gap-6">
               {groups.map((group) => (
                 <div key={group.name}>
-                  <h2 className="mb-2 text-sm font-semibold text-muted-foreground">{group.name}</h2>
+                  <h2 className="mb-2 text-sm font-semibold text-muted-foreground">
+                    {group.name}
+                  </h2>
                   <Table>
                     <TableHeader>
                       <TableRow>
@@ -140,19 +188,37 @@ export function PermissionsPage() {
                     <TableBody>
                       {group.permissions.map((permission) => (
                         <TableRow key={permission.id}>
-                          <TableCell className="font-mono text-xs">{permission.slug}</TableCell>
-                          <TableCell className="font-medium">{permission.displayName}</TableCell>
-                          <TableCell className="max-w-xs truncate text-muted-foreground" title={permission.description ?? undefined}>
+                          <TableCell className="font-mono text-xs">
+                            {permission.slug}
+                          </TableCell>
+                          <TableCell className="font-medium">
+                            {permission.displayName}
+                          </TableCell>
+                          <TableCell
+                            className="max-w-xs truncate text-muted-foreground"
+                            title={permission.description ?? undefined}
+                          >
                             {permission.description ?? "—"}
                           </TableCell>
                           <TableCell>
-                            <Badge variant={permission.isActive ? "success" : "destructive"}>{permission.isActive ? "Active" : "Inactive"}</Badge>
+                            <Badge
+                              variant={
+                                permission.isActive ? "success" : "destructive"
+                              }
+                            >
+                              {permission.isActive ? "Active" : "Inactive"}
+                            </Badge>
                           </TableCell>
                           <TableCell className="text-right">
                             <div className="flex justify-end gap-2">
                               <Link
                                 to={`/permissions/${permission.id}`}
-                                className={cn(buttonVariants({ variant: "outline", size: "icon" }))}
+                                className={cn(
+                                  buttonVariants({
+                                    variant: "outline",
+                                    size: "icon",
+                                  }),
+                                )}
                                 title="View details"
                               >
                                 <EyeIcon />
@@ -162,12 +228,27 @@ export function PermissionsPage() {
                                   <Button
                                     size="icon"
                                     variant="outline"
-                                    title={permission.isActive ? "Deactivate this permission" : "Activate this permission"}
-                                    onClick={() => openStatusConfirm(permission)}
+                                    title={
+                                      permission.isActive
+                                        ? "Deactivate this permission"
+                                        : "Activate this permission"
+                                    }
+                                    onClick={() =>
+                                      openStatusConfirm(permission)
+                                    }
                                   >
                                     <PowerIcon />
                                   </Button>
-                                  <Button size="sm" variant="outline" onClick={() => setDialogState({ mode: "edit", permission })}>
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() =>
+                                      setDialogState({
+                                        mode: "edit",
+                                        permission,
+                                      })
+                                    }
+                                  >
                                     Edit
                                   </Button>
                                 </>
@@ -221,7 +302,11 @@ export function DefinePermissionDialog({
   const [submitting, setSubmitting] = useState(false);
   const [loadedFor, setLoadedFor] = useState<string | null>(null);
 
-  const key = state ? (state.mode === "edit" ? state.permission.id : "__create__") : null;
+  const key = state
+    ? state.mode === "edit"
+      ? state.permission.id
+      : "__create__"
+    : null;
 
   // Seed from the permission being edited (or blank, for create), once per open.
   if (state && loadedFor !== key) {
@@ -258,7 +343,11 @@ export function DefinePermissionDialog({
       const permission = await authClient.definePermission(input);
       onSaved(permission);
     } catch (err) {
-      setError(err instanceof AuthApiError ? err.message : "Couldn't save the permission. Try again.");
+      setError(
+        err instanceof AuthApiError
+          ? err.message
+          : "Couldn't save the permission. Try again.",
+      );
     } finally {
       setSubmitting(false);
     }
@@ -294,15 +383,29 @@ export function DefinePermissionDialog({
         </div>
         <div className="flex flex-col gap-1.5">
           <Label htmlFor="permission-displayName">Display name</Label>
-          <Input id="permission-displayName" value={displayName} onChange={(e) => setDisplayName(e.target.value)} placeholder="Defaults to the slug" />
+          <Input
+            id="permission-displayName"
+            value={displayName}
+            onChange={(e) => setDisplayName(e.target.value)}
+            placeholder="Defaults to the slug"
+          />
         </div>
         <div className="flex flex-col gap-1.5">
           <Label htmlFor="permission-description">Description</Label>
-          <Input id="permission-description" value={description} onChange={(e) => setDescription(e.target.value)} />
+          <Input
+            id="permission-description"
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+          />
         </div>
         <div className="flex flex-col gap-1.5">
           <Label htmlFor="permission-group">Group</Label>
-          <Input id="permission-group" value={group} onChange={(e) => setGroup(e.target.value)} placeholder='Defaults to "Custom"' />
+          <Input
+            id="permission-group"
+            value={group}
+            onChange={(e) => setGroup(e.target.value)}
+            placeholder='Defaults to "Custom"'
+          />
         </div>
         {state?.mode === "edit" ? (
           <div className="flex items-center gap-2">

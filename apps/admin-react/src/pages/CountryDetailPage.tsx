@@ -1,6 +1,9 @@
-import { useCallback, useEffect, useState } from "react";
+import { startTransition, useCallback, useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import { AuthApiError, type CountrySummary } from "@simple-auth-kit/auth-client";
+import {
+  AuthApiError,
+  type CountrySummary,
+} from "@simple-auth-kit/auth-client";
 import { format } from "date-fns";
 import { PencilIcon } from "lucide-react";
 import { toast } from "sonner";
@@ -11,7 +14,13 @@ import { Breadcrumb } from "@/components/breadcrumb";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Modal } from "@/components/ui/modal";
 
 function apiErrorMessage(err: unknown, fallback: string): string {
@@ -52,7 +61,7 @@ export function CountryDetailPage() {
   }, [id]);
 
   useEffect(() => {
-    void load();
+    startTransition(() => void load());
   }, [load]);
 
   async function toggleActive() {
@@ -61,10 +70,19 @@ export function CountryDetailPage() {
     try {
       if (country.isActive) await authClient.deactivateCountry(id);
       else await authClient.activateCountry(id);
-      setCountry((prev) => (prev ? { ...prev, isActive: !prev.isActive } : prev));
-      toast.success(country.isActive ? "Country deactivated." : "Country activated.");
+      setCountry((prev) =>
+        prev ? { ...prev, isActive: !prev.isActive } : prev,
+      );
+      toast.success(
+        country.isActive ? "Country deactivated." : "Country activated.",
+      );
     } catch (err) {
-      toast.error(apiErrorMessage(err, "Couldn't change this country's status. Try again."));
+      toast.error(
+        apiErrorMessage(
+          err,
+          "Couldn't change this country's status. Try again.",
+        ),
+      );
     } finally {
       setStatusPending(false);
     }
@@ -74,9 +92,16 @@ export function CountryDetailPage() {
 
   return (
     <div className="flex flex-col gap-4">
-      <Breadcrumb items={[{ title: "Countries", href: "/countries" }, { title: country?.name ?? "Details", href: `/countries/${id}` }]} />
+      <Breadcrumb
+        items={[
+          { title: "Countries", href: "/countries" },
+          { title: country?.name ?? "Details", href: `/countries/${id}` },
+        ]}
+      />
 
-      {loading && !country && <p className="text-sm text-muted-foreground">Loading…</p>}
+      {loading && !country && (
+        <p className="text-sm text-muted-foreground">Loading…</p>
+      )}
 
       {country && (
         <>
@@ -87,15 +112,25 @@ export function CountryDetailPage() {
                   {country.emoji} {country.name}
                 </CardTitle>
                 <CardDescription>
-                  Created: {format(new Date(country.createdAt), "dd MMM yyyy")} · Updated: {format(new Date(country.updatedAt), "dd MMM yyyy")}
+                  Created: {format(new Date(country.createdAt), "dd MMM yyyy")}{" "}
+                  · Updated:{" "}
+                  {format(new Date(country.updatedAt), "dd MMM yyyy")}
                 </CardDescription>
               </div>
               <div className="flex items-center gap-1.5">
-                <Badge variant={country.isActive ? "success" : "destructive"}>{country.isActive ? "Active" : "Inactive"}</Badge>
+                <Badge variant={country.isActive ? "success" : "destructive"}>
+                  {country.isActive ? "Active" : "Inactive"}
+                </Badge>
                 <Link
                   to={`/countries/${id}/edit`}
-                  className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
-                  title={canManage ? undefined : `You need the "${PERMISSIONS.countriesManage}" permission to do this.`}
+                  className={cn(
+                    buttonVariants({ variant: "outline", size: "sm" }),
+                  )}
+                  title={
+                    canManage
+                      ? undefined
+                      : `You need the "${PERMISSIONS.countriesManage}" permission to do this.`
+                  }
                   aria-disabled={!canManage}
                   onClick={(e) => !canManage && e.preventDefault()}
                 >
@@ -106,8 +141,16 @@ export function CountryDetailPage() {
             </CardHeader>
             <CardContent className="flex flex-col gap-4">
               <Avatar className="size-16 rounded-md">
-                {country.flag && <AvatarImage src={country.flag} alt="" className="object-cover" />}
-                <AvatarFallback className="rounded-md text-2xl">{country.emoji || "?"}</AvatarFallback>
+                {country.flag && (
+                  <AvatarImage
+                    src={country.flag}
+                    alt=""
+                    className="object-cover"
+                  />
+                )}
+                <AvatarFallback className="rounded-md text-2xl">
+                  {country.emoji || "?"}
+                </AvatarFallback>
               </Avatar>
 
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -129,7 +172,11 @@ export function CountryDetailPage() {
               <Button
                 variant={country.isActive ? "destructive" : "outline"}
                 disabled={!canStatus || statusPending}
-                title={canStatus ? undefined : `You need the "${PERMISSIONS.countriesStatus}" permission to do this.`}
+                title={
+                  canStatus
+                    ? undefined
+                    : `You need the "${PERMISSIONS.countriesStatus}" permission to do this.`
+                }
                 onClick={() => void toggleActive()}
               >
                 {country.isActive ? "Deactivate" : "Activate"}
@@ -138,7 +185,11 @@ export function CountryDetailPage() {
               <Button
                 variant="destructive"
                 disabled={!canManage}
-                title={canManage ? undefined : `You need the "${PERMISSIONS.countriesManage}" permission to do this.`}
+                title={
+                  canManage
+                    ? undefined
+                    : `You need the "${PERMISSIONS.countriesManage}" permission to do this.`
+                }
                 onClick={() => setConfirmingDelete(true)}
               >
                 Delete country
@@ -181,7 +232,9 @@ function DeleteCountryDialog({
       toast.success("Country deleted.");
       onDeleted();
     } catch (err) {
-      toast.error(apiErrorMessage(err, "Couldn't delete this country. Try again."));
+      toast.error(
+        apiErrorMessage(err, "Couldn't delete this country. Try again."),
+      );
     } finally {
       setSubmitting(false);
     }
@@ -196,7 +249,11 @@ function DeleteCountryDialog({
     >
       <div className="flex flex-col gap-4">
         <div className="flex gap-2">
-          <Button variant="destructive" disabled={submitting} onClick={() => void handleDelete()}>
+          <Button
+            variant="destructive"
+            disabled={submitting}
+            onClick={() => void handleDelete()}
+          >
             {submitting ? "Deleting…" : "Delete country"}
           </Button>
           <Button variant="outline" onClick={onClose}>

@@ -3,8 +3,11 @@
 import { useAbility } from "@casl/react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
-import { useCallback, useEffect, useState } from "react";
-import { AuthApiError, type LanguageSummary } from "@simple-auth-kit/auth-client";
+import { startTransition, useCallback, useEffect, useState } from "react";
+import {
+  AuthApiError,
+  type LanguageSummary,
+} from "@simple-auth-kit/auth-client";
 import { format } from "date-fns";
 import { PencilIcon } from "lucide-react";
 import { toast } from "sonner";
@@ -12,7 +15,13 @@ import { Breadcrumb } from "@/components/breadcrumb";
 import { PermissionRequired } from "@/components/permission-required";
 import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import {
   Dialog,
   DialogContent,
@@ -22,7 +31,12 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { PERMISSIONS, hasPermission, missingPermissionHint, type AppAbility } from "@/lib/ability";
+import {
+  PERMISSIONS,
+  hasPermission,
+  missingPermissionHint,
+  type AppAbility,
+} from "@/lib/ability";
 import { authClient } from "@/lib/auth-client";
 
 function apiErrorMessage(err: unknown, fallback: string): string {
@@ -65,20 +79,35 @@ export default function LanguageDetailPage() {
 
   useEffect(() => {
     if (!canRead) return;
-    void load();
+    startTransition(() => void load());
   }, [canRead, load]);
 
-  if (!canRead) return <PermissionRequired permission={PERMISSIONS.languagesRead} what="Language details" />;
+  if (!canRead)
+    return (
+      <PermissionRequired
+        permission={PERMISSIONS.languagesRead}
+        what="Language details"
+      />
+    );
 
   async function toggleActive() {
     if (!language) return;
     try {
       if (language.isActive) await authClient.deactivateLanguage(id);
       else await authClient.activateLanguage(id);
-      setLanguage((prev) => (prev ? { ...prev, isActive: !prev.isActive } : prev));
-      toast.success(language.isActive ? "Language deactivated." : "Language activated.");
+      setLanguage((prev) =>
+        prev ? { ...prev, isActive: !prev.isActive } : prev,
+      );
+      toast.success(
+        language.isActive ? "Language deactivated." : "Language activated.",
+      );
     } catch (err) {
-      toast.error(apiErrorMessage(err, "Couldn't change this language's status. Try again."));
+      toast.error(
+        apiErrorMessage(
+          err,
+          "Couldn't change this language's status. Try again.",
+        ),
+      );
     }
   }
 
@@ -89,7 +118,9 @@ export default function LanguageDetailPage() {
       toast.success("Language deleted.");
       router.push("/languages");
     } catch (err) {
-      toast.error(apiErrorMessage(err, "Couldn't delete this language. Try again."));
+      toast.error(
+        apiErrorMessage(err, "Couldn't delete this language. Try again."),
+      );
       setDeleting(false);
       setDeleteOpen(false);
     }
@@ -97,9 +128,16 @@ export default function LanguageDetailPage() {
 
   return (
     <div className="flex flex-col gap-4">
-      <Breadcrumb items={[{ title: "Languages", href: "/languages" }, { title: language?.name ?? "Details", href: `/languages/${id}` }]} />
+      <Breadcrumb
+        items={[
+          { title: "Languages", href: "/languages" },
+          { title: language?.name ?? "Details", href: `/languages/${id}` },
+        ]}
+      />
 
-      {loading && !language && <p className="text-sm text-muted-foreground">Loading…</p>}
+      {loading && !language && (
+        <p className="text-sm text-muted-foreground">Loading…</p>
+      )}
 
       {language && (
         <>
@@ -108,16 +146,26 @@ export default function LanguageDetailPage() {
               <div>
                 <CardTitle>{language.name}</CardTitle>
                 <CardDescription>
-                  Created: {format(new Date(language.createdAt), "dd MMM yyyy")} · Updated: {format(new Date(language.updatedAt), "dd MMM yyyy")}
+                  Created: {format(new Date(language.createdAt), "dd MMM yyyy")}{" "}
+                  · Updated:{" "}
+                  {format(new Date(language.updatedAt), "dd MMM yyyy")}
                 </CardDescription>
               </div>
               <div className="flex items-center gap-1.5">
-                {language.isDefault && <Badge variant="secondary">Default</Badge>}
-                <Badge variant={language.isActive ? "success" : "destructive"}>{language.isActive ? "Active" : "Inactive"}</Badge>
+                {language.isDefault && (
+                  <Badge variant="secondary">Default</Badge>
+                )}
+                <Badge variant={language.isActive ? "success" : "destructive"}>
+                  {language.isActive ? "Active" : "Inactive"}
+                </Badge>
                 <Link
                   href={`/languages/${id}/edit`}
                   className={buttonVariants({ variant: "outline", size: "sm" })}
-                  title={canManage ? undefined : missingPermissionHint(PERMISSIONS.languagesManage)}
+                  title={
+                    canManage
+                      ? undefined
+                      : missingPermissionHint(PERMISSIONS.languagesManage)
+                  }
                   aria-disabled={!canManage}
                   onClick={(e) => !canManage && e.preventDefault()}
                 >
@@ -131,7 +179,12 @@ export default function LanguageDetailPage() {
                 {field("Name", language.name)}
                 {field("Native name", language.nativeName)}
                 {field("Code", language.code)}
-                {field("Direction", language.direction === "rtl" ? "Right to left (RTL)" : "Left to right (LTR)")}
+                {field(
+                  "Direction",
+                  language.direction === "rtl"
+                    ? "Right to left (RTL)"
+                    : "Left to right (LTR)",
+                )}
                 {field("Default language", language.isDefault ? "Yes" : "No")}
               </div>
             </CardContent>
@@ -145,7 +198,11 @@ export default function LanguageDetailPage() {
               <Button
                 variant={language.isActive ? "destructive" : "outline"}
                 disabled={!canStatus}
-                title={canStatus ? undefined : missingPermissionHint(PERMISSIONS.languagesStatus)}
+                title={
+                  canStatus
+                    ? undefined
+                    : missingPermissionHint(PERMISSIONS.languagesStatus)
+                }
                 onClick={() => void toggleActive()}
               >
                 {language.isActive ? "Deactivate" : "Activate"}
@@ -153,7 +210,15 @@ export default function LanguageDetailPage() {
 
               <Dialog open={deleteOpen} onOpenChange={setDeleteOpen}>
                 <DialogTrigger asChild>
-                  <Button variant="destructive" disabled={!canManage} title={canManage ? undefined : missingPermissionHint(PERMISSIONS.languagesManage)}>
+                  <Button
+                    variant="destructive"
+                    disabled={!canManage}
+                    title={
+                      canManage
+                        ? undefined
+                        : missingPermissionHint(PERMISSIONS.languagesManage)
+                    }
+                  >
                     Delete language
                   </Button>
                 </DialogTrigger>
@@ -161,14 +226,24 @@ export default function LanguageDetailPage() {
                   <DialogHeader>
                     <DialogTitle>Delete {language.name}?</DialogTitle>
                     <DialogDescription>
-                      This soft-deletes the language: it stops appearing in listings and pickers, but the row is kept for audit purposes.
+                      This soft-deletes the language: it stops appearing in
+                      listings and pickers, but the row is kept for audit
+                      purposes.
                     </DialogDescription>
                   </DialogHeader>
                   <DialogFooter>
-                    <Button variant="outline" onClick={() => setDeleteOpen(false)} disabled={deleting}>
+                    <Button
+                      variant="outline"
+                      onClick={() => setDeleteOpen(false)}
+                      disabled={deleting}
+                    >
                       Cancel
                     </Button>
-                    <Button variant="destructive" onClick={() => void handleDelete()} disabled={deleting}>
+                    <Button
+                      variant="destructive"
+                      onClick={() => void handleDelete()}
+                      disabled={deleting}
+                    >
                       {deleting ? "Deleting…" : "Delete language"}
                     </Button>
                   </DialogFooter>

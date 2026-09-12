@@ -3,15 +3,24 @@
 import { useAbility } from "@casl/react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { useCallback, useEffect, useState } from "react";
-import { AuthApiError, type PermissionSummary } from "@simple-auth-kit/auth-client";
+import { startTransition, useCallback, useEffect, useState } from "react";
+import {
+  AuthApiError,
+  type PermissionSummary,
+} from "@simple-auth-kit/auth-client";
 import { PencilIcon } from "lucide-react";
 import { toast } from "sonner";
 import { Breadcrumb } from "@/components/breadcrumb";
 import { PermissionRequired } from "@/components/permission-required";
 import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { PERMISSIONS, hasPermission, type AppAbility } from "@/lib/ability";
 import { authClient } from "@/lib/auth-client";
 
@@ -52,27 +61,57 @@ export default function PermissionDetailPage() {
 
   useEffect(() => {
     if (!canRead) return;
-    void load();
+    startTransition(() => void load());
   }, [canRead, load]);
 
-  if (!canRead) return <PermissionRequired permission={PERMISSIONS.permissionsRead} what="Permission details" />;
+  if (!canRead)
+    return (
+      <PermissionRequired
+        permission={PERMISSIONS.permissionsRead}
+        what="Permission details"
+      />
+    );
 
   async function toggleActive() {
     if (!permission) return;
     try {
-      await authClient.definePermission({ slug: permission.slug, isActive: !permission.isActive });
-      setPermission((prev) => (prev ? { ...prev, isActive: !prev.isActive } : prev));
-      toast.success(permission.isActive ? "Permission deactivated." : "Permission activated.");
+      await authClient.definePermission({
+        slug: permission.slug,
+        isActive: !permission.isActive,
+      });
+      setPermission((prev) =>
+        prev ? { ...prev, isActive: !prev.isActive } : prev,
+      );
+      toast.success(
+        permission.isActive
+          ? "Permission deactivated."
+          : "Permission activated.",
+      );
     } catch (err) {
-      toast.error(apiErrorMessage(err, "Couldn't change this permission's status. Try again."));
+      toast.error(
+        apiErrorMessage(
+          err,
+          "Couldn't change this permission's status. Try again.",
+        ),
+      );
     }
   }
 
   return (
     <div className="flex flex-col gap-4">
-      <Breadcrumb items={[{ title: "Permissions", href: "/permissions" }, { title: permission?.displayName ?? "Details", href: `/permissions/${id}` }]} />
+      <Breadcrumb
+        items={[
+          { title: "Permissions", href: "/permissions" },
+          {
+            title: permission?.displayName ?? "Details",
+            href: `/permissions/${id}`,
+          },
+        ]}
+      />
 
-      {loading && !permission && <p className="text-sm text-muted-foreground">Loading…</p>}
+      {loading && !permission && (
+        <p className="text-sm text-muted-foreground">Loading…</p>
+      )}
 
       {permission && (
         <>
@@ -85,8 +124,15 @@ export default function PermissionDetailPage() {
                 </CardDescription>
               </div>
               <div className="flex items-center gap-1.5">
-                <Badge variant={permission.isActive ? "success" : "destructive"}>{permission.isActive ? "Active" : "Inactive"}</Badge>
-                <Link href={`/permissions/${id}/edit`} className={buttonVariants({ variant: "outline", size: "sm" })}>
+                <Badge
+                  variant={permission.isActive ? "success" : "destructive"}
+                >
+                  {permission.isActive ? "Active" : "Inactive"}
+                </Badge>
+                <Link
+                  href={`/permissions/${id}/edit`}
+                  className={buttonVariants({ variant: "outline", size: "sm" })}
+                >
                   <PencilIcon />
                   Edit
                 </Link>
@@ -107,7 +153,11 @@ export default function PermissionDetailPage() {
               <CardTitle>Danger zone</CardTitle>
             </CardHeader>
             <CardContent className="flex flex-wrap gap-2">
-              <Button variant={permission.isActive ? "destructive" : "outline"} disabled={!canDefine} onClick={() => void toggleActive()}>
+              <Button
+                variant={permission.isActive ? "destructive" : "outline"}
+                disabled={!canDefine}
+                onClick={() => void toggleActive()}
+              >
                 {permission.isActive ? "Deactivate" : "Activate"}
               </Button>
             </CardContent>

@@ -3,18 +3,36 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useAbility } from "@casl/react";
 import { useParams, useRouter } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
+import { startTransition, useEffect, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
-import type { DefinePermissionInput, PermissionSummary } from "@simple-auth-kit/auth-client";
+import type {
+  DefinePermissionInput,
+  PermissionSummary,
+} from "@simple-auth-kit/auth-client";
 import { toast } from "sonner";
 import { Breadcrumb } from "@/components/breadcrumb";
 import { FormErrorAlert } from "@/components/form-error-alert";
 import { PermissionRequired } from "@/components/permission-required";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Combobox, type ComboboxOptions } from "@/components/ui/combobox";
-import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import {
+  Form,
+  FormControl,
+  FormDescription,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
 import { Heading } from "@/components/ui/heading";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
@@ -49,37 +67,48 @@ export default function EditPermissionPage() {
 
   useEffect(() => {
     if (!canDefine) return;
-    setLoading(true);
-    // No single-permission endpoint on the client — load the catalog and find by id.
-    authClient
-      .listPermissions()
-      .then((catalog) => {
-        setPermissions(catalog);
-        const permission = catalog.find((p) => p.id === id) ?? null;
-        setEditing(permission);
-        if (permission) {
-          form.reset({
-            slug: permission.slug,
-            displayName: permission.displayName,
-            description: permission.description ?? "",
-            group: permission.group,
-            groupOrder: permission.groupOrder,
-            order: permission.order,
-            isActive: permission.isActive,
-          });
-        } else {
-          toast.error("Couldn't find this permission.");
-        }
-      })
-      .catch((err) => toast.error(errorMessage(err)))
-      .finally(() => setLoading(false));
+    startTransition(() => {
+      setLoading(true);
+      // No single-permission endpoint on the client — load the catalog and find by id.
+      authClient
+        .listPermissions()
+        .then((catalog) => {
+          setPermissions(catalog);
+          const permission = catalog.find((p) => p.id === id) ?? null;
+          setEditing(permission);
+          if (permission) {
+            form.reset({
+              slug: permission.slug,
+              displayName: permission.displayName,
+              description: permission.description ?? "",
+              group: permission.group,
+              groupOrder: permission.groupOrder,
+              order: permission.order,
+              isActive: permission.isActive,
+            });
+          } else {
+            toast.error("Couldn't find this permission.");
+          }
+        })
+        .catch((err) => toast.error(errorMessage(err)))
+        .finally(() => setLoading(false));
+    });
     // `form` is stable across renders (react-hook-form memoizes it), so it's safe to omit here.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [canDefine, id]);
 
-  const groupOptions = useMemo(() => deriveGroupOptions(permissions), [permissions]);
+  const groupOptions = useMemo(
+    () => deriveGroupOptions(permissions),
+    [permissions],
+  );
 
-  if (!canDefine) return <PermissionRequired permission={PERMISSIONS.permissionsDefine} what="Editing a permission" />;
+  if (!canDefine)
+    return (
+      <PermissionRequired
+        permission={PERMISSIONS.permissionsDefine}
+        what="Editing a permission"
+      />
+    );
 
   function handleGroupSelect(option: ComboboxOptions) {
     form.setValue("group", option.value, { shouldValidate: true });
@@ -119,11 +148,16 @@ export default function EditPermissionPage() {
         ]}
       />
       <div className="flex items-start justify-between">
-        <Heading title="Edit Permission" description="Update permission details" />
+        <Heading
+          title="Edit Permission"
+          description="Update permission details"
+        />
       </div>
       <Separator />
 
-      {loading && !editing && <p className="text-sm text-muted-foreground">Loading…</p>}
+      {loading && !editing && (
+        <p className="text-sm text-muted-foreground">Loading…</p>
+      )}
 
       {editing && (
         <Card>
@@ -131,16 +165,26 @@ export default function EditPermissionPage() {
           <CardContent>
             <FormErrorAlert messages={formError} />
             <Form {...form}>
-              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8 w-full">
+              <form
+                onSubmit={form.handleSubmit(onSubmit)}
+                className="space-y-8 w-full"
+              >
                 <Card className="w-full">
                   <CardHeader className="border-b bg-muted/50">
-                    <CardTitle className="text-2xl">Permission Information</CardTitle>
-                    <CardDescription className="text-base">Editing is an upsert keyed on slug — the slug itself can&apos;t change here</CardDescription>
+                    <CardTitle className="text-2xl">
+                      Permission Information
+                    </CardTitle>
+                    <CardDescription className="text-base">
+                      Editing is an upsert keyed on slug — the slug itself
+                      can&apos;t change here
+                    </CardDescription>
                   </CardHeader>
                   <CardContent className="pt-6">
                     <div className="space-y-6">
                       <div className="space-y-4">
-                        <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Basic Information</h3>
+                        <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
+                          Basic Information
+                        </h3>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                           <FormField
                             control={form.control}
@@ -203,7 +247,9 @@ export default function EditPermissionPage() {
                       </div>
 
                       <div className="space-y-4">
-                        <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Grouping</h3>
+                        <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
+                          Grouping
+                        </h3>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                           <FormField
                             control={form.control}
@@ -238,11 +284,20 @@ export default function EditPermissionPage() {
                                     type="number"
                                     disabled={saving}
                                     value={field.value ?? ""}
-                                    onChange={(e) => field.onChange(e.target.value === "" ? undefined : Number(e.target.value))}
+                                    onChange={(e) =>
+                                      field.onChange(
+                                        e.target.value === ""
+                                          ? undefined
+                                          : Number(e.target.value),
+                                      )
+                                    }
                                     className="bg-background border-2 focus:border-purple-500 transition-colors"
                                   />
                                 </FormControl>
-                                <FormDescription>Derived from the group — override to reorder groups.</FormDescription>
+                                <FormDescription>
+                                  Derived from the group — override to reorder
+                                  groups.
+                                </FormDescription>
                                 <FormMessage />
                               </FormItem>
                             )}
@@ -258,11 +313,20 @@ export default function EditPermissionPage() {
                                     type="number"
                                     disabled={saving}
                                     value={field.value ?? ""}
-                                    onChange={(e) => field.onChange(e.target.value === "" ? undefined : Number(e.target.value))}
+                                    onChange={(e) =>
+                                      field.onChange(
+                                        e.target.value === ""
+                                          ? undefined
+                                          : Number(e.target.value),
+                                      )
+                                    }
                                     className="bg-background border-2 focus:border-purple-500 transition-colors"
                                   />
                                 </FormControl>
-                                <FormDescription>Derived from the group&apos;s existing permissions.</FormDescription>
+                                <FormDescription>
+                                  Derived from the group&apos;s existing
+                                  permissions.
+                                </FormDescription>
                                 <FormMessage />
                               </FormItem>
                             )}
@@ -279,11 +343,21 @@ export default function EditPermissionPage() {
                       render={({ field }) => (
                         <FormItem className="flex flex-row items-center space-x-3 space-y-0 rounded-lg border border-purple-500 bg-purple-50 dark:bg-purple-950/20 p-4">
                           <FormControl>
-                            <Checkbox checked={field.value ?? true} onCheckedChange={(checked) => field.onChange(checked === true)} />
+                            <Checkbox
+                              checked={field.value ?? true}
+                              onCheckedChange={(checked) =>
+                                field.onChange(checked === true)
+                              }
+                            />
                           </FormControl>
                           <div className="space-y-1 leading-none">
-                            <FormLabel className="text-base font-medium">Active Status</FormLabel>
-                            <FormDescription className="text-sm">This permission will be active and can be assigned to roles</FormDescription>
+                            <FormLabel className="text-base font-medium">
+                              Active Status
+                            </FormLabel>
+                            <FormDescription className="text-sm">
+                              This permission will be active and can be assigned
+                              to roles
+                            </FormDescription>
                           </div>
                         </FormItem>
                       )}
@@ -291,10 +365,19 @@ export default function EditPermissionPage() {
                   </div>
 
                   <CardFooter className="flex justify-center gap-4 mt-8 pb-8">
-                    <Button type="button" variant="outline" onClick={() => router.push("/permissions")} disabled={saving}>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => router.push("/permissions")}
+                      disabled={saving}
+                    >
                       Cancel
                     </Button>
-                    <Button disabled={saving} className="bg-purple-600 hover:bg-purple-700 dark:bg-purple-600 dark:hover:bg-purple-700 min-w-32" type="submit">
+                    <Button
+                      disabled={saving}
+                      className="bg-purple-600 hover:bg-purple-700 dark:bg-purple-600 dark:hover:bg-purple-700 min-w-32"
+                      type="submit"
+                    >
                       {saving ? "Updating..." : "Update Permission"}
                     </Button>
                   </CardFooter>

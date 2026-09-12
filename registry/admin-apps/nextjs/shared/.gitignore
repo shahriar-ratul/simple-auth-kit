@@ -6,3 +6,6 @@ next-env.d.ts
 *.tsbuildinfo
 /AGENTS.md
 /CLAUDE.md
+
+# husky-generated shim dir (recreated by the "prepare" script on install)
+.husky/_

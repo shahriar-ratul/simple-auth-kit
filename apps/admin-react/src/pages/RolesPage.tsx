@@ -1,6 +1,16 @@
-import { type FormEvent, useCallback, useEffect, useState } from "react";
+import {
+  type FormEvent,
+  startTransition,
+  useCallback,
+  useEffect,
+  useState,
+} from "react";
 import { Link } from "react-router-dom";
-import type { PermissionSummary, RoleSummary, UserSummary } from "@simple-auth-kit/auth-client";
+import type {
+  PermissionSummary,
+  RoleSummary,
+  UserSummary,
+} from "@simple-auth-kit/auth-client";
 import { AuthApiError, userIdOf } from "@simple-auth-kit/auth-client";
 import { EyeIcon, PowerIcon } from "lucide-react";
 import { toast } from "sonner";
@@ -9,13 +19,26 @@ import { authClient } from "@/lib/auth-client";
 import { cn } from "@/lib/cn";
 import { AlertModal } from "@/components/alert-modal";
 import { PermissionGroupSelect } from "@/components/permission-group-select";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Modal } from "@/components/ui/modal";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 
 function apiErrorMessage(err: unknown, fallback: string): string {
   return err instanceof AuthApiError ? err.message : fallback;
@@ -32,14 +55,22 @@ export function RolesPage() {
   const ability = useAbility();
   const canManageRoles = ability.can(PERMISSIONS.rolesManage, "permission");
   const canAssignRoles = ability.can(PERMISSIONS.rolesAssign, "permission");
-  const canGrantPermissions = ability.can(PERMISSIONS.permissionsGrant, "permission");
+  const canGrantPermissions = ability.can(
+    PERMISSIONS.permissionsGrant,
+    "permission",
+  );
   const canListUsers = ability.can(PERMISSIONS.usersRead, "permission");
-  const canReadPermissions = ability.can(PERMISSIONS.permissionsRead, "permission");
+  const canReadPermissions = ability.can(
+    PERMISSIONS.permissionsRead,
+    "permission",
+  );
 
   const [roles, setRoles] = useState<RoleSummary[]>([]);
   const [rolesLoading, setRolesLoading] = useState(true);
   const [users, setUsers] = useState<UserSummary[]>([]);
-  const [permissionCatalog, setPermissionCatalog] = useState<PermissionSummary[]>([]);
+  const [permissionCatalog, setPermissionCatalog] = useState<
+    PermissionSummary[]
+  >([]);
   const [editingRole, setEditingRole] = useState<RoleSummary | null>(null);
   const [deletingRole, setDeletingRole] = useState<RoleSummary | null>(null);
   const [confirmOpen, setConfirmOpen] = useState(false);
@@ -59,7 +90,7 @@ export function RolesPage() {
 
   useEffect(() => {
     if (!canManageRoles) return;
-    void loadRoles();
+    startTransition(() => void loadRoles());
   }, [canManageRoles, loadRoles]);
 
   useEffect(() => {
@@ -67,7 +98,9 @@ export function RolesPage() {
     authClient
       .listUsers({ limit: 100 })
       .then((result) => setUsers(result.items))
-      .catch((err) => toast.error(apiErrorMessage(err, "Couldn't load users.")));
+      .catch((err) =>
+        toast.error(apiErrorMessage(err, "Couldn't load users.")),
+      );
   }, [canListUsers]);
 
   useEffect(() => {
@@ -75,7 +108,11 @@ export function RolesPage() {
     authClient
       .listPermissions({ activeOnly: true })
       .then(setPermissionCatalog)
-      .catch((err) => toast.error(apiErrorMessage(err, "Couldn't load the permission catalog.")));
+      .catch((err) =>
+        toast.error(
+          apiErrorMessage(err, "Couldn't load the permission catalog."),
+        ),
+      );
   }, [canReadPermissions]);
 
   function openStatusConfirm(role: RoleSummary) {
@@ -87,13 +124,23 @@ export function RolesPage() {
     if (!pendingRole) return;
     setPendingBusy(true);
     try {
-      await authClient.updateRole(pendingRole.id, { isActive: !pendingRole.isActive });
-      setRoles((prev) => prev.map((r) => (r.id === pendingRole.id ? { ...r, isActive: !r.isActive } : r)));
-      toast.success(pendingRole.isActive ? "Role deactivated." : "Role activated.");
+      await authClient.updateRole(pendingRole.id, {
+        isActive: !pendingRole.isActive,
+      });
+      setRoles((prev) =>
+        prev.map((r) =>
+          r.id === pendingRole.id ? { ...r, isActive: !r.isActive } : r,
+        ),
+      );
+      toast.success(
+        pendingRole.isActive ? "Role deactivated." : "Role activated.",
+      );
       setConfirmOpen(false);
       setPendingRole(null);
     } catch (err) {
-      toast.error(apiErrorMessage(err, "Couldn't change this role's status. Try again."));
+      toast.error(
+        apiErrorMessage(err, "Couldn't change this role's status. Try again."),
+      );
     } finally {
       setPendingBusy(false);
     }
@@ -103,7 +150,10 @@ export function RolesPage() {
     <div className="flex flex-col gap-6">
       <div>
         <h1 className="text-2xl font-semibold">Roles & permissions</h1>
-        <p className="text-sm text-muted-foreground">Create roles, attach permissions to them, and manage direct grants on individual users.</p>
+        <p className="text-sm text-muted-foreground">
+          Create roles, attach permissions to them, and manage direct grants on
+          individual users.
+        </p>
       </div>
 
       <AlertModal
@@ -122,13 +172,17 @@ export function RolesPage() {
         <Card>
           <CardHeader>
             <CardTitle className="text-base">Roles</CardTitle>
-            <CardDescription>Every role defined on this deployment.</CardDescription>
+            <CardDescription>
+              Every role defined on this deployment.
+            </CardDescription>
           </CardHeader>
           <CardContent>
             {rolesLoading ? (
               <p className="text-sm text-muted-foreground">Loading…</p>
             ) : roles.length === 0 ? (
-              <p className="text-sm text-muted-foreground">No roles yet. Create one below.</p>
+              <p className="text-sm text-muted-foreground">
+                No roles yet. Create one below.
+              </p>
             ) : (
               <Table>
                 <TableHeader>
@@ -145,23 +199,39 @@ export function RolesPage() {
                 <TableBody>
                   {roles.map((role) => (
                     <TableRow key={role.id}>
-                      <TableCell className="font-mono text-xs">{role.slug}</TableCell>
+                      <TableCell className="font-mono text-xs">
+                        {role.slug}
+                      </TableCell>
                       <TableCell className="font-medium">{role.name}</TableCell>
                       <TableCell>{role.displayName}</TableCell>
                       <TableCell>
-                        {role.isDefault ? <Badge variant="secondary">Default</Badge> : <span className="text-muted-foreground">—</span>}
+                        {role.isDefault ? (
+                          <Badge variant="secondary">Default</Badge>
+                        ) : (
+                          <span className="text-muted-foreground">—</span>
+                        )}
                       </TableCell>
                       <TableCell>
-                        <Badge variant={role.isActive ? "success" : "destructive"}>{role.isActive ? "Active" : "Inactive"}</Badge>
+                        <Badge
+                          variant={role.isActive ? "success" : "destructive"}
+                        >
+                          {role.isActive ? "Active" : "Inactive"}
+                        </Badge>
                       </TableCell>
                       <TableCell className="text-xs text-muted-foreground">
-                        {role.permissions.length} permission{role.permissions.length === 1 ? "" : "s"}
+                        {role.permissions.length} permission
+                        {role.permissions.length === 1 ? "" : "s"}
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-2">
                           <Link
                             to={`/roles/${role.id}`}
-                            className={cn(buttonVariants({ variant: "outline", size: "icon" }))}
+                            className={cn(
+                              buttonVariants({
+                                variant: "outline",
+                                size: "icon",
+                              }),
+                            )}
                             title="View details"
                           >
                             <EyeIcon />
@@ -170,15 +240,29 @@ export function RolesPage() {
                             size="icon"
                             variant="outline"
                             disabled={!canManageRoles}
-                            title={canManageRoles ? (role.isActive ? "Deactivate this role" : "Activate this role") : undefined}
+                            title={
+                              canManageRoles
+                                ? role.isActive
+                                  ? "Deactivate this role"
+                                  : "Activate this role"
+                                : undefined
+                            }
                             onClick={() => openStatusConfirm(role)}
                           >
                             <PowerIcon />
                           </Button>
-                          <Button size="sm" variant="outline" onClick={() => setEditingRole(role)}>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => setEditingRole(role)}
+                          >
                             Edit
                           </Button>
-                          <Button size="sm" variant="destructive" onClick={() => setDeletingRole(role)}>
+                          <Button
+                            size="sm"
+                            variant="destructive"
+                            onClick={() => setDeletingRole(role)}
+                          >
                             Delete
                           </Button>
                         </div>
@@ -246,9 +330,17 @@ function CreateRoleCard({
     event.preventDefault();
     setSubmitting(true);
     try {
-      const role = await authClient.createRole({ slug, displayName: displayName || undefined, description: description || undefined });
+      const role = await authClient.createRole({
+        slug,
+        displayName: displayName || undefined,
+        description: description || undefined,
+      });
       if (selectedPermissions.length > 0) {
-        await Promise.all(selectedPermissions.map((permSlug) => authClient.attachPermissionToRole(role.id, permSlug)));
+        await Promise.all(
+          selectedPermissions.map((permSlug) =>
+            authClient.attachPermissionToRole(role.id, permSlug),
+          ),
+        );
       }
       onCreated({ ...role, permissions: selectedPermissions });
       toast.success(`Role "${role.name}" created.`);
@@ -257,7 +349,9 @@ function CreateRoleCard({
       setDescription("");
       setSelectedPermissions([]);
     } catch (err) {
-      toast.error(apiErrorMessage(err, "Couldn't create the role. Try a different slug."));
+      toast.error(
+        apiErrorMessage(err, "Couldn't create the role. Try a different slug."),
+      );
     } finally {
       setSubmitting(false);
     }
@@ -267,26 +361,48 @@ function CreateRoleCard({
     <Card>
       <CardHeader>
         <CardTitle className="text-base">Create role</CardTitle>
-        <CardDescription>Pick the permissions this role grants right here — you can still change them later.</CardDescription>
+        <CardDescription>
+          Pick the permissions this role grants right here — you can still
+          change them later.
+        </CardDescription>
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="flex flex-col gap-3">
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="role-slug">Role slug</Label>
-            <Input id="role-slug" value={slug} onChange={(e) => setSlug(e.target.value)} placeholder="e.g. auditor" required />
+            <Input
+              id="role-slug"
+              value={slug}
+              onChange={(e) => setSlug(e.target.value)}
+              placeholder="e.g. auditor"
+              required
+            />
           </div>
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="role-displayName">Display name</Label>
-            <Input id="role-displayName" value={displayName} onChange={(e) => setDisplayName(e.target.value)} placeholder="e.g. Auditor" />
+            <Input
+              id="role-displayName"
+              value={displayName}
+              onChange={(e) => setDisplayName(e.target.value)}
+              placeholder="e.g. Auditor"
+            />
           </div>
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="role-description">Description</Label>
-            <Input id="role-description" value={description} onChange={(e) => setDescription(e.target.value)} />
+            <Input
+              id="role-description"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+            />
           </div>
           {canReadPermissions ? (
             <div className="flex flex-col gap-2">
               <Label>Permissions</Label>
-              <PermissionGroupSelect permissions={permissionCatalog} selected={selectedPermissions} onChange={setSelectedPermissions} />
+              <PermissionGroupSelect
+                permissions={permissionCatalog}
+                selected={selectedPermissions}
+                onChange={setSelectedPermissions}
+              />
             </div>
           ) : null}
           <Button type="submit" disabled={submitting} className="self-start">
@@ -341,16 +457,24 @@ export function EditRoleDialog({
     if (!role) return;
     setSubmitting(true);
     try {
-      const toAttach = selectedPermissions.filter((slug) => !role.permissions.includes(slug));
-      const toDetach = role.permissions.filter((slug) => !selectedPermissions.includes(slug));
+      const toAttach = selectedPermissions.filter(
+        (slug) => !role.permissions.includes(slug),
+      );
+      const toDetach = role.permissions.filter(
+        (slug) => !selectedPermissions.includes(slug),
+      );
       const [updated] = await Promise.all([
         authClient.updateRole(role.id, {
           displayName: displayName.trim() === "" ? undefined : displayName,
           description: description.trim() === "" ? undefined : description,
           isActive,
         }),
-        ...toAttach.map((slug) => authClient.attachPermissionToRole(role.id, slug)),
-        ...toDetach.map((slug) => authClient.detachPermissionFromRole(role.id, slug)),
+        ...toAttach.map((slug) =>
+          authClient.attachPermissionToRole(role.id, slug),
+        ),
+        ...toDetach.map((slug) =>
+          authClient.detachPermissionFromRole(role.id, slug),
+        ),
       ]);
       toast.success(`Role "${updated.name}" updated.`);
       onSaved({ ...updated, permissions: selectedPermissions });
@@ -367,11 +491,20 @@ export function EditRoleDialog({
   }
 
   return (
-    <Modal isOpen={role !== null} onClose={handleClose} title="Edit role" description={role ? `Updates the "${role.slug}" role.` : ""}>
+    <Modal
+      isOpen={role !== null}
+      onClose={handleClose}
+      title="Edit role"
+      description={role ? `Updates the "${role.slug}" role.` : ""}
+    >
       <form onSubmit={handleSubmit} className="flex flex-col gap-4">
         <div className="flex flex-col gap-1.5">
           <Label htmlFor="edit-role-displayName">Display name</Label>
-          <Input id="edit-role-displayName" value={displayName} onChange={(e) => setDisplayName(e.target.value)} />
+          <Input
+            id="edit-role-displayName"
+            value={displayName}
+            onChange={(e) => setDisplayName(e.target.value)}
+          />
         </div>
         <div className="flex flex-col gap-1.5">
           <Label htmlFor="edit-role-description">Description</Label>
@@ -395,7 +528,11 @@ export function EditRoleDialog({
         {canReadPermissions ? (
           <div className="flex flex-col gap-2">
             <Label>Permissions</Label>
-            <PermissionGroupSelect permissions={permissionCatalog} selected={selectedPermissions} onChange={setSelectedPermissions} />
+            <PermissionGroupSelect
+              permissions={permissionCatalog}
+              selected={selectedPermissions}
+              onChange={setSelectedPermissions}
+            />
           </div>
         ) : null}
         <div className="flex gap-2">
@@ -441,11 +578,19 @@ export function DeleteRoleDialog({
       isOpen={role !== null}
       onClose={onClose}
       title="Delete role"
-      description={role ? `"${role.slug}" stops being resolved for anyone who holds it. Existing assignments are left in place.` : ""}
+      description={
+        role
+          ? `"${role.slug}" stops being resolved for anyone who holds it. Existing assignments are left in place.`
+          : ""
+      }
     >
       <div className="flex flex-col gap-4">
         <div className="flex gap-2">
-          <Button variant="destructive" disabled={submitting} onClick={() => void handleDelete()}>
+          <Button
+            variant="destructive"
+            disabled={submitting}
+            onClick={() => void handleDelete()}
+          >
             {submitting ? "Deleting…" : "Delete role"}
           </Button>
           <Button variant="outline" onClick={onClose}>
@@ -460,7 +605,9 @@ export function DeleteRoleDialog({
 function AssignRoleCard({ users }: { users: UserSummary[] }) {
   const [userId, setUserId] = useState("");
   const [role, setRole] = useState("");
-  const [submitting, setSubmitting] = useState<"assign" | "revoke" | null>(null);
+  const [submitting, setSubmitting] = useState<"assign" | "revoke" | null>(
+    null,
+  );
 
   async function handleAssign(event: FormEvent) {
     event.preventDefault();
@@ -469,7 +616,12 @@ function AssignRoleCard({ users }: { users: UserSummary[] }) {
       await authClient.assignRole(userId, role);
       toast.success(`Role "${role}" assigned.`);
     } catch (err) {
-      toast.error(apiErrorMessage(err, "Couldn't assign the role. Check the user and role name."));
+      toast.error(
+        apiErrorMessage(
+          err,
+          "Couldn't assign the role. Check the user and role name.",
+        ),
+      );
     } finally {
       setSubmitting(null);
     }
@@ -481,7 +633,12 @@ function AssignRoleCard({ users }: { users: UserSummary[] }) {
       await authClient.revokeRole(userId, role);
       toast.success(`Role "${role}" revoked.`);
     } catch (err) {
-      toast.error(apiErrorMessage(err, "Couldn't revoke the role. Check the user and role name."));
+      toast.error(
+        apiErrorMessage(
+          err,
+          "Couldn't revoke the role. Check the user and role name.",
+        ),
+      );
     } finally {
       setSubmitting(null);
     }
@@ -491,20 +648,44 @@ function AssignRoleCard({ users }: { users: UserSummary[] }) {
     <Card>
       <CardHeader>
         <CardTitle className="text-base">Assign or revoke a role</CardTitle>
-        <CardDescription>Roles union additively; a new role takes effect the next time that user signs in.</CardDescription>
+        <CardDescription>
+          Roles union additively; a new role takes effect the next time that
+          user signs in.
+        </CardDescription>
       </CardHeader>
       <CardContent>
         <form onSubmit={handleAssign} className="flex flex-col gap-3">
-          <UserPicker users={users} value={userId} onChange={setUserId} idPrefix="assign" />
+          <UserPicker
+            users={users}
+            value={userId}
+            onChange={setUserId}
+            idPrefix="assign"
+          />
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="assign-role-name">Role name</Label>
-            <Input id="assign-role-name" value={role} onChange={(e) => setRole(e.target.value)} placeholder="e.g. auditor" required />
+            <Input
+              id="assign-role-name"
+              value={role}
+              onChange={(e) => setRole(e.target.value)}
+              placeholder="e.g. auditor"
+              required
+            />
           </div>
           <div className="flex gap-2">
-            <Button type="submit" disabled={submitting !== null} className="self-start">
+            <Button
+              type="submit"
+              disabled={submitting !== null}
+              className="self-start"
+            >
               {submitting === "assign" ? "Assigning…" : "Assign role"}
             </Button>
-            <Button type="button" variant="outline" disabled={submitting !== null} onClick={() => void handleRevoke()} className="self-start">
+            <Button
+              type="button"
+              variant="outline"
+              disabled={submitting !== null}
+              onClick={() => void handleRevoke()}
+              className="self-start"
+            >
               {submitting === "revoke" ? "Revoking…" : "Revoke role"}
             </Button>
           </div>
@@ -526,7 +707,12 @@ function DirectPermissionCard({ users }: { users: UserSummary[] }) {
       await authClient.grantPermission(userId, permission);
       toast.success(`Permission "${permission}" granted.`);
     } catch (err) {
-      toast.error(apiErrorMessage(err, "Couldn't grant the permission. Check the user and permission key."));
+      toast.error(
+        apiErrorMessage(
+          err,
+          "Couldn't grant the permission. Check the user and permission key.",
+        ),
+      );
     } finally {
       setSubmitting(null);
     }
@@ -538,7 +724,12 @@ function DirectPermissionCard({ users }: { users: UserSummary[] }) {
       await authClient.revokePermission(userId, permission);
       toast.success(`Permission "${permission}" revoked.`);
     } catch (err) {
-      toast.error(apiErrorMessage(err, "Couldn't revoke the permission. Check the user and permission key."));
+      toast.error(
+        apiErrorMessage(
+          err,
+          "Couldn't revoke the permission. Check the user and permission key.",
+        ),
+      );
     } finally {
       setSubmitting(null);
     }
@@ -547,12 +738,22 @@ function DirectPermissionCard({ users }: { users: UserSummary[] }) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-base">Grant or revoke a permission directly</CardTitle>
-        <CardDescription>Bypasses roles entirely — additive to whatever their roles already grant.</CardDescription>
+        <CardTitle className="text-base">
+          Grant or revoke a permission directly
+        </CardTitle>
+        <CardDescription>
+          Bypasses roles entirely — additive to whatever their roles already
+          grant.
+        </CardDescription>
       </CardHeader>
       <CardContent>
         <form onSubmit={handleGrant} className="flex flex-col gap-3">
-          <UserPicker users={users} value={userId} onChange={setUserId} idPrefix="direct" />
+          <UserPicker
+            users={users}
+            value={userId}
+            onChange={setUserId}
+            idPrefix="direct"
+          />
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="direct-permission-key">Permission key</Label>
             <Input
@@ -562,13 +763,25 @@ function DirectPermissionCard({ users }: { users: UserSummary[] }) {
               placeholder="e.g. users:read"
               required
             />
-            <p className="text-xs text-muted-foreground">Catalog: {CATALOG_HINT}</p>
+            <p className="text-xs text-muted-foreground">
+              Catalog: {CATALOG_HINT}
+            </p>
           </div>
           <div className="flex gap-2">
-            <Button type="submit" disabled={submitting !== null} className="self-start">
+            <Button
+              type="submit"
+              disabled={submitting !== null}
+              className="self-start"
+            >
               {submitting === "grant" ? "Granting…" : "Grant permission"}
             </Button>
-            <Button type="button" variant="outline" disabled={submitting !== null} onClick={() => void handleRevoke()} className="self-start">
+            <Button
+              type="button"
+              variant="outline"
+              disabled={submitting !== null}
+              onClick={() => void handleRevoke()}
+              className="self-start"
+            >
               {submitting === "revoke" ? "Revoking…" : "Revoke permission"}
             </Button>
           </div>
@@ -607,7 +820,12 @@ function UserPicker({
           ))}
         </select>
       ) : null}
-      <Input placeholder="or paste a user ID" value={value} onChange={(e) => onChange(e.target.value)} required />
+      <Input
+        placeholder="or paste a user ID"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        required
+      />
     </div>
   );
 }

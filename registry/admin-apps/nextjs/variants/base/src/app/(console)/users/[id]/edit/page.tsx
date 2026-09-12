@@ -3,10 +3,15 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useAbility } from "@casl/react";
 import { useParams, useRouter } from "next/navigation";
-import { useCallback, useEffect, useState } from "react";
+import { startTransition, useCallback, useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { format } from "date-fns";
-import { AuthApiError, type RoleSummary, type UpdateUserInput, type UserSummary } from "@simple-auth-kit/auth-client";
+import {
+  AuthApiError,
+  type RoleSummary,
+  type UpdateUserInput,
+  type UserSummary,
+} from "@simple-auth-kit/auth-client";
 import { toast } from "sonner";
 import { Breadcrumb } from "@/components/breadcrumb";
 import { FormErrorAlert } from "@/components/form-error-alert";
@@ -14,17 +19,35 @@ import { PermissionRequired } from "@/components/permission-required";
 import { PhotoUpload } from "@/components/photo-upload";
 import { RoleMultiSelect } from "@/components/role-multi-select";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Combobox } from "@/components/ui/combobox";
 import { DatePicker } from "@/components/ui/date-picker";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
 import { Heading } from "@/components/ui/heading";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import { PERMISSIONS, hasPermission, type AppAbility } from "@/lib/ability";
 import { authClient } from "@/lib/auth-client";
 import { errorMessage, errorMessages } from "@/lib/error";
-import { GENDER_OPTIONS, editUserSchema, type EditUserFormValues } from "../../user-schema";
+import {
+  GENDER_OPTIONS,
+  editUserSchema,
+  type EditUserFormValues,
+} from "../../user-schema";
 
 function apiErrorMessage(err: unknown, fallback: string): string {
   return err instanceof AuthApiError ? err.message : fallback;
@@ -91,7 +114,7 @@ export default function EditUserPage() {
 
   useEffect(() => {
     if (!canManage) return;
-    void load();
+    startTransition(() => void load());
   }, [canManage, load]);
 
   useEffect(() => {
@@ -99,10 +122,18 @@ export default function EditUserPage() {
     authClient
       .listRoles()
       .then(setRoleCatalog)
-      .catch((err) => toast.error(apiErrorMessage(err, "Couldn't load the role catalog.")));
+      .catch((err) =>
+        toast.error(apiErrorMessage(err, "Couldn't load the role catalog.")),
+      );
   }, [canReadRoles]);
 
-  if (!canManage) return <PermissionRequired permission={PERMISSIONS.usersManage} what="Editing a user" />;
+  if (!canManage)
+    return (
+      <PermissionRequired
+        permission={PERMISSIONS.usersManage}
+        what="Editing a user"
+      />
+    );
 
   async function onSubmit(values: EditUserFormValues) {
     if (!user) return;
@@ -116,7 +147,9 @@ export default function EditUserPage() {
       username: values.username || null,
       dob: values.dob ? format(values.dob, "yyyy-MM-dd") : null,
       gender: values.gender || null,
-      joinedDate: values.joinedDate ? format(values.joinedDate, "yyyy-MM-dd") : undefined,
+      joinedDate: values.joinedDate
+        ? format(values.joinedDate, "yyyy-MM-dd")
+        : undefined,
       photo: values.photo || null,
     };
     // No bulk "set roles" endpoint — diffs against the roles loaded at mount and assigns/revokes only the delta.
@@ -153,7 +186,9 @@ export default function EditUserPage() {
       </div>
       <Separator />
 
-      {loading && !user && <p className="text-sm text-muted-foreground">Loading…</p>}
+      {loading && !user && (
+        <p className="text-sm text-muted-foreground">Loading…</p>
+      )}
 
       {user && (
         <Card>
@@ -161,16 +196,23 @@ export default function EditUserPage() {
           <CardContent>
             <FormErrorAlert messages={formError} />
             <Form {...form}>
-              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8 w-full">
+              <form
+                onSubmit={form.handleSubmit(onSubmit)}
+                className="space-y-8 w-full"
+              >
                 <Card className="w-full">
                   <CardHeader className="border-b bg-muted/50">
                     <CardTitle className="text-2xl">User Information</CardTitle>
-                    <CardDescription className="text-base">Update user&apos;s basic information</CardDescription>
+                    <CardDescription className="text-base">
+                      Update user&apos;s basic information
+                    </CardDescription>
                   </CardHeader>
                   <CardContent className="pt-6">
                     <div className="space-y-6">
                       <div className="space-y-4">
-                        <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Personal Information</h3>
+                        <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
+                          Personal Information
+                        </h3>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                           <FormField
                             control={form.control}
@@ -236,7 +278,9 @@ export default function EditUserPage() {
                               <FormItem>
                                 <FormLabel>
                                   Username &nbsp;
-                                  <span className="text-xs text-destructive dark:text-destructive-foreground">(Must be unique)</span>
+                                  <span className="text-xs text-destructive dark:text-destructive-foreground">
+                                    (Must be unique)
+                                  </span>
                                 </FormLabel>
                                 <FormControl>
                                   <Input
@@ -254,7 +298,9 @@ export default function EditUserPage() {
                       </div>
 
                       <div className="space-y-4">
-                        <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Contact Information</h3>
+                        <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
+                          Contact Information
+                        </h3>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                           <FormField
                             control={form.control}
@@ -263,7 +309,9 @@ export default function EditUserPage() {
                               <FormItem>
                                 <FormLabel>
                                   Phone &nbsp;
-                                  <span className="text-xs text-muted-foreground">(With country code)</span>
+                                  <span className="text-xs text-muted-foreground">
+                                    (With country code)
+                                  </span>
                                 </FormLabel>
                                 <FormControl>
                                   <Input
@@ -282,7 +330,9 @@ export default function EditUserPage() {
                       </div>
 
                       <div className="space-y-4">
-                        <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Additional Details</h3>
+                        <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
+                          Additional Details
+                        </h3>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                           <FormField
                             control={form.control}
@@ -328,7 +378,9 @@ export default function EditUserPage() {
                                       options={GENDER_OPTIONS}
                                       selected={field.value ?? ""}
                                       placeholder="Select Gender"
-                                      onChange={(option) => field.onChange(option.value)}
+                                      onChange={(option) =>
+                                        field.onChange(option.value)
+                                      }
                                       showCreate={false}
                                       popoverClassName="min-w-[200px]"
                                     />
@@ -343,7 +395,9 @@ export default function EditUserPage() {
 
                       {canReadRoles && (
                         <div className="space-y-4">
-                          <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Roles</h3>
+                          <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
+                            Roles
+                          </h3>
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <FormField
                               control={form.control}
@@ -373,7 +427,10 @@ export default function EditUserPage() {
 
                   <CardHeader className="border-b bg-muted/50 mt-6">
                     <CardTitle className="text-2xl">Profile Photo</CardTitle>
-                    <CardDescription className="text-base">Upload user&apos;s profile picture (Max size: 2MB, Formats: JPG, PNG)</CardDescription>
+                    <CardDescription className="text-base">
+                      Upload user&apos;s profile picture (Max size: 2MB,
+                      Formats: JPG, PNG)
+                    </CardDescription>
                   </CardHeader>
                   <CardContent className="pt-6">
                     <FormField
@@ -383,7 +440,12 @@ export default function EditUserPage() {
                         <FormItem>
                           <FormControl>
                             <div>
-                              <PhotoUpload photo={field.value} fallback="?" onChange={field.onChange} disabled={saving} />
+                              <PhotoUpload
+                                photo={field.value}
+                                fallback="?"
+                                onChange={field.onChange}
+                                disabled={saving}
+                              />
                             </div>
                           </FormControl>
                           <FormMessage />
@@ -393,10 +455,19 @@ export default function EditUserPage() {
                   </CardContent>
 
                   <CardFooter className="flex justify-center gap-4 mt-8 pb-8">
-                    <Button type="button" variant="outline" onClick={() => router.push(`/users/${id}`)} disabled={saving}>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => router.push(`/users/${id}`)}
+                      disabled={saving}
+                    >
                       Cancel
                     </Button>
-                    <Button disabled={saving} className="bg-purple-600 hover:bg-purple-700 dark:bg-purple-600 dark:hover:bg-purple-700 min-w-32" type="submit">
+                    <Button
+                      disabled={saving}
+                      className="bg-purple-600 hover:bg-purple-700 dark:bg-purple-600 dark:hover:bg-purple-700 min-w-32"
+                      type="submit"
+                    >
                       {saving ? "Updating..." : "Update User"}
                     </Button>
                   </CardFooter>

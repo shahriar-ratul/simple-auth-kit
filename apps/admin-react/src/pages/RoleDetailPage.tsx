@@ -1,6 +1,9 @@
-import { useCallback, useEffect, useState } from "react";
+import { startTransition, useCallback, useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import type { PermissionSummary, RoleSummary } from "@simple-auth-kit/auth-client";
+import type {
+  PermissionSummary,
+  RoleSummary,
+} from "@simple-auth-kit/auth-client";
 import { AuthApiError } from "@simple-auth-kit/auth-client";
 import { PencilIcon } from "lucide-react";
 import { toast } from "sonner";
@@ -11,7 +14,13 @@ import { EditRoleDialog, DeleteRoleDialog } from "@/pages/RolesPage";
 import { Breadcrumb } from "@/components/breadcrumb";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 
 function apiErrorMessage(err: unknown, fallback: string): string {
   return err instanceof AuthApiError ? err.message : fallback;
@@ -22,10 +31,15 @@ export function RoleDetailPage() {
   const navigate = useNavigate();
   const ability = useAbility();
   const canManageRoles = ability.can(PERMISSIONS.rolesManage, "permission");
-  const canReadPermissions = ability.can(PERMISSIONS.permissionsRead, "permission");
+  const canReadPermissions = ability.can(
+    PERMISSIONS.permissionsRead,
+    "permission",
+  );
 
   const [role, setRole] = useState<RoleSummary | null>(null);
-  const [permissionCatalog, setPermissionCatalog] = useState<PermissionSummary[]>([]);
+  const [permissionCatalog, setPermissionCatalog] = useState<
+    PermissionSummary[]
+  >([]);
   const [loading, setLoading] = useState(true);
   const [statusPending, setStatusPending] = useState(false);
   const [editingRole, setEditingRole] = useState<RoleSummary | null>(null);
@@ -45,7 +59,7 @@ export function RoleDetailPage() {
   }, [id]);
 
   useEffect(() => {
-    void load();
+    startTransition(() => void load());
   }, [load]);
 
   useEffect(() => {
@@ -53,7 +67,11 @@ export function RoleDetailPage() {
     authClient
       .listPermissions({ activeOnly: true })
       .then(setPermissionCatalog)
-      .catch((err) => toast.error(apiErrorMessage(err, "Couldn't load the permission catalog.")));
+      .catch((err) =>
+        toast.error(
+          apiErrorMessage(err, "Couldn't load the permission catalog."),
+        ),
+      );
   }, [canReadPermissions]);
 
   async function toggleActive() {
@@ -64,7 +82,9 @@ export function RoleDetailPage() {
       setRole((prev) => (prev ? { ...prev, isActive: !prev.isActive } : prev));
       toast.success(role.isActive ? "Role deactivated." : "Role activated.");
     } catch (err) {
-      toast.error(apiErrorMessage(err, "Couldn't change this role's status. Try again."));
+      toast.error(
+        apiErrorMessage(err, "Couldn't change this role's status. Try again."),
+      );
     } finally {
       setStatusPending(false);
     }
@@ -74,9 +94,19 @@ export function RoleDetailPage() {
 
   return (
     <div className="flex flex-col gap-4">
-      <Breadcrumb items={[{ title: "Roles", href: "/roles" }, { title: role?.displayName ?? role?.name ?? "Details", href: `/roles/${id}` }]} />
+      <Breadcrumb
+        items={[
+          { title: "Roles", href: "/roles" },
+          {
+            title: role?.displayName ?? role?.name ?? "Details",
+            href: `/roles/${id}`,
+          },
+        ]}
+      />
 
-      {loading && !role && <p className="text-sm text-muted-foreground">Loading…</p>}
+      {loading && !role && (
+        <p className="text-sm text-muted-foreground">Loading…</p>
+      )}
 
       {role && (
         <>
@@ -92,12 +122,18 @@ export function RoleDetailPage() {
                 </CardDescription>
               </div>
               <div className="flex items-center gap-1.5">
-                <Badge variant={role.isActive ? "success" : "destructive"}>{role.isActive ? "Active" : "Inactive"}</Badge>
+                <Badge variant={role.isActive ? "success" : "destructive"}>
+                  {role.isActive ? "Active" : "Inactive"}
+                </Badge>
                 <Button
                   variant="outline"
                   size="sm"
                   disabled={!canManageRoles}
-                  title={canManageRoles ? undefined : `You need the "${PERMISSIONS.rolesManage}" permission to do this.`}
+                  title={
+                    canManageRoles
+                      ? undefined
+                      : `You need the "${PERMISSIONS.rolesManage}" permission to do this.`
+                  }
                   onClick={() => setEditingRole(role)}
                 >
                   <PencilIcon />
@@ -107,9 +143,14 @@ export function RoleDetailPage() {
             </CardHeader>
             <CardContent className="flex flex-col gap-4">
               <div className="flex flex-col gap-1.5">
-                <span className="text-xs text-muted-foreground">Permissions ({role.permissions.length} attached)</span>
+                <span className="text-xs text-muted-foreground">
+                  Permissions ({role.permissions.length} attached)
+                </span>
                 {canReadPermissions ? (
-                  <PermissionGroupView permissions={permissionCatalog} selected={role.permissions} />
+                  <PermissionGroupView
+                    permissions={permissionCatalog}
+                    selected={role.permissions}
+                  />
                 ) : (
                   <div className="flex flex-wrap gap-1">
                     {role.permissions.map((slug) => (
@@ -131,7 +172,11 @@ export function RoleDetailPage() {
               <Button
                 variant={role.isActive ? "destructive" : "outline"}
                 disabled={!canManageRoles || statusPending}
-                title={canManageRoles ? undefined : `You need the "${PERMISSIONS.rolesManage}" permission to do this.`}
+                title={
+                  canManageRoles
+                    ? undefined
+                    : `You need the "${PERMISSIONS.rolesManage}" permission to do this.`
+                }
                 onClick={() => void toggleActive()}
               >
                 {role.isActive ? "Deactivate" : "Activate"}
@@ -140,7 +185,11 @@ export function RoleDetailPage() {
               <Button
                 variant="destructive"
                 disabled={!canManageRoles}
-                title={canManageRoles ? undefined : `You need the "${PERMISSIONS.rolesManage}" permission to do this.`}
+                title={
+                  canManageRoles
+                    ? undefined
+                    : `You need the "${PERMISSIONS.rolesManage}" permission to do this.`
+                }
                 onClick={() => setDeletingRole(role)}
               >
                 Delete role
@@ -161,7 +210,11 @@ export function RoleDetailPage() {
         }}
       />
 
-      <DeleteRoleDialog role={deletingRole} onClose={() => setDeletingRole(null)} onDeleted={() => navigate("/roles")} />
+      <DeleteRoleDialog
+        role={deletingRole}
+        onClose={() => setDeletingRole(null)}
+        onDeleted={() => navigate("/roles")}
+      />
     </div>
   );
 }

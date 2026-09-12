@@ -3,8 +3,11 @@
 import { useAbility } from "@casl/react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
-import { useCallback, useEffect, useState } from "react";
-import { AuthApiError, type CustomerSummary } from "@simple-auth-kit/auth-client";
+import { startTransition, useCallback, useEffect, useState } from "react";
+import {
+  AuthApiError,
+  type CustomerSummary,
+} from "@simple-auth-kit/auth-client";
 import { format } from "date-fns";
 import { PencilIcon } from "lucide-react";
 import { toast } from "sonner";
@@ -13,7 +16,13 @@ import { PermissionRequired } from "@/components/permission-required";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import {
   Dialog,
   DialogContent,
@@ -23,7 +32,12 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { PERMISSIONS, hasPermission, missingPermissionHint, type AppAbility } from "@/lib/ability";
+import {
+  PERMISSIONS,
+  hasPermission,
+  missingPermissionHint,
+  type AppAbility,
+} from "@/lib/ability";
 import { authClient } from "@/lib/auth-client";
 
 function apiErrorMessage(err: unknown, fallback: string): string {
@@ -82,20 +96,35 @@ export default function CustomerDetailPage() {
 
   useEffect(() => {
     if (!canRead) return;
-    void load();
+    startTransition(() => void load());
   }, [canRead, load]);
 
-  if (!canRead) return <PermissionRequired permission={PERMISSIONS.customersRead} what="Customer details" />;
+  if (!canRead)
+    return (
+      <PermissionRequired
+        permission={PERMISSIONS.customersRead}
+        what="Customer details"
+      />
+    );
 
   async function toggleActive() {
     if (!customer) return;
     try {
       if (customer.isActive) await authClient.deactivateCustomer(id);
       else await authClient.activateCustomer(id);
-      setCustomer((prev) => (prev ? { ...prev, isActive: !prev.isActive } : prev));
-      toast.success(customer.isActive ? "Customer deactivated." : "Customer activated.");
+      setCustomer((prev) =>
+        prev ? { ...prev, isActive: !prev.isActive } : prev,
+      );
+      toast.success(
+        customer.isActive ? "Customer deactivated." : "Customer activated.",
+      );
     } catch (err) {
-      toast.error(apiErrorMessage(err, "Couldn't change this customer's status. Try again."));
+      toast.error(
+        apiErrorMessage(
+          err,
+          "Couldn't change this customer's status. Try again.",
+        ),
+      );
     }
   }
 
@@ -106,7 +135,9 @@ export default function CustomerDetailPage() {
       toast.success("Customer deleted.");
       router.push("/customers");
     } catch (err) {
-      toast.error(apiErrorMessage(err, "Couldn't delete this customer. Try again."));
+      toast.error(
+        apiErrorMessage(err, "Couldn't delete this customer. Try again."),
+      );
       setDeleting(false);
       setDeleteOpen(false);
     }
@@ -114,27 +145,44 @@ export default function CustomerDetailPage() {
 
   return (
     <div className="flex flex-col gap-4">
-      <Breadcrumb items={[{ title: "Customers", href: "/customers" }, { title: customer?.email ?? "Details", href: `/customers/${id}` }]} />
+      <Breadcrumb
+        items={[
+          { title: "Customers", href: "/customers" },
+          { title: customer?.email ?? "Details", href: `/customers/${id}` },
+        ]}
+      />
 
-      {loading && !customer && <p className="text-sm text-muted-foreground">Loading…</p>}
+      {loading && !customer && (
+        <p className="text-sm text-muted-foreground">Loading…</p>
+      )}
 
       {customer && (
         <>
           <Card>
             <CardHeader className="flex flex-row items-center justify-between">
               <div>
-                <CardTitle>{customerName(customer) || customer.email}</CardTitle>
+                <CardTitle>
+                  {customerName(customer) || customer.email}
+                </CardTitle>
                 <CardDescription>
-                  Joined: {format(new Date(customer.joinedDate), "dd MMM yyyy")} · Created: {format(new Date(customer.createdAt), "dd MMM yyyy")} · Updated:{" "}
-                  {format(new Date(customer.updatedAt), "dd MMM yyyy")}
+                  Joined: {format(new Date(customer.joinedDate), "dd MMM yyyy")}{" "}
+                  · Created:{" "}
+                  {format(new Date(customer.createdAt), "dd MMM yyyy")} ·
+                  Updated: {format(new Date(customer.updatedAt), "dd MMM yyyy")}
                 </CardDescription>
               </div>
               <div className="flex items-center gap-1.5">
-                <Badge variant={customer.isActive ? "success" : "destructive"}>{customer.isActive ? "Active" : "Inactive"}</Badge>
+                <Badge variant={customer.isActive ? "success" : "destructive"}>
+                  {customer.isActive ? "Active" : "Inactive"}
+                </Badge>
                 <Link
                   href={`/customers/${id}/edit`}
                   className={buttonVariants({ variant: "outline", size: "sm" })}
-                  title={canManage ? undefined : missingPermissionHint(PERMISSIONS.customersManage)}
+                  title={
+                    canManage
+                      ? undefined
+                      : missingPermissionHint(PERMISSIONS.customersManage)
+                  }
                   aria-disabled={!canManage}
                   onClick={(e) => !canManage && e.preventDefault()}
                 >
@@ -145,8 +193,16 @@ export default function CustomerDetailPage() {
             </CardHeader>
             <CardContent className="flex flex-col gap-4">
               <Avatar className="size-16">
-                {customer.photo && <AvatarImage src={customer.photo} alt="" className="object-cover" />}
-                <AvatarFallback className="text-base">{initialsOf(customer)}</AvatarFallback>
+                {customer.photo && (
+                  <AvatarImage
+                    src={customer.photo}
+                    alt=""
+                    className="object-cover"
+                  />
+                )}
+                <AvatarFallback className="text-base">
+                  {initialsOf(customer)}
+                </AvatarFallback>
               </Avatar>
 
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -155,14 +211,39 @@ export default function CustomerDetailPage() {
                 {field("First name", customer.firstName)}
                 {field("Last name", customer.lastName)}
                 {field("Phone", customer.phone)}
-                {field("Gender", customer.gender && customer.gender.charAt(0).toUpperCase() + customer.gender.slice(1))}
-                {field("Date of birth", customer.dob ? format(new Date(customer.dob), "dd MMM yyyy") : null)}
-                {field("Joined date", format(new Date(customer.joinedDate), "dd MMM yyyy"))}
+                {field(
+                  "Gender",
+                  customer.gender &&
+                    customer.gender.charAt(0).toUpperCase() +
+                      customer.gender.slice(1),
+                )}
+                {field(
+                  "Date of birth",
+                  customer.dob
+                    ? format(new Date(customer.dob), "dd MMM yyyy")
+                    : null,
+                )}
+                {field(
+                  "Joined date",
+                  format(new Date(customer.joinedDate), "dd MMM yyyy"),
+                )}
               </div>
 
               <div className="flex flex-wrap gap-1.5">
-                <Badge variant={customer.isEmailVerified ? "success" : "outline"}>{customer.isEmailVerified ? "Email verified" : "Email unverified"}</Badge>
-                <Badge variant={customer.isPhoneVerified ? "success" : "outline"}>{customer.isPhoneVerified ? "Phone verified" : "Phone unverified"}</Badge>
+                <Badge
+                  variant={customer.isEmailVerified ? "success" : "outline"}
+                >
+                  {customer.isEmailVerified
+                    ? "Email verified"
+                    : "Email unverified"}
+                </Badge>
+                <Badge
+                  variant={customer.isPhoneVerified ? "success" : "outline"}
+                >
+                  {customer.isPhoneVerified
+                    ? "Phone verified"
+                    : "Phone unverified"}
+                </Badge>
               </div>
             </CardContent>
           </Card>
@@ -175,7 +256,11 @@ export default function CustomerDetailPage() {
               <Button
                 variant={customer.isActive ? "destructive" : "outline"}
                 disabled={!canStatus}
-                title={canStatus ? undefined : missingPermissionHint(PERMISSIONS.customersStatus)}
+                title={
+                  canStatus
+                    ? undefined
+                    : missingPermissionHint(PERMISSIONS.customersStatus)
+                }
                 onClick={() => void toggleActive()}
               >
                 {customer.isActive ? "Deactivate" : "Activate"}
@@ -183,7 +268,15 @@ export default function CustomerDetailPage() {
 
               <Dialog open={deleteOpen} onOpenChange={setDeleteOpen}>
                 <DialogTrigger asChild>
-                  <Button variant="destructive" disabled={!canManage} title={canManage ? undefined : missingPermissionHint(PERMISSIONS.customersManage)}>
+                  <Button
+                    variant="destructive"
+                    disabled={!canManage}
+                    title={
+                      canManage
+                        ? undefined
+                        : missingPermissionHint(PERMISSIONS.customersManage)
+                    }
+                  >
                     Delete customer
                   </Button>
                 </DialogTrigger>
@@ -191,14 +284,23 @@ export default function CustomerDetailPage() {
                   <DialogHeader>
                     <DialogTitle>Delete {customer.email}?</DialogTitle>
                     <DialogDescription>
-                      This soft-deletes the customer: they stop appearing in listings, but the row is kept for audit purposes.
+                      This soft-deletes the customer: they stop appearing in
+                      listings, but the row is kept for audit purposes.
                     </DialogDescription>
                   </DialogHeader>
                   <DialogFooter>
-                    <Button variant="outline" onClick={() => setDeleteOpen(false)} disabled={deleting}>
+                    <Button
+                      variant="outline"
+                      onClick={() => setDeleteOpen(false)}
+                      disabled={deleting}
+                    >
                       Cancel
                     </Button>
-                    <Button variant="destructive" onClick={() => void handleDelete()} disabled={deleting}>
+                    <Button
+                      variant="destructive"
+                      onClick={() => void handleDelete()}
+                      disabled={deleting}
+                    >
                       {deleting ? "Deleting…" : "Delete customer"}
                     </Button>
                   </DialogFooter>

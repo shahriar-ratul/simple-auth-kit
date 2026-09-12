@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { startTransition, useCallback, useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import type { PermissionSummary } from "@simple-auth-kit/auth-client";
 import { AuthApiError } from "@simple-auth-kit/auth-client";
@@ -10,7 +10,13 @@ import { DefinePermissionDialog } from "@/pages/PermissionsPage";
 import { Breadcrumb } from "@/components/breadcrumb";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 
 function field(label: string, value: string | number | null) {
   return (
@@ -38,25 +44,42 @@ export function PermissionDetailPage() {
       const permissions = await authClient.listPermissions();
       setPermission(permissions.find((p) => p.id === id) ?? null);
     } catch (err) {
-      toast.error(err instanceof AuthApiError ? err.message : "Couldn't load this permission.");
+      toast.error(
+        err instanceof AuthApiError
+          ? err.message
+          : "Couldn't load this permission.",
+      );
     } finally {
       setLoading(false);
     }
   }, [id]);
 
   useEffect(() => {
-    void load();
+    startTransition(() => void load());
   }, [load]);
 
   async function toggleActive() {
     if (!permission) return;
     setStatusPending(true);
     try {
-      await authClient.definePermission({ slug: permission.slug, isActive: !permission.isActive });
-      setPermission((prev) => (prev ? { ...prev, isActive: !prev.isActive } : prev));
-      toast.success(permission.isActive ? "Permission deactivated." : "Permission activated.");
+      await authClient.definePermission({
+        slug: permission.slug,
+        isActive: !permission.isActive,
+      });
+      setPermission((prev) =>
+        prev ? { ...prev, isActive: !prev.isActive } : prev,
+      );
+      toast.success(
+        permission.isActive
+          ? "Permission deactivated."
+          : "Permission activated.",
+      );
     } catch (err) {
-      toast.error(err instanceof AuthApiError ? err.message : "Couldn't change this permission's status. Try again.");
+      toast.error(
+        err instanceof AuthApiError
+          ? err.message
+          : "Couldn't change this permission's status. Try again.",
+      );
     } finally {
       setStatusPending(false);
     }
@@ -66,9 +89,19 @@ export function PermissionDetailPage() {
 
   return (
     <div className="flex flex-col gap-4">
-      <Breadcrumb items={[{ title: "Permissions", href: "/permissions" }, { title: permission?.displayName ?? "Details", href: `/permissions/${id}` }]} />
+      <Breadcrumb
+        items={[
+          { title: "Permissions", href: "/permissions" },
+          {
+            title: permission?.displayName ?? "Details",
+            href: `/permissions/${id}`,
+          },
+        ]}
+      />
 
-      {loading && !permission && <p className="text-sm text-muted-foreground">Loading…</p>}
+      {loading && !permission && (
+        <p className="text-sm text-muted-foreground">Loading…</p>
+      )}
 
       {permission && (
         <>
@@ -81,12 +114,20 @@ export function PermissionDetailPage() {
                 </CardDescription>
               </div>
               <div className="flex items-center gap-1.5">
-                <Badge variant={permission.isActive ? "success" : "destructive"}>{permission.isActive ? "Active" : "Inactive"}</Badge>
+                <Badge
+                  variant={permission.isActive ? "success" : "destructive"}
+                >
+                  {permission.isActive ? "Active" : "Inactive"}
+                </Badge>
                 <Button
                   variant="outline"
                   size="sm"
                   disabled={!canDefine}
-                  title={canDefine ? undefined : `You need the "${PERMISSIONS.permissionsDefine}" permission to do this.`}
+                  title={
+                    canDefine
+                      ? undefined
+                      : `You need the "${PERMISSIONS.permissionsDefine}" permission to do this.`
+                  }
                   onClick={() => setEditing(true)}
                 >
                   <PencilIcon />
@@ -112,7 +153,11 @@ export function PermissionDetailPage() {
               <Button
                 variant={permission.isActive ? "destructive" : "outline"}
                 disabled={!canDefine || statusPending}
-                title={canDefine ? undefined : `You need the "${PERMISSIONS.permissionsDefine}" permission to do this.`}
+                title={
+                  canDefine
+                    ? undefined
+                    : `You need the "${PERMISSIONS.permissionsDefine}" permission to do this.`
+                }
                 onClick={() => void toggleActive()}
               >
                 {permission.isActive ? "Deactivate" : "Activate"}

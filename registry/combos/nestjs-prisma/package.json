@@ -8,6 +8,7 @@
     "materialize": "node scripts/materialize.mjs",
     "prisma:generate": "node scripts/materialize.mjs --all --generate",
     "typecheck": "npm run prisma:generate && tsc -p .variant/base && tsc -p .variant/workspaces",
+    "lint": "eslint shared variants",
     "prove-cycle": "node scripts/prove-cycle.mjs",
     "migrate": "node scripts/migrate.mjs",
     "seed": "node scripts/seed.mjs"
@@ -30,12 +31,15 @@
     "socket.io": "^4.8.3"
   },
   "devDependencies": {
+    "@eslint/js": "^9.39.5",
     "@types/express": "^5.0.6",
     "@types/node": "^26.2.0",
     "dotenv": "^17.4.2",
+    "eslint": "^9.39.5",
     "prisma": "^7.9.1",
     "tsx": "^4.23.11",
-    "typescript": "^7.0.2",
+    "typescript": "^6.0.3",
+    "typescript-eslint": "^8.70.0",
     "vitest": "^4.1.10"
   }
 }

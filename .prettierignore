@@ -1,0 +1,11 @@
+node_modules
+.variant
+dist
+generated
+coverage
+pnpm-lock.yaml
+apps/mobile-bare-rn/ios
+apps/mobile-bare-rn/android
+apps/mobile-bare-rn-workspaces/ios
+apps/mobile-bare-rn-workspaces/android
+packages/cli/registry

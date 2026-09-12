@@ -23,6 +23,9 @@ import type { AppAbility } from "./ability.js";
 import type { AuthzContext } from "./authz.middleware.js";
 
 declare global {
+  // Express's own declaration-merging style for augmenting its Request type requires a
+  // `namespace` here; there's no ES module form.
+  // eslint-disable-next-line @typescript-eslint/no-namespace
   namespace Express {
     interface Request {
       auth?: AccessTokenClaims;

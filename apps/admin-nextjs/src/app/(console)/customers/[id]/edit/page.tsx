@@ -3,9 +3,13 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useAbility } from "@casl/react";
 import { useParams, useRouter } from "next/navigation";
-import { useCallback, useEffect, useState } from "react";
+import { startTransition, useCallback, useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
-import { AuthApiError, type CustomerSummary, type UpdateCustomerInput } from "@simple-auth-kit/auth-client";
+import {
+  AuthApiError,
+  type CustomerSummary,
+  type UpdateCustomerInput,
+} from "@simple-auth-kit/auth-client";
 import { format } from "date-fns";
 import { toast } from "sonner";
 import { Breadcrumb } from "@/components/breadcrumb";
@@ -13,18 +17,37 @@ import { FormErrorAlert } from "@/components/form-error-alert";
 import { PermissionRequired } from "@/components/permission-required";
 import { PhotoUpload } from "@/components/photo-upload";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Combobox } from "@/components/ui/combobox";
 import { DatePicker } from "@/components/ui/date-picker";
-import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import {
+  Form,
+  FormControl,
+  FormDescription,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
 import { Heading } from "@/components/ui/heading";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import { PERMISSIONS, hasPermission, type AppAbility } from "@/lib/ability";
 import { authClient } from "@/lib/auth-client";
 import { errorMessage, errorMessages } from "@/lib/error";
-import { GENDER_OPTIONS, editCustomerSchema, type EditCustomerFormValues } from "../../customer-schema";
+import {
+  GENDER_OPTIONS,
+  editCustomerSchema,
+  type EditCustomerFormValues,
+} from "../../customer-schema";
 
 function apiErrorMessage(err: unknown, fallback: string): string {
   return err instanceof AuthApiError ? err.message : fallback;
@@ -88,10 +111,16 @@ export default function EditCustomerPage() {
 
   useEffect(() => {
     if (!canManage) return;
-    void load();
+    startTransition(() => void load());
   }, [canManage, load]);
 
-  if (!canManage) return <PermissionRequired permission={PERMISSIONS.customersManage} what="Editing a customer" />;
+  if (!canManage)
+    return (
+      <PermissionRequired
+        permission={PERMISSIONS.customersManage}
+        what="Editing a customer"
+      />
+    );
 
   async function onSubmit(values: EditCustomerFormValues) {
     if (!customer) return;
@@ -105,7 +134,9 @@ export default function EditCustomerPage() {
       phone: values.phone || null,
       dob: values.dob ? format(values.dob, "yyyy-MM-dd") : null,
       gender: values.gender || null,
-      joinedDate: values.joinedDate ? format(values.joinedDate, "yyyy-MM-dd") : undefined,
+      joinedDate: values.joinedDate
+        ? format(values.joinedDate, "yyyy-MM-dd")
+        : undefined,
       photo: values.photo || null,
       isActive: values.isActive,
     };
@@ -135,7 +166,9 @@ export default function EditCustomerPage() {
       </div>
       <Separator />
 
-      {loading && !customer && <p className="text-sm text-muted-foreground">Loading…</p>}
+      {loading && !customer && (
+        <p className="text-sm text-muted-foreground">Loading…</p>
+      )}
 
       {customer && (
         <Card>
@@ -143,16 +176,25 @@ export default function EditCustomerPage() {
           <CardContent>
             <FormErrorAlert messages={formError} />
             <Form {...form}>
-              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8 w-full">
+              <form
+                onSubmit={form.handleSubmit(onSubmit)}
+                className="space-y-8 w-full"
+              >
                 <Card className="w-full">
                   <CardHeader className="border-b bg-muted/50">
-                    <CardTitle className="text-2xl">Customer Information</CardTitle>
-                    <CardDescription className="text-base">Update customer&apos;s basic information</CardDescription>
+                    <CardTitle className="text-2xl">
+                      Customer Information
+                    </CardTitle>
+                    <CardDescription className="text-base">
+                      Update customer&apos;s basic information
+                    </CardDescription>
                   </CardHeader>
                   <CardContent className="pt-6">
                     <div className="space-y-6">
                       <div className="space-y-4">
-                        <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Personal Information</h3>
+                        <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
+                          Personal Information
+                        </h3>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                           <FormField
                             control={form.control}
@@ -199,7 +241,9 @@ export default function EditCustomerPage() {
                               <FormItem>
                                 <FormLabel>
                                   Username &nbsp;
-                                  <span className="text-xs text-destructive dark:text-destructive-foreground">(Must be unique)</span>
+                                  <span className="text-xs text-destructive dark:text-destructive-foreground">
+                                    (Must be unique)
+                                  </span>
                                 </FormLabel>
                                 <FormControl>
                                   <Input
@@ -217,7 +261,9 @@ export default function EditCustomerPage() {
                       </div>
 
                       <div className="space-y-4">
-                        <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Contact Information</h3>
+                        <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
+                          Contact Information
+                        </h3>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                           <FormField
                             control={form.control}
@@ -226,7 +272,9 @@ export default function EditCustomerPage() {
                               <FormItem>
                                 <FormLabel>
                                   Email &nbsp;
-                                  <span className="text-xs text-destructive dark:text-destructive-foreground">(Must be unique)</span>
+                                  <span className="text-xs text-destructive dark:text-destructive-foreground">
+                                    (Must be unique)
+                                  </span>
                                 </FormLabel>
                                 <FormControl>
                                   <Input
@@ -248,7 +296,9 @@ export default function EditCustomerPage() {
                               <FormItem>
                                 <FormLabel>
                                   Phone &nbsp;
-                                  <span className="text-xs text-muted-foreground">(With country code)</span>
+                                  <span className="text-xs text-muted-foreground">
+                                    (With country code)
+                                  </span>
                                 </FormLabel>
                                 <FormControl>
                                   <Input
@@ -267,7 +317,9 @@ export default function EditCustomerPage() {
                       </div>
 
                       <div className="space-y-4">
-                        <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Additional Details</h3>
+                        <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
+                          Additional Details
+                        </h3>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                           <FormField
                             control={form.control}
@@ -313,7 +365,9 @@ export default function EditCustomerPage() {
                                       options={GENDER_OPTIONS}
                                       selected={field.value ?? ""}
                                       placeholder="Select Gender"
-                                      onChange={(option) => field.onChange(option.value)}
+                                      onChange={(option) =>
+                                        field.onChange(option.value)
+                                      }
                                       showCreate={false}
                                       popoverClassName="min-w-[200px]"
                                     />
@@ -330,7 +384,10 @@ export default function EditCustomerPage() {
 
                   <CardHeader className="border-b bg-muted/50 mt-6">
                     <CardTitle className="text-2xl">Profile Photo</CardTitle>
-                    <CardDescription className="text-base">Upload customer&apos;s profile picture (Max size: 2MB, Formats: JPG, PNG)</CardDescription>
+                    <CardDescription className="text-base">
+                      Upload customer&apos;s profile picture (Max size: 2MB,
+                      Formats: JPG, PNG)
+                    </CardDescription>
                   </CardHeader>
                   <CardContent className="pt-6">
                     <FormField
@@ -340,7 +397,12 @@ export default function EditCustomerPage() {
                         <FormItem>
                           <FormControl>
                             <div>
-                              <PhotoUpload photo={field.value} fallback="?" onChange={field.onChange} disabled={saving} />
+                              <PhotoUpload
+                                photo={field.value}
+                                fallback="?"
+                                onChange={field.onChange}
+                                disabled={saving}
+                              />
                             </div>
                           </FormControl>
                           <FormMessage />
@@ -356,11 +418,21 @@ export default function EditCustomerPage() {
                       render={({ field }) => (
                         <FormItem className="flex flex-row items-center space-x-3 space-y-0 rounded-lg border border-purple-500 bg-purple-50 dark:bg-purple-950/20 p-4">
                           <FormControl>
-                            <Checkbox checked={field.value} onCheckedChange={(checked) => field.onChange(checked === true)} />
+                            <Checkbox
+                              checked={field.value}
+                              onCheckedChange={(checked) =>
+                                field.onChange(checked === true)
+                              }
+                            />
                           </FormControl>
                           <div className="space-y-1 leading-none">
-                            <FormLabel className="text-base font-medium">Active Status</FormLabel>
-                            <FormDescription className="text-sm">Customer will be active and available for selection</FormDescription>
+                            <FormLabel className="text-base font-medium">
+                              Active Status
+                            </FormLabel>
+                            <FormDescription className="text-sm">
+                              Customer will be active and available for
+                              selection
+                            </FormDescription>
                           </div>
                         </FormItem>
                       )}
@@ -368,10 +440,19 @@ export default function EditCustomerPage() {
                   </div>
 
                   <CardFooter className="flex justify-center gap-4 mt-8 pb-8">
-                    <Button type="button" variant="outline" onClick={() => router.push(`/customers/${id}`)} disabled={saving}>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => router.push(`/customers/${id}`)}
+                      disabled={saving}
+                    >
                       Cancel
                     </Button>
-                    <Button disabled={saving} className="bg-purple-600 hover:bg-purple-700 dark:bg-purple-600 dark:hover:bg-purple-700 min-w-32" type="submit">
+                    <Button
+                      disabled={saving}
+                      className="bg-purple-600 hover:bg-purple-700 dark:bg-purple-600 dark:hover:bg-purple-700 min-w-32"
+                      type="submit"
+                    >
                       {saving ? "Updating..." : "Update Customer"}
                     </Button>
                   </CardFooter>

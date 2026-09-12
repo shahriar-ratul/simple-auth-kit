@@ -1,6 +1,6 @@
 {
   "name": "@simple-auth-kit/cli",
-  "version": "1.3.2",
+  "version": "1.4.0",
   "license": "MIT",
   "description": "simple-auth-kit add <combo> — copies registry source (backend combos, admin consoles, mobile apps) into a consumer repo, shadcn-CLI-style. Nothing is ever installed as a runtime dependency of the consumer.",
   "bin": {

@@ -1,6 +1,9 @@
-import { useCallback, useEffect, useState } from "react";
+import { startTransition, useCallback, useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import { AuthApiError, type CustomerSummary } from "@simple-auth-kit/auth-client";
+import {
+  AuthApiError,
+  type CustomerSummary,
+} from "@simple-auth-kit/auth-client";
 import { format } from "date-fns";
 import { PencilIcon } from "lucide-react";
 import { toast } from "sonner";
@@ -11,7 +14,13 @@ import { Breadcrumb } from "@/components/breadcrumb";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Modal } from "@/components/ui/modal";
 
 function apiErrorMessage(err: unknown, fallback: string): string {
@@ -68,7 +77,7 @@ export function CustomerDetailPage() {
   }, [id]);
 
   useEffect(() => {
-    void load();
+    startTransition(() => void load());
   }, [load]);
 
   async function toggleActive() {
@@ -77,10 +86,19 @@ export function CustomerDetailPage() {
     try {
       if (customer.isActive) await authClient.deactivateCustomer(id);
       else await authClient.activateCustomer(id);
-      setCustomer((prev) => (prev ? { ...prev, isActive: !prev.isActive } : prev));
-      toast.success(customer.isActive ? "Customer deactivated." : "Customer activated.");
+      setCustomer((prev) =>
+        prev ? { ...prev, isActive: !prev.isActive } : prev,
+      );
+      toast.success(
+        customer.isActive ? "Customer deactivated." : "Customer activated.",
+      );
     } catch (err) {
-      toast.error(apiErrorMessage(err, "Couldn't change this customer's status. Try again."));
+      toast.error(
+        apiErrorMessage(
+          err,
+          "Couldn't change this customer's status. Try again.",
+        ),
+      );
     } finally {
       setStatusPending(false);
     }
@@ -90,27 +108,46 @@ export function CustomerDetailPage() {
 
   return (
     <div className="flex flex-col gap-4">
-      <Breadcrumb items={[{ title: "Customers", href: "/customers" }, { title: customer?.email ?? "Details", href: `/customers/${id}` }]} />
+      <Breadcrumb
+        items={[
+          { title: "Customers", href: "/customers" },
+          { title: customer?.email ?? "Details", href: `/customers/${id}` },
+        ]}
+      />
 
-      {loading && !customer && <p className="text-sm text-muted-foreground">Loading…</p>}
+      {loading && !customer && (
+        <p className="text-sm text-muted-foreground">Loading…</p>
+      )}
 
       {customer && (
         <>
           <Card>
             <CardHeader className="flex flex-row items-center justify-between">
               <div>
-                <CardTitle>{customerName(customer) || customer.email}</CardTitle>
+                <CardTitle>
+                  {customerName(customer) || customer.email}
+                </CardTitle>
                 <CardDescription>
-                  Joined: {format(new Date(customer.joinedDate), "dd MMM yyyy")} · Created: {format(new Date(customer.createdAt), "dd MMM yyyy")} · Updated:{" "}
-                  {format(new Date(customer.updatedAt), "dd MMM yyyy")}
+                  Joined: {format(new Date(customer.joinedDate), "dd MMM yyyy")}{" "}
+                  · Created:{" "}
+                  {format(new Date(customer.createdAt), "dd MMM yyyy")} ·
+                  Updated: {format(new Date(customer.updatedAt), "dd MMM yyyy")}
                 </CardDescription>
               </div>
               <div className="flex items-center gap-1.5">
-                <Badge variant={customer.isActive ? "success" : "destructive"}>{customer.isActive ? "Active" : "Inactive"}</Badge>
+                <Badge variant={customer.isActive ? "success" : "destructive"}>
+                  {customer.isActive ? "Active" : "Inactive"}
+                </Badge>
                 <Link
                   to={`/customers/${id}/edit`}
-                  className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
-                  title={canManage ? undefined : `You need the "${PERMISSIONS.customersManage}" permission to do this.`}
+                  className={cn(
+                    buttonVariants({ variant: "outline", size: "sm" }),
+                  )}
+                  title={
+                    canManage
+                      ? undefined
+                      : `You need the "${PERMISSIONS.customersManage}" permission to do this.`
+                  }
                   aria-disabled={!canManage}
                   onClick={(e) => !canManage && e.preventDefault()}
                 >
@@ -121,8 +158,16 @@ export function CustomerDetailPage() {
             </CardHeader>
             <CardContent className="flex flex-col gap-4">
               <Avatar className="size-16">
-                {customer.photo && <AvatarImage src={customer.photo} alt="" className="object-cover" />}
-                <AvatarFallback className="text-base">{initialsOf(customer)}</AvatarFallback>
+                {customer.photo && (
+                  <AvatarImage
+                    src={customer.photo}
+                    alt=""
+                    className="object-cover"
+                  />
+                )}
+                <AvatarFallback className="text-base">
+                  {initialsOf(customer)}
+                </AvatarFallback>
               </Avatar>
 
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -131,14 +176,39 @@ export function CustomerDetailPage() {
                 {field("First name", customer.firstName)}
                 {field("Last name", customer.lastName)}
                 {field("Phone", customer.phone)}
-                {field("Gender", customer.gender && customer.gender.charAt(0).toUpperCase() + customer.gender.slice(1))}
-                {field("Date of birth", customer.dob ? format(new Date(customer.dob), "dd MMM yyyy") : null)}
-                {field("Joined date", format(new Date(customer.joinedDate), "dd MMM yyyy"))}
+                {field(
+                  "Gender",
+                  customer.gender &&
+                    customer.gender.charAt(0).toUpperCase() +
+                      customer.gender.slice(1),
+                )}
+                {field(
+                  "Date of birth",
+                  customer.dob
+                    ? format(new Date(customer.dob), "dd MMM yyyy")
+                    : null,
+                )}
+                {field(
+                  "Joined date",
+                  format(new Date(customer.joinedDate), "dd MMM yyyy"),
+                )}
               </div>
 
               <div className="flex flex-wrap gap-1.5">
-                <Badge variant={customer.isEmailVerified ? "success" : "outline"}>{customer.isEmailVerified ? "Email verified" : "Email unverified"}</Badge>
-                <Badge variant={customer.isPhoneVerified ? "success" : "outline"}>{customer.isPhoneVerified ? "Phone verified" : "Phone unverified"}</Badge>
+                <Badge
+                  variant={customer.isEmailVerified ? "success" : "outline"}
+                >
+                  {customer.isEmailVerified
+                    ? "Email verified"
+                    : "Email unverified"}
+                </Badge>
+                <Badge
+                  variant={customer.isPhoneVerified ? "success" : "outline"}
+                >
+                  {customer.isPhoneVerified
+                    ? "Phone verified"
+                    : "Phone unverified"}
+                </Badge>
               </div>
             </CardContent>
           </Card>
@@ -151,7 +221,11 @@ export function CustomerDetailPage() {
               <Button
                 variant={customer.isActive ? "destructive" : "outline"}
                 disabled={!canStatus || statusPending}
-                title={canStatus ? undefined : `You need the "${PERMISSIONS.customersStatus}" permission to do this.`}
+                title={
+                  canStatus
+                    ? undefined
+                    : `You need the "${PERMISSIONS.customersStatus}" permission to do this.`
+                }
                 onClick={() => void toggleActive()}
               >
                 {customer.isActive ? "Deactivate" : "Activate"}
@@ -160,7 +234,11 @@ export function CustomerDetailPage() {
               <Button
                 variant="destructive"
                 disabled={!canManage}
-                title={canManage ? undefined : `You need the "${PERMISSIONS.customersManage}" permission to do this.`}
+                title={
+                  canManage
+                    ? undefined
+                    : `You need the "${PERMISSIONS.customersManage}" permission to do this.`
+                }
                 onClick={() => setConfirmingDelete(true)}
               >
                 Delete customer
@@ -203,7 +281,9 @@ function DeleteCustomerDialog({
       toast.success("Customer deleted.");
       onDeleted();
     } catch (err) {
-      toast.error(apiErrorMessage(err, "Couldn't delete this customer. Try again."));
+      toast.error(
+        apiErrorMessage(err, "Couldn't delete this customer. Try again."),
+      );
     } finally {
       setSubmitting(false);
     }
@@ -218,7 +298,11 @@ function DeleteCustomerDialog({
     >
       <div className="flex flex-col gap-4">
         <div className="flex gap-2">
-          <Button variant="destructive" disabled={submitting} onClick={() => void handleDelete()}>
+          <Button
+            variant="destructive"
+            disabled={submitting}
+            onClick={() => void handleDelete()}
+          >
             {submitting ? "Deleting…" : "Delete customer"}
           </Button>
           <Button variant="outline" onClick={onClose}>

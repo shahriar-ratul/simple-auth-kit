@@ -39,3 +39,6 @@ yarn-error.*
 # generated native folders
 /ios
 /android
+
+# husky-generated shim dir (recreated by the "prepare" script on install)
+.husky/_

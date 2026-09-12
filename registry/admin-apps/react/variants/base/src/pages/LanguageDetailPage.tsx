@@ -1,6 +1,9 @@
-import { useCallback, useEffect, useState } from "react";
+import { startTransition, useCallback, useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import { AuthApiError, type LanguageSummary } from "@simple-auth-kit/auth-client";
+import {
+  AuthApiError,
+  type LanguageSummary,
+} from "@simple-auth-kit/auth-client";
 import { format } from "date-fns";
 import { PencilIcon } from "lucide-react";
 import { toast } from "sonner";
@@ -10,7 +13,13 @@ import { cn } from "@/lib/cn";
 import { Breadcrumb } from "@/components/breadcrumb";
 import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Modal } from "@/components/ui/modal";
 
 function apiErrorMessage(err: unknown, fallback: string): string {
@@ -51,7 +60,7 @@ export function LanguageDetailPage() {
   }, [id]);
 
   useEffect(() => {
-    void load();
+    startTransition(() => void load());
   }, [load]);
 
   async function toggleActive() {
@@ -60,10 +69,19 @@ export function LanguageDetailPage() {
     try {
       if (language.isActive) await authClient.deactivateLanguage(id);
       else await authClient.activateLanguage(id);
-      setLanguage((prev) => (prev ? { ...prev, isActive: !prev.isActive } : prev));
-      toast.success(language.isActive ? "Language deactivated." : "Language activated.");
+      setLanguage((prev) =>
+        prev ? { ...prev, isActive: !prev.isActive } : prev,
+      );
+      toast.success(
+        language.isActive ? "Language deactivated." : "Language activated.",
+      );
     } catch (err) {
-      toast.error(apiErrorMessage(err, "Couldn't change this language's status. Try again."));
+      toast.error(
+        apiErrorMessage(
+          err,
+          "Couldn't change this language's status. Try again.",
+        ),
+      );
     } finally {
       setStatusPending(false);
     }
@@ -73,9 +91,16 @@ export function LanguageDetailPage() {
 
   return (
     <div className="flex flex-col gap-4">
-      <Breadcrumb items={[{ title: "Languages", href: "/languages" }, { title: language?.name ?? "Details", href: `/languages/${id}` }]} />
+      <Breadcrumb
+        items={[
+          { title: "Languages", href: "/languages" },
+          { title: language?.name ?? "Details", href: `/languages/${id}` },
+        ]}
+      />
 
-      {loading && !language && <p className="text-sm text-muted-foreground">Loading…</p>}
+      {loading && !language && (
+        <p className="text-sm text-muted-foreground">Loading…</p>
+      )}
 
       {language && (
         <>
@@ -84,16 +109,28 @@ export function LanguageDetailPage() {
               <div>
                 <CardTitle>{language.name}</CardTitle>
                 <CardDescription>
-                  Created: {format(new Date(language.createdAt), "dd MMM yyyy")} · Updated: {format(new Date(language.updatedAt), "dd MMM yyyy")}
+                  Created: {format(new Date(language.createdAt), "dd MMM yyyy")}{" "}
+                  · Updated:{" "}
+                  {format(new Date(language.updatedAt), "dd MMM yyyy")}
                 </CardDescription>
               </div>
               <div className="flex items-center gap-1.5">
-                {language.isDefault && <Badge variant="secondary">Default</Badge>}
-                <Badge variant={language.isActive ? "success" : "destructive"}>{language.isActive ? "Active" : "Inactive"}</Badge>
+                {language.isDefault && (
+                  <Badge variant="secondary">Default</Badge>
+                )}
+                <Badge variant={language.isActive ? "success" : "destructive"}>
+                  {language.isActive ? "Active" : "Inactive"}
+                </Badge>
                 <Link
                   to={`/languages/${id}/edit`}
-                  className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
-                  title={canManage ? undefined : `You need the "${PERMISSIONS.languagesManage}" permission to do this.`}
+                  className={cn(
+                    buttonVariants({ variant: "outline", size: "sm" }),
+                  )}
+                  title={
+                    canManage
+                      ? undefined
+                      : `You need the "${PERMISSIONS.languagesManage}" permission to do this.`
+                  }
                   aria-disabled={!canManage}
                   onClick={(e) => !canManage && e.preventDefault()}
                 >
@@ -107,7 +144,12 @@ export function LanguageDetailPage() {
                 {field("Name", language.name)}
                 {field("Native name", language.nativeName)}
                 {field("Code", language.code)}
-                {field("Direction", language.direction === "rtl" ? "Right to left (RTL)" : "Left to right (LTR)")}
+                {field(
+                  "Direction",
+                  language.direction === "rtl"
+                    ? "Right to left (RTL)"
+                    : "Left to right (LTR)",
+                )}
                 {field("Default language", language.isDefault ? "Yes" : "No")}
               </div>
             </CardContent>
@@ -121,7 +163,11 @@ export function LanguageDetailPage() {
               <Button
                 variant={language.isActive ? "destructive" : "outline"}
                 disabled={!canStatus || statusPending}
-                title={canStatus ? undefined : `You need the "${PERMISSIONS.languagesStatus}" permission to do this.`}
+                title={
+                  canStatus
+                    ? undefined
+                    : `You need the "${PERMISSIONS.languagesStatus}" permission to do this.`
+                }
                 onClick={() => void toggleActive()}
               >
                 {language.isActive ? "Deactivate" : "Activate"}
@@ -130,7 +176,11 @@ export function LanguageDetailPage() {
               <Button
                 variant="destructive"
                 disabled={!canManage}
-                title={canManage ? undefined : `You need the "${PERMISSIONS.languagesManage}" permission to do this.`}
+                title={
+                  canManage
+                    ? undefined
+                    : `You need the "${PERMISSIONS.languagesManage}" permission to do this.`
+                }
                 onClick={() => setConfirmingDelete(true)}
               >
                 Delete language
@@ -173,7 +223,9 @@ function DeleteLanguageDialog({
       toast.success("Language deleted.");
       onDeleted();
     } catch (err) {
-      toast.error(apiErrorMessage(err, "Couldn't delete this language. Try again."));
+      toast.error(
+        apiErrorMessage(err, "Couldn't delete this language. Try again."),
+      );
     } finally {
       setSubmitting(false);
     }
@@ -188,7 +240,11 @@ function DeleteLanguageDialog({
     >
       <div className="flex flex-col gap-4">
         <div className="flex gap-2">
-          <Button variant="destructive" disabled={submitting} onClick={() => void handleDelete()}>
+          <Button
+            variant="destructive"
+            disabled={submitting}
+            onClick={() => void handleDelete()}
+          >
             {submitting ? "Deleting…" : "Delete language"}
           </Button>
           <Button variant="outline" onClick={onClose}>

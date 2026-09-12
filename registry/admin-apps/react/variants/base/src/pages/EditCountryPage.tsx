@@ -1,6 +1,16 @@
-import { type FormEvent, useCallback, useEffect, useState } from "react";
+import {
+  type FormEvent,
+  startTransition,
+  useCallback,
+  useEffect,
+  useState,
+} from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { AuthApiError, type CountrySummary, type UpdateCountryInput } from "@simple-auth-kit/auth-client";
+import {
+  AuthApiError,
+  type CountrySummary,
+  type UpdateCountryInput,
+} from "@simple-auth-kit/auth-client";
 import { toast } from "sonner";
 import { authClient } from "@/lib/auth-client";
 import { errorMessage, errorMessages } from "@/lib/error";
@@ -8,7 +18,14 @@ import { Breadcrumb } from "@/components/breadcrumb";
 import { FormErrorAlert } from "@/components/form-error-alert";
 import { PhotoUpload } from "@/components/photo-upload";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Heading } from "@/components/ui/heading";
 import { Input } from "@/components/ui/input";
@@ -34,7 +51,8 @@ function toForm(country: CountrySummary): CountryFormFields {
   };
 }
 
-const inputClassName = "bg-background border-2 focus:border-purple-500 transition-colors";
+const inputClassName =
+  "bg-background border-2 focus:border-purple-500 transition-colors";
 const upperInputClassName = `${inputClassName} uppercase`;
 
 export function EditCountryPage() {
@@ -62,7 +80,7 @@ export function EditCountryPage() {
   }, [id]);
 
   useEffect(() => {
-    void load();
+    startTransition(() => void load());
   }, [load]);
 
   if (!id) return null;
@@ -108,7 +126,9 @@ export function EditCountryPage() {
       </div>
       <Separator />
 
-      {loading && !country && <p className="text-sm text-muted-foreground">Loading…</p>}
+      {loading && !country && (
+        <p className="text-sm text-muted-foreground">Loading…</p>
+      )}
 
       {country && (
         <Card>
@@ -118,13 +138,19 @@ export function EditCountryPage() {
             <form onSubmit={handleSubmit} className="space-y-8 w-full">
               <Card className="w-full">
                 <CardHeader className="border-b bg-muted/50">
-                  <CardTitle className="text-2xl">Country Information</CardTitle>
-                  <CardDescription className="text-base">Enter country details</CardDescription>
+                  <CardTitle className="text-2xl">
+                    Country Information
+                  </CardTitle>
+                  <CardDescription className="text-base">
+                    Enter country details
+                  </CardDescription>
                 </CardHeader>
                 <CardContent className="pt-6">
                   <div className="space-y-6">
                     <div className="space-y-4">
-                      <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Basic Information</h3>
+                      <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
+                        Basic Information
+                      </h3>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div className="flex flex-col gap-2">
                           <Label htmlFor="name">Country Name</Label>
@@ -134,7 +160,9 @@ export function EditCountryPage() {
                             placeholder="e.g., Bangladesh"
                             required
                             value={form.name}
-                            onChange={(e) => setForm({ ...form, name: e.target.value })}
+                            onChange={(e) =>
+                              setForm({ ...form, name: e.target.value })
+                            }
                             type="text"
                             className={inputClassName}
                           />
@@ -142,7 +170,9 @@ export function EditCountryPage() {
                         <div className="flex flex-col gap-2">
                           <Label htmlFor="code">
                             Country Code &nbsp;
-                            <span className="text-xs text-destructive dark:text-destructive-foreground">(2-3 characters, e.g., BD, USA)</span>
+                            <span className="text-xs text-destructive dark:text-destructive-foreground">
+                              (2-3 characters, e.g., BD, USA)
+                            </span>
                           </Label>
                           <Input
                             id="code"
@@ -150,7 +180,12 @@ export function EditCountryPage() {
                             placeholder="e.g., BD"
                             required
                             value={form.code}
-                            onChange={(e) => setForm({ ...form, code: e.target.value.toUpperCase() })}
+                            onChange={(e) =>
+                              setForm({
+                                ...form,
+                                code: e.target.value.toUpperCase(),
+                              })
+                            }
                             type="text"
                             maxLength={3}
                             className={upperInputClassName}
@@ -159,7 +194,9 @@ export function EditCountryPage() {
                         <div className="flex flex-col gap-2">
                           <Label htmlFor="emoji">
                             Country Emoji &nbsp;
-                            <span className="text-xs text-muted-foreground">(Stands in wherever no flag image is set)</span>
+                            <span className="text-xs text-muted-foreground">
+                              (Stands in wherever no flag image is set)
+                            </span>
                           </Label>
                           <Input
                             id="emoji"
@@ -167,7 +204,9 @@ export function EditCountryPage() {
                             placeholder="e.g., 🇧🇩"
                             required
                             value={form.emoji}
-                            onChange={(e) => setForm({ ...form, emoji: e.target.value })}
+                            onChange={(e) =>
+                              setForm({ ...form, emoji: e.target.value })
+                            }
                             type="text"
                             className={inputClassName}
                           />
@@ -175,7 +214,9 @@ export function EditCountryPage() {
                         <div className="flex flex-col gap-2">
                           <Label htmlFor="phoneCode">
                             Country Phone Code &nbsp;
-                            <span className="text-xs text-destructive dark:text-destructive-foreground">(2-3 characters, e.g., +880, +60)</span>
+                            <span className="text-xs text-destructive dark:text-destructive-foreground">
+                              (2-3 characters, e.g., +880, +60)
+                            </span>
                           </Label>
                           <Input
                             id="phoneCode"
@@ -183,7 +224,9 @@ export function EditCountryPage() {
                             placeholder="e.g., +880"
                             required
                             value={form.phoneCode}
-                            onChange={(e) => setForm({ ...form, phoneCode: e.target.value })}
+                            onChange={(e) =>
+                              setForm({ ...form, phoneCode: e.target.value })
+                            }
                             type="text"
                             className={upperInputClassName}
                           />
@@ -191,7 +234,9 @@ export function EditCountryPage() {
                         <div className="flex flex-col gap-2">
                           <Label htmlFor="currency">
                             Country Currency &nbsp;
-                            <span className="text-xs text-destructive dark:text-destructive-foreground">(e.g., USD, EUR)</span>
+                            <span className="text-xs text-destructive dark:text-destructive-foreground">
+                              (e.g., USD, EUR)
+                            </span>
                           </Label>
                           <Input
                             id="currency"
@@ -199,7 +244,12 @@ export function EditCountryPage() {
                             placeholder="e.g., USD, EUR"
                             required
                             value={form.currency}
-                            onChange={(e) => setForm({ ...form, currency: e.target.value.toUpperCase() })}
+                            onChange={(e) =>
+                              setForm({
+                                ...form,
+                                currency: e.target.value.toUpperCase(),
+                              })
+                            }
                             type="text"
                             maxLength={3}
                             className={upperInputClassName}
@@ -208,7 +258,9 @@ export function EditCountryPage() {
                         <div className="flex flex-col gap-2">
                           <Label htmlFor="currencyName">
                             Country Currency Name &nbsp;
-                            <span className="text-xs text-destructive dark:text-destructive-foreground">(e.g., US Dollar, Euro)</span>
+                            <span className="text-xs text-destructive dark:text-destructive-foreground">
+                              (e.g., US Dollar, Euro)
+                            </span>
                           </Label>
                           <Input
                             id="currencyName"
@@ -216,7 +268,9 @@ export function EditCountryPage() {
                             placeholder="e.g., US Dollar, Euro"
                             required
                             value={form.currencyName}
-                            onChange={(e) => setForm({ ...form, currencyName: e.target.value })}
+                            onChange={(e) =>
+                              setForm({ ...form, currencyName: e.target.value })
+                            }
                             type="text"
                             className={inputClassName}
                           />
@@ -224,7 +278,9 @@ export function EditCountryPage() {
                         <div className="flex flex-col gap-2">
                           <Label htmlFor="isoCode">
                             Country ISO Code &nbsp;
-                            <span className="text-xs text-destructive dark:text-destructive-foreground">(ISO code, e.g., BDT, USD)</span>
+                            <span className="text-xs text-destructive dark:text-destructive-foreground">
+                              (ISO code, e.g., BDT, USD)
+                            </span>
                           </Label>
                           <Input
                             id="isoCode"
@@ -232,7 +288,12 @@ export function EditCountryPage() {
                             placeholder="e.g., BDT, USD"
                             required
                             value={form.isoCode}
-                            onChange={(e) => setForm({ ...form, isoCode: e.target.value.toUpperCase() })}
+                            onChange={(e) =>
+                              setForm({
+                                ...form,
+                                isoCode: e.target.value.toUpperCase(),
+                              })
+                            }
                             type="text"
                             maxLength={3}
                             className={upperInputClassName}
@@ -245,27 +306,52 @@ export function EditCountryPage() {
 
                 <CardHeader className="border-b bg-muted/50 mt-6">
                   <CardTitle className="text-2xl">Country Flag</CardTitle>
-                  <CardDescription className="text-base">Upload country flag (Max size: 2MB, Formats: JPG, PNG, SVG)</CardDescription>
+                  <CardDescription className="text-base">
+                    Upload country flag (Max size: 2MB, Formats: JPG, PNG, SVG)
+                  </CardDescription>
                 </CardHeader>
                 <CardContent className="pt-6">
-                  <PhotoUpload photo={form.flag} fallback={form.emoji || "?"} onChange={(next) => setForm({ ...form, flag: next })} disabled={saving} />
+                  <PhotoUpload
+                    photo={form.flag}
+                    fallback={form.emoji || "?"}
+                    onChange={(next) => setForm({ ...form, flag: next })}
+                    disabled={saving}
+                  />
                 </CardContent>
 
                 <div className="flex justify-center mt-6">
                   <label className="flex flex-row items-center space-x-3 rounded-lg border border-purple-500 bg-purple-50 dark:bg-purple-950/20 p-4">
-                    <Checkbox checked={form.isActive} onCheckedChange={(checked) => setForm({ ...form, isActive: checked === true })} />
+                    <Checkbox
+                      checked={form.isActive}
+                      onCheckedChange={(checked) =>
+                        setForm({ ...form, isActive: checked === true })
+                      }
+                    />
                     <span className="space-y-1 leading-none">
-                      <span className="block text-base font-medium">Active Status</span>
-                      <span className="block text-sm text-muted-foreground">Country will be active and available for selection</span>
+                      <span className="block text-base font-medium">
+                        Active Status
+                      </span>
+                      <span className="block text-sm text-muted-foreground">
+                        Country will be active and available for selection
+                      </span>
                     </span>
                   </label>
                 </div>
 
                 <CardFooter className="flex justify-center gap-4 mt-8 pb-8">
-                  <Button type="button" variant="outline" onClick={() => navigate(`/countries/${id}`)} disabled={saving}>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => navigate(`/countries/${id}`)}
+                    disabled={saving}
+                  >
                     Cancel
                   </Button>
-                  <Button disabled={saving} className="bg-purple-600 hover:bg-purple-700 dark:bg-purple-600 dark:hover:bg-purple-700 min-w-32" type="submit">
+                  <Button
+                    disabled={saving}
+                    className="bg-purple-600 hover:bg-purple-700 dark:bg-purple-600 dark:hover:bg-purple-700 min-w-32"
+                    type="submit"
+                  >
                     {saving ? "Updating..." : "Update Country"}
                   </Button>
                 </CardFooter>

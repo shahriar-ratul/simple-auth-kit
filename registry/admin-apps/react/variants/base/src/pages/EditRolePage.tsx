@@ -1,6 +1,15 @@
-import { type FormEvent, useCallback, useEffect, useState } from "react";
+import {
+  type FormEvent,
+  startTransition,
+  useCallback,
+  useEffect,
+  useState,
+} from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import type { PermissionSummary, RoleSummary } from "@simple-auth-kit/auth-client";
+import type {
+  PermissionSummary,
+  RoleSummary,
+} from "@simple-auth-kit/auth-client";
 import { AuthApiError } from "@simple-auth-kit/auth-client";
 import { toast } from "sonner";
 import { PERMISSIONS, useAbility } from "@/lib/ability";
@@ -10,7 +19,14 @@ import { Breadcrumb } from "@/components/breadcrumb";
 import { FormErrorAlert } from "@/components/form-error-alert";
 import { PermissionGroupSelect } from "@/components/permission-group-select";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Heading } from "@/components/ui/heading";
 import { Input } from "@/components/ui/input";
@@ -25,13 +41,17 @@ function sameSlugs(a: string[], b: string[]): boolean {
   return JSON.stringify([...a].sort()) === JSON.stringify([...b].sort());
 }
 
-const inputClassName = "bg-background border-2 focus:border-purple-500 transition-colors";
+const inputClassName =
+  "bg-background border-2 focus:border-purple-500 transition-colors";
 
 export function EditRolePage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const ability = useAbility();
-  const canReadPermissions = ability.can(PERMISSIONS.permissionsRead, "permission");
+  const canReadPermissions = ability.can(
+    PERMISSIONS.permissionsRead,
+    "permission",
+  );
 
   const [role, setRole] = useState<RoleSummary | null>(null);
   const [loading, setLoading] = useState(false);
@@ -40,7 +60,9 @@ export function EditRolePage() {
   const [isDefault, setIsDefault] = useState(false);
   const [isActive, setIsActive] = useState(true);
   const [selectedPermissions, setSelectedPermissions] = useState<string[]>([]);
-  const [permissionCatalog, setPermissionCatalog] = useState<PermissionSummary[]>([]);
+  const [permissionCatalog, setPermissionCatalog] = useState<
+    PermissionSummary[]
+  >([]);
   const [formError, setFormError] = useState<string[] | null>(null);
   const [saving, setSaving] = useState(false);
 
@@ -70,7 +92,7 @@ export function EditRolePage() {
   }, [id]);
 
   useEffect(() => {
-    void load();
+    startTransition(() => void load());
   }, [load]);
 
   useEffect(() => {
@@ -78,7 +100,11 @@ export function EditRolePage() {
     authClient
       .listPermissions({ activeOnly: true })
       .then(setPermissionCatalog)
-      .catch((err) => toast.error(apiErrorMessage(err, "Couldn't load the permission catalog.")));
+      .catch((err) =>
+        toast.error(
+          apiErrorMessage(err, "Couldn't load the permission catalog."),
+        ),
+      );
   }, [canReadPermissions]);
 
   const unchanged =
@@ -96,8 +122,12 @@ export function EditRolePage() {
     setSaving(true);
     try {
       // No bulk "set permissions" endpoint — diffs against the role loaded at mount and attaches/detaches only the delta.
-      const toAttach = selectedPermissions.filter((slug) => !role.permissions.includes(slug));
-      const toDetach = role.permissions.filter((slug) => !selectedPermissions.includes(slug));
+      const toAttach = selectedPermissions.filter(
+        (slug) => !role.permissions.includes(slug),
+      );
+      const toDetach = role.permissions.filter(
+        (slug) => !selectedPermissions.includes(slug),
+      );
       const [updated] = await Promise.all([
         authClient.updateRole(role.id, {
           displayName: displayName.trim() === "" ? undefined : displayName,
@@ -105,14 +135,20 @@ export function EditRolePage() {
           isDefault,
           isActive,
         }),
-        ...toAttach.map((slug) => authClient.attachPermissionToRole(role.id, slug)),
-        ...toDetach.map((slug) => authClient.detachPermissionFromRole(role.id, slug)),
+        ...toAttach.map((slug) =>
+          authClient.attachPermissionToRole(role.id, slug),
+        ),
+        ...toDetach.map((slug) =>
+          authClient.detachPermissionFromRole(role.id, slug),
+        ),
       ]);
       toast.success(`Role "${updated.name}" updated.`);
       navigate("/roles");
     } catch (err) {
       setFormError(errorMessages(err));
-      toast.error(apiErrorMessage(err, "Couldn't update this role. Try again."));
+      toast.error(
+        apiErrorMessage(err, "Couldn't update this role. Try again."),
+      );
       setSaving(false);
     }
   }
@@ -131,7 +167,9 @@ export function EditRolePage() {
       </div>
       <Separator />
 
-      {loading && !role && <p className="text-sm text-muted-foreground">Loading…</p>}
+      {loading && !role && (
+        <p className="text-sm text-muted-foreground">Loading…</p>
+      )}
 
       {role && (
         <Card>
@@ -142,12 +180,16 @@ export function EditRolePage() {
               <Card className="w-full">
                 <CardHeader className="border-b bg-muted/50">
                   <CardTitle className="text-2xl">Role Information</CardTitle>
-                  <CardDescription className="text-base">{role.name}</CardDescription>
+                  <CardDescription className="text-base">
+                    {role.name}
+                  </CardDescription>
                 </CardHeader>
                 <CardContent className="pt-6">
                   <div className="space-y-6">
                     <div className="space-y-4">
-                      <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Basic Information</h3>
+                      <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
+                        Basic Information
+                      </h3>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div className="flex flex-col gap-2">
                           <Label htmlFor="displayName">Display Name</Label>
@@ -182,12 +224,20 @@ export function EditRolePage() {
                   <>
                     <CardHeader className="border-b bg-muted/50 mt-6">
                       <CardTitle className="text-2xl">Permissions</CardTitle>
-                      <CardDescription className="text-base">Pick the permissions this role grants</CardDescription>
+                      <CardDescription className="text-base">
+                        Pick the permissions this role grants
+                      </CardDescription>
                     </CardHeader>
                     <CardContent className="pt-6">
                       <div className="space-y-4">
-                        <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Permissions</h3>
-                        <PermissionGroupSelect permissions={permissionCatalog} selected={selectedPermissions} onChange={setSelectedPermissions} />
+                        <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
+                          Permissions
+                        </h3>
+                        <PermissionGroupSelect
+                          permissions={permissionCatalog}
+                          selected={selectedPermissions}
+                          onChange={setSelectedPermissions}
+                        />
                       </div>
                     </CardContent>
                   </>
@@ -195,23 +245,46 @@ export function EditRolePage() {
 
                 <div className="flex flex-wrap justify-center gap-4 mt-6">
                   <label className="flex flex-row items-center space-x-3 rounded-lg border border-purple-500 bg-purple-50 dark:bg-purple-950/20 p-4">
-                    <Checkbox checked={isDefault} onCheckedChange={(checked) => setIsDefault(checked === true)} />
+                    <Checkbox
+                      checked={isDefault}
+                      onCheckedChange={(checked) =>
+                        setIsDefault(checked === true)
+                      }
+                    />
                     <span className="space-y-1 leading-none">
-                      <span className="block text-base font-medium">Default Role</span>
-                      <span className="block text-sm text-muted-foreground">Given to every newly signed-up user</span>
+                      <span className="block text-base font-medium">
+                        Default Role
+                      </span>
+                      <span className="block text-sm text-muted-foreground">
+                        Given to every newly signed-up user
+                      </span>
                     </span>
                   </label>
                   <label className="flex flex-row items-center space-x-3 rounded-lg border border-purple-500 bg-purple-50 dark:bg-purple-950/20 p-4">
-                    <Checkbox checked={isActive} onCheckedChange={(checked) => setIsActive(checked === true)} />
+                    <Checkbox
+                      checked={isActive}
+                      onCheckedChange={(checked) =>
+                        setIsActive(checked === true)
+                      }
+                    />
                     <span className="space-y-1 leading-none">
-                      <span className="block text-base font-medium">Active Status</span>
-                      <span className="block text-sm text-muted-foreground">This role will be active and can be assigned to users</span>
+                      <span className="block text-base font-medium">
+                        Active Status
+                      </span>
+                      <span className="block text-sm text-muted-foreground">
+                        This role will be active and can be assigned to users
+                      </span>
                     </span>
                   </label>
                 </div>
 
                 <CardFooter className="flex justify-center gap-4 mt-8 pb-8">
-                  <Button type="button" variant="outline" onClick={() => navigate("/roles")} disabled={saving}>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => navigate("/roles")}
+                    disabled={saving}
+                  >
                     Cancel
                   </Button>
                   <Button

@@ -6,14 +6,21 @@
   "description": "Source registry for the shadcn-style auth library CLI. Not published — the CLI copies files out of registry/ into consumer repos. Monorepo: each combo under registry/combos/* is its own package with only the deps it needs.",
   "type": "module",
   "scripts": {
-    "prepare": "git config core.hooksPath .githooks",
+    "prepare": "husky",
     "typecheck": "pnpm -r --if-present run typecheck",
     "test": "pnpm -r --if-present run test",
+    "lint": "pnpm -r --if-present run lint",
+    "format": "prettier --write .",
     "cli": "pnpm --filter @simple-auth-kit/cli run cli",
     "portal": "pnpm --filter dev-portal run dev"
   },
   "devDependencies": {
-    "typescript": "^7.0.2",
-    "vitest": "^4.1.10"
+    "typescript": "^6.0.3",
+    "vitest": "^4.1.10",
+    "husky": "^9.1.7",
+    "lint-staged": "^17.5.1",
+    "@commitlint/cli": "^21.2.2",
+    "@commitlint/config-conventional": "^21.2.2",
+    "prettier": "^3.9.6"
   }
 }
