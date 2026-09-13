@@ -11,7 +11,7 @@ import "dotenv/config";
 import { randomUUID } from "node:crypto";
 import { Get } from "@nestjs/common";
 import { generateTotpCode } from "@/lib/auth/core/two-factor.js";
-import { ABILITY_SUBJECT, defineAbilitiesFor } from "../src/ability.js";
+import { ABILITY_SUBJECT, defineAbilitiesFor } from "../src/ability/ability.js";
 import { AuthController } from "../src/controllers/auth.controller.js";
 import { bootstrap, capturedResetTokens } from "./bootstrap.js";
 import {

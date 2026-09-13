@@ -13,7 +13,7 @@
 // authorization was decided, only what it decided — see authz.guard.ts. Importing this module
 // for its side effect installs the Express `Request` augmentation.
 import type { AccessTokenClaims } from "@/lib/auth/core/types.js";
-import type { AppAbility } from "./ability.js";
+import type { AppAbility } from "./ability/ability.js";
 import type { AuthzContext } from "./guards/authz.guard.js";
 
 declare module "express" {

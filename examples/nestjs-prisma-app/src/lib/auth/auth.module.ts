@@ -2,7 +2,7 @@ import { PrismaPg } from "@prisma/adapter-pg";
 import { DynamicModule, Module } from "@nestjs/common";
 import { APP_FILTER, APP_GUARD, APP_INTERCEPTOR } from "@nestjs/core";
 import { ThrottlerGuard, ThrottlerModule } from "@nestjs/throttler";
-import { AbilityGuard } from "./guards/ability.guard.js";
+import { AbilityGuard } from "./ability/ability.guard.js";
 import { AdminController } from "./controllers/admin.controller.js";
 import { AuditLogGateway } from "./gateways/audit-log.gateway.js";
 import { AuditLogRepository } from "./repositories/audit-log.repository.js";

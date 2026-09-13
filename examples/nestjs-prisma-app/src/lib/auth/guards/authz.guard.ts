@@ -4,7 +4,7 @@ import {
   Inject,
   Injectable,
 } from "@nestjs/common";
-import { defineAbilitiesFor } from "../ability.js";
+import { defineAbilitiesFor } from "../ability/ability.js";
 import { PermissionCache } from "../permission-cache.js";
 import { RbacRepository } from "../repositories/rbac.repository.js";
 

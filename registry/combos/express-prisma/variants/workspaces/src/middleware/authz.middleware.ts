@@ -1,5 +1,5 @@
 import type { NextFunction, Request, RequestHandler, Response } from "express";
-import { defineAbilitiesFor } from "../ability.js";
+import { defineAbilitiesFor } from "../ability/ability.js";
 import { HttpError } from "../http-error.js";
 import type { PermissionCache } from "../permission-cache.js";
 import {

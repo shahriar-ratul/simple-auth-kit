@@ -1,5 +1,5 @@
 import type { NextFunction, Request, RequestHandler, Response } from "express";
-import { defineAbilitiesFor } from "../ability.js";
+import { defineAbilitiesFor } from "../ability/ability.js";
 import type { PermissionCache } from "../permission-cache.js";
 import type { RbacRepository } from "../repositories/rbac.repository.js";
 import "../request-context.js";

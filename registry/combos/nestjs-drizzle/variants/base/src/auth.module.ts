@@ -2,7 +2,7 @@ import { Pool } from "pg";
 import { drizzle } from "drizzle-orm/node-postgres";
 import { DynamicModule, Module } from "@nestjs/common";
 import { APP_FILTER, APP_INTERCEPTOR } from "@nestjs/core";
-import { AbilityGuard } from "./guards/ability.guard.js";
+import { AbilityGuard } from "./ability/ability.guard.js";
 import { AdminController } from "./controllers/admin.controller.js";
 import { AuditLogRepository } from "./repositories/audit-log.repository.js";
 import { AuthCoreErrorFilter } from "./filters/auth-core-error.filter.js";

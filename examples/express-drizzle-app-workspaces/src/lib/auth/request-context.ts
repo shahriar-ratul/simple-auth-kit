@@ -19,7 +19,7 @@
 // the `Express` namespace, see @types/express-serve-static-core) rather than the reference's
 // `declare module "express"`.
 import type { AccessTokenClaims } from "@/lib/auth/core/types.js";
-import type { AppAbility } from "./ability.js";
+import type { AppAbility } from "./ability/ability.js";
 import type { AuthzContext } from "./middleware/authz.middleware.js";
 
 declare global {

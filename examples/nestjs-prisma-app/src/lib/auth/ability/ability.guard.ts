@@ -6,7 +6,7 @@ import {
   Injectable,
 } from "@nestjs/common";
 import { Reflector } from "@nestjs/core";
-import { ABILITY_SUBJECT } from "../ability.js";
+import { ABILITY_SUBJECT } from "./ability.js";
 import { CHECK_ABILITY_KEY } from "../route-tiers.js";
 
 // The authorization boundary for tier-3 routes — no role-based bypass beside it, so a role

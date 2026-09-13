@@ -28,7 +28,7 @@
 //     a permission nothing can ever grant.
 import { Router } from "express";
 import type { NextFunction, Request, RequestHandler, Response } from "express";
-import { ABILITY_SUBJECT } from "./ability.js";
+import { ABILITY_SUBJECT } from "./ability/ability.js";
 import { PERMISSION_CATALOG, type PermissionSlug } from "./rbac.defaults.js";
 import "./request-context.js";
 

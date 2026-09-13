@@ -22,7 +22,7 @@ import {
   ApiTags,
 } from "@nestjs/swagger";
 import type { Request } from "express";
-import { AbilityGuard } from "../guards/ability.guard.js";
+import { AbilityGuard } from "../ability/ability.guard.js";
 import { AuthGuard } from "../guards/auth.guard.js";
 import { WORKSPACE_HEADER, WorkspaceGuard } from "../guards/authz.guard.js";
 import { Authenticated, CheckAbility } from "../route-tiers.js";

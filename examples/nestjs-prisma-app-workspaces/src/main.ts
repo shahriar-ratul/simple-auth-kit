@@ -1,14 +1,8 @@
 import "dotenv/config";
 import "reflect-metadata";
-import { Module } from "@nestjs/common";
 import { NestFactory } from "@nestjs/core";
 import { DocumentBuilder, SwaggerModule } from "@nestjs/swagger";
-import { AuthModule } from "./lib/auth/auth.module.js";
-
-@Module({
-  imports: [AuthModule.forRoot()],
-})
-class AppModule {}
+import { AppModule } from "./app.module.js";
 
 async function main() {
   const app = await NestFactory.create(AppModule);
