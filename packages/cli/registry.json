@@ -36,6 +36,7 @@
       "postInstall": [
         "Set DATABASE_URL in .env (see .env.example)",
         "Set AUTH_JWT_SECRET in .env — a base64-encoded 256-bit (or longer) secret, e.g.: openssl rand -base64 32. The app refuses to start without it; there is no default and nothing is generated for you. Changing it invalidates every outstanding token.",
+        "Add \"@/prisma/*\": [\"./generated/prisma/*\"] to your tsconfig.json's compilerOptions.paths — the copied source imports the generated Prisma client via this alias, since prisma.config.ts/prisma/ (and the client it generates) install at the project root regardless of where --path put everything else",
         "Run: npx prisma generate",
         "Run: npx prisma migrate deploy",
         "Seed RBAC: add \"seed\": \"tsx src/lib/auth/src/seed.ts\" to your package.json scripts (adjust the path if you installed elsewhere), then run: npm run seed — it is idempotent, and seeds the permission catalog and the default admin/member roles. Nothing is authorized until it has run at least once.",
@@ -102,6 +103,7 @@
       "postInstall": [
         "Set DATABASE_URL in .env (see .env.example)",
         "Set AUTH_JWT_SECRET in .env — a base64-encoded 256-bit (or longer) secret, e.g.: openssl rand -base64 32. The app refuses to start without it; there is no default and nothing is generated for you. Changing it invalidates every outstanding token.",
+        "Add \"@/prisma/*\": [\"./generated/prisma/*\"] to your tsconfig.json's compilerOptions.paths — the copied source imports the generated Prisma client via this alias, since prisma.config.ts/prisma/ (and the client it generates) install at the project root regardless of where --path put everything else",
         "Run: npx prisma generate",
         "Run: npx prisma migrate deploy",
         "Seed RBAC: add \"seed\": \"tsx src/lib/auth/src/seed.ts\" to your package.json scripts (adjust the path if you installed elsewhere), then run: npm run seed — it is idempotent, and seeds the permission catalog and the default admin/member roles. Nothing is authorized until it has run at least once.",

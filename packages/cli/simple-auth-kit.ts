@@ -17,13 +17,27 @@
 // non-interactive/scripted use.
 import { existsSync } from "node:fs";
 import { spawnSync } from "node:child_process";
-import { basename, dirname, join, relative, resolve } from "node:path";
+import { basename, dirname, join, resolve } from "node:path";
 import { access, mkdir, readdir, readFile, writeFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 import { createTwoFilesPatch } from "diff";
 import prompts from "prompts";
-import { copyDir, copyOneFile, CopyOptions, CopyResult, DiffEntry, NEVER_COPY, pruneRemovedFiles, SCAFFOLD_NEVER_COPY, sha256, toPosix } from "./lib/copy.js";
-import { reconcileManifest, renameNative, type NativeIdentity } from "./lib/rename-native.js";
+import {
+  copyDir,
+  copyOneFile,
+  CopyOptions,
+  CopyResult,
+  DiffEntry,
+  NEVER_COPY,
+  pruneRemovedFiles,
+  SCAFFOLD_NEVER_COPY,
+  sha256,
+} from "./lib/copy.js";
+import {
+  reconcileManifest,
+  renameNative,
+  type NativeIdentity,
+} from "./lib/rename-native.js";
 
 const CLI_DIR = dirname(fileURLToPath(import.meta.url));
 // Two contexts, and they disagree about where the registry is:
@@ -32,18 +46,35 @@ const CLI_DIR = dirname(fileURLToPath(import.meta.url));
 //    materialized right before `npm publish`/`npm pack`).
 //  - monorepo dev checkout: this file lives at packages/cli/, so the real registry/ is two
 //    levels up, at the repo root.
-const REGISTRY_ROOT = existsSync(join(CLI_DIR, "registry")) ? join(CLI_DIR, "registry") : resolve(CLI_DIR, "..", "..", "registry");
+const REGISTRY_ROOT = existsSync(join(CLI_DIR, "registry"))
+  ? join(CLI_DIR, "registry")
+  : resolve(CLI_DIR, "..", "..", "registry");
 const CONFIG_FILENAME = ".simple-auth-kit.json";
 const DEFAULT_VARIANT = "base";
 
 type Kind = "api" | "admin" | "mobile";
 type InstallMode = "merge" | "scaffold";
 
-const KIND_LABELS: Record<Kind, string> = { api: "API (backend)", admin: "Admin console", mobile: "Mobile app" };
-const KIND_FRAMEWORK_NOUN: Record<Kind, string> = { api: "API stack", admin: "admin framework", mobile: "mobile framework" };
+const KIND_LABELS: Record<Kind, string> = {
+  api: "API (backend)",
+  admin: "Admin console",
+  mobile: "Mobile app",
+};
+const KIND_FRAMEWORK_NOUN: Record<Kind, string> = {
+  api: "API stack",
+  admin: "admin framework",
+  mobile: "mobile framework",
+};
 
 /** Flags that take no value. Everything else consumes the next argv entry. */
-const BOOLEAN_FLAGS = new Set(["workspaces", "force", "check", "config-only", "skip-install", "help"]);
+const BOOLEAN_FLAGS = new Set([
+  "workspaces",
+  "force",
+  "check",
+  "config-only",
+  "skip-install",
+  "help",
+]);
 
 interface SimpleAuthKitConfig {
   path: string;
@@ -83,12 +114,21 @@ interface AuthLock {
   files?: Record<string, string>;
 }
 
-const DEFAULT_CONFIG: SimpleAuthKitConfig = { path: "src/lib/auth", alias: "@/lib/auth", ignore: [] };
+const DEFAULT_CONFIG: SimpleAuthKitConfig = {
+  path: "src/lib/auth",
+  alias: "@/lib/auth",
+  ignore: [],
+};
 
 const comboKind = (combo: ComboEntry): Kind => combo.kind ?? "api";
-const comboInstallMode = (combo: ComboEntry): InstallMode => combo.installMode ?? (comboKind(combo) === "api" ? "merge" : "scaffold");
+const comboInstallMode = (combo: ComboEntry): InstallMode =>
+  combo.installMode ?? (comboKind(combo) === "api" ? "merge" : "scaffold");
 
-function parseArgs(argv: string[]): { command?: string; positional: string[]; flags: Record<string, string | true> } {
+function parseArgs(argv: string[]): {
+  command?: string;
+  positional: string[];
+  flags: Record<string, string | true>;
+} {
   const [command, ...rest] = argv;
   const positional: string[] = [];
   const flags: Record<string, string | true> = {};
@@ -109,9 +149,15 @@ function parseArgs(argv: string[]): { command?: string; positional: string[]; fl
   return { command, positional, flags };
 }
 
-const flagString = (value: string | true | undefined): string | undefined => (typeof value === "string" ? value : undefined);
+const flagString = (value: string | true | undefined): string | undefined =>
+  typeof value === "string" ? value : undefined;
 const flagList = (value: string | true | undefined): string[] | undefined =>
-  typeof value === "string" ? value.split(",").map((s) => s.trim()).filter(Boolean) : undefined;
+  typeof value === "string"
+    ? value
+        .split(",")
+        .map((s) => s.trim())
+        .filter(Boolean)
+    : undefined;
 
 async function loadRegistry(): Promise<Registry> {
   return JSON.parse(await readFile(join(CLI_DIR, "registry.json"), "utf8"));
@@ -128,7 +174,9 @@ async function loadConfig(targetRoot: string): Promise<SimpleAuthKitConfig> {
 
 async function loadLock(targetRoot: string): Promise<AuthLock> {
   try {
-    return JSON.parse(await readFile(join(targetRoot, "auth.lock.json"), "utf8"));
+    return JSON.parse(
+      await readFile(join(targetRoot, "auth.lock.json"), "utf8"),
+    );
   } catch {
     return {};
   }
@@ -163,18 +211,29 @@ async function isEmptyDir(dir: string): Promise<boolean> {
  * reported at the end by printInstallSummary) outside a TTY or under --check, since there's
  * nothing useful to prompt into either case.
  */
-async function resolveForcePaths(runDry: () => Promise<{ result: CopyResult }>, flags: Record<string, string | true>): Promise<Set<string>> {
-  if (flags.force === true || flags.check === true || !isTTY()) return new Set();
+async function resolveForcePaths(
+  runDry: () => Promise<{ result: CopyResult }>,
+  flags: Record<string, string | true>,
+): Promise<Set<string>> {
+  if (flags.force === true || flags.check === true || !isTTY())
+    return new Set();
 
   const { result } = await runDry();
   if (!result.skipped.length) return new Set();
 
-  console.log(`\n${result.skipped.length} file(s) have changed locally since the last install:`);
+  console.log(
+    `\n${result.skipped.length} file(s) have changed locally since the last install:`,
+  );
   const picked = await ask<string[]>({
     type: "multiselect",
     name: "paths",
-    message: "Overwrite any of these with the latest version? (unselected ones are left alone)",
-    choices: result.skipped.map((file) => ({ title: file, value: file, selected: false })),
+    message:
+      "Overwrite any of these with the latest version? (unselected ones are left alone)",
+    choices: result.skipped.map((file) => ({
+      title: file,
+      value: file,
+      selected: false,
+    })),
     instructions: false,
   });
   return new Set(picked ?? []);
@@ -186,10 +245,16 @@ type PackageManager = (typeof PACKAGE_MANAGERS)[number];
 /** Detected from whichever lockfile is already sitting in targetRoot — unambiguous, so used
  * without asking. Returns null when nothing on disk says which tool to use and `--pm` wasn't
  * given either, leaving it to the caller to ask (interactive) or default (non-interactive). */
-function detectPackageManagerFromLockfile(targetRoot: string): PackageManager | null {
+function detectPackageManagerFromLockfile(
+  targetRoot: string,
+): PackageManager | null {
   if (existsSync(join(targetRoot, "pnpm-lock.yaml"))) return "pnpm";
   if (existsSync(join(targetRoot, "yarn.lock"))) return "yarn";
-  if (existsSync(join(targetRoot, "bun.lockb")) || existsSync(join(targetRoot, "bun.lock"))) return "bun";
+  if (
+    existsSync(join(targetRoot, "bun.lockb")) ||
+    existsSync(join(targetRoot, "bun.lock"))
+  )
+    return "bun";
   if (existsSync(join(targetRoot, "package-lock.json"))) return "npm";
   return null;
 }
@@ -198,11 +263,17 @@ function detectPackageManagerFromLockfile(targetRoot: string): PackageManager | 
  * silently. Only when neither says anything — most commonly a scaffold install into an empty
  * directory — and this is a real terminal do we ask; a non-interactive run in that same situation
  * still falls back to npm rather than blocking. */
-async function resolvePackageManager(targetRoot: string, flags: Record<string, string | true>): Promise<PackageManager> {
+async function resolvePackageManager(
+  targetRoot: string,
+  flags: Record<string, string | true>,
+): Promise<PackageManager> {
   const requested = flagString(flags.pm);
   if (requested) {
-    if ((PACKAGE_MANAGERS as readonly string[]).includes(requested)) return requested as PackageManager;
-    console.error(`--pm "${requested}" isn't one of ${PACKAGE_MANAGERS.join(", ")} — falling back to auto-detection.`);
+    if ((PACKAGE_MANAGERS as readonly string[]).includes(requested))
+      return requested as PackageManager;
+    console.error(
+      `--pm "${requested}" isn't one of ${PACKAGE_MANAGERS.join(", ")} — falling back to auto-detection.`,
+    );
   }
 
   const detected = detectPackageManagerFromLockfile(targetRoot);
@@ -229,13 +300,19 @@ async function resolvePackageManager(targetRoot: string, flags: Record<string, s
  * to add (an update that touched no files has nothing worth re-installing for). `--pm
  * <npm|pnpm|yarn|bun>` picks the tool explicitly instead of auto-detecting/asking.
  */
-async function installDependencies(targetRoot: string, deps: string[], flags: Record<string, string | true>): Promise<void> {
+async function installDependencies(
+  targetRoot: string,
+  deps: string[],
+  flags: Record<string, string | true>,
+): Promise<void> {
   if (flags["skip-install"] === true) return;
 
   const pm = await resolvePackageManager(targetRoot, flags);
   // "install everything in package.json" (zero deps named) is the same bare verb across all
   // four; naming specific packages is "install <pkgs>" for npm, "add <pkgs>" for the others.
-  const args = deps.length ? [pm === "npm" ? "install" : "add", ...deps] : ["install"];
+  const args = deps.length
+    ? [pm === "npm" ? "install" : "add", ...deps]
+    : ["install"];
 
   console.log(`\nInstalling dependencies (${pm})...`);
   let result = spawnSync(pm, args, { cwd: targetRoot, stdio: "inherit" });
@@ -247,12 +324,19 @@ async function installDependencies(targetRoot: string, deps: string[], flags: Re
     // a later `update` (a version bump re-flags a build), so approve unconditionally and retry
     // once rather than just telling the consumer to do it by hand each time — `approve-builds
     // --all` is a no-op when nothing is pending.
-    console.log(`\n${pm} blocked some install scripts — running "pnpm approve-builds --all" and retrying...`);
-    spawnSync(pm, ["approve-builds", "--all"], { cwd: targetRoot, stdio: "inherit" });
+    console.log(
+      `\n${pm} blocked some install scripts — running "pnpm approve-builds --all" and retrying...`,
+    );
+    spawnSync(pm, ["approve-builds", "--all"], {
+      cwd: targetRoot,
+      stdio: "inherit",
+    });
     result = spawnSync(pm, args, { cwd: targetRoot, stdio: "inherit" });
   }
   if (result.status !== 0) {
-    console.error(`\n${pm} install exited with an error — run it yourself: cd ${targetRoot} && ${pm} ${args.join(" ")}`);
+    console.error(
+      `\n${pm} install exited with an error — run it yourself: cd ${targetRoot} && ${pm} ${args.join(" ")}`,
+    );
   }
 }
 
@@ -264,14 +348,23 @@ async function installDependencies(targetRoot: string, deps: string[], flags: Re
  * the fresh-project entry point, not just a config file. Pass --config-only to get the old
  * behavior back (write the config and stop there, no install).
  */
-async function cmdInit(targetRoot: string, flags: Record<string, string | true>) {
+async function cmdInit(
+  targetRoot: string,
+  flags: Record<string, string | true>,
+) {
   const config: SimpleAuthKitConfig = {
     path: flagString(flags.path) ?? DEFAULT_CONFIG.path,
     alias: flagString(flags.alias) ?? DEFAULT_CONFIG.alias,
     ignore: [],
   };
-  await writeFile(join(targetRoot, CONFIG_FILENAME), JSON.stringify(config, null, 2) + "\n", "utf8");
-  console.log(`Wrote ${CONFIG_FILENAME} — combos will install into ${config.path} (import alias ${config.alias})`);
+  await writeFile(
+    join(targetRoot, CONFIG_FILENAME),
+    JSON.stringify(config, null, 2) + "\n",
+    "utf8",
+  );
+  console.log(
+    `Wrote ${CONFIG_FILENAME} — combos will install into ${config.path} (import alias ${config.alias})`,
+  );
 
   if (flags["config-only"] === true) return;
 
@@ -279,29 +372,44 @@ async function cmdInit(targetRoot: string, flags: Record<string, string | true>)
   await cmdCreate(targetRoot, flags);
 }
 
-function resolveVariant(combo: ComboEntry, comboName: string, requested: string): string | null {
+function resolveVariant(
+  combo: ComboEntry,
+  comboName: string,
+  requested: string,
+): string | null {
   if (combo.variants.length === 0) {
-    console.error(`Combo "${comboName}" has not been migrated to the variant layout yet (see registry/README.md) — nothing to install.`);
+    console.error(
+      `Combo "${comboName}" has not been migrated to the variant layout yet (see registry/README.md) — nothing to install.`,
+    );
     return null;
   }
   if (!combo.variants.includes(requested)) {
-    console.error(`Combo "${comboName}" has no "${requested}" variant. Available: ${combo.variants.join(", ")}`);
+    console.error(
+      `Combo "${comboName}" has no "${requested}" variant. Available: ${combo.variants.join(", ")}`,
+    );
     return null;
   }
   return requested;
 }
 
 function requestedVariant(flags: Record<string, string | true>): string {
-  return flags.workspaces === true ? "workspaces" : (flagString(flags.variant) ?? DEFAULT_VARIANT);
+  return flags.workspaces === true
+    ? "workspaces"
+    : (flagString(flags.variant) ?? DEFAULT_VARIANT);
 }
 
-function printInstallSummary(result: CopyResult, pruned: { removed: string[]; keptModified: string[] }) {
+function printInstallSummary(
+  result: CopyResult,
+  pruned: { removed: string[]; keptModified: string[] },
+) {
   if (result.updated.length) {
     console.log(`\nUpdated (new or changed since last install):`);
     for (const file of result.updated) console.log(`  ${file}`);
   }
   if (result.skipped.length) {
-    console.log(`\nLeft alone — modified since the last install (re-run with --force to overwrite):`);
+    console.log(
+      `\nLeft alone — modified since the last install (re-run with --force to overwrite):`,
+    );
     for (const file of result.skipped) console.log(`  ${file}`);
   }
   if (result.ignored.length) {
@@ -313,13 +421,18 @@ function printInstallSummary(result: CopyResult, pruned: { removed: string[]; ke
     for (const file of pruned.removed) console.log(`  ${file}`);
   }
   if (pruned.keptModified.length) {
-    console.log(`\nNo longer part of this install, but modified locally, so kept (delete by hand if you don't want them):`);
+    console.log(
+      `\nNo longer part of this install, but modified locally, so kept (delete by hand if you don't want them):`,
+    );
     for (const file of pruned.keptModified) console.log(`  ${file}`);
   }
 }
 
 function printPostInstallNotes(combo: ComboEntry, variant: string) {
-  const notes = [...combo.postInstall, ...(combo.variantPostInstall?.[variant] ?? [])];
+  const notes = [
+    ...combo.postInstall,
+    ...(combo.variantPostInstall?.[variant] ?? []),
+  ];
   if (notes.length) {
     console.log(`\nNext steps:`);
     for (const note of notes) console.log(`  - ${note}`);
@@ -334,11 +447,23 @@ function printPostInstallNotes(combo: ComboEntry, variant: string) {
  * to schema.prisma's own location, so moving prisma.config.ts/prisma/ to the project root also
  * moves the generated client. The registry source's `src/*.ts` files import it as
  * `"../generated/prisma/client.js"` — correct for the registry's own dev/typecheck loop (where
- * nothing has moved), but wrong once copied into a real install, so installMerge rewrites that
- * literal string in every copied file to the new correct relative path. Drizzle has no equivalent
- * generated artifact to redirect. */
-const ORM_LAYOUTS: { configFile: string; dataDir: string; generatedClientImport?: string }[] = [
-  { configFile: "prisma.config.ts", dataDir: "prisma", generatedClientImport: "../generated/prisma/client.js" },
+ * nothing has moved) — and installMerge rewrites that literal string in every copied file to
+ * `@/prisma/client.js` instead of a computed relative path: the generated client always lands at
+ * the project root regardless of how deep the importing file sits (unlike `@/lib/auth/core`,
+ * whose depth actually varies with `--path`), so a fixed alias is both simpler and stable across
+ * installs. The consumer adds `"@/prisma/*": ["./generated/prisma/*"]` to their tsconfig `paths`
+ * once (see postInstall) — the CLI never writes tsconfig itself, same as `@/lib/auth`. Drizzle has
+ * no equivalent generated artifact to redirect. */
+const ORM_LAYOUTS: {
+  configFile: string;
+  dataDir: string;
+  generatedClientImport?: string;
+}[] = [
+  {
+    configFile: "prisma.config.ts",
+    dataDir: "prisma",
+    generatedClientImport: "../generated/prisma/client.js",
+  },
   { configFile: "drizzle.config.ts", dataDir: "drizzle" },
 ];
 
@@ -358,7 +483,13 @@ interface MergePlan {
 
 /** Everything about a merge-mode install that doesn't depend on force/dryRun/forcePaths —
  * computed once, shared by installMerge's real run and cmdDiff's read-only one. */
-async function buildMergePlan(combo: ComboEntry, variant: string, targetRoot: string, flags: Record<string, string | true>, previous: Record<string, string>): Promise<MergePlan> {
+async function buildMergePlan(
+  combo: ComboEntry,
+  variant: string,
+  targetRoot: string,
+  flags: Record<string, string | true>,
+  previous: Record<string, string>,
+): Promise<MergePlan> {
   const config = await loadConfig(targetRoot);
   const installPath = flagString(flags.path) ?? config.path;
   const alias = flagString(flags.alias) ?? config.alias;
@@ -374,19 +505,35 @@ async function buildMergePlan(combo: ComboEntry, variant: string, targetRoot: st
     }
     return null;
   })();
-  const skipFromShared = orm ? new Set([...NEVER_COPY, orm.configFile]) : NEVER_COPY;
-  const skipFromVariant = orm ? new Set([...NEVER_COPY, orm.dataDir]) : NEVER_COPY;
+  const skipFromShared = orm
+    ? new Set([...NEVER_COPY, orm.configFile])
+    : NEVER_COPY;
+  const skipFromVariant = orm
+    ? new Set([...NEVER_COPY, orm.dataDir])
+    : NEVER_COPY;
 
   const extraRewrites = orm?.generatedClientImport
     ? [
         {
           from: orm.generatedClientImport,
-          to: toPosix(relative(join(destRoot, "src"), join(targetRoot, "generated", "prisma", "client.js"))),
+          to: "@/prisma/client.js",
         },
       ]
     : undefined;
 
-  return { destRoot, installPath, alias, sharedDir, variantDir, orm, skipFromShared, skipFromVariant, extraRewrites, config, previous };
+  return {
+    destRoot,
+    installPath,
+    alias,
+    sharedDir,
+    variantDir,
+    orm,
+    skipFromShared,
+    skipFromVariant,
+    extraRewrites,
+    config,
+    previous,
+  };
 }
 
 /** The actual copy pass for a merge-mode install — shared by installMerge (writes for real, or
@@ -405,9 +552,22 @@ async function runMergeCopy(
   plan: MergePlan,
   registry: Registry,
   targetRoot: string,
-  opts: { force: boolean; forcePaths: Set<string>; dryRun: boolean; collectDiffs?: DiffEntry[] },
-): Promise<{ result: CopyResult; pruned: { removed: string[]; keptModified: string[] } }> {
-  const result: CopyResult = { manifest: {}, skipped: [], ignored: [], updated: [] };
+  opts: {
+    force: boolean;
+    forcePaths: Set<string>;
+    dryRun: boolean;
+    collectDiffs?: DiffEntry[];
+  },
+): Promise<{
+  result: CopyResult;
+  pruned: { removed: string[]; keptModified: string[] };
+}> {
+  const result: CopyResult = {
+    manifest: {},
+    skipped: [],
+    ignored: [],
+    updated: [],
+  };
   const copyOpts: CopyOptions = {
     aliasFrom: "@/lib/auth/core",
     aliasTo: `${plan.alias}/core`,
@@ -421,33 +581,90 @@ async function runMergeCopy(
     collectDiffs: opts.collectDiffs,
   };
 
-  await copyDir(join(REGISTRY_ROOT, registry.core.dir), join(plan.destRoot, "core"), copyOpts, plan.destRoot, result);
-  await copyDir(plan.sharedDir, plan.destRoot, { ...copyOpts, neverCopy: plan.skipFromShared }, plan.destRoot, result);
-  await copyDir(plan.variantDir, plan.destRoot, { ...copyOpts, neverCopy: plan.skipFromVariant }, plan.destRoot, result);
+  await copyDir(
+    join(REGISTRY_ROOT, registry.core.dir),
+    join(plan.destRoot, "core"),
+    copyOpts,
+    plan.destRoot,
+    result,
+  );
+  await copyDir(
+    plan.sharedDir,
+    plan.destRoot,
+    { ...copyOpts, neverCopy: plan.skipFromShared },
+    plan.destRoot,
+    result,
+  );
+  await copyDir(
+    plan.variantDir,
+    plan.destRoot,
+    { ...copyOpts, neverCopy: plan.skipFromVariant },
+    plan.destRoot,
+    result,
+  );
 
   if (plan.orm) {
-    await copyOneFile(join(plan.sharedDir, plan.orm.configFile), join(targetRoot, plan.orm.configFile), plan.destRoot, copyOpts, result);
-    await copyDir(join(plan.variantDir, plan.orm.dataDir), join(targetRoot, plan.orm.dataDir), copyOpts, plan.destRoot, result);
+    await copyOneFile(
+      join(plan.sharedDir, plan.orm.configFile),
+      join(targetRoot, plan.orm.configFile),
+      plan.destRoot,
+      copyOpts,
+      result,
+    );
+    await copyDir(
+      join(plan.variantDir, plan.orm.dataDir),
+      join(targetRoot, plan.orm.dataDir),
+      copyOpts,
+      plan.destRoot,
+      result,
+    );
   }
 
   // Switching variants has to remove the old variant's files, or the project ends up with both wired in.
-  const pruned = await pruneRemovedFiles(plan.destRoot, plan.previous, result, { force: opts.force, ignore: plan.config.ignore, dryRun: opts.dryRun });
+  const pruned = await pruneRemovedFiles(plan.destRoot, plan.previous, result, {
+    force: opts.force,
+    ignore: plan.config.ignore,
+    dryRun: opts.dryRun,
+  });
   return { result, pruned };
 }
 
-async function installMerge(comboName: string, combo: ComboEntry, variant: string, registry: Registry, targetRoot: string, flags: Record<string, string | true>) {
+async function installMerge(
+  comboName: string,
+  combo: ComboEntry,
+  variant: string,
+  registry: Registry,
+  targetRoot: string,
+  flags: Record<string, string | true>,
+) {
   const lock = await loadLock(targetRoot);
   const previous = lock.files ?? {};
   const force = flags.force === true;
   const checkOnly = flags.check === true;
 
-  const plan = await buildMergePlan(combo, variant, targetRoot, flags, previous);
+  const plan = await buildMergePlan(
+    combo,
+    variant,
+    targetRoot,
+    flags,
+    previous,
+  );
 
   if (checkOnly) {
-    const { result, pruned } = await runMergeCopy(plan, registry, targetRoot, { force, forcePaths: new Set(), dryRun: true });
-    console.log(`\nCheck only — nothing written. "${comboName}" (${variant} variant) in ${plan.installPath} (alias ${plan.alias}):`);
+    const { result, pruned } = await runMergeCopy(plan, registry, targetRoot, {
+      force,
+      forcePaths: new Set(),
+      dryRun: true,
+    });
+    console.log(
+      `\nCheck only — nothing written. "${comboName}" (${variant} variant) in ${plan.installPath} (alias ${plan.alias}):`,
+    );
     printInstallSummary(result, pruned);
-    const silent = !result.updated.length && !result.skipped.length && !pruned.removed.length && !pruned.keptModified.length;
+    const silent =
+      !result.updated.length &&
+      !result.skipped.length &&
+      !pruned.removed.length &&
+      !pruned.keptModified.length;
     if (silent) console.log(`\nUp to date — nothing would change.`);
     return;
   }
@@ -455,19 +672,45 @@ async function installMerge(comboName: string, combo: ComboEntry, variant: strin
   // Interactive + no --force: find locally-modified conflicts first (a dry run, nothing written),
   // and let the user pick which — if any — to overwrite anyway, shadcn-"this file already exists"
   // style, instead of the non-interactive default of silently leaving all of them alone.
-  const forcePaths = await resolveForcePaths(() => runMergeCopy(plan, registry, targetRoot, { force: false, forcePaths: new Set(), dryRun: true }), flags);
-  const { result, pruned } = await runMergeCopy(plan, registry, targetRoot, { force, forcePaths, dryRun: false });
+  const forcePaths = await resolveForcePaths(
+    () =>
+      runMergeCopy(plan, registry, targetRoot, {
+        force: false,
+        forcePaths: new Set(),
+        dryRun: true,
+      }),
+    flags,
+  );
+  const { result, pruned } = await runMergeCopy(plan, registry, targetRoot, {
+    force,
+    forcePaths,
+    dryRun: false,
+  });
 
   await writeFile(
     join(targetRoot, "auth.lock.json"),
-    JSON.stringify({ ...lock, combo: comboName, variant, installedAt: new Date().toISOString(), files: result.manifest }, null, 2) + "\n",
+    JSON.stringify(
+      {
+        ...lock,
+        combo: comboName,
+        variant,
+        installedAt: new Date().toISOString(),
+        files: result.manifest,
+      },
+      null,
+      2,
+    ) + "\n",
     "utf8",
   );
 
-  console.log(`\nInstalled "${comboName}" (${variant} variant) into ${plan.installPath} (alias ${plan.alias})`);
+  console.log(
+    `\nInstalled "${comboName}" (${variant} variant) into ${plan.installPath} (alias ${plan.alias})`,
+  );
   printInstallSummary(result, pruned);
 
-  const peerDeps = [...new Set([...registry.core.peerDependencies, ...combo.peerDependencies])];
+  const peerDeps = [
+    ...new Set([...registry.core.peerDependencies, ...combo.peerDependencies]),
+  ];
   console.log(`\nPeer dependencies: ${peerDeps.join(" ")}`);
   if (result.updated.length) {
     await installDependencies(targetRoot, peerDeps, flags);
@@ -480,7 +723,13 @@ async function installMerge(comboName: string, combo: ComboEntry, variant: strin
 /** "scaffold" install — admin/mobile apps materialized as a whole standalone project directly
  * into targetRoot: no core layer, no alias rewrite, package.json is real content (copied and
  * name/description-templated), not the registry's own dev wiring. */
-async function installScaffold(comboName: string, combo: ComboEntry, variant: string, targetRoot: string, flags: Record<string, string | true>) {
+async function installScaffold(
+  comboName: string,
+  combo: ComboEntry,
+  variant: string,
+  targetRoot: string,
+  flags: Record<string, string | true>,
+) {
   const lock = await loadLock(targetRoot);
   const previous = lock.files ?? {};
   const force = flags.force === true;
@@ -498,24 +747,65 @@ async function installScaffold(comboName: string, combo: ComboEntry, variant: st
 
   const comboDir = join(REGISTRY_ROOT, combo.dir);
 
-  const runCopy = async (opts: { force: boolean; forcePaths: Set<string>; dryRun: boolean }) => {
-    const result: CopyResult = { manifest: {}, skipped: [], ignored: [], updated: [] };
-    const copyOpts = { previous, force: opts.force, forcePaths: opts.forcePaths, neverCopy: SCAFFOLD_NEVER_COPY, dryRun: opts.dryRun };
-    await copyDir(join(comboDir, combo.sharedDir ?? "shared"), targetRoot, copyOpts, targetRoot, result);
-    await copyDir(join(comboDir, combo.variantsDir ?? "variants", variant), targetRoot, copyOpts, targetRoot, result);
-    const pruned = await pruneRemovedFiles(targetRoot, previous, result, { force: opts.force, dryRun: opts.dryRun });
+  const runCopy = async (opts: {
+    force: boolean;
+    forcePaths: Set<string>;
+    dryRun: boolean;
+  }) => {
+    const result: CopyResult = {
+      manifest: {},
+      skipped: [],
+      ignored: [],
+      updated: [],
+    };
+    const copyOpts = {
+      previous,
+      force: opts.force,
+      forcePaths: opts.forcePaths,
+      neverCopy: SCAFFOLD_NEVER_COPY,
+      dryRun: opts.dryRun,
+    };
+    await copyDir(
+      join(comboDir, combo.sharedDir ?? "shared"),
+      targetRoot,
+      copyOpts,
+      targetRoot,
+      result,
+    );
+    await copyDir(
+      join(comboDir, combo.variantsDir ?? "variants", variant),
+      targetRoot,
+      copyOpts,
+      targetRoot,
+      result,
+    );
+    const pruned = await pruneRemovedFiles(targetRoot, previous, result, {
+      force: opts.force,
+      dryRun: opts.dryRun,
+    });
     return { result, pruned };
   };
 
   // Same shadcn-style "this file already exists, overwrite?" prompt as installMerge — see
   // resolveForcePaths. A no-op dry run on a genuinely fresh install (nothing to conflict with).
-  const forcePaths = await resolveForcePaths(() => runCopy({ force: false, forcePaths: new Set(), dryRun: true }), flags);
-  const { result, pruned } = await runCopy({ force, forcePaths, dryRun: false });
+  const forcePaths = await resolveForcePaths(
+    () => runCopy({ force: false, forcePaths: new Set(), dryRun: true }),
+    flags,
+  );
+  const { result, pruned } = await runCopy({
+    force,
+    forcePaths,
+    dryRun: false,
+  });
 
   const appName = flagString(flags.name) ?? basename(targetRoot);
 
   if (combo.nativeIdentity) {
-    const renamed = await renameNative(targetRoot, combo.nativeIdentity, appName);
+    const renamed = await renameNative(
+      targetRoot,
+      combo.nativeIdentity,
+      appName,
+    );
     result.manifest = reconcileManifest(result.manifest, renamed);
   }
 
@@ -533,11 +823,23 @@ async function installScaffold(comboName: string, combo: ComboEntry, variant: st
 
   await writeFile(
     join(targetRoot, "auth.lock.json"),
-    JSON.stringify({ ...lock, combo: comboName, variant, installedAt: new Date().toISOString(), files: result.manifest }, null, 2) + "\n",
+    JSON.stringify(
+      {
+        ...lock,
+        combo: comboName,
+        variant,
+        installedAt: new Date().toISOString(),
+        files: result.manifest,
+      },
+      null,
+      2,
+    ) + "\n",
     "utf8",
   );
 
-  console.log(`\nGenerated "${appName}" (${comboName}, ${variant} variant) into ${targetRoot}`);
+  console.log(
+    `\nGenerated "${appName}" (${comboName}, ${variant} variant) into ${targetRoot}`,
+  );
   printInstallSummary(result, pruned);
   if (result.updated.length) {
     // Dependencies are already declared in package.json — no specific packages to name, just
@@ -549,7 +851,14 @@ async function installScaffold(comboName: string, combo: ComboEntry, variant: st
   printPostInstallNotes(combo, variant);
 }
 
-async function installCombo(comboName: string, combo: ComboEntry, variant: string, registry: Registry, targetRoot: string, flags: Record<string, string | true>) {
+async function installCombo(
+  comboName: string,
+  combo: ComboEntry,
+  variant: string,
+  registry: Registry,
+  targetRoot: string,
+  flags: Record<string, string | true>,
+) {
   if (comboInstallMode(combo) === "scaffold") {
     await installScaffold(comboName, combo, variant, targetRoot, flags);
   } else {
@@ -557,11 +866,17 @@ async function installCombo(comboName: string, combo: ComboEntry, variant: strin
   }
 }
 
-async function cmdAdd(comboName: string, targetRoot: string, flags: Record<string, string | true>) {
+async function cmdAdd(
+  comboName: string,
+  targetRoot: string,
+  flags: Record<string, string | true>,
+) {
   const registry = await loadRegistry();
   const combo = registry.combos[comboName];
   if (!combo) {
-    console.error(`Unknown combo "${comboName}". Available: ${Object.keys(registry.combos).join(", ")}`);
+    console.error(
+      `Unknown combo "${comboName}". Available: ${Object.keys(registry.combos).join(", ")}`,
+    );
     process.exitCode = 1;
     return;
   }
@@ -575,15 +890,22 @@ async function cmdAdd(comboName: string, targetRoot: string, flags: Record<strin
   await installCombo(comboName, combo, variant, registry, targetRoot, flags);
 }
 
-function combosByKind(registry: Registry, kind: Kind): Array<[string, ComboEntry]> {
-  return Object.entries(registry.combos).filter(([, combo]) => comboKind(combo) === kind);
+function combosByKind(
+  registry: Registry,
+  kind: Kind,
+): Array<[string, ComboEntry]> {
+  return Object.entries(registry.combos).filter(
+    ([, combo]) => comboKind(combo) === kind,
+  );
 }
 
 const isTTY = () => Boolean(process.stdin.isTTY && process.stdout.isTTY);
 
 /** Wraps a single `prompts()` call so a cancel (Ctrl+C) surfaces as `null` instead of `undefined`,
  * which prompts itself doesn't distinguish from "field asked but left empty". */
-async function ask<T>(question: Parameters<typeof prompts>[0] & { name: string }): Promise<T | null> {
+async function ask<T>(
+  question: Parameters<typeof prompts>[0] & { name: string },
+): Promise<T | null> {
   const res = await prompts(question as never);
   const value = (res as Record<string, unknown>)[question.name as string];
   return value === undefined ? null : (value as T);
@@ -595,7 +917,14 @@ async function ask<T>(question: Parameters<typeof prompts>[0] & { name: string }
  * choice applies to every kind picked this run, matching how `variants` is already a single
  * cross-cutting concept rather than per-combo.
  */
-async function resolvePlan(registry: Registry, flags: Record<string, string | true>): Promise<Array<{ comboName: string; combo: ComboEntry; variant: string }> | null> {
+async function resolvePlan(
+  registry: Registry,
+  flags: Record<string, string | true>,
+): Promise<Array<{
+  comboName: string;
+  combo: ComboEntry;
+  variant: string;
+}> | null> {
   const flagKinds = flagList(flags.kind) as Kind[] | undefined;
   const flagFrameworks = flagList(flags.framework);
   const interactive = isTTY();
@@ -608,7 +937,10 @@ async function resolvePlan(registry: Registry, flags: Record<string, string | tr
       type: "multiselect",
       name: "kinds",
       message: "What would you like to generate?",
-      choices: (Object.keys(KIND_LABELS) as Kind[]).map((value) => ({ title: KIND_LABELS[value], value })),
+      choices: (Object.keys(KIND_LABELS) as Kind[]).map((value) => ({
+        title: KIND_LABELS[value],
+        value,
+      })),
       min: 1,
       instructions: false,
     });
@@ -618,7 +950,9 @@ async function resolvePlan(registry: Registry, flags: Record<string, string | tr
     }
     kinds = picked;
   } else {
-    console.error("Non-interactive session: pass --kind api,admin,mobile (comma-separated), or a specific combo name (simple-auth-kit add <combo>).");
+    console.error(
+      "Non-interactive session: pass --kind api,admin,mobile (comma-separated), or a specific combo name (simple-auth-kit add <combo>).",
+    );
     return null;
   }
 
@@ -642,7 +976,9 @@ async function resolvePlan(registry: Registry, flags: Record<string, string | tr
 
     let comboName = flagFrameworks?.[i];
     if (comboName && !available.some(([name]) => name === comboName)) {
-      const match = available.find(([name]) => name === comboName || name.endsWith(`-${comboName}`));
+      const match = available.find(
+        ([name]) => name === comboName || name.endsWith(`-${comboName}`),
+      );
       comboName = match?.[0];
     }
 
@@ -662,7 +998,9 @@ async function resolvePlan(registry: Registry, flags: Record<string, string | tr
         }
         comboName = picked;
       } else {
-        console.error(`Multiple "${kind}" combos available (${available.map(([name]) => name).join(", ")}) — pass --framework to disambiguate.`);
+        console.error(
+          `Multiple "${kind}" combos available (${available.map(([name]) => name).join(", ")}) — pass --framework to disambiguate.`,
+        );
         return null;
       }
     }
@@ -682,7 +1020,12 @@ async function resolvePlan(registry: Registry, flags: Record<string, string | tr
   } else if (requestedVariantFlag === "base") {
     wantsWorkspaces = false;
   } else if (interactive) {
-    const picked = await ask<boolean>({ type: "confirm", name: "workspaces", message: "Include workspaces support?", initial: false });
+    const picked = await ask<boolean>({
+      type: "confirm",
+      name: "workspaces",
+      message: "Include workspaces support?",
+      initial: false,
+    });
     if (picked === null) {
       console.log("Cancelled.");
       return null;
@@ -692,16 +1035,27 @@ async function resolvePlan(registry: Registry, flags: Record<string, string | tr
     wantsWorkspaces = false;
   }
 
-  const selections: Array<{ comboName: string; combo: ComboEntry; variant: string }> = [];
+  const selections: Array<{
+    comboName: string;
+    combo: ComboEntry;
+    variant: string;
+  }> = [];
   for (const pick of picks) {
-    const variant = resolveVariant(pick.combo, pick.comboName, wantsWorkspaces ? "workspaces" : DEFAULT_VARIANT);
+    const variant = resolveVariant(
+      pick.combo,
+      pick.comboName,
+      wantsWorkspaces ? "workspaces" : DEFAULT_VARIANT,
+    );
     if (!variant) return null;
     selections.push({ ...pick, variant });
   }
   return selections;
 }
 
-async function cmdCreate(targetRoot: string, flags: Record<string, string | true>) {
+async function cmdCreate(
+  targetRoot: string,
+  flags: Record<string, string | true>,
+) {
   const registry = await loadRegistry();
   const selections = await resolvePlan(registry, flags);
   if (!selections) {
@@ -723,8 +1077,18 @@ async function cmdCreate(targetRoot: string, flags: Record<string, string | true
     // (they don't have their own package.json identity), but two scaffold apps both literally
     // named e.g. "combo-test" would collide if anything ever treats them as sibling packages
     // (a pnpm/npm workspace, for one). Suffix with the combo name once there's more than one.
-    const installFlags = namespaced && flagString(flags.name) ? { ...flags, name: `${flagString(flags.name)}-${comboName}` } : flags;
-    await installCombo(comboName, combo, variant, registry, installRoot, installFlags);
+    const installFlags =
+      namespaced && flagString(flags.name)
+        ? { ...flags, name: `${flagString(flags.name)}-${comboName}` }
+        : flags;
+    await installCombo(
+      comboName,
+      combo,
+      variant,
+      registry,
+      installRoot,
+      installFlags,
+    );
   }
 }
 
@@ -735,10 +1099,15 @@ async function cmdCreate(targetRoot: string, flags: Record<string, string | true
  * anything you have is left alone and reported, exactly like a first install. Pass `--force`
  * yourself if you really do want to overwrite local edits.
  */
-async function cmdUpdate(targetRoot: string, flags: Record<string, string | true>) {
+async function cmdUpdate(
+  targetRoot: string,
+  flags: Record<string, string | true>,
+) {
   const lock = await loadLock(targetRoot);
   if (!lock.combo || !lock.variant) {
-    console.error(`No auth.lock.json (or it's missing combo/variant) in ${targetRoot} — nothing to update. Use "add <combo>" for a first install.`);
+    console.error(
+      `No auth.lock.json (or it's missing combo/variant) in ${targetRoot} — nothing to update. Use "add <combo>" for a first install.`,
+    );
     process.exitCode = 1;
     return;
   }
@@ -746,7 +1115,9 @@ async function cmdUpdate(targetRoot: string, flags: Record<string, string | true
   const registry = await loadRegistry();
   const combo = registry.combos[lock.combo];
   if (!combo) {
-    console.error(`auth.lock.json names combo "${lock.combo}", which no longer exists in this registry.`);
+    console.error(
+      `auth.lock.json names combo "${lock.combo}", which no longer exists in this registry.`,
+    );
     process.exitCode = 1;
     return;
   }
@@ -758,12 +1129,16 @@ async function cmdUpdate(targetRoot: string, flags: Record<string, string | true
   }
 
   if (flags.check === true && comboInstallMode(combo) === "scaffold") {
-    console.error(`--check isn't supported for "${lock.combo}" (a scaffold-mode combo) — only merge-mode (api) combos support a dry run.`);
+    console.error(
+      `--check isn't supported for "${lock.combo}" (a scaffold-mode combo) — only merge-mode (api) combos support a dry run.`,
+    );
     process.exitCode = 1;
     return;
   }
 
-  console.log(`Updating "${lock.combo}" (${variant} variant) in ${targetRoot}${flags.force === true ? " — --force: local edits will be overwritten" : ""}`);
+  console.log(
+    `Updating "${lock.combo}" (${variant} variant) in ${targetRoot}${flags.force === true ? " — --force: local edits will be overwritten" : ""}`,
+  );
   await installCombo(lock.combo, combo, variant, registry, targetRoot, flags);
 }
 
@@ -776,7 +1151,9 @@ async function cmdUpdate(targetRoot: string, flags: Record<string, string | true
 async function cmdDiff(targetRoot: string) {
   const lock = await loadLock(targetRoot);
   if (!lock.combo || !lock.variant) {
-    console.error(`No auth.lock.json (or it's missing combo/variant) in ${targetRoot} — nothing installed to diff.`);
+    console.error(
+      `No auth.lock.json (or it's missing combo/variant) in ${targetRoot} — nothing installed to diff.`,
+    );
     process.exitCode = 1;
     return;
   }
@@ -784,13 +1161,17 @@ async function cmdDiff(targetRoot: string) {
   const registry = await loadRegistry();
   const combo = registry.combos[lock.combo];
   if (!combo) {
-    console.error(`auth.lock.json names combo "${lock.combo}", which no longer exists in this registry.`);
+    console.error(
+      `auth.lock.json names combo "${lock.combo}", which no longer exists in this registry.`,
+    );
     process.exitCode = 1;
     return;
   }
 
   if (comboInstallMode(combo) === "scaffold") {
-    console.error(`diff isn't supported yet for "${lock.combo}" (a scaffold-mode combo) — only merge-mode (api) combos support it.`);
+    console.error(
+      `diff isn't supported yet for "${lock.combo}" (a scaffold-mode combo) — only merge-mode (api) combos support it.`,
+    );
     process.exitCode = 1;
     return;
   }
@@ -801,21 +1182,41 @@ async function cmdDiff(targetRoot: string) {
     return;
   }
 
-  const plan = await buildMergePlan(combo, variant, targetRoot, {}, lock.files ?? {});
+  const plan = await buildMergePlan(
+    combo,
+    variant,
+    targetRoot,
+    {},
+    lock.files ?? {},
+  );
   const diffs: DiffEntry[] = [];
   // force:true so a locally-modified file's difference is captured too — diff wants to show
   // everything that differs, not just what a real (non---force) install would apply; dryRun:true
   // so nothing is written.
-  await runMergeCopy(plan, registry, targetRoot, { force: true, forcePaths: new Set(), dryRun: true, collectDiffs: diffs });
+  await runMergeCopy(plan, registry, targetRoot, {
+    force: true,
+    forcePaths: new Set(),
+    dryRun: true,
+    collectDiffs: diffs,
+  });
 
   if (!diffs.length) {
-    console.log(`No differences — every tracked file in "${lock.combo}" (${variant} variant) matches the current registry.`);
+    console.log(
+      `No differences — every tracked file in "${lock.combo}" (${variant} variant) matches the current registry.`,
+    );
     return;
   }
 
   console.log(`${diffs.length} file(s) differ from the current registry:`);
   for (const d of diffs) {
-    const patch = createTwoFilesPatch(d.path, d.path, d.oldContent ?? "", d.newContent, "installed", "registry");
+    const patch = createTwoFilesPatch(
+      d.path,
+      d.path,
+      d.oldContent ?? "",
+      d.newContent,
+      "installed",
+      "registry",
+    );
     process.stdout.write(`\n${patch}`);
   }
 }
@@ -823,25 +1224,50 @@ async function cmdDiff(targetRoot: string) {
 async function printUsage(exitCode: number) {
   const registry = await loadRegistry();
   console.log("Usage: simple-auth-kit <init|add|update|diff> [...]");
-  console.log(`  init [--config-only] [--kind ...] [--into <path>]  (fresh setup: guided "what do you need" picker, like bare "add")`);
-  console.log(`      --config-only: just write .simple-auth-kit.json and stop, no install`);
-  console.log(`  add <combo> [--workspaces] [--force] [--skip-install] [--into <path>] [--path <dir>] [--alias <alias>]`);
-  console.log(`  add [--kind api,admin,mobile] [--framework <name>,...] [--workspaces] [--into <path>] [--name <appName>]`);
-  console.log(`      (bare "add", or "add" with --kind but no combo, launches a guided prompt for whatever's missing)`);
-  console.log(`  update [--check] [--force] [--skip-install] [--into <path>]  (re-installs whatever combo+variant auth.lock.json already records)`);
-  console.log(`      --check: report what would change, without writing anything (merge-mode combos only)`);
-  console.log(`  diff [--into <path>]  (shows the actual content diff for every tracked file that differs from the current registry — read-only; merge-mode combos only)`);
-  console.log(`  In a TTY, without --force or --check: a file changed locally since install prompts to overwrite, per file.`);
-  console.log(`  --skip-install: don't run the package manager after copying files — the default is to install for you, shadcn-\`add\`-style.`);
-  console.log(`  --pm <npm|pnpm|yarn|bun>: which package manager to install with — default: detected from a lockfile in the target directory, npm if none found.`);
+  console.log(
+    `  init [--config-only] [--kind ...] [--into <path>]  (fresh setup: guided "what do you need" picker, like bare "add")`,
+  );
+  console.log(
+    `      --config-only: just write .simple-auth-kit.json and stop, no install`,
+  );
+  console.log(
+    `  add <combo> [--workspaces] [--force] [--skip-install] [--into <path>] [--path <dir>] [--alias <alias>]`,
+  );
+  console.log(
+    `  add [--kind api,admin,mobile] [--framework <name>,...] [--workspaces] [--into <path>] [--name <appName>]`,
+  );
+  console.log(
+    `      (bare "add", or "add" with --kind but no combo, launches a guided prompt for whatever's missing)`,
+  );
+  console.log(
+    `  update [--check] [--force] [--skip-install] [--into <path>]  (re-installs whatever combo+variant auth.lock.json already records)`,
+  );
+  console.log(
+    `      --check: report what would change, without writing anything (merge-mode combos only)`,
+  );
+  console.log(
+    `  diff [--into <path>]  (shows the actual content diff for every tracked file that differs from the current registry — read-only; merge-mode combos only)`,
+  );
+  console.log(
+    `  In a TTY, without --force or --check: a file changed locally since install prompts to overwrite, per file.`,
+  );
+  console.log(
+    `  --skip-install: don't run the package manager after copying files — the default is to install for you, shadcn-\`add\`-style.`,
+  );
+  console.log(
+    `  --pm <npm|pnpm|yarn|bun>: which package manager to install with — default: detected from a lockfile in the target directory, npm if none found.`,
+  );
   console.log(`\nAvailable combos:`);
   for (const kind of ["api", "admin", "mobile"] as Kind[]) {
     const names = combosByKind(registry, kind).map(([name]) => name);
-    if (names.length) console.log(`  ${KIND_LABELS[kind]}: ${names.join(", ")}`);
+    if (names.length)
+      console.log(`  ${KIND_LABELS[kind]}: ${names.join(", ")}`);
   }
   console.log(`\nVariants (choose one at install time):`);
   for (const [name, variant] of Object.entries(registry.variants)) {
-    console.log(`  ${name}${variant.flag ? ` (${variant.flag})` : " (default)"} — ${variant.description}`);
+    console.log(
+      `  ${name}${variant.flag ? ` (${variant.flag})` : " (default)"} — ${variant.description}`,
+    );
   }
   process.exitCode = exitCode;
 }
@@ -850,7 +1276,12 @@ async function main() {
   const { command, positional, flags } = parseArgs(process.argv.slice(2));
   const targetRoot = resolve(process.cwd(), flagString(flags.into) ?? ".");
 
-  if (command === "--help" || command === "-h" || command === "help" || flags.help === true) {
+  if (
+    command === "--help" ||
+    command === "-h" ||
+    command === "help" ||
+    flags.help === true
+  ) {
     await printUsage(0);
     return;
   }
