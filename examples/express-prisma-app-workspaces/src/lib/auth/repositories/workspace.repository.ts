@@ -1,4 +1,4 @@
-import { PrismaClient } from "../@/prisma/client.js";
+import { PrismaClient } from "@/prisma/client.js";
 import { HttpError } from "../http-error.js";
 import {
   provisionDefaultRoles,

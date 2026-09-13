@@ -4,7 +4,7 @@ import {
   Injectable,
   NotFoundException,
 } from "@nestjs/common";
-import { Prisma, PrismaClient } from "../@/prisma/client.js";
+import { Prisma, PrismaClient } from "@/prisma/client.js";
 import { toId, toIdOrNull } from "../id.helper.js";
 import {
   buildPageMeta,
@@ -88,9 +88,10 @@ export interface CustomerInput {
   isActive?: boolean;
 }
 
-function toPrismaInput(
-  input: Partial<CustomerInput>,
-): Omit<Partial<CustomerInput>, "dob" | "joinedDate"> & {
+function toPrismaInput(input: Partial<CustomerInput>): Omit<
+  Partial<CustomerInput>,
+  "dob" | "joinedDate"
+> & {
   dob?: Date | null;
   joinedDate?: Date;
 } {

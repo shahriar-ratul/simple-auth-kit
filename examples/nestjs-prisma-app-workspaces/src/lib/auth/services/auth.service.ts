@@ -60,7 +60,7 @@ import {
   toAuditLogEntry,
 } from "../repositories/audit-log.repository.js";
 import type { Paginated } from "../pagination.js";
-import { PrismaClient } from "../@/prisma/client.js";
+import { PrismaClient } from "@/prisma/client.js";
 import { KeyProviderService } from "../key-provider.js";
 import { OAuthRepository } from "../repositories/oauth.repository.js";
 import { PasswordResetRepository } from "../repositories/password-reset.repository.js";
@@ -476,9 +476,7 @@ export class AuthService {
     return { twoFactorEnabled: user.twoFactorEnabled };
   }
 
-  async listActiveSessions(
-    userId: string,
-  ): Promise<
+  async listActiveSessions(userId: string): Promise<
     Array<{
       id: string;
       createdAt: string;

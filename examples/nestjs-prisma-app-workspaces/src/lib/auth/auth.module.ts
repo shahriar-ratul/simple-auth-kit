@@ -10,7 +10,7 @@ import { AuthController } from "./controllers/auth.controller.js";
 import { AuthGuard } from "./guards/auth.guard.js";
 import { AuthService } from "./services/auth.service.js";
 import { AuthzGuard, WorkspaceGuard } from "./guards/authz.guard.js";
-import { PrismaClient } from "./@/prisma/client.js";
+import { PrismaClient } from "@/prisma/client.js";
 import { CountryRepository } from "./repositories/country.repository.js";
 import { CustomerRepository } from "./repositories/customer.repository.js";
 import { KeyProviderService } from "./key-provider.js";

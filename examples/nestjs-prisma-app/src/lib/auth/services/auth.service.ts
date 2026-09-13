@@ -58,7 +58,7 @@ import {
   AuditLogRepository,
   toAuditLogEntry,
 } from "../repositories/audit-log.repository.js";
-import { PrismaClient } from "../@/prisma/client.js";
+import { PrismaClient } from "@/prisma/client.js";
 import {
   CountryInput,
   CountryListFilter,
@@ -499,9 +499,7 @@ export class AuthService {
     return { twoFactorEnabled: user.twoFactorEnabled };
   }
 
-  async listActiveSessions(
-    userId: string,
-  ): Promise<
+  async listActiveSessions(userId: string): Promise<
     Array<{
       id: string;
       createdAt: string;

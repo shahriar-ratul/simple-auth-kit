@@ -5,7 +5,7 @@ import {
   NotFoundException,
 } from "@nestjs/common";
 import { resolvePermissions } from "@/lib/auth/core/rbac.js";
-import { Prisma, PrismaClient } from "../@/prisma/client.js";
+import { Prisma, PrismaClient } from "@/prisma/client.js";
 import { PermissionCache } from "../permission-cache.js";
 import { toId, toIdOrNull } from "../id.helper.js";
 import {

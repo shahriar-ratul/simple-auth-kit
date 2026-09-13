@@ -52,7 +52,7 @@ export interface CopyOptions {
    * `cli/simple-auth-kit.ts`) — the registry source itself keeps the path that's correct for its
    * own dev/typecheck loop, where nothing has moved.
    */
-  extraRewrites?: { from: string; to: string }[];
+  extraRewrites?: { from: string | RegExp; to: string }[];
   /**
    * The previous install's sha256-by-path manifest. A destination file whose current content
    * no longer matches what was recorded is a file the user edited, and is left alone.

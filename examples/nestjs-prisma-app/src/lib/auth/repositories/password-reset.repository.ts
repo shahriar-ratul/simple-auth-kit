@@ -1,6 +1,6 @@
 import { Inject, Injectable } from "@nestjs/common";
 import type { PasswordResetStoreDeps } from "@/lib/auth/core/password-reset.js";
-import { PrismaClient } from "../@/prisma/client.js";
+import { PrismaClient } from "@/prisma/client.js";
 import { toId } from "../id.helper.js";
 
 @Injectable()
@@ -21,9 +21,7 @@ export class PasswordResetRepository implements PasswordResetStoreDeps {
     });
   }
 
-  async findValidResetToken(
-    tokenHash: string,
-  ): Promise<{
+  async findValidResetToken(tokenHash: string): Promise<{
     userId: string;
     expiresAt: string;
     consumedAt: string | null;

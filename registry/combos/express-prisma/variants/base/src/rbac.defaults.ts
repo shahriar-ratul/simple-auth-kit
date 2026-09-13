@@ -21,7 +21,7 @@
 //
 // Callers: `src/seed.ts` (`npm run seed`, the only bootstrap in this variant) and
 // `variants/base/test/variant-hooks.ts`.
-import type { PrismaClient } from "./../generated/prisma/client.js";
+import type { PrismaClient } from "../generated/prisma/client.js";
 
 /** The display metadata a seeded permission carries. `group`/`order` exist so an admin console can render a stable matrix. */
 export interface PermissionSeed {

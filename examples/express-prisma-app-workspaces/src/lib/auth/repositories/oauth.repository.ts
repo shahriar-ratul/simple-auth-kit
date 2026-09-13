@@ -1,5 +1,5 @@
 import type { OAuthStoreDeps } from "@/lib/auth/core/oauth.js";
-import { PrismaClient } from "../@/prisma/client.js";
+import { PrismaClient } from "@/prisma/client.js";
 import { HttpError } from "../http-error.js";
 import { toId } from "../id.helper.js";
 

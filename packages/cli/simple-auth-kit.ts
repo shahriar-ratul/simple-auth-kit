@@ -445,24 +445,28 @@ function printPostInstallNotes(combo: ComboEntry, variant: string) {
  *
  * `generatedClientImport`: only Prisma has this — its schema's `generator { output }` is relative
  * to schema.prisma's own location, so moving prisma.config.ts/prisma/ to the project root also
- * moves the generated client. The registry source's `src/*.ts` files import it as
- * `"../generated/prisma/client.js"` — correct for the registry's own dev/typecheck loop (where
- * nothing has moved) — and installMerge rewrites that literal string in every copied file to
- * `@/prisma/client.js` instead of a computed relative path: the generated client always lands at
- * the project root regardless of how deep the importing file sits (unlike `@/lib/auth/core`,
- * whose depth actually varies with `--path`), so a fixed alias is both simpler and stable across
+ * moves the generated client. The registry source's `src/**\/*.ts` files import it with whatever
+ * relative depth is correct from their own location — `"../generated/prisma/client.js"` for a
+ * top-level file, `"../../generated/prisma/client.js"` for one nested a level deeper in
+ * controllers/services/repositories/etc — all correct for the registry's own dev/typecheck loop
+ * (where nothing has moved). installMerge rewrites *any* such relative import (matched by regex,
+ * not a fixed-depth literal string — a real bug here once: a plain string match only ever
+ * matched the top-level depth, leaving a stray leading "../" on every nested file's rewritten
+ * import) to the fixed alias `@/prisma/client.js`: the generated client always lands at the
+ * project root regardless of how deep the importing file sits (unlike `@/lib/auth/core`, whose
+ * depth actually varies with `--path`), so a fixed alias is both simpler and stable across
  * installs. The consumer adds `"@/prisma/*": ["./generated/prisma/*"]` to their tsconfig `paths`
  * once (see postInstall) — the CLI never writes tsconfig itself, same as `@/lib/auth`. Drizzle has
  * no equivalent generated artifact to redirect. */
 const ORM_LAYOUTS: {
   configFile: string;
   dataDir: string;
-  generatedClientImport?: string;
+  generatedClientImport?: RegExp;
 }[] = [
   {
     configFile: "prisma.config.ts",
     dataDir: "prisma",
-    generatedClientImport: "../generated/prisma/client.js",
+    generatedClientImport: /(?:\.\/)?(?:\.\.\/)+generated\/prisma\/client\.js/g,
   },
   { configFile: "drizzle.config.ts", dataDir: "drizzle" },
 ];
@@ -476,7 +480,7 @@ interface MergePlan {
   orm: (typeof ORM_LAYOUTS)[number] | null;
   skipFromShared: Set<string>;
   skipFromVariant: Set<string>;
-  extraRewrites: { from: string; to: string }[] | undefined;
+  extraRewrites: { from: string | RegExp; to: string }[] | undefined;
   config: SimpleAuthKitConfig;
   previous: Record<string, string>;
 }

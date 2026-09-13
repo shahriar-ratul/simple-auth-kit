@@ -4,7 +4,7 @@ import {
   Injectable,
   NotFoundException,
 } from "@nestjs/common";
-import { Prisma, PrismaClient } from "../@/prisma/client.js";
+import { Prisma, PrismaClient } from "@/prisma/client.js";
 import { toId, toIdOrNull } from "../id.helper.js";
 import {
   buildPageMeta,

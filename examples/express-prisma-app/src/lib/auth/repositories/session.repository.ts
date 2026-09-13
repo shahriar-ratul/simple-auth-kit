@@ -5,7 +5,7 @@ import type {
   Revoker,
   SessionRecord,
 } from "@/lib/auth/core/types.js";
-import { PrismaClient } from "../@/prisma/client.js";
+import { PrismaClient } from "@/prisma/client.js";
 import type { AuthConfig } from "../auth.config.js";
 import { AuditLogRepository } from "./audit-log.repository.js";
 import { toId, toIdOrNull } from "../id.helper.js";

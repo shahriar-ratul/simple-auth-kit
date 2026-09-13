@@ -11,7 +11,7 @@
 // routes demand.
 import { PrismaPg } from "@prisma/adapter-pg";
 import { hashPassword } from "@/lib/auth/core/crypto.js";
-import { PrismaClient } from "./@/prisma/client.js";
+import { PrismaClient } from "@/prisma/client.js";
 import {
   DEFAULT_ROLES,
   PERMISSION_SLUGS,

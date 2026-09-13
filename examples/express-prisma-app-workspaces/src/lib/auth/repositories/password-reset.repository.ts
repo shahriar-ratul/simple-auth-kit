@@ -1,5 +1,5 @@
 import type { PasswordResetStoreDeps } from "@/lib/auth/core/password-reset.js";
-import { PrismaClient } from "../@/prisma/client.js";
+import { PrismaClient } from "@/prisma/client.js";
 import { toId } from "../id.helper.js";
 
 // Plain class, no DI container — constructed directly with a PrismaClient in
@@ -21,9 +21,7 @@ export class PasswordResetRepository implements PasswordResetStoreDeps {
     });
   }
 
-  async findValidResetToken(
-    tokenHash: string,
-  ): Promise<{
+  async findValidResetToken(tokenHash: string): Promise<{
     userId: string;
     expiresAt: string;
     consumedAt: string | null;

@@ -10,7 +10,7 @@ import { createAuthMiddleware } from "./middleware/auth.middleware.js";
 import { createAuthRouter } from "./routers/auth.router.js";
 import { AuthService } from "./services/auth.service.js";
 import { createAuthzMiddleware } from "./middleware/authz.middleware.js";
-import { PrismaClient } from "./@/prisma/client.js";
+import { PrismaClient } from "@/prisma/client.js";
 import { KeyProviderService } from "./key-provider.js";
 import { OAuthRepository } from "./repositories/oauth.repository.js";
 import { openApiSpec } from "./openapi-spec.js";

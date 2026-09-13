@@ -1,5 +1,5 @@
 import { resolvePermissions } from "@/lib/auth/core/rbac.js";
-import { Prisma, PrismaClient } from "../@/prisma/client.js";
+import { Prisma, PrismaClient } from "@/prisma/client.js";
 import { HttpError } from "../http-error.js";
 import {
   buildPageMeta,

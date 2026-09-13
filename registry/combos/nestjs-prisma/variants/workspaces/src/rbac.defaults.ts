@@ -9,7 +9,7 @@
 // thing that creates a workspace — callers are `src/seed.ts` (the first workspace) and
 // `src/workspace.repository.ts` (every workspace created afterward, in the same transaction
 // that creates it).
-import type { PrismaClient } from "./../generated/prisma/client.js";
+import type { PrismaClient } from "../generated/prisma/client.js";
 
 export interface PermissionSeed {
   displayName: string;

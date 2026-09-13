@@ -1,5 +1,5 @@
 import { verifyBackupCode } from "@/lib/auth/core/two-factor.js";
-import { PrismaClient } from "../@/prisma/client.js";
+import { PrismaClient } from "@/prisma/client.js";
 
 // Plain class, no DI container — constructed directly with a PrismaClient in
 // create-auth-app.ts. Identical Prisma queries to the reference combo.

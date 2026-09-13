@@ -1,5 +1,5 @@
 import type { AuditEvent } from "@/lib/auth/core/types.js";
-import { Prisma, PrismaClient } from "../@/prisma/client.js";
+import { Prisma, PrismaClient } from "@/prisma/client.js";
 import {
   buildPageMeta,
   normalizeLimit,
