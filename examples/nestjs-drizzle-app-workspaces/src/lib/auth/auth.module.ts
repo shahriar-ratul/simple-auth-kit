@@ -44,6 +44,12 @@ import { WorkspaceRepository } from "./repositories/workspace.repository.js";
  */
 const AUTH_CONTROLLERS = [AuthController, AdminController, WorkspaceController];
 
+// `forRoot()` is the entire integration surface — everything an app would normally wire by
+// hand in its own root module (global exception filter, global response-envelope interceptor,
+// the rate-limit guard + ThrottlerModule) is registered from inside it instead, so it ships
+// with the combo. Don't re-register AuthCoreErrorFilter/ResponseInterceptor/ThrottlerGuard (or
+// ThrottlerModule) in your own app module — forRoot() already did it; doing it again would
+// double-register them as competing APP_FILTER/APP_INTERCEPTOR/APP_GUARD providers.
 @Module({})
 export class AuthModule {
   static forRoot(config: Partial<AuthConfig> = {}): DynamicModule {

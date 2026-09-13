@@ -83,6 +83,9 @@ export function createAuthApp(config: Partial<AuthConfig> = {}): Express {
 
   const app = express();
   app.use(express.json());
+  // Express equivalent of the reference combo's global APP_FILTER/APP_INTERCEPTOR — the
+  // response envelope and error handling ship mounted here rather than something you add to
+  // your own app.
   app.use(responseEnvelope());
   app.use(
     "/auth/admin",

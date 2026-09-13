@@ -116,6 +116,9 @@ export function createAuthApp(options: CreateAuthAppOptions = {}): Express {
     swaggerUi.setup(openApiSpec),
   );
   app.get("/docs-json", (_req, res) => res.json(openApiSpec));
+  // Express equivalent of the reference combo's global APP_FILTER/APP_INTERCEPTOR — the
+  // response envelope and error handling ship mounted here rather than something you add to
+  // your own app.
   app.use(responseEnvelope());
   // Mounted before /auth so `/auth/admin/*` reaches the admin router rather than falling
   // through to the identity router's 404.
