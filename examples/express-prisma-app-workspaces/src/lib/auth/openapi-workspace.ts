@@ -6,7 +6,7 @@ import {
   missingPermission,
   requiresPermission,
   type OpenApiFragment,
-} from "./openapi-fragment.js";
+} from "./openapi/openapi-fragment.js";
 import { WORKSPACE_HEADER } from "./middleware/authz.middleware.js";
 
 /** Every route that acts *inside* a workspace names it with this header, never a path segment. */

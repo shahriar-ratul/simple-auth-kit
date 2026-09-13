@@ -36,8 +36,30 @@ const RULES = [
   [/\.repository\.ts$/, "repositories"],
 ];
 
+// The remaining loose infra files don't share a clean suffix pattern, so they're grouped by
+// exact basename instead — same idea as RULES, just keyed by name rather than regex. Files
+// deliberately left out (request-context.ts, route-tiers.ts, auth.module.ts,
+// create-auth-app.ts, index.ts, rbac.defaults.ts, seed.ts, schema.ts) are the seam contract,
+// composition root, or top-level entry scripts — kept flat on purpose, matching how
+// ai-invoice-app keeps its own composition root/index.ts at the top of common/auth/.
+const EXACT_RULES = new Map([
+  ["auth.config.ts", "config"],
+  ["key-provider.ts", "config"],
+  ["db.ts", "config"],
+  ["permission-cache.ts", "cache"],
+  ["rate-limit.store.ts", "cache"],
+  ["id.helper.ts", "helpers"],
+  ["pagination.ts", "helpers"],
+  ["http-error.ts", "errors"],
+  ["openapi-fragment.ts", "openapi"],
+  ["openapi-spec.ts", "openapi"],
+  ["openapi-admin.ts", "openapi"],
+  ["docs.ts", "openapi"],
+]);
+
 function targetFolder(base) {
   for (const [re, folder] of RULES) if (re.test(base)) return folder;
+  if (EXACT_RULES.has(base)) return EXACT_RULES.get(base);
   return null;
 }
 

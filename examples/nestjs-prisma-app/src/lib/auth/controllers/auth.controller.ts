@@ -27,7 +27,7 @@ import {
   AUTH_CONFIG,
   AuthConfig,
   defaultThrottleBuckets,
-} from "../auth.config.js";
+} from "../config/auth.config.js";
 import { AuthGuard } from "../guards/auth.guard.js";
 import { AuthService } from "../services/auth.service.js";
 import { AuthzGuard } from "../guards/authz.guard.js";

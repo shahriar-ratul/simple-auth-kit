@@ -1,11 +1,11 @@
 import { PrismaClient } from "../../generated/prisma/client.js";
-import { HttpError } from "../http-error.js";
+import { HttpError } from "../errors/http-error.js";
 import {
   provisionDefaultRoles,
   WORKSPACE_CREATOR_ROLES,
 } from "../rbac.defaults.js";
 import { RbacRepository } from "./rbac.repository.js";
-import { toId } from "../id.helper.js";
+import { toId } from "../helpers/id.helper.js";
 
 export interface WorkspaceSummary {
   id: string;

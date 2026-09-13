@@ -22,7 +22,7 @@
 // Callers: `src/seed.ts` (`npm run seed`, the only bootstrap in this variant) and
 // `variants/base/test/variant-hooks.ts`.
 import { inArray } from "drizzle-orm";
-import type { Database } from "./db.js";
+import type { Database } from "./config/db.js";
 import { permissionRole, permissions, roles } from "./schema.js";
 
 /** The display metadata a seeded permission carries. `group`/`order` exist so an admin console can render a stable matrix. */

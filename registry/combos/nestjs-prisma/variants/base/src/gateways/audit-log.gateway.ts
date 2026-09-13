@@ -10,7 +10,7 @@ import {
   AuditLogEntry,
   AuditLogRepository,
 } from "../repositories/audit-log.repository.js";
-import { KeyProviderService } from "../key-provider.js";
+import { KeyProviderService } from "../config/key-provider.js";
 import { SessionRepository } from "../repositories/session.repository.js";
 
 // socket.io clients disagree on where a bearer token travels: `auth.token` (the socket.io-native

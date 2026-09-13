@@ -1,6 +1,6 @@
 import type { NextFunction, Request, Response } from "express";
 import { verifyAccessToken } from "@/lib/auth/core/token-service.js";
-import { KeyProviderService } from "../key-provider.js";
+import { KeyProviderService } from "../config/key-provider.js";
 import "../request-context.js";
 import { SessionRepository } from "../repositories/session.repository.js";
 
@@ -26,13 +26,11 @@ export function createAuthMiddleware(deps: AuthMiddlewareDeps) {
   ): Promise<void> {
     const header = req.headers["authorization"];
     if (!header?.startsWith("Bearer ")) {
-      res
-        .status(401)
-        .json({
-          statusCode: 401,
-          code: "UNAUTHORIZED",
-          message: "missing bearer token",
-        });
+      res.status(401).json({
+        statusCode: 401,
+        code: "UNAUTHORIZED",
+        message: "missing bearer token",
+      });
       return;
     }
 

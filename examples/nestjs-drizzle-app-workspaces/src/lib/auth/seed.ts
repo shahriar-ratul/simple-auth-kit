@@ -31,7 +31,7 @@ import { and, asc, eq, inArray, notInArray } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/node-postgres";
 import { Pool } from "pg";
 import { hashPassword } from "@/lib/auth/core/crypto.js";
-import type { Database } from "./db.js";
+import type { Database } from "./config/db.js";
 import {
   DEFAULT_ROLES,
   PERMISSION_SLUGS,

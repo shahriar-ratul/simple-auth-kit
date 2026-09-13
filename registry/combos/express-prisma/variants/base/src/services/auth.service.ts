@@ -42,17 +42,17 @@ import {
   verifyTotpCode,
 } from "@/lib/auth/core/two-factor.js";
 import type { Revoker } from "@/lib/auth/core/types.js";
-import type { AuthConfig } from "../auth.config.js";
-import { HttpError } from "../http-error.js";
+import type { AuthConfig } from "../config/auth.config.js";
+import { HttpError } from "../errors/http-error.js";
 import {
   AuditLogEntry,
   AuditLogListFilter,
   AuditLogRepository,
   toAuditLogEntry,
 } from "../repositories/audit-log.repository.js";
-import type { Paginated } from "../pagination.js";
+import type { Paginated } from "../helpers/pagination.js";
 import { PrismaClient } from "../../generated/prisma/client.js";
-import { KeyProviderService } from "../key-provider.js";
+import { KeyProviderService } from "../config/key-provider.js";
 import { OAuthRepository } from "../repositories/oauth.repository.js";
 import { PasswordResetRepository } from "../repositories/password-reset.repository.js";
 import {
@@ -67,7 +67,7 @@ import {
 } from "../repositories/rbac.repository.js";
 import { SessionRepository } from "../repositories/session.repository.js";
 import { TwoFactorRepository } from "../repositories/two-factor.repository.js";
-import { toId, toIdOrNull } from "../id.helper.js";
+import { toId, toIdOrNull } from "../helpers/id.helper.js";
 
 export interface AuthTokens {
   accessToken: string;
@@ -454,9 +454,7 @@ export class AuthService {
     return { twoFactorEnabled: user.twoFactorEnabled };
   }
 
-  async listActiveSessions(
-    userId: string,
-  ): Promise<
+  async listActiveSessions(userId: string): Promise<
     Array<{
       id: string;
       createdAt: string;

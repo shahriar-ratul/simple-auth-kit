@@ -1,6 +1,6 @@
 import { Router } from "express";
 import type { NextFunction, Request, RequestHandler, Response } from "express";
-import { HttpError } from "../http-error.js";
+import { HttpError } from "../errors/http-error.js";
 import { RbacRepository } from "../repositories/rbac.repository.js";
 import { ability, authenticated, createTieredRouter } from "../route-tiers.js";
 import { WorkspaceRepository } from "../repositories/workspace.repository.js";

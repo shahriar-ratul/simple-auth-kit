@@ -10,14 +10,14 @@ import {
 } from "drizzle-orm";
 import { resolvePermissions } from "@/lib/auth/core/rbac.js";
 import type { AuthzContext } from "../middleware/authz.middleware.js";
-import type { Database } from "../db.js";
+import type { Database } from "../config/db.js";
 import {
   buildPageMeta,
   normalizeLimit,
   normalizePage,
   type Paginated,
-} from "../pagination.js";
-import { PermissionCache } from "../permission-cache.js";
+} from "../helpers/pagination.js";
+import { PermissionCache } from "../cache/permission-cache.js";
 import {
   permissionMember,
   permissionRole,
@@ -27,8 +27,8 @@ import {
   users,
   workspaceMembers,
 } from "../schema.js";
-import { HttpError } from "../http-error.js";
-import { toId, toIdOrNull } from "../id.helper.js";
+import { HttpError } from "../errors/http-error.js";
+import { toId, toIdOrNull } from "../helpers/id.helper.js";
 
 /**
  * Every column the `users` table has (plus the membership's own `memberId`/`createdAt`), except

@@ -1,7 +1,7 @@
 import type { NextFunction, Request, RequestHandler, Response } from "express";
 import { defineAbilitiesFor } from "../ability/ability.js";
-import { HttpError } from "../http-error.js";
-import type { PermissionCache } from "../permission-cache.js";
+import { HttpError } from "../errors/http-error.js";
+import type { PermissionCache } from "../cache/permission-cache.js";
 import {
   memberCacheKey,
   type RbacRepository,

@@ -4,7 +4,7 @@
 // `provisionDefaultRoles` writes these rows once at seed time; from then on the database is
 // authoritative and nothing in the request path reads this file. Callers: `src/seed.ts` and
 // `variants/base/test/variant-hooks.ts`.
-import type { PrismaClient } from "../generated/prisma/client.js";
+import type { PrismaClient } from "./../generated/prisma/client.js";
 
 export interface PermissionSeed {
   displayName: string;

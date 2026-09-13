@@ -1,9 +1,9 @@
 import { and, eq } from "drizzle-orm";
 import type { NodePgDatabase } from "drizzle-orm/node-postgres";
 import type { OAuthStoreDeps } from "@/lib/auth/core/oauth.js";
-import { HttpError } from "../http-error.js";
+import { HttpError } from "../errors/http-error.js";
 import * as schema from "../schema.js";
-import { toId } from "../id.helper.js";
+import { toId } from "../helpers/id.helper.js";
 
 /**
  * Plain class, no decorators — Drizzle-specific implementation of `OAuthStoreDeps`

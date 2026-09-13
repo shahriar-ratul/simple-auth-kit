@@ -1,6 +1,6 @@
 import "dotenv/config";
 import { createAuthApp } from "../src/create-auth-app.js";
-import { InMemoryPermissionCacheStore } from "../src/permission-cache.js";
+import { InMemoryPermissionCacheStore } from "../src/cache/permission-cache.js";
 
 // No mailer is wired up for the proof, so this stands in for one — prove-cycle.ts reads the
 // raw token back out of here the same way a test inbox would, to exercise the reset flow.
@@ -21,7 +21,9 @@ export const permissionCacheStore = new InMemoryPermissionCacheStore();
  * The app is built *inside* `bootstrap()`, not at import time: the proof calls it twice, once
  * with a deliberately untiered route present expecting the boot to fail, and once without.
  */
-export async function bootstrap(port: number): Promise<{ close(): Promise<void> }> {
+export async function bootstrap(
+  port: number,
+): Promise<{ close(): Promise<void> }> {
   const app = createAuthApp({
     config: {
       // Was 2 seconds, "so the proof can exercise expiry-adjacent paths quickly" — except no
@@ -41,5 +43,7 @@ export async function bootstrap(port: number): Promise<{ close(): Promise<void> 
   const server = await new Promise<ReturnType<typeof app.listen>>((resolve) => {
     const listening = app.listen(port, () => resolve(listening));
   });
-  return { close: () => new Promise<void>((resolve) => server.close(() => resolve())) };
+  return {
+    close: () => new Promise<void>((resolve) => server.close(() => resolve())),
+  };
 }

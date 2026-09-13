@@ -2,14 +2,14 @@ import { Inject, Injectable, NotFoundException } from "@nestjs/common";
 import { resolvePermissions } from "@/lib/auth/core/rbac.js";
 import { Prisma, PrismaClient } from "../../generated/prisma/client.js";
 import type { AuthzContext } from "../guards/authz.guard.js";
-import { PermissionCache } from "../permission-cache.js";
-import { toId, toIdOrNull } from "../id.helper.js";
+import { PermissionCache } from "../cache/permission-cache.js";
+import { toId, toIdOrNull } from "../helpers/id.helper.js";
 import {
   buildPageMeta,
   normalizeLimit,
   normalizePage,
   type Paginated,
-} from "../pagination.js";
+} from "../helpers/pagination.js";
 
 const MEMBER_INCLUDE = {
   user: true,

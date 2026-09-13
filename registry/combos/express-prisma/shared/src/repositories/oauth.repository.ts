@@ -1,7 +1,7 @@
 import type { OAuthStoreDeps } from "@/lib/auth/core/oauth.js";
 import { PrismaClient } from "../../generated/prisma/client.js";
-import { HttpError } from "../http-error.js";
-import { toId } from "../id.helper.js";
+import { HttpError } from "../errors/http-error.js";
+import { toId } from "../helpers/id.helper.js";
 
 // Plain class, no DI container — constructed directly with a PrismaClient in
 // create-auth-app.ts. Identical Prisma queries to the reference combo.

@@ -1,7 +1,7 @@
 import type { NextFunction, Request, RequestHandler, Response } from "express";
-import type { AuthConfig } from "../auth.config.js";
+import type { AuthConfig } from "../config/auth.config.js";
 import { AuthService } from "../services/auth.service.js";
-import { HttpError } from "../http-error.js";
+import { HttpError } from "../errors/http-error.js";
 import {
   authenticated,
   createTieredRouter,

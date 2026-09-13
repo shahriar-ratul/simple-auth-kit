@@ -1,9 +1,9 @@
 import { BadRequestException, Inject, Injectable } from "@nestjs/common";
 import { and, eq } from "drizzle-orm";
 import type { OAuthStoreDeps } from "@/lib/auth/core/oauth.js";
-import { DRIZZLE_DB, type Database } from "../db.js";
+import { DRIZZLE_DB, type Database } from "../config/db.js";
 import { oauthAccounts, users } from "../schema.js";
-import { toId } from "../id.helper.js";
+import { toId } from "../helpers/id.helper.js";
 
 @Injectable()
 export class OAuthRepository implements OAuthStoreDeps {

@@ -1,15 +1,15 @@
 import { Inject, Injectable } from "@nestjs/common";
 import { and, count, desc, eq, gte, lte, type SQL } from "drizzle-orm";
 import type { AuditEvent } from "@/lib/auth/core/types.js";
-import { DRIZZLE_DB, type Database } from "../db.js";
+import { DRIZZLE_DB, type Database } from "../config/db.js";
 import {
   buildPageMeta,
   normalizeLimit,
   normalizePage,
   type Paginated,
-} from "../pagination.js";
+} from "../helpers/pagination.js";
 import { auditLogs } from "../schema.js";
-import { toIdOrNull, toIdOrUndefined } from "../id.helper.js";
+import { toIdOrNull, toIdOrUndefined } from "../helpers/id.helper.js";
 
 export interface AuditLogEntry {
   id: string;

@@ -5,7 +5,7 @@ import {
   NotFoundException,
 } from "@nestjs/common";
 import { and, asc, eq, inArray } from "drizzle-orm";
-import { DRIZZLE_DB, type Database } from "../db.js";
+import { DRIZZLE_DB, type Database } from "../config/db.js";
 import {
   provisionDefaultRoles,
   WORKSPACE_CREATOR_ROLES,
@@ -18,7 +18,7 @@ import {
   workspaceMembers,
   workspaces,
 } from "../schema.js";
-import { toId, toIdOrNull } from "../id.helper.js";
+import { toId, toIdOrNull } from "../helpers/id.helper.js";
 
 export interface WorkspaceSummary {
   id: string;
@@ -77,14 +77,12 @@ export class WorkspaceRepository {
         .values({ workspaceId: created.id, userId: userIdBig })
         .returning({ id: workspaceMembers.id });
       if (creatorRoles.length) {
-        await tx
-          .insert(roleMember)
-          .values(
-            creatorRoles.map((role) => ({
-              memberId: member.id,
-              roleId: role.id,
-            })),
-          );
+        await tx.insert(roleMember).values(
+          creatorRoles.map((role) => ({
+            memberId: member.id,
+            roleId: role.id,
+          })),
+        );
       }
       return created;
     });

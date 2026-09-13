@@ -1,6 +1,6 @@
 import type { NextFunction, Request, Response } from "express";
 import { AuthCoreError } from "@/lib/auth/core/types.js";
-import { HttpError } from "../http-error.js";
+import { HttpError } from "../errors/http-error.js";
 
 /**
  * Replaces the reference combo's `AuthCoreErrorFilter` (a Nest global `@Catch` exception
@@ -30,13 +30,11 @@ export function authCoreErrorMiddleware(
   }
 
   if (err instanceof HttpError) {
-    res
-      .status(err.statusCode)
-      .json({
-        statusCode: err.statusCode,
-        code: err.name,
-        message: err.message,
-      });
+    res.status(err.statusCode).json({
+      statusCode: err.statusCode,
+      code: err.name,
+      message: err.message,
+    });
     return;
   }
 

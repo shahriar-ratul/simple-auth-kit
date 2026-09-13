@@ -1,5 +1,5 @@
 import { and, asc, eq, inArray } from "drizzle-orm";
-import type { Database } from "../db.js";
+import type { Database } from "../config/db.js";
 import {
   provisionDefaultRoles,
   WORKSPACE_CREATOR_ROLES,
@@ -12,8 +12,8 @@ import {
   workspaceMembers,
   workspaces,
 } from "../schema.js";
-import { HttpError } from "../http-error.js";
-import { toId } from "../id.helper.js";
+import { HttpError } from "../errors/http-error.js";
+import { toId } from "../helpers/id.helper.js";
 
 export interface WorkspaceSummary {
   id: string;
@@ -71,14 +71,12 @@ export class WorkspaceRepository {
         .values({ workspaceId: created.id, userId: userIdBig })
         .returning({ id: workspaceMembers.id });
       if (creatorRoles.length) {
-        await tx
-          .insert(roleMember)
-          .values(
-            creatorRoles.map((role) => ({
-              memberId: member.id,
-              roleId: role.id,
-            })),
-          );
+        await tx.insert(roleMember).values(
+          creatorRoles.map((role) => ({
+            memberId: member.id,
+            roleId: role.id,
+          })),
+        );
       }
       return created;
     });

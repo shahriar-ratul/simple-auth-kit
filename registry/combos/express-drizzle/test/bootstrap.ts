@@ -1,7 +1,7 @@
 import "dotenv/config";
 import type { Server } from "node:http";
 import { createAuthApp } from "../src/create-auth-app.js";
-import { InMemoryPermissionCacheStore } from "../src/permission-cache.js";
+import { InMemoryPermissionCacheStore } from "../src/cache/permission-cache.js";
 
 // No mailer is wired up for the proof, so this stands in for one — prove-cycle.ts reads the
 // raw token back out of here the same way a test inbox would, to exercise the reset flow.
@@ -14,7 +14,9 @@ export const capturedResetTokens = new Map<string, string>();
  */
 export const permissionCacheStore = new InMemoryPermissionCacheStore();
 
-export async function bootstrap(port: number): Promise<{ close: () => Promise<void> }> {
+export async function bootstrap(
+  port: number,
+): Promise<{ close: () => Promise<void> }> {
   const app = createAuthApp({
     // Was 2 seconds, "so the proof can exercise expiry-adjacent paths quickly" — except no
     // assertion in the proof waits for an access token to expire, so it bought nothing and

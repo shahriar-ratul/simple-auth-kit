@@ -1,13 +1,13 @@
 import { Inject, Injectable } from "@nestjs/common";
 import type { AuditEvent } from "@/lib/auth/core/types.js";
 import { Prisma, PrismaClient } from "@/prisma/client.js";
-import { toIdOrNull, toIdOrUndefined } from "../id.helper.js";
+import { toIdOrNull, toIdOrUndefined } from "../helpers/id.helper.js";
 import {
   buildPageMeta,
   normalizeLimit,
   normalizePage,
   type Paginated,
-} from "../pagination.js";
+} from "../helpers/pagination.js";
 
 export interface AuditLogEntry {
   id: string;

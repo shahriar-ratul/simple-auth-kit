@@ -5,13 +5,13 @@ import {
   NotFoundException,
 } from "@nestjs/common";
 import { Prisma, PrismaClient } from "../../generated/prisma/client.js";
-import { toId, toIdOrNull } from "../id.helper.js";
+import { toId, toIdOrNull } from "../helpers/id.helper.js";
 import {
   buildPageMeta,
   normalizeLimit,
   normalizePage,
   type Paginated,
-} from "../pagination.js";
+} from "../helpers/pagination.js";
 
 /** A `Country` row as `findUnique`/`findMany` return it. */
 export type CountryRow = Prisma.CountryGetPayload<object>;

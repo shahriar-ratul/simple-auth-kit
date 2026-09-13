@@ -6,7 +6,7 @@ import {
   UnauthorizedException,
 } from "@nestjs/common";
 import { verifyAccessToken } from "@/lib/auth/core/token-service.js";
-import { KeyProviderService } from "../key-provider.js";
+import { KeyProviderService } from "../config/key-provider.js";
 import "../request-context.js";
 import { SessionRepository } from "../repositories/session.repository.js";
 

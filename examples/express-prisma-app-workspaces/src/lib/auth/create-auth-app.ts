@@ -5,7 +5,7 @@ import type { RateLimitDeps } from "@/lib/auth/core/rate-limit.js";
 import { createAdminRouter } from "./routers/admin.router.js";
 import { AuditLogRepository } from "./repositories/audit-log.repository.js";
 import { authCoreErrorMiddleware } from "./middleware/auth-core-error.middleware.js";
-import { AuthConfig, defaultAuthConfig } from "./auth.config.js";
+import { AuthConfig, defaultAuthConfig } from "./config/auth.config.js";
 import { createAuthMiddleware } from "./middleware/auth.middleware.js";
 import { createAuthRouter } from "./routers/auth.router.js";
 import { AuthService } from "./services/auth.service.js";
@@ -14,15 +14,15 @@ import {
   createWorkspaceMiddleware,
 } from "./middleware/authz.middleware.js";
 import { PrismaClient } from "@/prisma/client.js";
-import { KeyProviderService } from "./key-provider.js";
+import { KeyProviderService } from "./config/key-provider.js";
 import { OAuthRepository } from "./repositories/oauth.repository.js";
-import { openApiSpec } from "./openapi-spec.js";
+import { openApiSpec } from "./openapi/openapi-spec.js";
 import { PasswordResetRepository } from "./repositories/password-reset.repository.js";
 import {
   InMemoryPermissionCacheStore,
   PermissionCache,
-} from "./permission-cache.js";
-import { InMemoryRateLimitStore } from "./rate-limit.store.js";
+} from "./cache/permission-cache.js";
+import { InMemoryRateLimitStore } from "./cache/rate-limit.store.js";
 import { RbacRepository } from "./repositories/rbac.repository.js";
 import { responseEnvelope } from "./middleware/response-envelope.middleware.js";
 import { SessionRepository } from "./repositories/session.repository.js";

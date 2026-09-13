@@ -1,7 +1,7 @@
 import { Inject, Injectable } from "@nestjs/common";
 import { and, eq, isNull } from "drizzle-orm";
 import { verifyBackupCode } from "@/lib/auth/core/two-factor.js";
-import { DRIZZLE_DB, type Database } from "../db.js";
+import { DRIZZLE_DB, type Database } from "../config/db.js";
 import { twoFactorBackupCodes } from "../schema.js";
 
 // Takes bigint directly, not string: every caller already has the user row's id in hand from

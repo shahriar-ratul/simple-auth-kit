@@ -29,7 +29,7 @@
 // same transaction that creates it, so its creator is never locked out of a workspace they just
 // made).
 import { and, eq, inArray } from "drizzle-orm";
-import type { Database } from "./db.js";
+import type { Database } from "./config/db.js";
 import { permissionRole, permissions, roles } from "./schema.js";
 
 /** The display metadata a seeded permission carries. `group`/`order` exist so an admin console can render a stable matrix. */

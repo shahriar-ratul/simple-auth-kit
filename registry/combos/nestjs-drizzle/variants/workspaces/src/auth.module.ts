@@ -6,24 +6,28 @@ import { AbilityGuard } from "./ability/ability.guard.js";
 import { AdminController } from "./controllers/admin.controller.js";
 import { AuditLogRepository } from "./repositories/audit-log.repository.js";
 import { AuthCoreErrorFilter } from "./filters/auth-core-error.filter.js";
-import { AUTH_CONFIG, AuthConfig, defaultAuthConfig } from "./auth.config.js";
+import {
+  AUTH_CONFIG,
+  AuthConfig,
+  defaultAuthConfig,
+} from "./config/auth.config.js";
 import { AuthController } from "./controllers/auth.controller.js";
 import { AuthGuard } from "./guards/auth.guard.js";
 import { AuthService } from "./services/auth.service.js";
 import { AuthzGuard, WorkspaceGuard } from "./guards/authz.guard.js";
-import { DRIZZLE_DB } from "./db.js";
-import { KeyProviderService } from "./key-provider.js";
+import { DRIZZLE_DB } from "./config/db.js";
+import { KeyProviderService } from "./config/key-provider.js";
 import { OAuthRepository } from "./repositories/oauth.repository.js";
 import { PasswordResetRepository } from "./repositories/password-reset.repository.js";
 import {
   InMemoryPermissionCacheStore,
   PERMISSION_CACHE_STORE,
   PermissionCache,
-} from "./permission-cache.js";
+} from "./cache/permission-cache.js";
 import {
   InMemoryRateLimitStore,
   RATE_LIMIT_STORE,
-} from "./rate-limit.store.js";
+} from "./cache/rate-limit.store.js";
 import { RbacRepository } from "./repositories/rbac.repository.js";
 import { ResponseInterceptor } from "./interceptors/response.interceptor.js";
 import { assertEveryRouteDeclaresATier } from "./route-tiers.js";

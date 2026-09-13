@@ -10,7 +10,7 @@ import {
   WORKSPACE_CREATOR_ROLES,
 } from "../rbac.defaults.js";
 import { RbacRepository } from "./rbac.repository.js";
-import { toId } from "../id.helper.js";
+import { toId } from "../helpers/id.helper.js";
 
 export interface WorkspaceSummary {
   id: string;

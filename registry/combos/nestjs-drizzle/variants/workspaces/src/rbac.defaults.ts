@@ -29,7 +29,7 @@
 // same transaction that creates it, so its creator is never locked out of a workspace they just
 // made).
 import { and, eq, inArray } from "drizzle-orm";
-import type { Database } from "./db.js";
+import type { Database } from "./config/db.js";
 import { permissionRole, permissions, roles } from "./schema.js";
 
 /** The display metadata a seeded permission carries. `group`/`order` exist so an admin console can render a stable matrix. */
@@ -55,11 +55,22 @@ export interface PermissionSeed {
  * evaluate.
  */
 export const PERMISSION_CATALOG = {
-  "users:read": { displayName: "List members", description: "GET /auth/admin/users", group: "Users", order: 1 },
-  "users:block": { displayName: "Block and unblock members", description: "POST /auth/admin/users/:userId/block, .../unblock", group: "Users", order: 2 },
+  "users:read": {
+    displayName: "List members",
+    description: "GET /auth/admin/users",
+    group: "Users",
+    order: 1,
+  },
+  "users:block": {
+    displayName: "Block and unblock members",
+    description: "POST /auth/admin/users/:userId/block, .../unblock",
+    group: "Users",
+    order: 2,
+  },
   "users:manage": {
     displayName: "Edit and delete members",
-    description: "Edit a member's profile or delete their account — PATCH /auth/admin/users/:userId, DELETE /auth/admin/users/:userId",
+    description:
+      "Edit a member's profile or delete their account — PATCH /auth/admin/users/:userId, DELETE /auth/admin/users/:userId",
     group: "Users",
     order: 3,
   },
@@ -72,30 +83,44 @@ export const PERMISSION_CATALOG = {
   },
   "roles:assign": {
     displayName: "Assign roles",
-    description: "Assign and revoke a member's roles — POST /auth/admin/users/:userId/roles, .../roles/:roleSlug/revoke, PUT /workspaces/members/:memberId/roles",
+    description:
+      "Assign and revoke a member's roles — POST /auth/admin/users/:userId/roles, .../roles/:roleSlug/revoke, PUT /workspaces/members/:memberId/roles",
     group: "Roles",
     order: 2,
   },
-  "permissions:read": { displayName: "Read the permission catalog", description: "GET /auth/admin/permissions", group: "Permissions", order: 1 },
+  "permissions:read": {
+    displayName: "Read the permission catalog",
+    description: "GET /auth/admin/permissions",
+    group: "Permissions",
+    order: 1,
+  },
   "permissions:define": {
     displayName: "Define permissions",
-    description: "Create a permission, rename it, or deactivate it — POST /auth/admin/permissions. The authority that defines all the others.",
+    description:
+      "Create a permission, rename it, or deactivate it — POST /auth/admin/permissions. The authority that defines all the others.",
     group: "Permissions",
     order: 2,
   },
   "permissions:grant": {
     displayName: "Grant permissions directly",
-    description: "Grant and revoke a permission straight to a member, bypassing roles — POST /auth/admin/users/:userId/permissions, .../permissions/:slug/revoke",
+    description:
+      "Grant and revoke a permission straight to a member, bypassing roles — POST /auth/admin/users/:userId/permissions, .../permissions/:slug/revoke",
     group: "Permissions",
     order: 3,
   },
   "members:manage": {
     displayName: "Add and remove members",
-    description: "POST /workspaces/members, DELETE /workspaces/members/:memberId",
+    description:
+      "POST /workspaces/members, DELETE /workspaces/members/:memberId",
     group: "Members",
     order: 1,
   },
-  "audit-log:read": { displayName: "Read the audit log", description: "GET /auth/admin/audit-log", group: "Audit", order: 1 },
+  "audit-log:read": {
+    displayName: "Read the audit log",
+    description: "GET /auth/admin/audit-log",
+    group: "Audit",
+    order: 1,
+  },
 } as const satisfies Record<string, PermissionSeed>;
 
 /**
@@ -107,10 +132,14 @@ export const PERMISSION_CATALOG = {
  */
 export type PermissionSlug = keyof typeof PERMISSION_CATALOG;
 
-export const PERMISSION_SLUGS = Object.keys(PERMISSION_CATALOG) as PermissionSlug[];
+export const PERMISSION_SLUGS = Object.keys(
+  PERMISSION_CATALOG,
+) as PermissionSlug[];
 
 /** Groups, in the order an admin console should render them. Derived from the catalog so it cannot drift from it. */
-export const PERMISSION_GROUP_ORDER: string[] = [...new Set(PERMISSION_SLUGS.map((slug) => PERMISSION_CATALOG[slug].group))];
+export const PERMISSION_GROUP_ORDER: string[] = [
+  ...new Set(PERMISSION_SLUGS.map((slug) => PERMISSION_CATALOG[slug].group)),
+];
 
 /** The display metadata a seeded role carries, plus what it starts out granting. */
 export interface RoleSeed {
@@ -154,7 +183,8 @@ export const DEFAULT_ROLES: readonly RoleSeed[] = [
   {
     slug: "member",
     displayName: "Member",
-    description: "The default for a new membership. Carries no administrative permission.",
+    description:
+      "The default for a new membership. Carries no administrative permission.",
     isDefault: true,
     order: 2,
     permissions: [],
@@ -191,7 +221,10 @@ export type RbacWriter = Pick<Database, "insert" | "select">;
  */
 // Takes bigint directly: both callers (`WorkspaceRepository.create`, `seed.ts`) already have the
 // workspace row's id in hand from their own database call.
-export async function provisionDefaultRoles(db: RbacWriter, workspaceId: bigint): Promise<void> {
+export async function provisionDefaultRoles(
+  db: RbacWriter,
+  workspaceId: bigint,
+): Promise<void> {
   // Insert-then-read rather than `.returning()`: ON CONFLICT DO NOTHING returns no row for the
   // slugs that already existed, and the ids of *those* are exactly the ones a re-run needs.
   await db
@@ -203,12 +236,17 @@ export async function provisionDefaultRoles(db: RbacWriter, workspaceId: bigint)
         displayName: PERMISSION_CATALOG[slug].displayName,
         description: PERMISSION_CATALOG[slug].description,
         group: PERMISSION_CATALOG[slug].group,
-        groupOrder: PERMISSION_GROUP_ORDER.indexOf(PERMISSION_CATALOG[slug].group),
+        groupOrder: PERMISSION_GROUP_ORDER.indexOf(
+          PERMISSION_CATALOG[slug].group,
+        ),
         order: PERMISSION_CATALOG[slug].order,
       })),
     )
     .onConflictDoNothing({ target: permissions.slug });
-  const permissionRows = await db.select({ id: permissions.id, slug: permissions.slug }).from(permissions).where(inArray(permissions.slug, PERMISSION_SLUGS));
+  const permissionRows = await db
+    .select({ id: permissions.id, slug: permissions.slug })
+    .from(permissions)
+    .where(inArray(permissions.slug, PERMISSION_SLUGS));
   const permissionId = new Map(permissionRows.map((p) => [p.slug, p.id]));
 
   await db
@@ -240,9 +278,17 @@ export async function provisionDefaultRoles(db: RbacWriter, workspaceId: bigint)
   const seedBySlug = new Map(DEFAULT_ROLES.map((role) => [role.slug, role]));
 
   const pairs = roleRows.flatMap((role) =>
-    (seedBySlug.get(role.slug)?.permissions ?? []).map((slug) => ({ roleId: role.id, permissionId: permissionId.get(slug)! })),
+    (seedBySlug.get(role.slug)?.permissions ?? []).map((slug) => ({
+      roleId: role.id,
+      permissionId: permissionId.get(slug)!,
+    })),
   );
   if (pairs.length) {
-    await db.insert(permissionRole).values(pairs).onConflictDoNothing({ target: [permissionRole.permissionId, permissionRole.roleId] });
+    await db
+      .insert(permissionRole)
+      .values(pairs)
+      .onConflictDoNothing({
+        target: [permissionRole.permissionId, permissionRole.roleId],
+      });
   }
 }

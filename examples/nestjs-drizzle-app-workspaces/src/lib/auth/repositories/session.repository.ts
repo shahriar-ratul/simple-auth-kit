@@ -8,10 +8,10 @@ import type {
   SessionRecord,
 } from "@/lib/auth/core/types.js";
 import { AuditLogRepository } from "./audit-log.repository.js";
-import { AUTH_CONFIG, AuthConfig } from "../auth.config.js";
-import { DRIZZLE_DB, type Database } from "../db.js";
+import { AUTH_CONFIG, AuthConfig } from "../config/auth.config.js";
+import { DRIZZLE_DB, type Database } from "../config/db.js";
 import { denylistedAccessTokens, sessions } from "../schema.js";
-import { toId, toIdOrNull } from "../id.helper.js";
+import { toId, toIdOrNull } from "../helpers/id.helper.js";
 
 function toSessionRecord(row: typeof sessions.$inferSelect): SessionRecord {
   return {

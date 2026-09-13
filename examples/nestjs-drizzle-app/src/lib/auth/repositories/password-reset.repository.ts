@@ -1,9 +1,9 @@
 import { Inject, Injectable } from "@nestjs/common";
 import { eq } from "drizzle-orm";
 import type { PasswordResetStoreDeps } from "@/lib/auth/core/password-reset.js";
-import { DRIZZLE_DB, type Database } from "../db.js";
+import { DRIZZLE_DB, type Database } from "../config/db.js";
 import { passwordResetTokens, users } from "../schema.js";
-import { toId } from "../id.helper.js";
+import { toId } from "../helpers/id.helper.js";
 
 @Injectable()
 export class PasswordResetRepository implements PasswordResetStoreDeps {
@@ -14,18 +14,14 @@ export class PasswordResetRepository implements PasswordResetStoreDeps {
     tokenHash: string;
     expiresAt: string;
   }): Promise<void> {
-    await this.db
-      .insert(passwordResetTokens)
-      .values({
-        userId: toId(input.userId),
-        tokenHash: input.tokenHash,
-        expiresAt: new Date(input.expiresAt),
-      });
+    await this.db.insert(passwordResetTokens).values({
+      userId: toId(input.userId),
+      tokenHash: input.tokenHash,
+      expiresAt: new Date(input.expiresAt),
+    });
   }
 
-  async findValidResetToken(
-    tokenHash: string,
-  ): Promise<{
+  async findValidResetToken(tokenHash: string): Promise<{
     userId: string;
     expiresAt: string;
     consumedAt: string | null;

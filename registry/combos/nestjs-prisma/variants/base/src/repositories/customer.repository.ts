@@ -5,13 +5,13 @@ import {
   NotFoundException,
 } from "@nestjs/common";
 import { Prisma, PrismaClient } from "../../generated/prisma/client.js";
-import { toId, toIdOrNull } from "../id.helper.js";
+import { toId, toIdOrNull } from "../helpers/id.helper.js";
 import {
   buildPageMeta,
   normalizeLimit,
   normalizePage,
   type Paginated,
-} from "../pagination.js";
+} from "../helpers/pagination.js";
 
 /** A `Customer` row as `findUnique`/`findMany` return it. */
 export type CustomerRow = Prisma.CustomerGetPayload<object>;
@@ -88,9 +88,10 @@ export interface CustomerInput {
   isActive?: boolean;
 }
 
-function toPrismaInput(
-  input: Partial<CustomerInput>,
-): Omit<Partial<CustomerInput>, "dob" | "joinedDate"> & {
+function toPrismaInput(input: Partial<CustomerInput>): Omit<
+  Partial<CustomerInput>,
+  "dob" | "joinedDate"
+> & {
   dob?: Date | null;
   joinedDate?: Date;
 } {

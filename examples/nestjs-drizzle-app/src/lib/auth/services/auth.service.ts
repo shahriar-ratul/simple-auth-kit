@@ -52,19 +52,19 @@ import {
   generateTotpSecret,
   verifyTotpCode,
 } from "@/lib/auth/core/two-factor.js";
-import { AUTH_CONFIG, AuthConfig } from "../auth.config.js";
+import { AUTH_CONFIG, AuthConfig } from "../config/auth.config.js";
 import {
   AuditLogEntry,
   AuditLogListFilter,
   AuditLogRepository,
   toAuditLogEntry,
 } from "../repositories/audit-log.repository.js";
-import type { Paginated } from "../pagination.js";
-import { DRIZZLE_DB, type Database } from "../db.js";
-import { KeyProviderService } from "../key-provider.js";
+import type { Paginated } from "../helpers/pagination.js";
+import { DRIZZLE_DB, type Database } from "../config/db.js";
+import { KeyProviderService } from "../config/key-provider.js";
 import { OAuthRepository } from "../repositories/oauth.repository.js";
 import { PasswordResetRepository } from "../repositories/password-reset.repository.js";
-import { RATE_LIMIT_STORE } from "../rate-limit.store.js";
+import { RATE_LIMIT_STORE } from "../cache/rate-limit.store.js";
 import type { Revoker } from "@/lib/auth/core/types.js";
 import {
   PermissionInput,
@@ -79,7 +79,7 @@ import {
 import { sessions, users } from "../schema.js";
 import { SessionRepository } from "../repositories/session.repository.js";
 import { TwoFactorRepository } from "../repositories/two-factor.repository.js";
-import { toId, toIdOrNull } from "../id.helper.js";
+import { toId, toIdOrNull } from "../helpers/id.helper.js";
 
 export interface AuthTokens {
   accessToken: string;
@@ -490,9 +490,7 @@ export class AuthService {
     return { twoFactorEnabled: user.twoFactorEnabled };
   }
 
-  async listActiveSessions(
-    userId: string,
-  ): Promise<
+  async listActiveSessions(userId: string): Promise<
     Array<{
       id: string;
       createdAt: string;

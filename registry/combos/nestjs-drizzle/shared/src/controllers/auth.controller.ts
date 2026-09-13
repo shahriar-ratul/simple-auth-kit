@@ -22,7 +22,7 @@ import {
   ApiTags,
 } from "@nestjs/swagger";
 import type { Request } from "express";
-import { AUTH_CONFIG, AuthConfig } from "../auth.config.js";
+import { AUTH_CONFIG, AuthConfig } from "../config/auth.config.js";
 import { AuthGuard } from "../guards/auth.guard.js";
 import { AuthService } from "../services/auth.service.js";
 import { AuthzGuard } from "../guards/authz.guard.js";

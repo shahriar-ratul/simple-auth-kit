@@ -6,9 +6,9 @@ import type {
   SessionRecord,
 } from "@/lib/auth/core/types.js";
 import { PrismaClient } from "@/prisma/client.js";
-import type { AuthConfig } from "../auth.config.js";
+import type { AuthConfig } from "../config/auth.config.js";
 import { AuditLogRepository } from "./audit-log.repository.js";
-import { toId, toIdOrNull } from "../id.helper.js";
+import { toId, toIdOrNull } from "../helpers/id.helper.js";
 
 function toSessionRecord(row: {
   id: bigint;

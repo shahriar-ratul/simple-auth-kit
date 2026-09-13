@@ -2,7 +2,7 @@ import { eq } from "drizzle-orm";
 import type { NodePgDatabase } from "drizzle-orm/node-postgres";
 import type { PasswordResetStoreDeps } from "@/lib/auth/core/password-reset.js";
 import * as schema from "../schema.js";
-import { toId } from "../id.helper.js";
+import { toId } from "../helpers/id.helper.js";
 
 /**
  * Plain class, no decorators — Drizzle-specific implementation of `PasswordResetStoreDeps`
@@ -23,9 +23,7 @@ export class PasswordResetRepository implements PasswordResetStoreDeps {
     });
   }
 
-  async findValidResetToken(
-    tokenHash: string,
-  ): Promise<{
+  async findValidResetToken(tokenHash: string): Promise<{
     userId: string;
     expiresAt: string;
     consumedAt: string | null;

@@ -6,7 +6,7 @@ import {
   Injectable,
 } from "@nestjs/common";
 import { defineAbilitiesFor } from "../ability/ability.js";
-import { PermissionCache } from "../permission-cache.js";
+import { PermissionCache } from "../cache/permission-cache.js";
 import {
   memberCacheKey,
   RbacRepository,

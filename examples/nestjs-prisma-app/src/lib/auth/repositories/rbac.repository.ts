@@ -6,14 +6,14 @@ import {
 } from "@nestjs/common";
 import { resolvePermissions } from "@/lib/auth/core/rbac.js";
 import { Prisma, PrismaClient } from "@/prisma/client.js";
-import { PermissionCache } from "../permission-cache.js";
-import { toId, toIdOrNull } from "../id.helper.js";
+import { PermissionCache } from "../cache/permission-cache.js";
+import { toId, toIdOrNull } from "../helpers/id.helper.js";
 import {
   buildPageMeta,
   normalizeLimit,
   normalizePage,
   type Paginated,
-} from "../pagination.js";
+} from "../helpers/pagination.js";
 
 const USER_ROLES_INCLUDE = {
   roles: { select: { role: { select: { slug: true } } } },

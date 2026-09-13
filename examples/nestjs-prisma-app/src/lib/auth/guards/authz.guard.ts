@@ -5,7 +5,7 @@ import {
   Injectable,
 } from "@nestjs/common";
 import { defineAbilitiesFor } from "../ability/ability.js";
-import { PermissionCache } from "../permission-cache.js";
+import { PermissionCache } from "../cache/permission-cache.js";
 import { RbacRepository } from "../repositories/rbac.repository.js";
 
 // Roles and permissions are global to this deployment — one set per user, resolved from the

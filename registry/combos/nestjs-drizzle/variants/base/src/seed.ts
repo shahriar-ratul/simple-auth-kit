@@ -24,14 +24,23 @@ import { eq, inArray, notInArray } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/node-postgres";
 import { Pool } from "pg";
 import { hashPassword } from "@/lib/auth/core/crypto.js";
-import type { Database } from "./db.js";
-import { DEFAULT_ROLES, PERMISSION_SLUGS, SEED_ADMIN_ROLES, SEED_SUPERADMIN_ROLES, provisionDefaultRoles } from "./rbac.defaults.js";
+import type { Database } from "./config/db.js";
+import {
+  DEFAULT_ROLES,
+  PERMISSION_SLUGS,
+  SEED_ADMIN_ROLES,
+  SEED_SUPERADMIN_ROLES,
+  provisionDefaultRoles,
+} from "./rbac.defaults.js";
 import * as schema from "./schema.js";
 import { permissions, roleUser, roles, users } from "./schema.js";
 
 function requireEnv(name: string): string {
   const value = process.env[name];
-  if (!value) throw new Error(`${name} is not set — the seeder cannot reach the database without it`);
+  if (!value)
+    throw new Error(
+      `${name} is not set — the seeder cannot reach the database without it`,
+    );
   return value;
 }
 
@@ -39,7 +48,10 @@ function requireEnv(name: string): string {
 async function seedRbacDefaults(db: Database): Promise<void> {
   await provisionDefaultRoles(db);
   console.log(`permissions: ${PERMISSION_SLUGS.length} slug(s) in the catalog`);
-  for (const role of DEFAULT_ROLES) console.log(`role "${role.slug}": ${role.permissions.length} permission(s)${role.isDefault ? " (signup default)" : ""}`);
+  for (const role of DEFAULT_ROLES)
+    console.log(
+      `role "${role.slug}": ${role.permissions.length} permission(s)${role.isDefault ? " (signup default)" : ""}`,
+    );
 
   // Slugs that exist in the database but not in this build's catalog. They are not an error —
   // `POST /auth/admin/permissions` exists so a deployment can define its own, and a grant can
@@ -49,9 +61,18 @@ async function seedRbacDefaults(db: Database): Promise<void> {
     .select({ slug: permissions.slug })
     .from(permissions)
     .where(notInArray(permissions.slug, PERMISSION_SLUGS));
-  if (unknown.length) console.log(`permissions: ${unknown.length} slug(s) outside this build's catalog (no route names them): ${unknown.map((r) => r.slug).join(", ")}`);
-  const inactive = await db.select({ slug: permissions.slug }).from(permissions).where(eq(permissions.isActive, false));
-  if (inactive.length) console.log(`permissions: ${inactive.length} deactivated, granting nothing: ${inactive.map((r) => r.slug).join(", ")}`);
+  if (unknown.length)
+    console.log(
+      `permissions: ${unknown.length} slug(s) outside this build's catalog (no route names them): ${unknown.map((r) => r.slug).join(", ")}`,
+    );
+  const inactive = await db
+    .select({ slug: permissions.slug })
+    .from(permissions)
+    .where(eq(permissions.isActive, false));
+  if (inactive.length)
+    console.log(
+      `permissions: ${inactive.length} deactivated, granting nothing: ${inactive.map((r) => r.slug).join(", ")}`,
+    );
 }
 
 /** Roles are global here, so administrative authority is a property of the user row itself. */
@@ -59,15 +80,32 @@ async function seedAdminUser(db: Database): Promise<void> {
   const email = process.env["SEED_ADMIN_EMAIL"];
   const password = process.env["SEED_ADMIN_PASSWORD"];
   if (!email || !password) {
-    console.log("admin: skipped — set SEED_ADMIN_EMAIL and SEED_ADMIN_PASSWORD to create one (there is no default password)");
+    console.log(
+      "admin: skipped — set SEED_ADMIN_EMAIL and SEED_ADMIN_PASSWORD to create one (there is no default password)",
+    );
     return;
   }
 
   // Their password may have been changed since; rewriting it here would silently reset it.
-  const [existing] = await db.select({ id: users.id }).from(users).where(eq(users.email, email)).limit(1);
+  const [existing] = await db
+    .select({ id: users.id })
+    .from(users)
+    .where(eq(users.email, email))
+    .limit(1);
   // Hashed by the same function signup uses, so the seeded admin can actually log in.
-  const user = existing ?? (await db.insert(users).values({ email, passwordHash: await hashPassword(password) }).returning({ id: users.id }))[0];
-  console.log(existing ? `admin: ${email} already exists — password left unchanged` : `admin: created ${email}`);
+  const user =
+    existing ??
+    (
+      await db
+        .insert(users)
+        .values({ email, passwordHash: await hashPassword(password) })
+        .returning({ id: users.id })
+    )[0];
+  console.log(
+    existing
+      ? `admin: ${email} already exists — password left unchanged`
+      : `admin: created ${email}`,
+  );
 
   const adminRoles = await db
     .select({ id: roles.id, slug: roles.slug })
@@ -87,16 +125,33 @@ async function seedSuperAdminUser(db: Database): Promise<void> {
   const email = process.env["SEED_SUPERADMIN_EMAIL"];
   const password = process.env["SEED_SUPERADMIN_PASSWORD"];
   if (!email || !password) {
-    console.log("super admin: skipped — set SEED_SUPERADMIN_EMAIL and SEED_SUPERADMIN_PASSWORD to create one (there is no default password)");
+    console.log(
+      "super admin: skipped — set SEED_SUPERADMIN_EMAIL and SEED_SUPERADMIN_PASSWORD to create one (there is no default password)",
+    );
     return;
   }
   const username = process.env["SEED_SUPERADMIN_USERNAME"] || undefined;
 
   // Their password may have been changed since; rewriting it here would silently reset it.
-  const [existing] = await db.select({ id: users.id }).from(users).where(eq(users.email, email)).limit(1);
+  const [existing] = await db
+    .select({ id: users.id })
+    .from(users)
+    .where(eq(users.email, email))
+    .limit(1);
   // Hashed by the same function signup uses, so the seeded super admin can actually log in.
-  const user = existing ?? (await db.insert(users).values({ email, username, passwordHash: await hashPassword(password) }).returning({ id: users.id }))[0];
-  console.log(existing ? `super admin: ${email} already exists — password left unchanged` : `super admin: created ${email}${username ? ` (username ${username})` : ""}`);
+  const user =
+    existing ??
+    (
+      await db
+        .insert(users)
+        .values({ email, username, passwordHash: await hashPassword(password) })
+        .returning({ id: users.id })
+    )[0];
+  console.log(
+    existing
+      ? `super admin: ${email} already exists — password left unchanged`
+      : `super admin: created ${email}${username ? ` (username ${username})` : ""}`,
+  );
 
   const superAdminRoles = await db
     .select({ id: roles.id, slug: roles.slug })
@@ -105,10 +160,14 @@ async function seedSuperAdminUser(db: Database): Promise<void> {
   if (superAdminRoles.length) {
     await db
       .insert(roleUser)
-      .values(superAdminRoles.map((role) => ({ userId: user.id, roleId: role.id })))
+      .values(
+        superAdminRoles.map((role) => ({ userId: user.id, roleId: role.id })),
+      )
       .onConflictDoNothing({ target: [roleUser.userId, roleUser.roleId] });
   }
-  console.log(`super admin: holds roles ${superAdminRoles.map((r) => r.slug).join(", ")}`);
+  console.log(
+    `super admin: holds roles ${superAdminRoles.map((r) => r.slug).join(", ")}`,
+  );
 }
 
 async function main(): Promise<void> {

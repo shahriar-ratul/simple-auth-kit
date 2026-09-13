@@ -51,7 +51,7 @@ import {
   verifyTotpCode,
 } from "@/lib/auth/core/two-factor.js";
 import type { Revoker } from "@/lib/auth/core/types.js";
-import { AUTH_CONFIG, AuthConfig } from "../auth.config.js";
+import { AUTH_CONFIG, AuthConfig } from "../config/auth.config.js";
 import type { AuthzContext } from "../guards/authz.guard.js";
 import {
   AuditLogEntry,
@@ -59,12 +59,12 @@ import {
   AuditLogRepository,
   toAuditLogEntry,
 } from "../repositories/audit-log.repository.js";
-import type { Paginated } from "../pagination.js";
+import type { Paginated } from "../helpers/pagination.js";
 import { PrismaClient } from "@/prisma/client.js";
-import { KeyProviderService } from "../key-provider.js";
+import { KeyProviderService } from "../config/key-provider.js";
 import { OAuthRepository } from "../repositories/oauth.repository.js";
 import { PasswordResetRepository } from "../repositories/password-reset.repository.js";
-import { RATE_LIMIT_STORE } from "../rate-limit.store.js";
+import { RATE_LIMIT_STORE } from "../cache/rate-limit.store.js";
 import {
   MemberListFilter,
   MemberListResult,
@@ -77,7 +77,7 @@ import {
 } from "../repositories/rbac.repository.js";
 import { SessionRepository } from "../repositories/session.repository.js";
 import { TwoFactorRepository } from "../repositories/two-factor.repository.js";
-import { toId, toIdOrNull } from "../id.helper.js";
+import { toId, toIdOrNull } from "../helpers/id.helper.js";
 
 export interface AuthTokens {
   accessToken: string;

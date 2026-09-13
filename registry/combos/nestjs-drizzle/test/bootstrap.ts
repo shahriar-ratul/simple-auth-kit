@@ -2,7 +2,7 @@ import "reflect-metadata";
 import { Module } from "@nestjs/common";
 import { NestFactory } from "@nestjs/core";
 import { AuthModule } from "../src/auth.module.js";
-import { InMemoryPermissionCacheStore } from "../src/permission-cache.js";
+import { InMemoryPermissionCacheStore } from "../src/cache/permission-cache.js";
 
 // No mailer is wired up for the proof, so this stands in for one — prove-cycle.ts reads the
 // raw token back out of here the same way a test inbox would, to exercise the reset flow.

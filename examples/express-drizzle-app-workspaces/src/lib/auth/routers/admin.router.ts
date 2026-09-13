@@ -1,7 +1,7 @@
 import type { NextFunction, Request, RequestHandler, Response } from "express";
 import { hashPassword } from "@/lib/auth/core/crypto.js";
 import { AuthService } from "../services/auth.service.js";
-import { HttpError } from "../http-error.js";
+import { HttpError } from "../errors/http-error.js";
 import { ability, createTieredRouter } from "../route-tiers.js";
 import { WorkspaceRepository } from "../repositories/workspace.repository.js";
 import "../request-context.js";
@@ -65,15 +65,13 @@ export function createAdminRouter(deps: AdminRouterDeps): RequestHandler {
           string,
           string | undefined
         >;
-        res
-          .status(200)
-          .json(
-            await auth.listUsers(req.authz!, {
-              search,
-              page: page ? Number(page) : undefined,
-              limit: limit ? Number(limit) : undefined,
-            }),
-          );
+        res.status(200).json(
+          await auth.listUsers(req.authz!, {
+            search,
+            page: page ? Number(page) : undefined,
+            limit: limit ? Number(limit) : undefined,
+          }),
+        );
       } catch (err) {
         next(err);
       }
@@ -200,18 +198,16 @@ export function createAdminRouter(deps: AdminRouterDeps): RequestHandler {
       try {
         const { userId, action, since, until, page, limit } =
           req.query as Record<string, string | undefined>;
-        res
-          .status(200)
-          .json(
-            await auth.listAuditLog(req.authz!, {
-              userId,
-              action,
-              since,
-              until,
-              page: page ? Number(page) : undefined,
-              limit: limit ? Number(limit) : undefined,
-            }),
-          );
+        res.status(200).json(
+          await auth.listAuditLog(req.authz!, {
+            userId,
+            action,
+            since,
+            until,
+            page: page ? Number(page) : undefined,
+            limit: limit ? Number(limit) : undefined,
+          }),
+        );
       } catch (err) {
         next(err);
       }
