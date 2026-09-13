@@ -31,7 +31,7 @@ does not run it for you. It's idempotent; run it any time, per backend you inten
 
 ```bash
 docker exec -e SEED_ADMIN_EMAIL=admin@example.com -e SEED_ADMIN_PASSWORD='Admin12345!' \
-  simple-auth-kit-nestjs-prisma-app-1 sh -c 'node_modules/.bin/tsx src/lib/auth/src/seed.ts'
+  simple-auth-kit-nestjs-prisma-app-1 sh -c 'node_modules/.bin/tsx src/lib/auth/seed.ts'
 ```
 
 That provisions the permission catalog, the default `admin`/`member` roles, and an initial
@@ -69,7 +69,7 @@ pnpm install
 cd examples/nestjs-prisma-app
 npm install                       # plain npm on purpose — examples model a real consumer, outside the pnpm workspace
 npx prisma generate && npx prisma migrate deploy
-SEED_ADMIN_EMAIL=admin@example.com SEED_ADMIN_PASSWORD='Admin12345!' npx tsx src/lib/auth/src/seed.ts
+SEED_ADMIN_EMAIL=admin@example.com SEED_ADMIN_PASSWORD='Admin12345!' npx tsx src/lib/auth/seed.ts
 npm run start                     # -> http://localhost:3001, Swagger at /docs, Scalar at /reference
 ```
 
@@ -85,37 +85,37 @@ Log in with the seeded admin credentials.
 
 ### Console environment variables
 
-| Var | What | Default |
-|---|---|---|
-| `NEXT_PUBLIC_AUTH_API_URL` | Backend URL as the **browser** sees it | `http://localhost:3001` |
-| `AUTH_API_INTERNAL_URL` | Backend URL as the console's **server side** sees it (NextAuth `authorize()`, `proxy.ts` token verify). Only differs from the public URL when the console runs somewhere `localhost:3001` isn't the backend — e.g. in docker compose it's `http://nestjs-prisma-app:3001`. | falls back to `NEXT_PUBLIC_AUTH_API_URL` |
-| `AUTH_SECRET` | NextAuth session-JWT signing secret (`apps/admin-nextjs` only — the other three consoles don't use NextAuth). **Required** there — generate with `openssl rand -base64 32`. | — |
+| Var                        | What                                                                                                                                                                                                                                                                       | Default                                  |
+| -------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------- |
+| `NEXT_PUBLIC_AUTH_API_URL` | Backend URL as the **browser** sees it                                                                                                                                                                                                                                     | `http://localhost:3001`                  |
+| `AUTH_API_INTERNAL_URL`    | Backend URL as the console's **server side** sees it (NextAuth `authorize()`, `proxy.ts` token verify). Only differs from the public URL when the console runs somewhere `localhost:3001` isn't the backend — e.g. in docker compose it's `http://nestjs-prisma-app:3001`. | falls back to `NEXT_PUBLIC_AUTH_API_URL` |
+| `AUTH_SECRET`              | NextAuth session-JWT signing secret (`apps/admin-nextjs` only — the other three consoles don't use NextAuth). **Required** there — generate with `openssl rand -base64 32`.                                                                                                | —                                        |
 
 The Vite consoles (`apps/admin-react[-workspaces]`) take `VITE_AUTH_API_URL` instead; the
 mobile apps take `EXPO_PUBLIC_API_BASE_URL` (Expo) / `API_BASE_URL` in `.env` (bare RN).
 
 ### Backend environment variables (example apps)
 
-| Var | What |
-|---|---|
-| `DATABASE_URL` | Postgres connection string (checked-in `.env` points at `localhost:55432`) |
-| `AUTH_JWT_SECRET` | Access/refresh token signing secret — base64, 256-bit+. No default; the app refuses to start without it. |
-| `PORT` | Listen port (each example has its own fallback, 3001–3008) |
-| `SEED_ADMIN_EMAIL` / `SEED_ADMIN_PASSWORD` | Seeder-only: create the initial admin |
-| `SEED_WORKSPACE_NAME` | Seeder-only, workspaces variant: name of the first workspace (default "Default workspace") |
-| `DOCS_USERNAME` / `DOCS_PASSWORD` | Basic-Auth gate on the docs UIs, enforced only when `NODE_ENV=production` |
+| Var                                        | What                                                                                                     |
+| ------------------------------------------ | -------------------------------------------------------------------------------------------------------- |
+| `DATABASE_URL`                             | Postgres connection string (checked-in `.env` points at `localhost:55432`)                               |
+| `AUTH_JWT_SECRET`                          | Access/refresh token signing secret — base64, 256-bit+. No default; the app refuses to start without it. |
+| `PORT`                                     | Listen port (each example has its own fallback, 3001–3008)                                               |
+| `SEED_ADMIN_EMAIL` / `SEED_ADMIN_PASSWORD` | Seeder-only: create the initial admin                                                                    |
+| `SEED_WORKSPACE_NAME`                      | Seeder-only, workspaces variant: name of the first workspace (default "Default workspace")               |
+| `DOCS_USERNAME` / `DOCS_PASSWORD`          | Basic-Auth gate on the docs UIs, enforced only when `NODE_ENV=production`                                |
 
 ## Port map
 
-| Port | Service |
-|---|---|
-| 3000 | `apps/admin-nextjs` (console for 3001) |
-| 3001–3004 | base-variant backends: nestjs-prisma, nestjs-drizzle, express-prisma, express-drizzle |
-| 3005–3008 | workspaces-variant backends (same order) |
-| 3010 | `apps/admin-nextjs-workspaces` (console for 3005) |
-| 5173 / 5174 | `apps/admin-react` / `-workspaces` (consoles for 3001 / 3005) |
-| 8080 | `apps/dev-portal` (`pnpm portal`, host-only — service status, ER diagram, schema drift) |
-| 55432 | your local Postgres (manual path) |
+| Port        | Service                                                                                 |
+| ----------- | --------------------------------------------------------------------------------------- |
+| 3000        | `apps/admin-nextjs` (console for 3001)                                                  |
+| 3001–3004   | base-variant backends: nestjs-prisma, nestjs-drizzle, express-prisma, express-drizzle   |
+| 3005–3008   | workspaces-variant backends (same order)                                                |
+| 3010        | `apps/admin-nextjs-workspaces` (console for 3005)                                       |
+| 5173 / 5174 | `apps/admin-react` / `-workspaces` (consoles for 3001 / 3005)                           |
+| 8080        | `apps/dev-portal` (`pnpm portal`, host-only — service status, ER diagram, schema drift) |
+| 55432       | your local Postgres (manual path)                                                       |
 
 Every backend port is a fallback, not a requirement — each app's `src/main.ts` reads
 `process.env.PORT` first.
@@ -130,7 +130,7 @@ the consoles' workspace picker handles this for you.
 
 ## First things to try once you're in
 
-- **Dashboard** — stat cards, recent audit activity, and the *Live activity* card: leave it
+- **Dashboard** — stat cards, recent audit activity, and the _Live activity_ card: leave it
   open, log in from a second browser/incognito window, and watch the `session_created` event
   arrive over the socket (nestjs-prisma base backend only — it's the one with the gateway).
 - **Users → Add user** — create a user, assign roles via the multi-select, upload a photo

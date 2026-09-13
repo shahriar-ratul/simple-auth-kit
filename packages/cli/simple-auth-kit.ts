@@ -588,17 +588,44 @@ async function runMergeCopy(
     plan.destRoot,
     result,
   );
+
+  // shared/src/ and variants/<variant>/src/ are the registry's own internal source layout
+  // (parallel to core/, prisma.config.ts, etc.) — copied flat into destRoot rather than
+  // preserving that extra "src" level, so a consumer who installed at the default
+  // "src/lib/auth" doesn't end up with a redundant "src/lib/auth/src/...". Order matters:
+  // shared fully applied (its own src/, then everything else in shared/), then the variant
+  // overlaid the same way, so a variant file with the same name still wins.
+  const skipShared = new Set([...plan.skipFromShared, "src"]);
+  const skipVariant = new Set([...plan.skipFromVariant, "src"]);
+  if (await pathExists(join(plan.sharedDir, "src"))) {
+    await copyDir(
+      join(plan.sharedDir, "src"),
+      plan.destRoot,
+      { ...copyOpts, neverCopy: plan.skipFromShared },
+      plan.destRoot,
+      result,
+    );
+  }
   await copyDir(
     plan.sharedDir,
     plan.destRoot,
-    { ...copyOpts, neverCopy: plan.skipFromShared },
+    { ...copyOpts, neverCopy: skipShared },
     plan.destRoot,
     result,
   );
+  if (await pathExists(join(plan.variantDir, "src"))) {
+    await copyDir(
+      join(plan.variantDir, "src"),
+      plan.destRoot,
+      { ...copyOpts, neverCopy: plan.skipFromVariant },
+      plan.destRoot,
+      result,
+    );
+  }
   await copyDir(
     plan.variantDir,
     plan.destRoot,
-    { ...copyOpts, neverCopy: plan.skipFromVariant },
+    { ...copyOpts, neverCopy: skipVariant },
     plan.destRoot,
     result,
   );

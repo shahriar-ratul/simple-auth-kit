@@ -6,7 +6,7 @@
   "type": "module",
   "scripts": {
     "start": "tsx src/main.ts",
-    "seed": "tsx src/lib/auth/src/seed.ts"
+    "seed": "tsx src/lib/auth/seed.ts"
   },
   "dependencies": {
     "@casl/ability": "^7.0.1",

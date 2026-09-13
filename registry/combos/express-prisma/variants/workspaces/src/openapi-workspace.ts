@@ -1,8 +1,13 @@
 // The workspace-membership half of the OpenAPI document. Mirrors the reference combo's
 // `dto/workspace.dto.ts`; merged into the administration fragment by openapi-admin.ts, which is
 // what openapi-spec.ts assembles into the document.
-import { errorResponse, missingPermission, requiresPermission, type OpenApiFragment } from "./openapi-fragment.js";
-import { WORKSPACE_HEADER } from "./authz.middleware.js";
+import {
+  errorResponse,
+  missingPermission,
+  requiresPermission,
+  type OpenApiFragment,
+} from "./openapi-fragment.js";
+import { WORKSPACE_HEADER } from "./middleware/authz.middleware.js";
 
 /** Every route that acts *inside* a workspace names it with this header, never a path segment. */
 export const workspaceHeaderParameter = {
@@ -10,7 +15,8 @@ export const workspaceHeaderParameter = {
   in: "header",
   required: true,
   schema: { type: "string" },
-  description: "The workspace this request acts in. The caller must be a member of it.",
+  description:
+    "The workspace this request acts in. The caller must be a member of it.",
 };
 
 export const workspaceSpec: OpenApiFragment = {
@@ -18,7 +24,14 @@ export const workspaceSpec: OpenApiFragment = {
 
   // `GET /auth/me` works with or without it: named, it answers with that workspace's roles;
   // omitted, with none.
-  scopeParameters: [{ ...workspaceHeaderParameter, required: false, description: "Answer for this workspace. Omitted, `roles` and `permissions` come back empty." }],
+  scopeParameters: [
+    {
+      ...workspaceHeaderParameter,
+      required: false,
+      description:
+        "Answer for this workspace. Omitted, `roles` and `permissions` come back empty.",
+    },
+  ],
 
   schemas: {
     CreateWorkspaceRequest: {
@@ -32,15 +45,27 @@ export const workspaceSpec: OpenApiFragment = {
       type: "object",
       required: ["email"],
       properties: {
-        email: { type: "string", description: "Must already be a registered user — this library has no invite flow" },
-        roles: { type: "array", items: { type: "string" }, description: 'Defaults to ["member"]' },
+        email: {
+          type: "string",
+          description:
+            "Must already be a registered user — this library has no invite flow",
+        },
+        roles: {
+          type: "array",
+          items: { type: "string" },
+          description: 'Defaults to ["member"]',
+        },
       },
     },
     SetMemberRolesRequest: {
       type: "object",
       required: ["roles"],
       properties: {
-        roles: { type: "array", items: { type: "string" }, description: "Replaces the member's whole role set" },
+        roles: {
+          type: "array",
+          items: { type: "string" },
+          description: "Replaces the member's whole role set",
+        },
       },
     },
     WorkspaceSummary: {
@@ -50,7 +75,11 @@ export const workspaceSpec: OpenApiFragment = {
         id: { type: "string" },
         name: { type: "string" },
         createdAt: { type: "string", format: "date-time" },
-        roles: { type: "array", items: { type: "string" }, description: "The calling user's roles in this workspace" },
+        roles: {
+          type: "array",
+          items: { type: "string" },
+          description: "The calling user's roles in this workspace",
+        },
       },
     },
     MembershipSummary: {
@@ -84,23 +113,43 @@ export const workspaceSpec: OpenApiFragment = {
         security: [{ bearerAuth: [] }],
         requestBody: {
           required: true,
-          content: { "application/json": { schema: { $ref: "#/components/schemas/CreateWorkspaceRequest" } } },
+          content: {
+            "application/json": {
+              schema: { $ref: "#/components/schemas/CreateWorkspaceRequest" },
+            },
+          },
         },
         responses: {
-          "201": { description: "Created", content: { "application/json": { schema: { $ref: "#/components/schemas/WorkspaceSummary" } } } },
+          "201": {
+            description: "Created",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/WorkspaceSummary" },
+              },
+            },
+          },
           "400": errorResponse("Missing required field"),
           "401": errorResponse("Missing or invalid access token"),
         },
       },
       get: {
         tags: ["workspaces"],
-        summary: "List the workspaces the current user belongs to, with their roles in each",
-        description: "Deliberately not permission-gated: it acts outside every workspace and only ever answers with the caller's own memberships.",
+        summary:
+          "List the workspaces the current user belongs to, with their roles in each",
+        description:
+          "Deliberately not permission-gated: it acts outside every workspace and only ever answers with the caller's own memberships.",
         security: [{ bearerAuth: [] }],
         responses: {
           "200": {
             description: "OK",
-            content: { "application/json": { schema: { type: "array", items: { $ref: "#/components/schemas/WorkspaceSummary" } } } },
+            content: {
+              "application/json": {
+                schema: {
+                  type: "array",
+                  items: { $ref: "#/components/schemas/WorkspaceSummary" },
+                },
+              },
+            },
           },
           "401": errorResponse("Missing or invalid access token"),
         },
@@ -110,16 +159,26 @@ export const workspaceSpec: OpenApiFragment = {
       get: {
         tags: ["workspaces"],
         summary: "List the members of the named workspace",
-        description: "Gated on membership of the named workspace rather than on a permission — seeing who else is in a room you are in is not an administrative capability.",
+        description:
+          "Gated on membership of the named workspace rather than on a permission — seeing who else is in a room you are in is not an administrative capability.",
         security: [{ bearerAuth: [] }],
         parameters: [workspaceHeaderParameter],
         responses: {
           "200": {
             description: "OK",
-            content: { "application/json": { schema: { type: "array", items: { $ref: "#/components/schemas/MembershipSummary" } } } },
+            content: {
+              "application/json": {
+                schema: {
+                  type: "array",
+                  items: { $ref: "#/components/schemas/MembershipSummary" },
+                },
+              },
+            },
           },
           "401": errorResponse("Missing or invalid access token"),
-          "403": errorResponse("Not a member of this workspace, or no workspace named"),
+          "403": errorResponse(
+            "Not a member of this workspace, or no workspace named",
+          ),
         },
       },
       post: {
@@ -130,13 +189,27 @@ export const workspaceSpec: OpenApiFragment = {
         parameters: [workspaceHeaderParameter],
         requestBody: {
           required: true,
-          content: { "application/json": { schema: { $ref: "#/components/schemas/AddMemberRequest" } } },
+          content: {
+            "application/json": {
+              schema: { $ref: "#/components/schemas/AddMemberRequest" },
+            },
+          },
         },
         responses: {
-          "201": { description: "Created", content: { "application/json": { schema: { $ref: "#/components/schemas/MembershipSummary" } } } },
+          "201": {
+            description: "Created",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/MembershipSummary" },
+              },
+            },
+          },
           "400": errorResponse("Missing required field"),
           "401": errorResponse("Missing or invalid access token"),
-          "403": missingPermission("members:manage", "the request named no workspace you belong to"),
+          "403": missingPermission(
+            "members:manage",
+            "the request named no workspace you belong to",
+          ),
           "404": errorResponse("No user with that email"),
           "409": errorResponse("Already a member of this workspace"),
         },
@@ -150,17 +223,42 @@ export const workspaceSpec: OpenApiFragment = {
           requiresPermission("roles:assign") +
           " It deliberately shares that key with `POST /auth/admin/users/{userId}/roles` rather than minting one of its own: it is the same capability reached by a different path.",
         security: [{ bearerAuth: [] }],
-        parameters: [workspaceHeaderParameter, { name: "memberId", in: "path", required: true, schema: { type: "string" } }],
+        parameters: [
+          workspaceHeaderParameter,
+          {
+            name: "memberId",
+            in: "path",
+            required: true,
+            schema: { type: "string" },
+          },
+        ],
         requestBody: {
           required: true,
-          content: { "application/json": { schema: { $ref: "#/components/schemas/SetMemberRolesRequest" } } },
+          content: {
+            "application/json": {
+              schema: { $ref: "#/components/schemas/SetMemberRolesRequest" },
+            },
+          },
         },
         responses: {
-          "200": { description: "OK", content: { "application/json": { schema: { $ref: "#/components/schemas/MemberRolesResponse" } } } },
+          "200": {
+            description: "OK",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/MemberRolesResponse" },
+              },
+            },
+          },
           "400": errorResponse("Missing required field"),
           "401": errorResponse("Missing or invalid access token"),
-          "403": missingPermission("roles:assign", "cannot change your own roles", "the request named no workspace you belong to"),
-          "404": errorResponse("Member not found in this workspace, or a role is not defined in it"),
+          "403": missingPermission(
+            "roles:assign",
+            "cannot change your own roles",
+            "the request named no workspace you belong to",
+          ),
+          "404": errorResponse(
+            "Member not found in this workspace, or a role is not defined in it",
+          ),
         },
       },
     },
@@ -168,13 +266,34 @@ export const workspaceSpec: OpenApiFragment = {
       delete: {
         tags: ["workspaces"],
         summary: "[admin] Remove a member from the named workspace",
-        description: requiresPermission("members:manage") + " Their direct permission grants go with the membership.",
+        description:
+          requiresPermission("members:manage") +
+          " Their direct permission grants go with the membership.",
         security: [{ bearerAuth: [] }],
-        parameters: [workspaceHeaderParameter, { name: "memberId", in: "path", required: true, schema: { type: "string" } }],
+        parameters: [
+          workspaceHeaderParameter,
+          {
+            name: "memberId",
+            in: "path",
+            required: true,
+            schema: { type: "string" },
+          },
+        ],
         responses: {
-          "200": { description: "OK", content: { "application/json": { schema: { $ref: "#/components/schemas/OkResponse" } } } },
+          "200": {
+            description: "OK",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/OkResponse" },
+              },
+            },
+          },
           "401": errorResponse("Missing or invalid access token"),
-          "403": missingPermission("members:manage", "cannot remove yourself from a workspace you administer", "the request named no workspace you belong to"),
+          "403": missingPermission(
+            "members:manage",
+            "cannot remove yourself from a workspace you administer",
+            "the request named no workspace you belong to",
+          ),
           "404": errorResponse("Member not found in this workspace"),
         },
       },

@@ -20,7 +20,7 @@
 // `declare module "express"`.
 import type { AccessTokenClaims } from "@/lib/auth/core/types.js";
 import type { AppAbility } from "./ability.js";
-import type { AuthzContext } from "./authz.middleware.js";
+import type { AuthzContext } from "./middleware/authz.middleware.js";
 
 declare global {
   // Express's own declaration-merging style for augmenting its Request type requires a

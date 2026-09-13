@@ -39,7 +39,7 @@
         "Add \"@/prisma/*\": [\"./generated/prisma/*\"] to your tsconfig.json's compilerOptions.paths — the copied source imports the generated Prisma client via this alias, since prisma.config.ts/prisma/ (and the client it generates) install at the project root regardless of where --path put everything else",
         "Run: npx prisma generate",
         "Run: npx prisma migrate deploy",
-        "Seed RBAC: add \"seed\": \"tsx src/lib/auth/src/seed.ts\" to your package.json scripts (adjust the path if you installed elsewhere), then run: npm run seed — it is idempotent, and seeds the permission catalog and the default admin/member roles. Nothing is authorized until it has run at least once.",
+        "Seed RBAC: add \"seed\": \"tsx src/lib/auth/seed.ts\" to your package.json scripts (adjust the path if you installed elsewhere), then run: npm run seed — it is idempotent, and seeds the permission catalog and the default admin/member roles. Nothing is authorized until it has run at least once.",
         "Optional: set SEED_ADMIN_EMAIL and SEED_ADMIN_PASSWORD before seeding to also create an initial admin user. Without them the seeder skips the admin rather than inventing a password.",
         "Import AuthModule.forRoot({...}) into your root app module",
         "Optional: wire SwaggerModule.setup('docs', app, document) in your main.ts to serve the OpenAPI spec this combo's controller is already decorated for — see examples/nestjs-prisma-app/src/main.ts for a working example"
@@ -74,7 +74,7 @@
         "Set DATABASE_URL in .env (see .env.example)",
         "Set AUTH_JWT_SECRET in .env — a base64-encoded 256-bit (or longer) secret, e.g.: openssl rand -base64 32. The app refuses to start without it; there is no default and nothing is generated for you. Changing it invalidates every outstanding token.",
         "Run: npx drizzle-kit migrate — drizzle.config.ts installs at the project root, alongside drizzle/, so no cd is needed",
-        "Seed RBAC: add \"seed\": \"tsx src/lib/auth/src/seed.ts\" to your package.json scripts (adjust the path if you installed elsewhere), then run: npm run seed — it is idempotent, and seeds the permission catalog and the default admin/member roles. Nothing is authorized until it has run at least once.",
+        "Seed RBAC: add \"seed\": \"tsx src/lib/auth/seed.ts\" to your package.json scripts (adjust the path if you installed elsewhere), then run: npm run seed — it is idempotent, and seeds the permission catalog and the default admin/member roles. Nothing is authorized until it has run at least once.",
         "Optional: set SEED_ADMIN_EMAIL and SEED_ADMIN_PASSWORD before seeding to also create an initial admin user. Without them the seeder skips the admin rather than inventing a password.",
         "Import AuthModule.forRoot({...}) into your root app module",
         "Optional: wire SwaggerModule.setup('docs', app, document) in your main.ts to serve the OpenAPI spec this combo's controller is already decorated for — see examples/nestjs-drizzle-app/src/main.ts for a working example"
@@ -106,7 +106,7 @@
         "Add \"@/prisma/*\": [\"./generated/prisma/*\"] to your tsconfig.json's compilerOptions.paths — the copied source imports the generated Prisma client via this alias, since prisma.config.ts/prisma/ (and the client it generates) install at the project root regardless of where --path put everything else",
         "Run: npx prisma generate",
         "Run: npx prisma migrate deploy",
-        "Seed RBAC: add \"seed\": \"tsx src/lib/auth/src/seed.ts\" to your package.json scripts (adjust the path if you installed elsewhere), then run: npm run seed — it is idempotent, and seeds the permission catalog and the default admin/member roles. Nothing is authorized until it has run at least once.",
+        "Seed RBAC: add \"seed\": \"tsx src/lib/auth/seed.ts\" to your package.json scripts (adjust the path if you installed elsewhere), then run: npm run seed — it is idempotent, and seeds the permission catalog and the default admin/member roles. Nothing is authorized until it has run at least once.",
         "Optional: set SEED_ADMIN_EMAIL and SEED_ADMIN_PASSWORD before seeding to also create an initial admin user. Without them the seeder skips the admin rather than inventing a password.",
         "Call createAuthApp({...}) and mount or listen on the Express app it returns",
         "The OpenAPI spec this combo hand-authors is already served at /docs and /docs-json — see examples/express-prisma-app/src/main.ts for a working example"
@@ -136,7 +136,7 @@
         "Set DATABASE_URL in .env (see .env.example)",
         "Set AUTH_JWT_SECRET in .env — a base64-encoded 256-bit (or longer) secret, e.g.: openssl rand -base64 32. The app refuses to start without it; there is no default and nothing is generated for you. Changing it invalidates every outstanding token.",
         "Run: npx drizzle-kit migrate — drizzle.config.ts installs at the project root, alongside drizzle/, so no cd is needed",
-        "Seed RBAC: add \"seed\": \"tsx src/lib/auth/src/seed.ts\" to your package.json scripts (adjust the path if you installed elsewhere), then run: npm run seed — it is idempotent, and seeds the permission catalog and the default admin/member roles. Nothing is authorized until it has run at least once.",
+        "Seed RBAC: add \"seed\": \"tsx src/lib/auth/seed.ts\" to your package.json scripts (adjust the path if you installed elsewhere), then run: npm run seed — it is idempotent, and seeds the permission catalog and the default admin/member roles. Nothing is authorized until it has run at least once.",
         "Optional: set SEED_ADMIN_EMAIL and SEED_ADMIN_PASSWORD before seeding to also create an initial admin user. Without them the seeder skips the admin rather than inventing a password.",
         "Call createAuthApp({...}) and mount or listen on the Express app it returns",
         "The OpenAPI spec this combo hand-authors is already served at /docs and /docs-json — see examples/express-drizzle-app/src/main.ts for a working example"

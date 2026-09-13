@@ -3,7 +3,7 @@ import "reflect-metadata";
 import { Module } from "@nestjs/common";
 import { NestFactory } from "@nestjs/core";
 import { DocumentBuilder, SwaggerModule } from "@nestjs/swagger";
-import { AuthModule } from "./lib/auth/src/auth.module.js";
+import { AuthModule } from "./lib/auth/auth.module.js";
 
 @Module({
   imports: [AuthModule.forRoot()],
@@ -17,7 +17,9 @@ async function main() {
     app,
     new DocumentBuilder()
       .setTitle("simple-auth-kit API")
-      .setDescription("nestjs-drizzle combo — signup/login, sessions, TOTP 2FA, OAuth, password reset, RBAC")
+      .setDescription(
+        "nestjs-drizzle combo — signup/login, sessions, TOTP 2FA, OAuth, password reset, RBAC",
+      )
       .setVersion("1.0")
       .addBearerAuth()
       .build(),
@@ -26,7 +28,9 @@ async function main() {
 
   const port = Number(process.env["PORT"] ?? 3002);
   await app.listen(port);
-  console.log(`example-nestjs-drizzle-app listening on http://localhost:${port}`);
+  console.log(
+    `example-nestjs-drizzle-app listening on http://localhost:${port}`,
+  );
   console.log(`Swagger UI at http://localhost:${port}/docs`);
 }
 

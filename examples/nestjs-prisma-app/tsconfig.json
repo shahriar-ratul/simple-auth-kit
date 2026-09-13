@@ -14,7 +14,8 @@
     "resolveJsonModule": true,
     "noEmit": true,
     "paths": {
-      "@/lib/auth/core/*": ["./src/lib/auth/core/*"]
+      "@/lib/auth/core/*": ["./src/lib/auth/core/*"],
+      "@/prisma/*": ["./generated/prisma/*"]
     }
   },
   "include": ["src"]

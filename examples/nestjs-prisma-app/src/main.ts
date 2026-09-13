@@ -2,8 +2,8 @@ import "dotenv/config";
 import "reflect-metadata";
 import { Module } from "@nestjs/common";
 import { NestFactory } from "@nestjs/core";
-import { AuthModule } from "./lib/auth/src/auth.module.js";
-import { setupDocs } from "./lib/auth/src/docs.js";
+import { AuthModule } from "./lib/auth/auth.module.js";
+import { setupDocs } from "./lib/auth/docs.js";
 
 @Module({
   imports: [AuthModule.forRoot()],
@@ -24,8 +24,12 @@ async function main() {
 
   const port = Number(process.env["PORT"] ?? 3001);
   await app.listen(port);
-  console.log(`example-nestjs-prisma-app listening on http://localhost:${port}`);
-  console.log(`Swagger UI at http://localhost:${port}/docs — Scalar at /reference`);
+  console.log(
+    `example-nestjs-prisma-app listening on http://localhost:${port}`,
+  );
+  console.log(
+    `Swagger UI at http://localhost:${port}/docs — Scalar at /reference`,
+  );
 }
 
 main();
