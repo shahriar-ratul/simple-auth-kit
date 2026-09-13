@@ -73,6 +73,11 @@ export class AuthModule {
     }
     return {
       module: AuthModule,
+      // Global so any module in the consumer's own app can inject the providers below
+      // without importing AuthModule again in every module that needs them — only what's
+      // listed in `exports` below becomes ambient; everything else (repositories, config,
+      // cache internals) stays module-private.
+      global: true,
       imports:
         resolved.throttle === false
           ? []

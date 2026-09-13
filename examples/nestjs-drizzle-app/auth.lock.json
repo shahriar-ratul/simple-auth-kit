@@ -1,6 +1,6 @@
 {
   "combo": "nestjs-drizzle",
-  "installedAt": "2026-09-13T13:58:00.111Z",
+  "installedAt": "2026-09-13T14:10:07.403Z",
   "files": {
     "core/crypto.ts": "9411c998b33f4ba97078fb6ff5beee1823bfb8c14a324c0e24e1967640e0c985",
     "core/.gitignore": "32dc6c42e34b0e1b8c9a5780abe9f951874d9082690a6e035e064f96dfd06ee6",
@@ -33,7 +33,7 @@
     "request-context.ts": "09d4a33e2074cf092714058beab819027e545d90536044cdf124166fc6180576",
     "route-tiers.ts": "71d96b52d7916429316d8b411a255fd340e031574ed0a77ff6c6b5811ed9c0fb",
     ".gitignore": "f76aa2c406a2892e774a5c5014daf04101796250fe60c7082b57fe8567cfe78d",
-    "auth.module.ts": "0e1e0b39ce77f881adafb8f259d3f53f4073cbe792767a41a2864535717aa165",
+    "auth.module.ts": "264f5a5d14b566f88294fbec3bde79fd399a2d36f9facb37ffc4ba5b8ed8e0e6",
     "controllers/admin.controller.ts": "09e79e459a067a2b221cdfe748387f88cc43ec536811e576398bdcfb7ff78bda",
     "dto/admin.dto.ts": "f9cac1ad84f9ba7cdfba1a6950d808c84315e48c0f5646708ffbeab71ac0423f",
     "guards/authz.guard.ts": "081f38f8ff905bddfe09a6bda3b58ad2e51c44f01c99ae9ae6ed79ec37f297dd",

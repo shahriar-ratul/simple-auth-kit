@@ -1,7 +1,7 @@
 {
   "combo": "nestjs-drizzle",
   "variant": "workspaces",
-  "installedAt": "2026-09-13T13:58:17.575Z",
+  "installedAt": "2026-09-13T14:10:25.824Z",
   "files": {
     "core/crypto.ts": "9411c998b33f4ba97078fb6ff5beee1823bfb8c14a324c0e24e1967640e0c985",
     "core/.gitignore": "32dc6c42e34b0e1b8c9a5780abe9f951874d9082690a6e035e064f96dfd06ee6",
@@ -34,7 +34,7 @@
     "request-context.ts": "09d4a33e2074cf092714058beab819027e545d90536044cdf124166fc6180576",
     "route-tiers.ts": "71d96b52d7916429316d8b411a255fd340e031574ed0a77ff6c6b5811ed9c0fb",
     ".gitignore": "f76aa2c406a2892e774a5c5014daf04101796250fe60c7082b57fe8567cfe78d",
-    "auth.module.ts": "1f49ca4f1c1b4326f6e15b9b8766e08874367ceaebfc523ffecfe89d87ba893f",
+    "auth.module.ts": "2a81632436dc82ff8d2d6dc134f82c7a5bcb148f79ec967e3e6b4d8f01deef5c",
     "controllers/admin.controller.ts": "3a5c31d44cec87de320f34d0178999feae010c91f6c73a5b9917e4b9f85e8c40",
     "controllers/workspace.controller.ts": "c7b3efb3290e68cbc74a945159bf5aaf5d6c020bfbdb9b9e062d2122e22ac04c",
     "dto/admin.dto.ts": "01f5befc64a6a7da34260f7e117924b612f1347ab7136b149d3b58813d18e51e",

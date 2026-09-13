@@ -1,7 +1,7 @@
 {
   "combo": "nestjs-prisma",
   "variant": "workspaces",
-  "installedAt": "2026-09-13T13:57:56.731Z",
+  "installedAt": "2026-09-13T14:10:04.023Z",
   "files": {
     "core/crypto.ts": "9411c998b33f4ba97078fb6ff5beee1823bfb8c14a324c0e24e1967640e0c985",
     "core/.gitignore": "32dc6c42e34b0e1b8c9a5780abe9f951874d9082690a6e035e064f96dfd06ee6",
@@ -33,7 +33,7 @@
     "request-context.ts": "ac83e3a55317ea05766b3d313d7c15f283bf2290eb4d6f6aa070d2561ffbbf14",
     "route-tiers.ts": "b5df88034d649e7ccf290ba72afd40015b824905e85408417bc7749e0169a690",
     ".gitignore": "b19bc9549c9ad96ee05a94a62af88a8747446123af62deaa9a7bf4c0fc64d590",
-    "auth.module.ts": "297f62872af028d7a184e9f4687db4eff1ee525aa13a9683e12be9592e2c2051",
+    "auth.module.ts": "6648462dbf8709f2521385dd67cc422e266975310a622213d290112e3402f855",
     "controllers/admin.controller.ts": "d4b6165e8c2681c7928b85b350bafbd200c559d101abc842e44b9a87d357140d",
     "controllers/workspace.controller.ts": "0b7b485e8feced685719be24068859f7405749c2919409175cc39fc22d9533cc",
     "dto/admin.dto.ts": "a5e99c42c115cd22053e4d2cb6247ca106215a5c19ca3c1abfffb3301fa7ed23",
