@@ -8,15 +8,15 @@ import {
   ApiTags,
 } from "@nestjs/swagger";
 import type { Request } from "express";
-import { AbilityGuard } from "../../../common/auth/ability/ability.guard.js";
-import { AuditLogService } from "../services/audit-log.service.js";
-import { AuthGuard } from "../../../common/auth/guards/auth.guard.js";
+import { AbilityGuard } from "../../../common/auth/ability/ability.guard";
+import { AuditLogService } from "../services/audit-log.service";
+import { AuthGuard } from "../../../common/auth/guards/auth.guard";
 import {
   WORKSPACE_HEADER,
   WorkspaceGuard,
-} from "../../../common/auth/guards/authz.guard.js";
-import { CheckAbility } from "../../../infra/route-tiers.js";
-import { AuditLogListResponseDto } from "../dto/audit-log.dto.js";
+} from "../../../common/auth/guards/authz.guard";
+import { CheckAbility } from "../../../infra/route-tiers";
+import { AuditLogListResponseDto } from "../dto/audit-log.dto";
 
 @ApiTags("audit-log")
 @Controller("v1/audit-log")

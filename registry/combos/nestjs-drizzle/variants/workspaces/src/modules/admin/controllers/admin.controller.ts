@@ -24,20 +24,17 @@ import {
   ApiTags,
 } from "@nestjs/swagger";
 import type { Request } from "express";
-import { AbilityGuard } from "../../../common/auth/ability/ability.guard.js";
-import { AdminService } from "../services/admin.service.js";
-import { AuthGuard } from "../../../common/auth/guards/auth.guard.js";
+import { AbilityGuard } from "../../../common/auth/ability/ability.guard";
+import { AdminService } from "../services/admin.service";
+import { AuthGuard } from "../../../common/auth/guards/auth.guard";
 import {
   WORKSPACE_HEADER,
   WorkspaceGuard,
-} from "../../../common/auth/guards/authz.guard.js";
-import { CheckAbility } from "../../../infra/route-tiers.js";
-import {
-  DeleteReasonDto,
-  OkResponseDto,
-} from "../../../common/dto/shared.dto.js";
-import { WorkspaceRepository } from "../../auth/repositories/workspace.repository.js";
-import { hashPassword } from "@/lib/auth/core/crypto.js";
+} from "../../../common/auth/guards/authz.guard";
+import { CheckAbility } from "../../../infra/route-tiers";
+import { DeleteReasonDto, OkResponseDto } from "../../../common/dto/shared.dto";
+import { WorkspaceRepository } from "../../auth/repositories/workspace.repository";
+import { hashPassword } from "@/lib/auth/core/crypto";
 import {
   AssignRoleDto,
   CreateUserDto,
@@ -45,7 +42,7 @@ import {
   UpdateUserDto,
   UserListResponseDto,
   UserSummaryDto,
-} from "../dto/admin.dto.js";
+} from "../dto/admin.dto";
 
 function requireString(value: unknown, field: string): string {
   if (typeof value !== "string" || value.length === 0)

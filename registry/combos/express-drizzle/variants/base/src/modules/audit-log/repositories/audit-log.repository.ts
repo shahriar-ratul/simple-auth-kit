@@ -1,17 +1,14 @@
 import { and, count, desc, eq, gte, lte, type SQL } from "drizzle-orm";
 import type { NodePgDatabase } from "drizzle-orm/node-postgres";
-import type { AuditEvent } from "@/lib/auth/core/types.js";
+import type { AuditEvent } from "@/lib/auth/core/types";
 import {
   buildPageMeta,
   normalizeLimit,
   normalizePage,
   type Paginated,
-} from "../../../common/helpers/pagination.js";
-import * as schema from "@/database/schema.js";
-import {
-  toIdOrNull,
-  toIdOrUndefined,
-} from "../../../common/helpers/id.helper.js";
+} from "../../../common/helpers/pagination";
+import * as schema from "@/database/schema";
+import { toIdOrNull, toIdOrUndefined } from "../../../common/helpers/id.helper";
 
 export interface AuditLogEntry {
   id: string;

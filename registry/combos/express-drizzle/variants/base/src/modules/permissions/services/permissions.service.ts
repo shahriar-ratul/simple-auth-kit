@@ -2,7 +2,7 @@ import {
   PermissionInput,
   PermissionSummary,
   RbacRepository,
-} from "../../auth/repositories/rbac.repository.js";
+} from "../../auth/repositories/rbac.repository";
 
 /** Thin wrapper over RbacRepository's permission-catalog methods — see the note on `createAdminRouter` for why RbacRepository itself isn't split. */
 export class PermissionsService {

@@ -1,5 +1,12 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { buildTotpProvisioningUri, generateBackupCodes, generateTotpCode, generateTotpSecret, verifyBackupCode, verifyTotpCode } from "../two-factor.js";
+import {
+  buildTotpProvisioningUri,
+  generateBackupCodes,
+  generateTotpCode,
+  generateTotpSecret,
+  verifyBackupCode,
+  verifyTotpCode,
+} from "../two-factor";
 
 // Shared seed from RFC 6238 Appendix B / RFC 4226 Appendix D ("12345678901234567890",
 // base32-encoded) — RFC 4226's own T=0 vector for this seed is the well-known "755224".
@@ -47,10 +54,16 @@ describe("two-factor: TOTP", () => {
   });
 
   it("buildTotpProvisioningUri embeds the issuer, account name, and secret", () => {
-    const uri = buildTotpProvisioningUri({ secret: RFC_SECRET, accountName: "alice@example.com", issuer: "simple-auth-kit" });
+    const uri = buildTotpProvisioningUri({
+      secret: RFC_SECRET,
+      accountName: "alice@example.com",
+      issuer: "simple-auth-kit",
+    });
     expect(uri).toContain("otpauth://totp/");
     expect(uri).toContain(`secret=${RFC_SECRET}`);
-    expect(decodeURIComponent(uri)).toContain("simple-auth-kit:alice@example.com");
+    expect(decodeURIComponent(uri)).toContain(
+      "simple-auth-kit:alice@example.com",
+    );
   });
 });
 

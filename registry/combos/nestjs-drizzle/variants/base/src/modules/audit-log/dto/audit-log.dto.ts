@@ -1,5 +1,5 @@
 import { ApiProperty } from "@nestjs/swagger";
-import { PageMetaDto } from "../../../common/dto/shared.dto.js";
+import { PageMetaDto } from "../../../common/dto/shared.dto";
 
 export class AuditLogEntryDto {
   @ApiProperty({ type: String })

@@ -1,7 +1,7 @@
 import {
   RbacRepository,
   RoleSummary,
-} from "../../auth/repositories/rbac.repository.js";
+} from "../../auth/repositories/rbac.repository";
 
 /** Thin wrapper over RbacRepository's role-catalog methods — see the note on `createAdminRouter` for why RbacRepository itself isn't split. */
 export class RolesService {

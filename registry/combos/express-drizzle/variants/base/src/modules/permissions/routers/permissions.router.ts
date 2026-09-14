@@ -1,12 +1,12 @@
 import type { NextFunction, Request, RequestHandler, Response } from "express";
-import { HttpError } from "../../../infra/errors/http-error.js";
+import { HttpError } from "../../../infra/errors/http-error";
 import {
   ability,
   createTieredRouter,
   type TierMiddleware,
-} from "../../../infra/route-tiers.js";
-import { PermissionsService } from "../services/permissions.service.js";
-import "../../../infra/request-context.js";
+} from "../../../infra/route-tiers";
+import { PermissionsService } from "../services/permissions.service";
+import "../../../infra/request-context";
 
 function requireString(value: unknown, field: string): string {
   if (typeof value !== "string" || value.length === 0)

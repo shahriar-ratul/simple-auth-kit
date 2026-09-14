@@ -1,6 +1,5 @@
 import { existsSync } from "node:fs";
 import { dirname, join } from "node:path";
-import { fileURLToPath } from "node:url";
 import { config as loadDotenv } from "dotenv";
 import { defineConfig } from "prisma/config";
 
@@ -22,7 +21,7 @@ function loadNearestEnv(startDir: string): void {
     dir = parent;
   }
 }
-loadNearestEnv(dirname(fileURLToPath(import.meta.url)));
+loadNearestEnv(__dirname);
 
 export default defineConfig({
   // A folder, not a file — Prisma's multi-file schema support merges every .prisma file inside

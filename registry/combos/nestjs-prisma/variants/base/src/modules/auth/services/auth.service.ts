@@ -8,7 +8,7 @@ import {
   Injectable,
   UnauthorizedException,
 } from "@nestjs/common";
-import { hashPassword, verifyPassword } from "@/lib/auth/core/crypto.js";
+import { hashPassword, verifyPassword } from "@/lib/auth/core/crypto";
 import {
   buildAuthorizationUrl,
   APPLE_OIDC_PROVIDER,
@@ -18,15 +18,12 @@ import {
   OAuthProviderDescriptor,
   signAppleClientSecret,
   verifyIdTokenAndExtractProfile,
-} from "@/lib/auth/core/oauth.js";
+} from "@/lib/auth/core/oauth";
 import {
   requestPasswordReset as coreRequestPasswordReset,
   resetPassword as coreResetPassword,
-} from "@/lib/auth/core/password-reset.js";
-import {
-  checkRateLimit,
-  type RateLimitDeps,
-} from "@/lib/auth/core/rate-limit.js";
+} from "@/lib/auth/core/password-reset";
+import { checkRateLimit, type RateLimitDeps } from "@/lib/auth/core/rate-limit";
 import {
   createSession,
   revokeAccessToken,
@@ -34,34 +31,31 @@ import {
   revokeOtherSessionsForUser,
   revokeSession,
   rotateRefreshToken,
-} from "@/lib/auth/core/session-policy.js";
+} from "@/lib/auth/core/session-policy";
 import {
   signAccessToken,
   signRefreshToken,
   signTwoFactorChallengeToken,
   verifyRefreshToken,
   verifyTwoFactorChallengeToken,
-} from "@/lib/auth/core/token-service.js";
+} from "@/lib/auth/core/token-service";
 import {
   buildTotpProvisioningUri,
   generateBackupCodes,
   generateTotpSecret,
   verifyTotpCode,
-} from "@/lib/auth/core/two-factor.js";
-import type { Revoker } from "@/lib/auth/core/types.js";
-import { AUTH_CONFIG, AuthConfig } from "../../../common/config/auth.config.js";
-import { PrismaClient } from "@/database/generated/prisma/client.js";
-import { KeyProviderService } from "../../../common/config/key-provider.js";
-import { OAuthRepository } from "../repositories/oauth.repository.js";
-import { PasswordResetRepository } from "../repositories/password-reset.repository.js";
-import { RATE_LIMIT_STORE } from "../../../common/auth/cache/rate-limit.store.js";
-import {
-  RbacRepository,
-  UserSummary,
-} from "../repositories/rbac.repository.js";
-import { SessionRepository } from "../repositories/session.repository.js";
-import { TwoFactorRepository } from "../repositories/two-factor.repository.js";
-import { toId } from "../../../common/helpers/id.helper.js";
+} from "@/lib/auth/core/two-factor";
+import type { Revoker } from "@/lib/auth/core/types";
+import { AUTH_CONFIG, AuthConfig } from "../../../common/config/auth.config";
+import { PrismaClient } from "@/database/generated/prisma/client";
+import { KeyProviderService } from "../../../common/config/key-provider";
+import { OAuthRepository } from "../repositories/oauth.repository";
+import { PasswordResetRepository } from "../repositories/password-reset.repository";
+import { RATE_LIMIT_STORE } from "../../../common/auth/cache/rate-limit.store";
+import { RbacRepository, UserSummary } from "../repositories/rbac.repository";
+import { SessionRepository } from "../repositories/session.repository";
+import { TwoFactorRepository } from "../repositories/two-factor.repository";
+import { toId } from "../../../common/helpers/id.helper";
 
 export interface AuthTokens {
   accessToken: string;

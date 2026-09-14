@@ -1,16 +1,16 @@
-import { hashPassword } from "@/lib/auth/core/crypto.js";
-import { blockUser, deactivateUser } from "@/lib/auth/core/session-policy.js";
-import type { Revoker } from "@/lib/auth/core/types.js";
-import { PrismaClient } from "@/database/generated/prisma/client.js";
+import { hashPassword } from "@/lib/auth/core/crypto";
+import { blockUser, deactivateUser } from "@/lib/auth/core/session-policy";
+import type { Revoker } from "@/lib/auth/core/types";
+import { PrismaClient } from "@/database/generated/prisma/client";
 import {
   RbacRepository,
   toUserSummary,
   UserListFilter,
   UserListResult,
   UserSummary,
-} from "../../auth/repositories/rbac.repository.js";
-import { SessionRepository } from "../../auth/repositories/session.repository.js";
-import { toId, toIdOrNull } from "../../../common/helpers/id.helper.js";
+} from "../../auth/repositories/rbac.repository";
+import { SessionRepository } from "../../auth/repositories/session.repository";
+import { toId, toIdOrNull } from "../../../common/helpers/id.helper";
 
 /**
  * User management, block/unblock/deactivate/activate, and user-scoped role/permission

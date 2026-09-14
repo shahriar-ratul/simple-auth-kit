@@ -1,9 +1,9 @@
 import { Inject, Injectable } from "@nestjs/common";
 import { eq } from "drizzle-orm";
-import type { PasswordResetStoreDeps } from "@/lib/auth/core/password-reset.js";
-import { DRIZZLE_DB, type Database } from "../../../common/config/db.js";
-import { passwordResetTokens, users } from "@/database/schema.js";
-import { toId } from "../../../common/helpers/id.helper.js";
+import type { PasswordResetStoreDeps } from "@/lib/auth/core/password-reset";
+import { DRIZZLE_DB, type Database } from "../../../common/config/db";
+import { passwordResetTokens, users } from "@/database/schema";
+import { toId } from "../../../common/helpers/id.helper";
 
 @Injectable()
 export class PasswordResetRepository implements PasswordResetStoreDeps {

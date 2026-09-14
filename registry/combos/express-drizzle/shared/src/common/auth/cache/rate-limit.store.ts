@@ -1,4 +1,4 @@
-import type { RateLimitDeps } from "@/lib/auth/core/rate-limit.js";
+import type { RateLimitDeps } from "@/lib/auth/core/rate-limit";
 
 /**
  * In-memory window counter — fine for a single instance / the reference combo's proof.

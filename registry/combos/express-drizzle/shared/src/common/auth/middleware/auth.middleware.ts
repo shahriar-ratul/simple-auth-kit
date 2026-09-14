@@ -1,8 +1,8 @@
 import type { NextFunction, Request, Response } from "express";
-import { verifyAccessToken } from "@/lib/auth/core/token-service.js";
-import { KeyProviderService } from "../../config/key-provider.js";
-import "../../../infra/request-context.js";
-import { SessionRepository } from "../../../modules/auth/repositories/session.repository.js";
+import { verifyAccessToken } from "@/lib/auth/core/token-service";
+import { KeyProviderService } from "../../config/key-provider";
+import "../../../infra/request-context";
+import { SessionRepository } from "../../../modules/auth/repositories/session.repository";
 
 /**
  * Authentication only — proves who the caller is and populates `req.auth`. Authorization

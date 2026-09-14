@@ -3,7 +3,7 @@
 // validation. Every `@ApiProperty` passes an explicit `type` because this repo runs via `tsx`
 // (esbuild), which doesn't reliably emit decorator type metadata for reflection.
 import { ApiProperty } from "@nestjs/swagger";
-import { PageMetaDto } from "../../../common/dto/shared.dto.js";
+import { PageMetaDto } from "../../../common/dto/shared.dto";
 
 export class CreateCustomerDto {
   @ApiProperty({ type: String, example: "customer@example.com" })

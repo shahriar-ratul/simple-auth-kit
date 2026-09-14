@@ -10,7 +10,7 @@ import {
   UnauthorizedException,
 } from "@nestjs/common";
 import { and, desc, eq, gt, or } from "drizzle-orm";
-import { hashPassword, verifyPassword } from "@/lib/auth/core/crypto.js";
+import { hashPassword, verifyPassword } from "@/lib/auth/core/crypto";
 import {
   buildAuthorizationUrl,
   APPLE_OIDC_PROVIDER,
@@ -20,15 +20,12 @@ import {
   OAuthProviderDescriptor,
   signAppleClientSecret,
   verifyIdTokenAndExtractProfile,
-} from "@/lib/auth/core/oauth.js";
+} from "@/lib/auth/core/oauth";
 import {
   requestPasswordReset as coreRequestPasswordReset,
   resetPassword as coreResetPassword,
-} from "@/lib/auth/core/password-reset.js";
-import {
-  checkRateLimit,
-  type RateLimitDeps,
-} from "@/lib/auth/core/rate-limit.js";
+} from "@/lib/auth/core/password-reset";
+import { checkRateLimit, type RateLimitDeps } from "@/lib/auth/core/rate-limit";
 import {
   createSession,
   revokeAccessToken,
@@ -36,35 +33,32 @@ import {
   revokeOtherSessionsForUser,
   revokeSession,
   rotateRefreshToken,
-} from "@/lib/auth/core/session-policy.js";
+} from "@/lib/auth/core/session-policy";
 import {
   signAccessToken,
   signRefreshToken,
   signTwoFactorChallengeToken,
   verifyRefreshToken,
   verifyTwoFactorChallengeToken,
-} from "@/lib/auth/core/token-service.js";
+} from "@/lib/auth/core/token-service";
 import {
   buildTotpProvisioningUri,
   generateBackupCodes,
   generateTotpSecret,
   verifyTotpCode,
-} from "@/lib/auth/core/two-factor.js";
-import { AUTH_CONFIG, AuthConfig } from "../../../common/config/auth.config.js";
-import { DRIZZLE_DB, type Database } from "../../../common/config/db.js";
-import { KeyProviderService } from "../../../common/config/key-provider.js";
-import { OAuthRepository } from "../repositories/oauth.repository.js";
-import { PasswordResetRepository } from "../repositories/password-reset.repository.js";
-import { RATE_LIMIT_STORE } from "../../../common/auth/cache/rate-limit.store.js";
-import type { Revoker } from "@/lib/auth/core/types.js";
-import {
-  RbacRepository,
-  UserSummary,
-} from "../repositories/rbac.repository.js";
-import { sessions, users } from "@/database/schema.js";
-import { SessionRepository } from "../repositories/session.repository.js";
-import { TwoFactorRepository } from "../repositories/two-factor.repository.js";
-import { toId } from "../../../common/helpers/id.helper.js";
+} from "@/lib/auth/core/two-factor";
+import { AUTH_CONFIG, AuthConfig } from "../../../common/config/auth.config";
+import { DRIZZLE_DB, type Database } from "../../../common/config/db";
+import { KeyProviderService } from "../../../common/config/key-provider";
+import { OAuthRepository } from "../repositories/oauth.repository";
+import { PasswordResetRepository } from "../repositories/password-reset.repository";
+import { RATE_LIMIT_STORE } from "../../../common/auth/cache/rate-limit.store";
+import type { Revoker } from "@/lib/auth/core/types";
+import { RbacRepository, UserSummary } from "../repositories/rbac.repository";
+import { sessions, users } from "@/database/schema";
+import { SessionRepository } from "../repositories/session.repository";
+import { TwoFactorRepository } from "../repositories/two-factor.repository";
+import { toId } from "../../../common/helpers/id.helper";
 
 export interface AuthTokens {
   accessToken: string;

@@ -1,6 +1,6 @@
 // RFC 6238 TOTP + RFC 4648 base32, hand-rolled on node:crypto to avoid a dependency.
 import { createHmac, randomBytes } from "node:crypto";
-import { hashToken, timingSafeEqualString } from "./crypto.js";
+import { hashToken, timingSafeEqualString } from "./crypto";
 
 const BASE32_ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
 const TOTP_STEP_SECONDS = 30;
@@ -47,7 +47,10 @@ function hotp(secret: Buffer, counter: number): string {
   const hmac = createHmac("sha1", secret).update(counterBuffer).digest();
   const offset = hmac[hmac.length - 1] & 0x0f;
   const binCode =
-    ((hmac[offset] & 0x7f) << 24) | ((hmac[offset + 1] & 0xff) << 16) | ((hmac[offset + 2] & 0xff) << 8) | (hmac[offset + 3] & 0xff);
+    ((hmac[offset] & 0x7f) << 24) |
+    ((hmac[offset + 1] & 0xff) << 16) |
+    ((hmac[offset + 2] & 0xff) << 8) |
+    (hmac[offset + 3] & 0xff);
   return (binCode % 10 ** TOTP_DIGITS).toString().padStart(TOTP_DIGITS, "0");
 }
 
@@ -56,7 +59,11 @@ export function generateTotpSecret(): string {
 }
 
 /** `otpauth://` URI for QR-code enrollment, the format every major authenticator app understands. */
-export function buildTotpProvisioningUri(opts: { secret: string; accountName: string; issuer: string }): string {
+export function buildTotpProvisioningUri(opts: {
+  secret: string;
+  accountName: string;
+  issuer: string;
+}): string {
   const label = encodeURIComponent(`${opts.issuer}:${opts.accountName}`);
   const params = new URLSearchParams({
     secret: opts.secret,
@@ -77,7 +84,11 @@ export function generateTotpCode(secret: string): string {
  * Checks `code` against the current 30s step, tolerating `window` steps of clock drift on
  * either side (default 1 = accepts the previous/current/next step, ±30s).
  */
-export function verifyTotpCode(secret: string, code: string, opts: { window?: number } = {}): boolean {
+export function verifyTotpCode(
+  secret: string,
+  code: string,
+  opts: { window?: number } = {},
+): boolean {
   const window = opts.window ?? 1;
   const normalized = code.trim();
   if (!/^\d{6}$/.test(normalized)) return false;
@@ -86,7 +97,8 @@ export function verifyTotpCode(secret: string, code: string, opts: { window?: nu
   const counter = Math.floor(Date.now() / 1000 / TOTP_STEP_SECONDS);
   for (let offset = -window; offset <= window; offset++) {
     if (counter + offset < 0) continue;
-    if (timingSafeEqualString(hotp(secretBytes, counter + offset), normalized)) return true;
+    if (timingSafeEqualString(hotp(secretBytes, counter + offset), normalized))
+      return true;
   }
   return false;
 }

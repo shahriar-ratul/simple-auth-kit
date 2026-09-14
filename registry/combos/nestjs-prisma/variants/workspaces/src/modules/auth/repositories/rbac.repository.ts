@@ -1,15 +1,15 @@
 import { Inject, Injectable, NotFoundException } from "@nestjs/common";
-import { resolvePermissions } from "@/lib/auth/core/rbac.js";
-import { Prisma, PrismaClient } from "@/database/generated/prisma/client.js";
-import type { AuthzContext } from "../../../common/auth/guards/authz.guard.js";
-import { PermissionCache } from "../../../common/auth/cache/permission-cache.js";
-import { toId, toIdOrNull } from "../../../common/helpers/id.helper.js";
+import { resolvePermissions } from "@/lib/auth/core/rbac";
+import { Prisma, PrismaClient } from "@/database/generated/prisma/client";
+import type { AuthzContext } from "../../../common/auth/guards/authz.guard";
+import { PermissionCache } from "../../../common/auth/cache/permission-cache";
+import { toId, toIdOrNull } from "../../../common/helpers/id.helper";
 import {
   buildPageMeta,
   normalizeLimit,
   normalizePage,
   type Paginated,
-} from "../../../common/helpers/pagination.js";
+} from "../../../common/helpers/pagination";
 
 const MEMBER_INCLUDE = {
   user: true,

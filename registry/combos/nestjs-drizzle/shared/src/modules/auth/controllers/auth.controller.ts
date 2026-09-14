@@ -22,12 +22,12 @@ import {
   ApiTags,
 } from "@nestjs/swagger";
 import type { Request } from "express";
-import { AUTH_CONFIG, AuthConfig } from "../../../common/config/auth.config.js";
-import { AuthGuard } from "../../../common/auth/guards/auth.guard.js";
-import { AuthService } from "../services/auth.service.js";
-import { AuthzGuard } from "../../../common/auth/guards/authz.guard.js";
-import { Authenticated, Public } from "../../../infra/route-tiers.js";
-import { OkResponseDto } from "../../../common/dto/shared.dto.js";
+import { AUTH_CONFIG, AuthConfig } from "../../../common/config/auth.config";
+import { AuthGuard } from "../../../common/auth/guards/auth.guard";
+import { AuthService } from "../services/auth.service";
+import { AuthzGuard } from "../../../common/auth/guards/authz.guard";
+import { Authenticated, Public } from "../../../infra/route-tiers";
+import { OkResponseDto } from "../../../common/dto/shared.dto";
 import {
   AuthTokensDto,
   ChangePasswordDto,
@@ -46,7 +46,7 @@ import {
   SignupDto,
   TwoFactorCodeDto,
   UpdateUserDto,
-} from "../dto/auth.dto.js";
+} from "../dto/auth.dto";
 
 function requireString(value: unknown, field: string): string {
   if (typeof value !== "string" || value.length === 0)

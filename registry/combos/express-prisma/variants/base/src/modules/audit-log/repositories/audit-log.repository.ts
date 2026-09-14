@@ -1,15 +1,12 @@
-import type { AuditEvent } from "@/lib/auth/core/types.js";
-import { Prisma, PrismaClient } from "@/database/generated/prisma/client.js";
+import type { AuditEvent } from "@/lib/auth/core/types";
+import { Prisma, PrismaClient } from "@/database/generated/prisma/client";
 import {
   buildPageMeta,
   normalizeLimit,
   normalizePage,
   type Paginated,
-} from "../../../common/helpers/pagination.js";
-import {
-  toIdOrNull,
-  toIdOrUndefined,
-} from "../../../common/helpers/id.helper.js";
+} from "../../../common/helpers/pagination";
+import { toIdOrNull, toIdOrUndefined } from "../../../common/helpers/id.helper";
 
 export interface AuditLogEntry {
   id: string;

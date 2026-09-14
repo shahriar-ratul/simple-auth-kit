@@ -1,8 +1,8 @@
 import type { NextFunction, Request, RequestHandler, Response } from "express";
-import { AdminService } from "../services/admin.service.js";
-import { HttpError } from "../../../infra/errors/http-error.js";
-import { ability, createTieredRouter } from "../../../infra/route-tiers.js";
-import "../../../infra/request-context.js";
+import { AdminService } from "../services/admin.service";
+import { HttpError } from "../../../infra/errors/http-error";
+import { ability, createTieredRouter } from "../../../infra/route-tiers";
+import "../../../infra/request-context";
 
 function requireString(value: unknown, field: string): string {
   if (typeof value !== "string" || value.length === 0)

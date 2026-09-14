@@ -4,9 +4,9 @@ import {
   Inject,
   Injectable,
 } from "@nestjs/common";
-import { defineAbilitiesFor } from "../ability/ability.js";
-import { PermissionCache } from "../cache/permission-cache.js";
-import { RbacRepository } from "../../../modules/auth/repositories/rbac.repository.js";
+import { defineAbilitiesFor } from "../ability/ability";
+import { PermissionCache } from "../cache/permission-cache";
+import { RbacRepository } from "../../../modules/auth/repositories/rbac.repository";
 
 /**
  * Roles and permissions are global to this deployment: a user has one set, and it applies
