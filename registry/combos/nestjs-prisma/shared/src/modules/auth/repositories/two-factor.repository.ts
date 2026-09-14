@@ -1,12 +1,12 @@
 import { Inject, Injectable } from "@nestjs/common";
 import { verifyBackupCode } from "@/lib/auth/core/two-factor";
-import { PrismaClient } from "@/database/generated/prisma/client";
+import { PrismaService } from "@/modules/prisma/prisma.service";
 
 // Takes bigint directly, not string: every caller already has the user row's id in hand from
 // its own Prisma lookup, so there's nothing to parse here.
 @Injectable()
 export class TwoFactorRepository {
-  constructor(@Inject(PrismaClient) private readonly prisma: PrismaClient) {}
+  constructor(@Inject(PrismaService) private readonly prisma: PrismaService) {}
 
   /** Replaces any prior set — re-confirming enrollment invalidates old backup codes. */
   async saveBackupCodes(userId: bigint, hashes: string[]): Promise<void> {

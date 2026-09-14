@@ -14,7 +14,7 @@ import {
   missingPermission,
   requiresPermission,
   type OpenApiFragment,
-} from "./openapi-fragment";
+} from "@/infra/openapi/openapi-fragment";
 
 export const adminSpec: OpenApiFragment = {
   tags: [],

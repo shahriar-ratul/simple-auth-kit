@@ -1,11 +1,11 @@
 import { PrismaClient } from "@/database/generated/prisma/client";
-import { HttpError } from "../../../infra/errors/http-error";
+import { HttpError } from "@/infra/errors/http-error";
 import {
   provisionDefaultRoles,
   WORKSPACE_CREATOR_ROLES,
-} from "../rbac.defaults";
-import { RbacRepository } from "./rbac.repository";
-import { toId } from "../../../common/helpers/id.helper";
+} from "@/modules/auth/rbac.defaults";
+import { RbacRepository } from "@/modules/auth/repositories/rbac.repository";
+import { toId } from "@/common/helpers/id.helper";
 
 export interface WorkspaceSummary {
   id: string;

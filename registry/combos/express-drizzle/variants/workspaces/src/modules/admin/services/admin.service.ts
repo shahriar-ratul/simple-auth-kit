@@ -1,19 +1,19 @@
 import { eq } from "drizzle-orm";
 import { blockUser, deactivateUser } from "@/lib/auth/core/session-policy";
 import type { Revoker } from "@/lib/auth/core/types";
-import type { AuthzContext } from "../../../common/auth/middleware/authz.middleware";
-import type { Database } from "../../../common/config/db";
-import { AuditLogRepository } from "../../audit-log/repositories/audit-log.repository";
+import type { AuthzContext } from "@/common/auth/middleware/authz.middleware";
+import type { Database } from "@/common/config/db";
+import { AuditLogRepository } from "@/modules/audit-log/repositories/audit-log.repository";
 import {
   MemberListFilter,
   MemberListResult,
   MemberSummary,
   RbacRepository,
   toMemberSummary,
-} from "../../auth/repositories/rbac.repository";
-import { SessionRepository } from "../../auth/repositories/session.repository";
+} from "@/modules/auth/repositories/rbac.repository";
+import { SessionRepository } from "@/modules/auth/repositories/session.repository";
 import { users } from "@/database/schema";
-import { toId, toIdOrNull } from "../../../common/helpers/id.helper";
+import { toId, toIdOrNull } from "@/common/helpers/id.helper";
 
 /**
  * Member management, block/unblock/deactivate/activate, and user-scoped role/permission

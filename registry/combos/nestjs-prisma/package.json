@@ -27,6 +27,7 @@
     "@prisma/adapter-pg": "^7.9.1",
     "@prisma/client": "^7.9.1",
     "express": "^5.2.1",
+    "pg": "^8.23.0",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.2",
     "socket.io": "^4.8.3"
@@ -35,6 +36,7 @@
     "@eslint/js": "^9.39.5",
     "@types/express": "^5.0.6",
     "@types/node": "^26.2.0",
+    "@types/pg": "^8.21.0",
     "dotenv": "^17.4.2",
     "eslint": "^9.39.5",
     "prisma": "^7.9.1",

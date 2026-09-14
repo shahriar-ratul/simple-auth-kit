@@ -4,13 +4,13 @@ import {
   Injectable,
   NotFoundException,
 } from "@nestjs/common";
-import { PrismaClient } from "@/database/generated/prisma/client";
+import { PrismaService } from "@/modules/prisma/prisma.service";
 import {
   provisionDefaultRoles,
   WORKSPACE_CREATOR_ROLES,
-} from "../rbac.defaults";
-import { RbacRepository } from "./rbac.repository";
-import { toId } from "../../../common/helpers/id.helper";
+} from "@/modules/auth/rbac.defaults";
+import { RbacRepository } from "@/modules/auth/repositories/rbac.repository";
+import { toId } from "@/common/helpers/id.helper";
 
 export interface WorkspaceSummary {
   id: string;
@@ -31,7 +31,7 @@ export interface MembershipSummary {
 @Injectable()
 export class WorkspaceRepository {
   constructor(
-    @Inject(PrismaClient) private readonly prisma: PrismaClient,
+    @Inject(PrismaService) private readonly prisma: PrismaService,
     @Inject(RbacRepository) private readonly rbac: RbacRepository,
   ) {}
 

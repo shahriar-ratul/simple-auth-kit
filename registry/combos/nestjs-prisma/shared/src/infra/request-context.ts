@@ -7,8 +7,8 @@
 //
 // Importing this module for its side effect installs the Express `Request` augmentation.
 import type { AccessTokenClaims } from "@/lib/auth/core/types";
-import type { AppAbility } from "../common/auth/ability/ability";
-import type { AuthzContext } from "../common/auth/guards/authz.guard";
+import type { AppAbility } from "@/common/auth/ability/ability";
+import type { AuthzContext } from "@/common/auth/guards/authz.guard";
 
 declare module "express" {
   interface Request {

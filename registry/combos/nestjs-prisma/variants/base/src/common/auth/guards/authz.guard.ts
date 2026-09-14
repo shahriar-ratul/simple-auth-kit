@@ -4,9 +4,9 @@ import {
   Inject,
   Injectable,
 } from "@nestjs/common";
-import { defineAbilitiesFor } from "../ability/ability";
-import { PermissionCache } from "../cache/permission-cache";
-import { RbacRepository } from "../../../modules/auth/repositories/rbac.repository";
+import { defineAbilitiesFor } from "@/common/auth/ability/ability";
+import { PermissionCache } from "@/common/auth/cache/permission-cache";
+import { RbacRepository } from "@/modules/auth/repositories/rbac.repository";
 
 // Roles and permissions are global to this deployment — one set per user, resolved from the
 // database on the request that uses them. The access token carries identity only.

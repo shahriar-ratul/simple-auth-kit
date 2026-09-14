@@ -1,10 +1,10 @@
-import type { Paginated } from "../../../common/helpers/pagination";
+import type { Paginated } from "@/common/helpers/pagination";
 import {
   AuditLogEntry,
   AuditLogListFilter,
   AuditLogRepository,
   toAuditLogEntry,
-} from "../repositories/audit-log.repository";
+} from "@/modules/audit-log/repositories/audit-log.repository";
 
 export class AuditLogService {
   constructor(private readonly auditLog: AuditLogRepository) {}

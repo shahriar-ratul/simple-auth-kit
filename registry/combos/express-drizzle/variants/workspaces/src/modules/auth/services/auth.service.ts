@@ -37,17 +37,17 @@ import {
   generateTotpSecret,
   verifyTotpCode,
 } from "@/lib/auth/core/two-factor";
-import type { AuthConfig } from "../../../common/config/auth.config";
-import { HttpError } from "../../../infra/errors/http-error";
-import type { Database } from "../../../common/config/db";
-import { KeyProviderService } from "../../../common/config/key-provider";
-import { OAuthRepository } from "../repositories/oauth.repository";
-import { PasswordResetRepository } from "../repositories/password-reset.repository";
+import type { AuthConfig } from "@/common/config/auth.config";
+import { HttpError } from "@/infra/errors/http-error";
+import type { Database } from "@/common/config/db";
+import { KeyProviderService } from "@/common/config/key-provider";
+import { OAuthRepository } from "@/modules/auth/repositories/oauth.repository";
+import { PasswordResetRepository } from "@/modules/auth/repositories/password-reset.repository";
 import type { Revoker } from "@/lib/auth/core/types";
 import { sessions, users } from "@/database/schema";
-import { SessionRepository } from "../repositories/session.repository";
-import { TwoFactorRepository } from "../repositories/two-factor.repository";
-import { toId } from "../../../common/helpers/id.helper";
+import { SessionRepository } from "@/modules/auth/repositories/session.repository";
+import { TwoFactorRepository } from "@/modules/auth/repositories/two-factor.repository";
+import { toId } from "@/common/helpers/id.helper";
 
 export interface AuthTokens {
   accessToken: string;

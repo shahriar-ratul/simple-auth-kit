@@ -5,9 +5,9 @@ import {
   Injectable,
   UnauthorizedException,
 } from "@nestjs/common";
-import { AuthTokenService } from "../token.service";
-import "../../../infra/request-context";
-import { SessionRepository } from "../../../modules/auth/repositories/session.repository";
+import { AuthTokenService } from "@/common/auth/token.service";
+import "@/infra/request-context";
+import { SessionRepository } from "@/modules/auth/repositories/session.repository";
 
 /**
  * Authentication only — proves who the caller is and populates `req.auth`. Authorization

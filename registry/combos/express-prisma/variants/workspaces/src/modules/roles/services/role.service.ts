@@ -1,8 +1,8 @@
-import type { AuthzContext } from "../../../common/auth/middleware/authz.middleware";
+import type { AuthzContext } from "@/common/auth/middleware/authz.middleware";
 import {
   RbacRepository,
   RoleSummary,
-} from "../../auth/repositories/rbac.repository";
+} from "@/modules/auth/repositories/rbac.repository";
 
 /** Thin wrapper over RbacRepository's role-catalog methods — see the note on AdminService for why RbacRepository itself isn't split. */
 export class RoleService {

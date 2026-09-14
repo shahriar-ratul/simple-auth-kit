@@ -39,15 +39,15 @@ import {
   verifyTotpCode,
 } from "@/lib/auth/core/two-factor";
 import type { Revoker } from "@/lib/auth/core/types";
-import { AUTH_CONFIG, AuthConfig } from "../../../common/config/auth.config";
-import { PrismaClient } from "@/database/generated/prisma/client";
-import { AuthTokenService } from "../../../common/auth/token.service";
-import { OAuthRepository } from "../repositories/oauth.repository";
-import { PasswordResetRepository } from "../repositories/password-reset.repository";
-import { RATE_LIMIT_STORE } from "../../../common/auth/cache/rate-limit.store";
-import { SessionRepository } from "../repositories/session.repository";
-import { TwoFactorRepository } from "../repositories/two-factor.repository";
-import { toId } from "../../../common/helpers/id.helper";
+import { AUTH_CONFIG, AuthConfig } from "@/common/config/auth.config";
+import { PrismaService } from "@/modules/prisma/prisma.service";
+import { AuthTokenService } from "@/common/auth/token.service";
+import { OAuthRepository } from "@/modules/auth/repositories/oauth.repository";
+import { PasswordResetRepository } from "@/modules/auth/repositories/password-reset.repository";
+import { RATE_LIMIT_STORE } from "@/common/auth/cache/rate-limit.store";
+import { SessionRepository } from "@/modules/auth/repositories/session.repository";
+import { TwoFactorRepository } from "@/modules/auth/repositories/two-factor.repository";
+import { toId } from "@/common/helpers/id.helper";
 
 export interface AuthTokens {
   accessToken: string;
@@ -83,7 +83,7 @@ export interface SelfProfile {
 @Injectable()
 export class AuthService {
   constructor(
-    @Inject(PrismaClient) private readonly prisma: PrismaClient,
+    @Inject(PrismaService) private readonly prisma: PrismaService,
     @Inject(SessionRepository) private readonly sessions: SessionRepository,
     @Inject(AuthTokenService) private readonly tokens: AuthTokenService,
     @Inject(RATE_LIMIT_STORE) private readonly rateLimit: RateLimitDeps,

@@ -2,9 +2,9 @@ import { randomUUID } from "node:crypto";
 import type { SessionStoreDeps } from "@/lib/auth/core/session-policy";
 import type { AuditEvent, Revoker, SessionRecord } from "@/lib/auth/core/types";
 import { PrismaClient } from "@/database/generated/prisma/client";
-import type { AuthConfig } from "../../../common/config/auth.config";
-import { AuditLogRepository } from "../../audit-log/repositories/audit-log.repository";
-import { toId, toIdOrNull } from "../../../common/helpers/id.helper";
+import type { AuthConfig } from "@/common/config/auth.config";
+import { AuditLogRepository } from "@/modules/audit-log/repositories/audit-log.repository";
+import { toId, toIdOrNull } from "@/common/helpers/id.helper";
 
 function toSessionRecord(row: {
   id: bigint;

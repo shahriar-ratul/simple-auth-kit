@@ -6,9 +6,9 @@ import {
   normalizeLimit,
   normalizePage,
   type Paginated,
-} from "../../../common/helpers/pagination";
+} from "@/common/helpers/pagination";
 import * as schema from "@/database/schema";
-import { toIdOrNull, toIdOrUndefined } from "../../../common/helpers/id.helper";
+import { toIdOrNull, toIdOrUndefined } from "@/common/helpers/id.helper";
 
 export interface AuditLogEntry {
   id: string;

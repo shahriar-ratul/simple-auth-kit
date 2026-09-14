@@ -5,8 +5,8 @@ import {
   normalizeLimit,
   normalizePage,
   type Paginated,
-} from "../../../common/helpers/pagination";
-import { toIdOrNull, toIdOrUndefined } from "../../../common/helpers/id.helper";
+} from "@/common/helpers/pagination";
+import { toIdOrNull, toIdOrUndefined } from "@/common/helpers/id.helper";
 
 export interface AuditLogEntry {
   id: string;

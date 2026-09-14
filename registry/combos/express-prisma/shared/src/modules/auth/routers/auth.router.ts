@@ -1,14 +1,14 @@
 import type { NextFunction, Request, RequestHandler, Response } from "express";
-import type { AuthConfig } from "../../../common/config/auth.config";
-import { AuthService } from "../services/auth.service";
-import { HttpError } from "../../../infra/errors/http-error";
+import type { AuthConfig } from "@/common/config/auth.config";
+import { AuthService } from "@/modules/auth/services/auth.service";
+import { HttpError } from "@/infra/errors/http-error";
 import {
   authenticated,
   createTieredRouter,
   publicRoute,
   type TierMiddleware,
-} from "../../../infra/route-tiers";
-import "../../../infra/request-context";
+} from "@/infra/route-tiers";
+import "@/infra/request-context";
 
 function requireString(value: unknown, field: string): string {
   if (typeof value !== "string" || value.length === 0)

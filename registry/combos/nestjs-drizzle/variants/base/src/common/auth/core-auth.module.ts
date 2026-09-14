@@ -1,37 +1,34 @@
-import { Pool } from "pg";
-import { drizzle } from "drizzle-orm/node-postgres";
 import { DynamicModule, Global, Module } from "@nestjs/common";
 import { JwtModule } from "@nestjs/jwt";
-import { AbilityGuard } from "./ability/ability.guard";
-import { AdminController } from "../../modules/admin/controllers/admin.controller";
-import { AuditLogController } from "../../modules/audit-log/controllers/audit-log.controller";
+import { AbilityGuard } from "@/common/auth/ability/ability.guard";
+import { AdminController } from "@/modules/admin/controllers/admin.controller";
+import { AuditLogController } from "@/modules/audit-log/controllers/audit-log.controller";
 import {
   AUTH_CONFIG,
   AuthConfig,
   defaultAuthConfig,
-} from "../config/auth.config";
-import { AuthController } from "../../modules/auth/controllers/auth.controller";
-import { AuthGuard } from "./guards/auth.guard";
-import { AuthzGuard } from "./guards/authz.guard";
-import { DRIZZLE_DB } from "../config/db";
-import { loadJwtSecret } from "../config/key-provider";
-import { AuthTokenService } from "./token.service";
+} from "@/common/config/auth.config";
+import { AuthController } from "@/modules/auth/controllers/auth.controller";
+import { AuthGuard } from "@/common/auth/guards/auth.guard";
+import { AuthzGuard } from "@/common/auth/guards/authz.guard";
+import { DrizzleModule } from "@/modules/drizzle/drizzle.module";
+import { loadJwtSecret } from "@/common/config/key-provider";
+import { AuthTokenService } from "@/common/auth/token.service";
 import {
   InMemoryPermissionCacheStore,
   PERMISSION_CACHE_STORE,
   PermissionCache,
-} from "./cache/permission-cache";
+} from "@/common/auth/cache/permission-cache";
 import {
   InMemoryRateLimitStore,
   RATE_LIMIT_STORE,
-} from "./cache/rate-limit.store";
-import { PermissionController } from "../../modules/permissions/controllers/permission.controller";
-import { RbacRepository } from "../../modules/auth/repositories/rbac.repository";
-import { RoleController } from "../../modules/roles/controllers/role.controller";
-import { AuditLogModule } from "../../modules/audit-log/audit-log.module";
-import { SessionRepository } from "../../modules/auth/repositories/session.repository";
-import { assertEveryRouteDeclaresATier } from "../../infra/route-tiers";
-import * as schema from "@/database/schema";
+} from "@/common/auth/cache/rate-limit.store";
+import { PermissionController } from "@/modules/permissions/controllers/permission.controller";
+import { RbacRepository } from "@/modules/auth/repositories/rbac.repository";
+import { RoleController } from "@/modules/roles/controllers/role.controller";
+import { AuditLogModule } from "@/modules/audit-log/audit-log.module";
+import { SessionRepository } from "@/modules/auth/repositories/session.repository";
+import { assertEveryRouteDeclaresATier } from "@/infra/route-tiers";
 
 // Every controller this combo ships, across every feature module — the one array the boot-time
 // tier check walks. Built here (rather than each feature module registering itself) so there's
@@ -68,8 +65,6 @@ export class CoreAuthModule {
     });
 
     const resolved: AuthConfig = { ...defaultAuthConfig, ...config };
-    const pool = new Pool({ connectionString: process.env["DATABASE_URL"] });
-    const db = drizzle(pool, { schema });
 
     if (!config.permissionCacheStore || !config.rateLimitStore) {
       console.warn(
@@ -85,6 +80,7 @@ export class CoreAuthModule {
       global: true,
       imports: [
         AuditLogModule,
+        DrizzleModule,
         JwtModule.registerAsync({
           useFactory: () => ({
             secret: loadJwtSecret(),
@@ -95,7 +91,6 @@ export class CoreAuthModule {
       ],
       providers: [
         { provide: AUTH_CONFIG, useValue: resolved },
-        { provide: DRIZZLE_DB, useValue: db },
         // Swap for a Redis-backed store by passing `permissionCacheStore` to forRoot.
         {
           provide: PERMISSION_CACHE_STORE,
@@ -116,7 +111,6 @@ export class CoreAuthModule {
       ],
       exports: [
         AUTH_CONFIG,
-        DRIZZLE_DB,
         AuthTokenService,
         PERMISSION_CACHE_STORE,
         PermissionCache,

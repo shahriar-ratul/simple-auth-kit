@@ -4,14 +4,15 @@ import {
   Injectable,
   NotFoundException,
 } from "@nestjs/common";
-import { Prisma, PrismaClient } from "@/database/generated/prisma/client";
-import { toId, toIdOrNull } from "../../../common/helpers/id.helper";
+import { Prisma } from "@/database/generated/prisma/client";
+import { PrismaService } from "@/modules/prisma/prisma.service";
+import { toId, toIdOrNull } from "@/common/helpers/id.helper";
 import {
   buildPageMeta,
   normalizeLimit,
   normalizePage,
   type Paginated,
-} from "../../../common/helpers/pagination";
+} from "@/common/helpers/pagination";
 
 /** A `Language` row as `findUnique`/`findMany` return it. */
 export type LanguageRow = Prisma.LanguageGetPayload<object>;
@@ -69,7 +70,7 @@ export interface LanguageInput {
 
 @Injectable()
 export class LanguageRepository {
-  constructor(@Inject(PrismaClient) private readonly prisma: PrismaClient) {}
+  constructor(@Inject(PrismaService) private readonly prisma: PrismaService) {}
 
   /** Newest-first, page-paginated; `search` matches name/code/nativeName. Returns raw rows — shaping is the caller's job. */
   async list(filter: LanguageListFilter = {}): Promise<LanguageListResult> {

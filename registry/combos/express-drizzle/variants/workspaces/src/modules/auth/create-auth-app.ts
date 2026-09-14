@@ -1,42 +1,40 @@
 import express, { Express } from "express";
 import swaggerUi from "swagger-ui-express";
-import { drizzle } from "drizzle-orm/node-postgres";
-import { Pool } from "pg";
 import type { RateLimitDeps } from "@/lib/auth/core/rate-limit";
-import { createAdminRouter } from "../admin/routers/admin.router";
-import { AdminService } from "../admin/services/admin.service";
-import { createRolesRouter } from "../roles/routers/roles.router";
-import { RolesService } from "../roles/services/roles.service";
-import { createPermissionsRouter } from "../permissions/routers/permissions.router";
-import { PermissionsService } from "../permissions/services/permissions.service";
-import { createAuditLogRouter } from "../audit-log/routers/audit-log.router";
-import { AuditLogService } from "../audit-log/services/audit-log.service";
-import { AuditLogRepository } from "../audit-log/repositories/audit-log.repository";
-import { authCoreErrorMiddleware } from "../../infra/middleware/auth-core-error.middleware";
-import { AuthConfig, defaultAuthConfig } from "../../common/config/auth.config";
-import { createAuthMiddleware } from "../../common/auth/middleware/auth.middleware";
-import { createAuthRouter } from "./routers/auth.router";
-import { AuthService } from "./services/auth.service";
+import { createAdminRouter } from "@/modules/admin/routers/admin.router";
+import { AdminService } from "@/modules/admin/services/admin.service";
+import { createRolesRouter } from "@/modules/roles/routers/roles.router";
+import { RolesService } from "@/modules/roles/services/roles.service";
+import { createPermissionsRouter } from "@/modules/permissions/routers/permissions.router";
+import { PermissionsService } from "@/modules/permissions/services/permissions.service";
+import { createAuditLogRouter } from "@/modules/audit-log/routers/audit-log.router";
+import { AuditLogService } from "@/modules/audit-log/services/audit-log.service";
+import { AuditLogRepository } from "@/modules/audit-log/repositories/audit-log.repository";
+import { authCoreErrorMiddleware } from "@/infra/middleware/auth-core-error.middleware";
+import { AuthConfig, defaultAuthConfig } from "@/common/config/auth.config";
+import { createAuthMiddleware } from "@/common/auth/middleware/auth.middleware";
+import { createAuthRouter } from "@/modules/auth/routers/auth.router";
+import { AuthService } from "@/modules/auth/services/auth.service";
 import {
   createAuthzMiddleware,
   createWorkspaceMiddleware,
-} from "../../common/auth/middleware/authz.middleware";
-import { KeyProviderService } from "../../common/config/key-provider";
-import { OAuthRepository } from "./repositories/oauth.repository";
-import { openApiSpec } from "../../infra/openapi/openapi-spec";
-import { PasswordResetRepository } from "./repositories/password-reset.repository";
+} from "@/common/auth/middleware/authz.middleware";
+import { DrizzleService } from "@/modules/drizzle/drizzle.service";
+import { KeyProviderService } from "@/common/config/key-provider";
+import { OAuthRepository } from "@/modules/auth/repositories/oauth.repository";
+import { openApiSpec } from "@/infra/openapi/openapi-spec";
+import { PasswordResetRepository } from "@/modules/auth/repositories/password-reset.repository";
 import {
   InMemoryPermissionCacheStore,
   PermissionCache,
-} from "../../common/auth/cache/permission-cache";
-import { InMemoryRateLimitStore } from "../../common/auth/cache/rate-limit.store";
-import { RbacRepository } from "./repositories/rbac.repository";
-import { responseEnvelope } from "../../infra/middleware/response-envelope.middleware";
-import * as schema from "@/database/schema";
-import { SessionRepository } from "./repositories/session.repository";
-import { TwoFactorRepository } from "./repositories/two-factor.repository";
-import { createWorkspaceRouter } from "./routers/workspace.router";
-import { WorkspaceRepository } from "./repositories/workspace.repository";
+} from "@/common/auth/cache/permission-cache";
+import { InMemoryRateLimitStore } from "@/common/auth/cache/rate-limit.store";
+import { RbacRepository } from "@/modules/auth/repositories/rbac.repository";
+import { responseEnvelope } from "@/infra/middleware/response-envelope.middleware";
+import { SessionRepository } from "@/modules/auth/repositories/session.repository";
+import { TwoFactorRepository } from "@/modules/auth/repositories/two-factor.repository";
+import { createWorkspaceRouter } from "@/modules/auth/routers/workspace.router";
+import { WorkspaceRepository } from "@/modules/auth/repositories/workspace.repository";
 
 /**
  * Factory wiring a Drizzle `NodePgDatabase` (from a `pg.Pool`) plus all the plain classes,
@@ -54,8 +52,8 @@ import { WorkspaceRepository } from "./repositories/workspace.repository";
  * lives in.
  */
 export function createAuthApp(config: Partial<AuthConfig> = {}): Express {
-  const pool = new Pool({ connectionString: process.env["DATABASE_URL"] });
-  const db = drizzle(pool, { schema });
+  const drizzleService = new DrizzleService();
+  const db = drizzleService.db;
 
   const resolvedConfig: AuthConfig = { ...defaultAuthConfig, ...config };
   const auditLog = new AuditLogRepository(db);
@@ -173,6 +171,11 @@ export function createAuthApp(config: Partial<AuthConfig> = {}): Express {
   app.use("/docs", swaggerUi.serve, swaggerUi.setup(openApiSpec));
   app.get("/docs-json", (req, res) => res.json(openApiSpec));
   app.use(authCoreErrorMiddleware);
+
+  // Express has no framework-managed shutdown hook, so the pool is stashed here rather than
+  // left unreachable — a consumer closes it on SIGTERM/SIGINT with
+  // `(app.locals["drizzle"] as DrizzleService).close()`.
+  app.locals["drizzle"] = drizzleService;
 
   return app;
 }

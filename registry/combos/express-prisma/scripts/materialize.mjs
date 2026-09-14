@@ -43,6 +43,7 @@ const TSCONFIG = {
     paths: {
       "@/lib/auth/core/*": ["../../../../core/*"],
       "@/database/*": ["./database/*"],
+      "@/*": ["./src/*"],
     },
   },
   include: ["src", "test", "database", "prisma.config.ts"],

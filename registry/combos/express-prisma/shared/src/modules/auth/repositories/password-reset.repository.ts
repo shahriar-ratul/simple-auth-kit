@@ -1,6 +1,6 @@
 import type { PasswordResetStoreDeps } from "@/lib/auth/core/password-reset";
 import { PrismaClient } from "@/database/generated/prisma/client";
-import { toId } from "../../../common/helpers/id.helper";
+import { toId } from "@/common/helpers/id.helper";
 
 // Plain class, no DI container — constructed directly with a PrismaClient in
 // create-auth-app.ts. Identical Prisma queries to the reference combo.

@@ -6,8 +6,8 @@ import {
   missingPermission,
   requiresPermission,
   type OpenApiFragment,
-} from "./openapi-fragment";
-import { WORKSPACE_HEADER } from "../../common/auth/middleware/authz.middleware";
+} from "@/infra/openapi/openapi-fragment";
+import { WORKSPACE_HEADER } from "@/common/auth/middleware/authz.middleware";
 
 /** Every route that acts *inside* a workspace names it with this header, never a path segment. */
 export const workspaceHeaderParameter = {

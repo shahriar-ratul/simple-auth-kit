@@ -2,10 +2,10 @@ import { randomUUID } from "node:crypto";
 import { Inject, Injectable } from "@nestjs/common";
 import type { SessionStoreDeps } from "@/lib/auth/core/session-policy";
 import type { AuditEvent, Revoker, SessionRecord } from "@/lib/auth/core/types";
-import { PrismaClient } from "@/database/generated/prisma/client";
-import { AUTH_CONFIG, AuthConfig } from "../../../common/config/auth.config";
-import { AuditLogRepository } from "../../audit-log/repositories/audit-log.repository";
-import { toId, toIdOrNull } from "../../../common/helpers/id.helper";
+import { PrismaService } from "@/modules/prisma/prisma.service";
+import { AUTH_CONFIG, AuthConfig } from "@/common/config/auth.config";
+import { AuditLogRepository } from "@/modules/audit-log/repositories/audit-log.repository";
+import { toId, toIdOrNull } from "@/common/helpers/id.helper";
 
 function toSessionRecord(row: {
   id: bigint;
@@ -50,7 +50,7 @@ const revocationFields = (revoker?: Revoker) => ({
 @Injectable()
 export class SessionRepository implements SessionStoreDeps {
   constructor(
-    @Inject(PrismaClient) private readonly prisma: PrismaClient,
+    @Inject(PrismaService) private readonly prisma: PrismaService,
     @Inject(AuditLogRepository) private readonly auditLog: AuditLogRepository,
     @Inject(AUTH_CONFIG) private readonly config: AuthConfig,
   ) {}

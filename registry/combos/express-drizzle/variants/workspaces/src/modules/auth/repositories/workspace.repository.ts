@@ -1,10 +1,10 @@
 import { and, asc, eq, inArray } from "drizzle-orm";
-import type { Database } from "../../../common/config/db";
+import type { Database } from "@/common/config/db";
 import {
   provisionDefaultRoles,
   WORKSPACE_CREATOR_ROLES,
-} from "../rbac.defaults";
-import { RbacRepository } from "./rbac.repository";
+} from "@/modules/auth/rbac.defaults";
+import { RbacRepository } from "@/modules/auth/repositories/rbac.repository";
 import {
   roleMember,
   roles,
@@ -12,8 +12,8 @@ import {
   workspaceMembers,
   workspaces,
 } from "@/database/schema";
-import { HttpError } from "../../../infra/errors/http-error";
-import { toId } from "../../../common/helpers/id.helper";
+import { HttpError } from "@/infra/errors/http-error";
+import { toId } from "@/common/helpers/id.helper";
 
 export interface WorkspaceSummary {
   id: string;

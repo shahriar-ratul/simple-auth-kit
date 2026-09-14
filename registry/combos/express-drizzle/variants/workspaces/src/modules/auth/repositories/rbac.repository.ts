@@ -9,15 +9,15 @@ import {
   type SQL,
 } from "drizzle-orm";
 import { resolvePermissions } from "@/lib/auth/core/rbac";
-import type { AuthzContext } from "../../../common/auth/middleware/authz.middleware";
-import type { Database } from "../../../common/config/db";
+import type { AuthzContext } from "@/common/auth/middleware/authz.middleware";
+import type { Database } from "@/common/config/db";
 import {
   buildPageMeta,
   normalizeLimit,
   normalizePage,
   type Paginated,
-} from "../../../common/helpers/pagination";
-import { PermissionCache } from "../../../common/auth/cache/permission-cache";
+} from "@/common/helpers/pagination";
+import { PermissionCache } from "@/common/auth/cache/permission-cache";
 import {
   permissionMember,
   permissionRole,
@@ -27,8 +27,8 @@ import {
   users,
   workspaceMembers,
 } from "@/database/schema";
-import { HttpError } from "../../../infra/errors/http-error";
-import { toId, toIdOrNull } from "../../../common/helpers/id.helper";
+import { HttpError } from "@/infra/errors/http-error";
+import { toId, toIdOrNull } from "@/common/helpers/id.helper";
 
 /**
  * Every column the `users` table has (plus the membership's own `memberId`/`createdAt`), except

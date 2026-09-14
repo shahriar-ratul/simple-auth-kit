@@ -1,5 +1,5 @@
 import type { RateLimitDeps } from "@/lib/auth/core/rate-limit";
-import type { PermissionCacheStore } from "../auth/cache/permission-cache";
+import type { PermissionCacheStore } from "@/common/auth/cache/permission-cache";
 
 export interface GoogleOAuthCredentials {
   clientId: string;

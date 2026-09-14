@@ -5,15 +5,16 @@ import {
   NotFoundException,
 } from "@nestjs/common";
 import { resolvePermissions } from "@/lib/auth/core/rbac";
-import { Prisma, PrismaClient } from "@/database/generated/prisma/client";
-import { PermissionCache } from "../../../common/auth/cache/permission-cache";
-import { toId, toIdOrNull } from "../../../common/helpers/id.helper";
+import { Prisma } from "@/database/generated/prisma/client";
+import { PrismaService } from "@/modules/prisma/prisma.service";
+import { PermissionCache } from "@/common/auth/cache/permission-cache";
+import { toId, toIdOrNull } from "@/common/helpers/id.helper";
 import {
   buildPageMeta,
   normalizeLimit,
   normalizePage,
   type Paginated,
-} from "../../../common/helpers/pagination";
+} from "@/common/helpers/pagination";
 
 const USER_ROLES_INCLUDE = {
   roles: { select: { role: { select: { slug: true } } } },
@@ -158,7 +159,7 @@ const ROLE_SELECT = {
 @Injectable()
 export class RbacRepository {
   constructor(
-    @Inject(PrismaClient) private readonly prisma: PrismaClient,
+    @Inject(PrismaService) private readonly prisma: PrismaService,
     @Inject(PermissionCache) private readonly cache: PermissionCache,
   ) {}
 

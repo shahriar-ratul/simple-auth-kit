@@ -6,12 +6,12 @@ import {
   ApiResponse,
   ApiTags,
 } from "@nestjs/swagger";
-import { AbilityGuard } from "../../../common/auth/ability/ability.guard";
-import { AuditLogService } from "../services/audit-log.service";
-import { AuthGuard } from "../../../common/auth/guards/auth.guard";
-import { AuthzGuard } from "../../../common/auth/guards/authz.guard";
-import { CheckAbility } from "../../../infra/route-tiers";
-import { AuditLogListResponseDto } from "../dto/audit-log.dto";
+import { AbilityGuard } from "@/common/auth/ability/ability.guard";
+import { AuditLogService } from "@/modules/audit-log/services/audit-log.service";
+import { AuthGuard } from "@/common/auth/guards/auth.guard";
+import { AuthzGuard } from "@/common/auth/guards/authz.guard";
+import { CheckAbility } from "@/infra/route-tiers";
+import { AuditLogListResponseDto } from "@/modules/audit-log/dto/audit-log.dto";
 
 @ApiTags("audit-log")
 @Controller("v1/audit-log")

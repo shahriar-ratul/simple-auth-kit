@@ -10,7 +10,7 @@ import {
   METHOD_METADATA,
   PATH_METADATA,
 } from "@nestjs/common/constants.js";
-import type { PermissionSlug } from "../modules/auth/rbac.defaults";
+import type { PermissionSlug } from "@/modules/auth/rbac.defaults";
 
 export const ROUTE_TIER_KEY = "routeTier";
 export const CHECK_ABILITY_KEY = "checkAbility";

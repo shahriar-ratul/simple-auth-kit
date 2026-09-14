@@ -18,16 +18,16 @@ import {
   ApiTags,
 } from "@nestjs/swagger";
 import type { Request } from "express";
-import { AbilityGuard } from "../../../common/auth/ability/ability.guard";
-import { AuthGuard } from "../../../common/auth/guards/auth.guard";
-import { AuthzGuard } from "../../../common/auth/guards/authz.guard";
-import { CheckAbility } from "../../../infra/route-tiers";
+import { AbilityGuard } from "@/common/auth/ability/ability.guard";
+import { AuthGuard } from "@/common/auth/guards/auth.guard";
+import { AuthzGuard } from "@/common/auth/guards/authz.guard";
+import { CheckAbility } from "@/infra/route-tiers";
 import {
   DefinePermissionDto,
   PermissionListResponseDto,
   PermissionSummaryDto,
-} from "../dto/permission.dto";
-import { PermissionService } from "../services/permission.service";
+} from "@/modules/permissions/dto/permission.dto";
+import { PermissionService } from "@/modules/permissions/services/permission.service";
 
 function requireString(value: unknown, field: string): string {
   if (typeof value !== "string" || value.length === 0)

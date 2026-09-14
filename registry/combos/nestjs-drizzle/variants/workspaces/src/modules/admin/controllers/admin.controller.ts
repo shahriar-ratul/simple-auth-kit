@@ -24,16 +24,16 @@ import {
   ApiTags,
 } from "@nestjs/swagger";
 import type { Request } from "express";
-import { AbilityGuard } from "../../../common/auth/ability/ability.guard";
-import { AdminService } from "../services/admin.service";
-import { AuthGuard } from "../../../common/auth/guards/auth.guard";
+import { AbilityGuard } from "@/common/auth/ability/ability.guard";
+import { AdminService } from "@/modules/admin/services/admin.service";
+import { AuthGuard } from "@/common/auth/guards/auth.guard";
 import {
   WORKSPACE_HEADER,
   WorkspaceGuard,
-} from "../../../common/auth/guards/authz.guard";
-import { CheckAbility } from "../../../infra/route-tiers";
-import { DeleteReasonDto, OkResponseDto } from "../../../common/dto/shared.dto";
-import { WorkspaceRepository } from "../../auth/repositories/workspace.repository";
+} from "@/common/auth/guards/authz.guard";
+import { CheckAbility } from "@/infra/route-tiers";
+import { DeleteReasonDto, OkResponseDto } from "@/common/dto/shared.dto";
+import { WorkspaceRepository } from "@/modules/auth/repositories/workspace.repository";
 import { hashPassword } from "@/lib/auth/core/crypto";
 import {
   AssignRoleDto,
@@ -42,7 +42,7 @@ import {
   UpdateUserDto,
   UserListResponseDto,
   UserSummaryDto,
-} from "../dto/admin.dto";
+} from "@/modules/admin/dto/admin.dto";
 
 function requireString(value: unknown, field: string): string {
   if (typeof value !== "string" || value.length === 0)

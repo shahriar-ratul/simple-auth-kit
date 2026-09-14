@@ -1,12 +1,12 @@
 import type { NextFunction, Request, RequestHandler, Response } from "express";
-import { defineAbilitiesFor } from "../ability/ability";
-import { HttpError } from "../../../infra/errors/http-error";
-import type { PermissionCache } from "../cache/permission-cache";
+import { defineAbilitiesFor } from "@/common/auth/ability/ability";
+import { HttpError } from "@/infra/errors/http-error";
+import type { PermissionCache } from "@/common/auth/cache/permission-cache";
 import {
   memberCacheKey,
   type RbacRepository,
-} from "../../../modules/auth/repositories/rbac.repository";
-import "../../../infra/request-context";
+} from "@/modules/auth/repositories/rbac.repository";
+import "@/infra/request-context";
 
 export const WORKSPACE_HEADER = "x-workspace-id";
 

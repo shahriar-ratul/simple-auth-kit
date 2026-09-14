@@ -1,13 +1,14 @@
 import { Inject, Injectable } from "@nestjs/common";
 import type { AuditEvent } from "@/lib/auth/core/types";
-import { Prisma, PrismaClient } from "@/database/generated/prisma/client";
-import { toIdOrNull, toIdOrUndefined } from "../../../common/helpers/id.helper";
+import { Prisma } from "@/database/generated/prisma/client";
+import { PrismaService } from "@/modules/prisma/prisma.service";
+import { toIdOrNull, toIdOrUndefined } from "@/common/helpers/id.helper";
 import {
   buildPageMeta,
   normalizeLimit,
   normalizePage,
   type Paginated,
-} from "../../../common/helpers/pagination";
+} from "@/common/helpers/pagination";
 
 export interface AuditLogEntry {
   id: string;
@@ -60,7 +61,7 @@ export function toAuditLogEntry(row: AuditLogRow): AuditLogEntry {
 
 @Injectable()
 export class AuditLogRepository {
-  constructor(@Inject(PrismaClient) private readonly prisma: PrismaClient) {}
+  constructor(@Inject(PrismaService) private readonly prisma: PrismaService) {}
 
   // workspaceId is left null for events core raises (login, logout, password reset, ...) —
   // those happen to a user, not inside a workspace.

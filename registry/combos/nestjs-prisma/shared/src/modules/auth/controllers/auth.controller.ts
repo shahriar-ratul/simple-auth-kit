@@ -27,12 +27,12 @@ import {
   AUTH_CONFIG,
   AuthConfig,
   defaultThrottleBuckets,
-} from "../../../common/config/auth.config";
-import { AuthGuard } from "../../../common/auth/guards/auth.guard";
-import { AuthService } from "../services/auth.service";
-import { AuthzGuard } from "../../../common/auth/guards/authz.guard";
-import { Authenticated, Public } from "../../../infra/route-tiers";
-import { OkResponseDto } from "../../../common/dto/shared.dto";
+} from "@/common/config/auth.config";
+import { AuthGuard } from "@/common/auth/guards/auth.guard";
+import { AuthService } from "@/modules/auth/services/auth.service";
+import { AuthzGuard } from "@/common/auth/guards/authz.guard";
+import { Authenticated, Public } from "@/infra/route-tiers";
+import { OkResponseDto } from "@/common/dto/shared.dto";
 import {
   AuthTokensDto,
   ChangePasswordDto,
@@ -51,7 +51,7 @@ import {
   SignupDto,
   TwoFactorCodeDto,
   UpdateUserDto,
-} from "../dto/auth.dto";
+} from "@/modules/auth/dto/auth.dto";
 
 function requireString(value: unknown, field: string): string {
   if (typeof value !== "string" || value.length === 0)

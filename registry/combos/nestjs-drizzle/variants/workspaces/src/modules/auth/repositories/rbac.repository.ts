@@ -10,15 +10,15 @@ import {
   type SQL,
 } from "drizzle-orm";
 import { resolvePermissions } from "@/lib/auth/core/rbac";
-import type { AuthzContext } from "../../../common/auth/guards/authz.guard";
-import { DRIZZLE_DB, type Database } from "../../../common/config/db";
+import type { AuthzContext } from "@/common/auth/guards/authz.guard";
+import { DRIZZLE_DB, type Database } from "@/common/config/db";
 import {
   buildPageMeta,
   normalizeLimit,
   normalizePage,
   type Paginated,
-} from "../../../common/helpers/pagination";
-import { PermissionCache } from "../../../common/auth/cache/permission-cache";
+} from "@/common/helpers/pagination";
+import { PermissionCache } from "@/common/auth/cache/permission-cache";
 import {
   permissionMember,
   permissionRole,
@@ -28,7 +28,7 @@ import {
   users,
   workspaceMembers,
 } from "@/database/schema";
-import { toId, toIdOrNull } from "../../../common/helpers/id.helper";
+import { toId, toIdOrNull } from "@/common/helpers/id.helper";
 
 export interface MemberSummary {
   memberId: string;
