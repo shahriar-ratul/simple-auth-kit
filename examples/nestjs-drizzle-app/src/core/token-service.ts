@@ -55,7 +55,9 @@ export async function signAccessToken(
 export async function verifyAccessToken(deps: VerifyAccessTokenDeps, token: string): Promise<AccessTokenClaims> {
   let payload;
   try {
-    ({ payload } = await jwtVerify(token, deps.secret, { algorithms: ['HS256'] }));
+    ({ payload } = await jwtVerify(token, deps.secret, {
+      algorithms: ['HS256'],
+    }));
   } catch {
     throw new AccessTokenInvalidError();
   }
@@ -81,7 +83,10 @@ export async function signRefreshToken(
   const jti = opts.jti ?? randomUUID();
   const ttl = opts.ttlSeconds ?? REFRESH_TOKEN_TTL_SECONDS_DEFAULT;
   const now = Math.floor(Date.now() / 1000);
-  const token = await new SignJWT({ sessionId: claims.sessionId, sv: claims.sv })
+  const token = await new SignJWT({
+    sessionId: claims.sessionId,
+    sv: claims.sv,
+  })
     .setProtectedHeader({ alg: 'HS256', kid: deps.activeKey.kid })
     .setSubject(claims.sub)
     .setJti(jti)
@@ -117,7 +122,9 @@ export async function verifyTwoFactorChallengeToken(
 ): Promise<{ sub: string }> {
   let payload;
   try {
-    ({ payload } = await jwtVerify(token, deps.secret, { algorithms: ['HS256'] }));
+    ({ payload } = await jwtVerify(token, deps.secret, {
+      algorithms: ['HS256'],
+    }));
   } catch {
     throw new TwoFactorChallengeInvalidError();
   }
@@ -130,7 +137,9 @@ export async function verifyTwoFactorChallengeToken(
 export async function verifyRefreshToken(deps: VerifyRefreshTokenDeps, token: string): Promise<RefreshTokenClaims> {
   let payload;
   try {
-    ({ payload } = await jwtVerify(token, deps.secret, { algorithms: ['HS256'] }));
+    ({ payload } = await jwtVerify(token, deps.secret, {
+      algorithms: ['HS256'],
+    }));
   } catch {
     throw new RefreshInvalidError();
   }

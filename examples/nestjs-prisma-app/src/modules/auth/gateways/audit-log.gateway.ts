@@ -1,9 +1,8 @@
 import { Inject } from '@nestjs/common';
 import { OnGatewayConnection, WebSocketGateway, WebSocketServer } from '@nestjs/websockets';
 import type { Server, Socket } from 'socket.io';
-import { verifyAccessToken } from '@/core/token-service';
 import { AuditLogEntry, AuditLogRepository } from '../../audit-log/repositories/audit-log.repository';
-import { KeyProviderService } from '../../../common/config/key-provider';
+import { AuthTokenService } from '../../../common/auth/token.service';
 import { SessionRepository } from '../repositories/session.repository';
 
 // socket.io clients disagree on where a bearer token travels: `auth.token` (the socket.io-native
@@ -25,7 +24,7 @@ export class AuditLogGateway implements OnGatewayConnection {
   private server?: Server;
 
   constructor(
-    @Inject(KeyProviderService) private readonly keys: KeyProviderService,
+    @Inject(AuthTokenService) private readonly tokens: AuthTokenService,
     @Inject(SessionRepository) private readonly sessions: SessionRepository,
     @Inject(AuditLogRepository) auditLog: AuditLogRepository,
   ) {
@@ -39,13 +38,9 @@ export class AuditLogGateway implements OnGatewayConnection {
       return;
     }
     try {
-      await verifyAccessToken(
-        {
-          secret: this.keys.secret,
-          isDenylisted: (jti) => this.sessions.isDenylisted(jti),
-        },
-        token,
-      );
+      await this.tokens.verifyAccessToken(token, {
+        isDenylisted: (jti) => this.sessions.isDenylisted(jti),
+      });
     } catch {
       client.disconnect(true);
     }
