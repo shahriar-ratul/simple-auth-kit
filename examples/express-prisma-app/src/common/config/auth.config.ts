@@ -1,5 +1,5 @@
-import type { RateLimitDeps } from "@/core/rate-limit.js";
-import type { PermissionCacheStore } from "../auth/cache/permission-cache.js";
+import type { RateLimitDeps } from '@/core/rate-limit';
+import type { PermissionCacheStore } from '../auth/cache/permission-cache';
 
 export interface GoogleOAuthCredentials {
   clientId: string;
@@ -58,6 +58,6 @@ export const defaultAuthConfig: AuthConfig = {
   permissionCacheTtlSeconds: 300,
   refreshTokenTtlSeconds: 60 * 60 * 24 * 30,
   sessionTtlSeconds: 60 * 60 * 24 * 30,
-  twoFactorIssuer: "simple-auth-kit",
+  twoFactorIssuer: 'simple-auth-kit',
   oauthProviders: {},
 };

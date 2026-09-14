@@ -1,7 +1,7 @@
 import { BadRequestException, Inject, Injectable } from "@nestjs/common";
-import type { OAuthStoreDeps } from "@/lib/auth/core/oauth.js";
-import { PrismaClient } from "@/database/generated/prisma/client.js";
-import { toId } from "../../../common/helpers/id.helper.js";
+import type { OAuthStoreDeps } from "@/lib/auth/core/oauth";
+import { PrismaClient } from "@/database/generated/prisma/client";
+import { toId } from "../../../common/helpers/id.helper";
 
 @Injectable()
 export class OAuthRepository implements OAuthStoreDeps {

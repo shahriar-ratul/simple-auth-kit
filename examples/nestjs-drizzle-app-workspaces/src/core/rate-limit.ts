@@ -1,4 +1,4 @@
-export type RateLimitScope = "login" | "refresh" | "signup" | "password-reset";
+export type RateLimitScope = 'login' | 'refresh' | 'signup' | 'password-reset';
 
 export interface RateLimitDeps {
   /** Increments the counter for `key` within the current window and returns the new count. */
@@ -14,13 +14,10 @@ const DEFAULTS: Record<RateLimitScope, RateLimitOptions> = {
   login: { windowMs: 60_000, max: 5 },
   refresh: { windowMs: 60_000, max: 20 },
   signup: { windowMs: 60 * 60_000, max: 10 },
-  "password-reset": { windowMs: 60 * 60_000, max: 5 },
+  'password-reset': { windowMs: 60 * 60_000, max: 5 },
 };
 
-export function rateLimitKey(
-  scope: RateLimitScope,
-  identifier: string,
-): string {
+export function rateLimitKey(scope: RateLimitScope, identifier: string): string {
   return `authrl:${scope}:${identifier}`;
 }
 

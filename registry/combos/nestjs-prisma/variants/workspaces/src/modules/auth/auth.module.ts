@@ -1,10 +1,10 @@
 import { Module } from "@nestjs/common";
-import { AuthController } from "./controllers/auth.controller.js";
-import { AuthService } from "./services/auth.service.js";
-import { OAuthRepository } from "./repositories/oauth.repository.js";
-import { PasswordResetRepository } from "./repositories/password-reset.repository.js";
-import { TwoFactorRepository } from "./repositories/two-factor.repository.js";
-import { WorkspaceController } from "./controllers/workspace.controller.js";
+import { AuthController } from "./controllers/auth.controller";
+import { AuthService } from "./services/auth.service";
+import { OAuthRepository } from "./repositories/oauth.repository";
+import { PasswordResetRepository } from "./repositories/password-reset.repository";
+import { TwoFactorRepository } from "./repositories/two-factor.repository";
+import { WorkspaceController } from "./controllers/workspace.controller";
 
 // Plain module — no forRoot(), not global. Identity/session endpoints (AuthController) plus
 // workspace membership itself (WorkspaceController — creating/listing workspaces and managing

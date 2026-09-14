@@ -1,8 +1,8 @@
-import { eq } from "drizzle-orm";
-import type { NodePgDatabase } from "drizzle-orm/node-postgres";
-import type { PasswordResetStoreDeps } from "@/core/password-reset.js";
-import * as schema from "@/database/schema.js";
-import { toId } from "../../../common/helpers/id.helper.js";
+import { eq } from 'drizzle-orm';
+import type { NodePgDatabase } from 'drizzle-orm/node-postgres';
+import type { PasswordResetStoreDeps } from '@/core/password-reset';
+import * as schema from '@/database/schema';
+import { toId } from '../../../common/helpers/id.helper';
 
 /**
  * Plain class, no decorators — Drizzle-specific implementation of `PasswordResetStoreDeps`
@@ -11,11 +11,7 @@ import { toId } from "../../../common/helpers/id.helper.js";
 export class PasswordResetRepository implements PasswordResetStoreDeps {
   constructor(private readonly db: NodePgDatabase<typeof schema>) {}
 
-  async saveResetToken(input: {
-    userId: string;
-    tokenHash: string;
-    expiresAt: string;
-  }): Promise<void> {
+  async saveResetToken(input: { userId: string; tokenHash: string; expiresAt: string }): Promise<void> {
     await this.db.insert(schema.passwordResetTokens).values({
       userId: toId(input.userId),
       tokenHash: input.tokenHash,

@@ -4,7 +4,7 @@
 // from auth.dto.ts for that reason; role/permission-catalog DTOs live in their own modules
 // (roles/dto/role.dto.ts, permissions/dto/permission.dto.ts) instead.
 import { ApiProperty } from "@nestjs/swagger";
-import { PageMetaDto } from "../../../common/dto/shared.dto.js";
+import { PageMetaDto } from "../../../common/dto/shared.dto";
 
 export class UserSummaryDto {
   @ApiProperty({

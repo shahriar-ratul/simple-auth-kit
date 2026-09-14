@@ -16,11 +16,8 @@ import {
   missingPermission,
   requiresPermission,
   type OpenApiFragment,
-} from "./openapi-fragment.js";
-import {
-  workspaceHeaderParameter,
-  workspaceSpec,
-} from "./openapi-workspace.js";
+} from "./openapi-fragment";
+import { workspaceHeaderParameter, workspaceSpec } from "./openapi-workspace";
 
 const adminHeaderParameter = {
   ...workspaceHeaderParameter,

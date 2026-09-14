@@ -1,35 +1,37 @@
 import { PrismaPg } from "@prisma/adapter-pg";
 import { DynamicModule, Global, Module } from "@nestjs/common";
-import { AbilityGuard } from "./ability/ability.guard.js";
-import { AdminController } from "../../modules/admin/controllers/admin.controller.js";
-import { AuditLogController } from "../../modules/audit-log/controllers/audit-log.controller.js";
+import { JwtModule } from "@nestjs/jwt";
+import { AbilityGuard } from "./ability/ability.guard";
+import { AdminController } from "../../modules/admin/controllers/admin.controller";
+import { AuditLogController } from "../../modules/audit-log/controllers/audit-log.controller";
 import {
   AUTH_CONFIG,
   AuthConfig,
   defaultAuthConfig,
-} from "../config/auth.config.js";
-import { AuthController } from "../../modules/auth/controllers/auth.controller.js";
-import { AuthGuard } from "./guards/auth.guard.js";
-import { AuthzGuard, WorkspaceGuard } from "./guards/authz.guard.js";
-import { PrismaClient } from "@/database/generated/prisma/client.js";
-import { KeyProviderService } from "../config/key-provider.js";
+} from "../config/auth.config";
+import { AuthController } from "../../modules/auth/controllers/auth.controller";
+import { AuthGuard } from "./guards/auth.guard";
+import { AuthzGuard, WorkspaceGuard } from "./guards/authz.guard";
+import { PrismaClient } from "@/database/generated/prisma/client";
+import { loadJwtSecret } from "../config/key-provider";
+import { AuthTokenService } from "./token.service";
 import {
   InMemoryPermissionCacheStore,
   PERMISSION_CACHE_STORE,
   PermissionCache,
-} from "./cache/permission-cache.js";
+} from "./cache/permission-cache";
 import {
   InMemoryRateLimitStore,
   RATE_LIMIT_STORE,
-} from "./cache/rate-limit.store.js";
-import { PermissionController } from "../../modules/permissions/controllers/permission.controller.js";
-import { RbacRepository } from "../../modules/auth/repositories/rbac.repository.js";
-import { RoleController } from "../../modules/roles/controllers/role.controller.js";
-import { WorkspaceController } from "../../modules/auth/controllers/workspace.controller.js";
-import { WorkspaceRepository } from "../../modules/auth/repositories/workspace.repository.js";
-import { AuditLogModule } from "../../modules/audit-log/audit-log.module.js";
-import { SessionRepository } from "../../modules/auth/repositories/session.repository.js";
-import { assertEveryRouteDeclaresATier } from "../../infra/route-tiers.js";
+} from "./cache/rate-limit.store";
+import { PermissionController } from "../../modules/permissions/controllers/permission.controller";
+import { RbacRepository } from "../../modules/auth/repositories/rbac.repository";
+import { RoleController } from "../../modules/roles/controllers/role.controller";
+import { WorkspaceController } from "../../modules/auth/controllers/workspace.controller";
+import { WorkspaceRepository } from "../../modules/auth/repositories/workspace.repository";
+import { AuditLogModule } from "../../modules/audit-log/audit-log.module";
+import { SessionRepository } from "../../modules/auth/repositories/session.repository";
+import { assertEveryRouteDeclaresATier } from "../../infra/route-tiers";
 
 // Every controller this combo ships, across every feature module — the one array the boot-time
 // tier check walks. Built here (rather than each feature module registering itself) so there's
@@ -86,7 +88,16 @@ export class CoreAuthModule {
     return {
       module: CoreAuthModule,
       global: true,
-      imports: [AuditLogModule],
+      imports: [
+        AuditLogModule,
+        JwtModule.registerAsync({
+          useFactory: () => ({
+            secret: loadJwtSecret(),
+            signOptions: { algorithm: "HS256" },
+            verifyOptions: { algorithms: ["HS256"] },
+          }),
+        }),
+      ],
       providers: [
         { provide: AUTH_CONFIG, useValue: resolved },
         { provide: PrismaClient, useValue: new PrismaClient({ adapter }) },
@@ -97,7 +108,7 @@ export class CoreAuthModule {
             config.permissionCacheStore ?? new InMemoryPermissionCacheStore(),
         },
         PermissionCache,
-        KeyProviderService,
+        AuthTokenService,
         {
           provide: RATE_LIMIT_STORE,
           useValue: config.rateLimitStore ?? new InMemoryRateLimitStore(),
@@ -113,7 +124,7 @@ export class CoreAuthModule {
       exports: [
         AUTH_CONFIG,
         PrismaClient,
-        KeyProviderService,
+        AuthTokenService,
         PERMISSION_CACHE_STORE,
         PermissionCache,
         RATE_LIMIT_STORE,

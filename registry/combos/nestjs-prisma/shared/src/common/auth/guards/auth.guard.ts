@@ -5,17 +5,16 @@ import {
   Injectable,
   UnauthorizedException,
 } from "@nestjs/common";
-import { verifyAccessToken } from "@/lib/auth/core/token-service.js";
-import { KeyProviderService } from "../../config/key-provider.js";
-import "../../../infra/request-context.js";
-import { SessionRepository } from "../../../modules/auth/repositories/session.repository.js";
+import { AuthTokenService } from "../token.service";
+import "../../../infra/request-context";
+import { SessionRepository } from "../../../modules/auth/repositories/session.repository";
 
 // Authentication only — proves who the caller is and populates `req.auth`. Pair with
 // `AuthzGuard` on any route that checks roles or permissions.
 @Injectable()
 export class AuthGuard implements CanActivate {
   constructor(
-    @Inject(KeyProviderService) private readonly keys: KeyProviderService,
+    @Inject(AuthTokenService) private readonly tokens: AuthTokenService,
     @Inject(SessionRepository) private readonly sessions: SessionRepository,
   ) {}
 
@@ -26,12 +25,9 @@ export class AuthGuard implements CanActivate {
       throw new UnauthorizedException("missing bearer token");
 
     try {
-      req.auth = await verifyAccessToken(
-        {
-          secret: this.keys.secret,
-          isDenylisted: (jti) => this.sessions.isDenylisted(jti),
-        },
+      req.auth = await this.tokens.verifyAccessToken(
         header.slice("Bearer ".length),
+        { isDenylisted: (jti) => this.sessions.isDenylisted(jti) },
       );
     } catch (err) {
       throw new UnauthorizedException(

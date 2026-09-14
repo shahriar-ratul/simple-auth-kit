@@ -1,11 +1,11 @@
-import type { AuthzContext } from "../../../common/auth/middleware/authz.middleware.js";
-import type { Paginated } from "../../../common/helpers/pagination.js";
+import type { AuthzContext } from "../../../common/auth/middleware/authz.middleware";
+import type { Paginated } from "../../../common/helpers/pagination";
 import {
   AuditLogEntry,
   AuditLogListFilter,
   AuditLogRepository,
   toAuditLogEntry,
-} from "../repositories/audit-log.repository.js";
+} from "../repositories/audit-log.repository";
 
 export class AuditLogService {
   constructor(private readonly auditLog: AuditLogRepository) {}

@@ -1,17 +1,15 @@
-import { Inject, Injectable } from "@nestjs/common";
-import type { Paginated } from "../../../common/helpers/pagination.js";
+import { Inject, Injectable } from '@nestjs/common';
+import type { Paginated } from '../../../common/helpers/pagination';
 import {
   AuditLogEntry,
   AuditLogListFilter,
   AuditLogRepository,
   toAuditLogEntry,
-} from "../repositories/audit-log.repository.js";
+} from '../repositories/audit-log.repository';
 
 @Injectable()
 export class AuditLogService {
-  constructor(
-    @Inject(AuditLogRepository) private readonly auditLog: AuditLogRepository,
-  ) {}
+  constructor(@Inject(AuditLogRepository) private readonly auditLog: AuditLogRepository) {}
 
   async list(filter: AuditLogListFilter): Promise<Paginated<AuditLogEntry>> {
     const { items, meta } = await this.auditLog.list(filter);

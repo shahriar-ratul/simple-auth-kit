@@ -1,8 +1,8 @@
-import type { NextFunction, Request, Response } from "express";
-import { verifyAccessToken } from "@/core/token-service.js";
-import { KeyProviderService } from "../../config/key-provider.js";
-import "../../../infra/request-context.js";
-import { SessionRepository } from "../../../modules/auth/repositories/session.repository.js";
+import type { NextFunction, Request, Response } from 'express';
+import { verifyAccessToken } from '@/core/token-service';
+import { KeyProviderService } from '../../config/key-provider';
+import '../../../infra/request-context';
+import { SessionRepository } from '../../../modules/auth/repositories/session.repository';
 
 /**
  * Authentication only — proves who the caller is and populates `req.auth`. Authorization
@@ -13,21 +13,14 @@ import { SessionRepository } from "../../../modules/auth/repositories/session.re
  * `CanActivate`). Express has no guard/decorator system, so this is a plain factory function
  * returning a request handler — mount it directly on whichever routes need it.
  */
-export function createAuthMiddleware(
-  keys: KeyProviderService,
-  sessions: SessionRepository,
-) {
-  return async function authMiddleware(
-    req: Request,
-    res: Response,
-    next: NextFunction,
-  ): Promise<void> {
-    const header = req.headers["authorization"];
-    if (!header?.startsWith("Bearer ")) {
+export function createAuthMiddleware(keys: KeyProviderService, sessions: SessionRepository) {
+  return async function authMiddleware(req: Request, res: Response, next: NextFunction): Promise<void> {
+    const header = req.headers['authorization'];
+    if (!header?.startsWith('Bearer ')) {
       res.status(401).json({
         statusCode: 401,
-        code: "UNAUTHORIZED",
-        message: "missing bearer token",
+        code: 'UNAUTHORIZED',
+        message: 'missing bearer token',
       });
       return;
     }
@@ -38,14 +31,14 @@ export function createAuthMiddleware(
           secret: keys.secret,
           isDenylisted: (jti) => sessions.isDenylisted(jti),
         },
-        header.slice("Bearer ".length),
+        header.slice('Bearer '.length),
       );
       next();
     } catch (err) {
       res.status(401).json({
         statusCode: 401,
-        code: "UNAUTHORIZED",
-        message: err instanceof Error ? err.message : "invalid access token",
+        code: 'UNAUTHORIZED',
+        message: err instanceof Error ? err.message : 'invalid access token',
       });
     }
   };

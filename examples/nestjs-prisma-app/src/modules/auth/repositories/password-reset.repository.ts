@@ -1,17 +1,13 @@
-import { Inject, Injectable } from "@nestjs/common";
-import type { PasswordResetStoreDeps } from "@/core/password-reset.js";
-import { PrismaClient } from "@/database/generated/prisma/client.js";
-import { toId } from "../../../common/helpers/id.helper.js";
+import { Inject, Injectable } from '@nestjs/common';
+import type { PasswordResetStoreDeps } from '@/core/password-reset';
+import { PrismaClient } from '@/database/generated/prisma/client';
+import { toId } from '../../../common/helpers/id.helper';
 
 @Injectable()
 export class PasswordResetRepository implements PasswordResetStoreDeps {
   constructor(@Inject(PrismaClient) private readonly prisma: PrismaClient) {}
 
-  async saveResetToken(input: {
-    userId: string;
-    tokenHash: string;
-    expiresAt: string;
-  }): Promise<void> {
+  async saveResetToken(input: { userId: string; tokenHash: string; expiresAt: string }): Promise<void> {
     await this.prisma.passwordResetToken.create({
       data: {
         userId: toId(input.userId),

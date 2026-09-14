@@ -1,11 +1,11 @@
-import { Module } from "@nestjs/common";
-import { AuditLogGateway } from "./gateways/audit-log.gateway.js";
-import { AuditLogModule } from "../audit-log/audit-log.module.js";
-import { AuthController } from "./controllers/auth.controller.js";
-import { AuthService } from "./services/auth.service.js";
-import { OAuthRepository } from "./repositories/oauth.repository.js";
-import { PasswordResetRepository } from "./repositories/password-reset.repository.js";
-import { TwoFactorRepository } from "./repositories/two-factor.repository.js";
+import { Module } from '@nestjs/common';
+import { AuditLogGateway } from './gateways/audit-log.gateway';
+import { AuditLogModule } from '../audit-log/audit-log.module';
+import { AuthController } from './controllers/auth.controller';
+import { AuthService } from './services/auth.service';
+import { OAuthRepository } from './repositories/oauth.repository';
+import { PasswordResetRepository } from './repositories/password-reset.repository';
+import { TwoFactorRepository } from './repositories/two-factor.repository';
 
 // Plain module — no forRoot(), not global. Identity/session endpoints only; admin/roles/
 // permissions/audit-log now live in their own modules. Relies on CoreAuthModule already being
@@ -16,13 +16,7 @@ import { TwoFactorRepository } from "./repositories/two-factor.repository.js";
 @Module({
   imports: [AuditLogModule],
   controllers: [AuthController],
-  providers: [
-    AuthService,
-    TwoFactorRepository,
-    OAuthRepository,
-    PasswordResetRepository,
-    AuditLogGateway,
-  ],
+  providers: [AuthService, TwoFactorRepository, OAuthRepository, PasswordResetRepository, AuditLogGateway],
   exports: [AuthService],
 })
 export class AuthModule {}

@@ -28,7 +28,7 @@
 // `src/workspace.repository.ts` (which provisions every workspace created afterwards, inside the
 // same transaction that creates it, so its creator is never locked out of a workspace they just
 // made).
-import type { PrismaClient } from "@/database/generated/prisma/client.js";
+import type { PrismaClient } from "@/database/generated/prisma/client";
 
 /** The display metadata a seeded permission carries. `group`/`order` exist so an admin console can render a stable matrix. */
 export interface PermissionSeed {

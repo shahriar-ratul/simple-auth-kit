@@ -1,13 +1,7 @@
-import {
-  CanActivate,
-  ExecutionContext,
-  ForbiddenException,
-  Inject,
-  Injectable,
-} from "@nestjs/common";
-import { Reflector } from "@nestjs/core";
-import { ABILITY_SUBJECT } from "./ability.js";
-import { CHECK_ABILITY_KEY } from "../../../infra/route-tiers.js";
+import { CanActivate, ExecutionContext, ForbiddenException, Inject, Injectable } from '@nestjs/common';
+import { Reflector } from '@nestjs/core';
+import { ABILITY_SUBJECT } from './ability';
+import { CHECK_ABILITY_KEY } from '../../../infra/route-tiers';
 
 /**
  * The authorization boundary for tier-3 routes. This is the *only* thing standing between a
@@ -36,10 +30,10 @@ export class AbilityGuard implements CanActivate {
   constructor(@Inject(Reflector) private readonly reflector: Reflector) {}
 
   canActivate(context: ExecutionContext): boolean {
-    const required = this.reflector.getAllAndOverride<string[] | undefined>(
-      CHECK_ABILITY_KEY,
-      [context.getHandler(), context.getClass()],
-    );
+    const required = this.reflector.getAllAndOverride<string[] | undefined>(CHECK_ABILITY_KEY, [
+      context.getHandler(),
+      context.getClass(),
+    ]);
     if (!required?.length) {
       throw new Error(
         `${context.getClass().name}.${context.getHandler().name} is guarded by AbilityGuard but declares no @CheckAbility`,
@@ -47,12 +41,10 @@ export class AbilityGuard implements CanActivate {
     }
 
     const ability = context.switchToHttp().getRequest().ability;
-    if (!ability)
-      throw new ForbiddenException("no authorization context for this request");
+    if (!ability) throw new ForbiddenException('no authorization context for this request');
 
     for (const permission of required) {
-      if (!ability.can(permission, ABILITY_SUBJECT))
-        throw new ForbiddenException(`missing permission: ${permission}`);
+      if (!ability.can(permission, ABILITY_SUBJECT)) throw new ForbiddenException(`missing permission: ${permission}`);
     }
     return true;
   }

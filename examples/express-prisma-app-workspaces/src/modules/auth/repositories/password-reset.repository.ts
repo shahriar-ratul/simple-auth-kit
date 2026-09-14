@@ -1,17 +1,13 @@
-import type { PasswordResetStoreDeps } from "@/core/password-reset.js";
-import { PrismaClient } from "@/database/generated/prisma/client.js";
-import { toId } from "../../../common/helpers/id.helper.js";
+import type { PasswordResetStoreDeps } from '@/core/password-reset';
+import { PrismaClient } from '@/database/generated/prisma/client';
+import { toId } from '../../../common/helpers/id.helper';
 
 // Plain class, no DI container — constructed directly with a PrismaClient in
 // create-auth-app.ts. Identical Prisma queries to the reference combo.
 export class PasswordResetRepository implements PasswordResetStoreDeps {
   constructor(private readonly prisma: PrismaClient) {}
 
-  async saveResetToken(input: {
-    userId: string;
-    tokenHash: string;
-    expiresAt: string;
-  }): Promise<void> {
+  async saveResetToken(input: { userId: string; tokenHash: string; expiresAt: string }): Promise<void> {
     await this.prisma.passwordResetToken.create({
       data: {
         userId: toId(input.userId),

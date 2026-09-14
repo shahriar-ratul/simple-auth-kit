@@ -1,9 +1,6 @@
-import { Inject, Injectable } from "@nestjs/common";
-import type { AuthzContext } from "../../../common/auth/guards/authz.guard.js";
-import {
-  RbacRepository,
-  RoleSummary,
-} from "../../auth/repositories/rbac.repository.js";
+import { Inject, Injectable } from '@nestjs/common';
+import type { AuthzContext } from '../../../common/auth/guards/authz.guard';
+import { RbacRepository, RoleSummary } from '../../auth/repositories/rbac.repository';
 
 /** Thin wrapper over RbacRepository's role-catalog methods — see the note on AdminController for why RbacRepository itself isn't split. */
 @Injectable()
@@ -41,12 +38,7 @@ export class RoleService {
     return this.rbac.updateRole(ctx.workspaceId, roleId, input, actorUserId);
   }
 
-  async deleteRole(
-    ctx: AuthzContext,
-    roleId: string,
-    actorUserId: string | null,
-    reason?: string,
-  ): Promise<void> {
+  async deleteRole(ctx: AuthzContext, roleId: string, actorUserId: string | null, reason?: string): Promise<void> {
     await this.rbac.deleteRole(ctx.workspaceId, roleId, actorUserId, reason);
   }
 
@@ -56,11 +48,6 @@ export class RoleService {
     permissionSlug: string,
     actorUserId: string | null,
   ): Promise<void> {
-    await this.rbac.attachPermissionToRole(
-      ctx.workspaceId,
-      roleId,
-      permissionSlug,
-      actorUserId,
-    );
+    await this.rbac.attachPermissionToRole(ctx.workspaceId, roleId, permissionSlug, actorUserId);
   }
 }

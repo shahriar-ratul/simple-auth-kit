@@ -22,14 +22,14 @@ import {
   ApiTags,
 } from "@nestjs/swagger";
 import type { Request } from "express";
-import { AbilityGuard } from "../../../common/auth/ability/ability.guard.js";
-import { AuthGuard } from "../../../common/auth/guards/auth.guard.js";
+import { AbilityGuard } from "../../../common/auth/ability/ability.guard";
+import { AuthGuard } from "../../../common/auth/guards/auth.guard";
 import {
   WORKSPACE_HEADER,
   WorkspaceGuard,
-} from "../../../common/auth/guards/authz.guard.js";
-import { Authenticated, CheckAbility } from "../../../infra/route-tiers.js";
-import { OkResponseDto } from "../../../common/dto/shared.dto.js";
+} from "../../../common/auth/guards/authz.guard";
+import { Authenticated, CheckAbility } from "../../../infra/route-tiers";
+import { OkResponseDto } from "../../../common/dto/shared.dto";
 import {
   AddMemberDto,
   CreateWorkspaceDto,
@@ -37,9 +37,9 @@ import {
   MembershipSummaryDto,
   SetMemberRolesDto,
   WorkspaceSummaryDto,
-} from "../dto/workspace.dto.js";
-import { RbacRepository } from "../repositories/rbac.repository.js";
-import { WorkspaceRepository } from "../repositories/workspace.repository.js";
+} from "../dto/workspace.dto";
+import { RbacRepository } from "../repositories/rbac.repository";
+import { WorkspaceRepository } from "../repositories/workspace.repository";
 
 function requireString(value: unknown, field: string): string {
   if (typeof value !== "string" || value.length === 0)

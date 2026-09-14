@@ -1,8 +1,8 @@
 import { Inject, Injectable } from "@nestjs/common";
 import { and, eq, isNull } from "drizzle-orm";
-import { verifyBackupCode } from "@/lib/auth/core/two-factor.js";
-import { DRIZZLE_DB, type Database } from "../../../common/config/db.js";
-import { twoFactorBackupCodes } from "@/database/schema.js";
+import { verifyBackupCode } from "@/lib/auth/core/two-factor";
+import { DRIZZLE_DB, type Database } from "../../../common/config/db";
+import { twoFactorBackupCodes } from "@/database/schema";
 
 // Takes bigint directly, not string: every caller already has the user row's id in hand from
 // its own database lookup, so there's nothing to parse here.

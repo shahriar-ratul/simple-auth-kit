@@ -1,11 +1,11 @@
-import { randomUUID } from "node:crypto";
-import { Inject, Injectable } from "@nestjs/common";
-import type { SessionStoreDeps } from "@/core/session-policy.js";
-import type { AuditEvent, Revoker, SessionRecord } from "@/core/types.js";
-import { PrismaClient } from "@/database/generated/prisma/client.js";
-import { AUTH_CONFIG, AuthConfig } from "../../../common/config/auth.config.js";
-import { AuditLogRepository } from "../../audit-log/repositories/audit-log.repository.js";
-import { toId, toIdOrNull } from "../../../common/helpers/id.helper.js";
+import { randomUUID } from 'node:crypto';
+import { Inject, Injectable } from '@nestjs/common';
+import type { SessionStoreDeps } from '@/core/session-policy';
+import type { AuditEvent, Revoker, SessionRecord } from '@/core/types';
+import { PrismaClient } from '@/database/generated/prisma/client';
+import { AUTH_CONFIG, AuthConfig } from '../../../common/config/auth.config';
+import { AuditLogRepository } from '../../audit-log/repositories/audit-log.repository';
+import { toId, toIdOrNull } from '../../../common/helpers/id.helper';
 
 function toSessionRecord(row: {
   id: bigint;
@@ -112,11 +112,7 @@ export class SessionRepository implements SessionStoreDeps {
     });
   }
 
-  async revokeAllByUserExcept(
-    userId: string,
-    keepSessionId: string,
-    revoker?: Revoker,
-  ): Promise<void> {
+  async revokeAllByUserExcept(userId: string, keepSessionId: string, revoker?: Revoker): Promise<void> {
     await this.prisma.session.updateMany({
       where: {
         userId: toId(userId),

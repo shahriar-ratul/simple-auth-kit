@@ -1,15 +1,10 @@
-import { Inject, Injectable, NotFoundException } from "@nestjs/common";
-import { resolvePermissions } from "@/core/rbac.js";
-import { Prisma, PrismaClient } from "@/database/generated/prisma/client.js";
-import type { AuthzContext } from "../../../common/auth/guards/authz.guard.js";
-import { PermissionCache } from "../../../common/auth/cache/permission-cache.js";
-import { toId, toIdOrNull } from "../../../common/helpers/id.helper.js";
-import {
-  buildPageMeta,
-  normalizeLimit,
-  normalizePage,
-  type Paginated,
-} from "../../../common/helpers/pagination.js";
+import { Inject, Injectable, NotFoundException } from '@nestjs/common';
+import { resolvePermissions } from '@/core/rbac';
+import { Prisma, PrismaClient } from '@/database/generated/prisma/client';
+import type { AuthzContext } from '../../../common/auth/guards/authz.guard';
+import { PermissionCache } from '../../../common/auth/cache/permission-cache';
+import { toId, toIdOrNull } from '../../../common/helpers/id.helper';
+import { buildPageMeta, normalizeLimit, normalizePage, type Paginated } from '../../../common/helpers/pagination';
 
 const MEMBER_INCLUDE = {
   user: true,
@@ -144,8 +139,7 @@ const ROLE_SELECT = {
 
 // The cache subject in this variant: authorization belongs to a membership, so the key is the
 // `[userId, workspaceId]` pair — keeps invalidation in one workspace from flushing the others.
-export const memberCacheKey = (userId: string, workspaceId: string) =>
-  `${userId}:${workspaceId}`;
+export const memberCacheKey = (userId: string, workspaceId: string) => `${userId}:${workspaceId}`;
 
 @Injectable()
 export class RbacRepository {
@@ -171,11 +165,7 @@ export class RbacRepository {
       where: { id: memberId },
       select: { userId: true, workspaceId: true },
     });
-    if (member)
-      await this.invalidateMember(
-        member.userId.toString(),
-        member.workspaceId.toString(),
-      );
+    if (member) await this.invalidateMember(member.userId.toString(), member.workspaceId.toString());
   }
 
   // The hot path: every workspace-scoped request runs this once. Anchored on the
@@ -183,10 +173,7 @@ export class RbacRepository {
   // member → role_member → roles → permission_role → permissions, and member →
   // permission_member → permissions. Workspace-scoped by construction: the same login in
   // another workspace resolves a different membership.
-  async resolveAuthzContext(
-    userId: string,
-    workspaceId: string,
-  ): Promise<AuthzContext | null> {
+  async resolveAuthzContext(userId: string, workspaceId: string): Promise<AuthzContext | null> {
     // workspaceId arrives straight from the untrusted `X-Workspace-Id` header — a value that
     // isn't a valid bigint is exactly as "not a member" as one that parses but names no
     // membership, so it must not throw and 500 the request.
@@ -231,9 +218,7 @@ export class RbacRepository {
     const rolePermissions = member.roles.flatMap((roleMember) =>
       roleMember.role.permissions.map((pr) => pr.permission.slug),
     );
-    const directPermissions = member.permissions.map(
-      (pm) => pm.permission.slug,
-    );
+    const directPermissions = member.permissions.map((pm) => pm.permission.slug);
 
     return {
       workspaceId,
@@ -246,10 +231,7 @@ export class RbacRepository {
   // Never crosses a workspace boundary: a caller can only name a target inside their own scope.
   // Returns bigint directly: every internal caller feeds the id straight into another Prisma
   // call, and the one external caller (auth.service.ts) discards the result.
-  async requireMember(
-    workspaceId: string,
-    userId: string,
-  ): Promise<{ id: bigint }> {
+  async requireMember(workspaceId: string, userId: string): Promise<{ id: bigint }> {
     const member = await this.prisma.workspaceMember.findUnique({
       where: {
         userId_workspaceId: {
@@ -259,8 +241,7 @@ export class RbacRepository {
       },
       select: { id: true },
     });
-    if (!member)
-      throw new NotFoundException("user is not a member of this workspace");
+    if (!member) throw new NotFoundException('user is not a member of this workspace');
     return member;
   }
 
@@ -268,19 +249,14 @@ export class RbacRepository {
    * Newest-first, page-paginated; `search` matches an email substring. Returns raw rows —
    * shaping the collection is the caller's job, see `toMemberSummary`.
    */
-  async listMembers(
-    workspaceId: string,
-    filter: MemberListFilter = {},
-  ): Promise<Paginated<MemberRow>> {
+  async listMembers(workspaceId: string, filter: MemberListFilter = {}): Promise<Paginated<MemberRow>> {
     const page = normalizePage(filter.page);
     const limit = normalizeLimit(filter.limit);
     const where = {
       workspaceId: toId(workspaceId),
       user: {
         isDeleted: false,
-        email: filter.search
-          ? { contains: filter.search, mode: "insensitive" as const }
-          : undefined,
+        email: filter.search ? { contains: filter.search, mode: 'insensitive' as const } : undefined,
       },
     };
 
@@ -288,7 +264,7 @@ export class RbacRepository {
       this.prisma.workspaceMember.findMany({
         where,
         include: MEMBER_INCLUDE,
-        orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+        orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
         take: limit,
         skip: (page - 1) * limit,
       }),
@@ -338,12 +314,7 @@ export class RbacRepository {
   // pattern, and `block`'s existing precedent of a workspace admin taking a global action on a
   // member's account — this disables the account across every workspace it belongs to, not just
   // this one, which is why it's gated the same way `block` is.
-  async deleteMember(
-    workspaceId: string,
-    userId: string,
-    actorUserId: string | null,
-    reason?: string,
-  ): Promise<void> {
+  async deleteMember(workspaceId: string, userId: string, actorUserId: string | null, reason?: string): Promise<void> {
     await this.requireMember(workspaceId, userId);
     await this.prisma.user.update({
       where: { id: toId(userId) },
@@ -375,7 +346,7 @@ export class RbacRepository {
       select: { id: true, workspaceId: true },
     });
     if (!existing || existing.workspaceId !== workspaceIdBig)
-      throw new NotFoundException("role not found in this workspace");
+      throw new NotFoundException('role not found in this workspace');
     const role = await this.prisma.role.update({
       where: { id: roleIdBig },
       data: { ...input, updatedBy: toIdOrNull(actorUserId) },
@@ -391,12 +362,7 @@ export class RbacRepository {
 
   // Soft-delete. `role_member`/`permission_role` rows pointing at it are left in place — the
   // role simply stops being resolved by `resolveAuthzContext`/`listRoles`.
-  async deleteRole(
-    workspaceId: string,
-    roleId: string,
-    actorUserId: string | null,
-    reason?: string,
-  ): Promise<void> {
+  async deleteRole(workspaceId: string, roleId: string, actorUserId: string | null, reason?: string): Promise<void> {
     const workspaceIdBig = toId(workspaceId);
     const roleIdBig = toId(roleId);
     const existing = await this.prisma.role.findUnique({
@@ -404,7 +370,7 @@ export class RbacRepository {
       select: { id: true, workspaceId: true },
     });
     if (!existing || existing.workspaceId !== workspaceIdBig)
-      throw new NotFoundException("role not found in this workspace");
+      throw new NotFoundException('role not found in this workspace');
     await this.prisma.role.update({
       where: { id: roleIdBig },
       data: {
@@ -425,22 +391,14 @@ export class RbacRepository {
     const rows = await this.prisma.permission.findMany({
       where: { isDeleted: false, isActive: activeOnly ? true : undefined },
       select: PERMISSION_SELECT,
-      orderBy: [
-        { groupOrder: "asc" },
-        { group: "asc" },
-        { order: "asc" },
-        { slug: "asc" },
-      ],
+      orderBy: [{ groupOrder: 'asc' }, { group: 'asc' }, { order: 'asc' }, { slug: 'asc' }],
     });
     return rows.map((row) => ({ ...row, id: row.id.toString() }));
   }
 
   // Upserted on `slug`, the stable identifier grants/revocations use, so renaming the display
   // name never breaks a grant. Effective in every workspace on the next request.
-  async upsertPermission(
-    input: PermissionInput,
-    actorUserId: string | null,
-  ): Promise<PermissionSummary> {
+  async upsertPermission(input: PermissionInput, actorUserId: string | null): Promise<PermissionSummary> {
     const shared = {
       name: input.name,
       displayName: input.displayName,
@@ -458,7 +416,7 @@ export class RbacRepository {
         ...shared,
         name: input.name ?? input.displayName ?? input.slug,
         displayName: input.displayName ?? input.slug,
-        group: input.group ?? "Custom",
+        group: input.group ?? 'Custom',
         createdBy: toIdOrNull(actorUserId),
       },
       // `undefined` leaves a column alone, so a partial edit can't blank out unmentioned metadata.
@@ -470,10 +428,7 @@ export class RbacRepository {
   }
 
   /** `activeOnly` is what a role picker (Add member) passes — the admin management list itself wants everything, active or not. */
-  async listRoles(
-    workspaceId: string,
-    activeOnly?: boolean,
-  ): Promise<RoleSummary[]> {
+  async listRoles(workspaceId: string, activeOnly?: boolean): Promise<RoleSummary[]> {
     const rows = await this.prisma.role.findMany({
       where: {
         workspaceId: toId(workspaceId),
@@ -481,7 +436,7 @@ export class RbacRepository {
         isActive: activeOnly ? true : undefined,
       },
       select: { ...ROLE_SELECT, ...ROLE_PERMISSIONS_INCLUDE },
-      orderBy: [{ order: "asc" }, { slug: "asc" }],
+      orderBy: [{ order: 'asc' }, { slug: 'asc' }],
     });
     return rows.map((row) => ({
       ...row,
@@ -528,8 +483,7 @@ export class RbacRepository {
       where: { id: roleIdBig, isDeleted: false },
       select: { id: true, workspaceId: true },
     });
-    if (!role || role.workspaceId !== workspaceIdBig)
-      throw new NotFoundException("role not found in this workspace");
+    if (!role || role.workspaceId !== workspaceIdBig) throw new NotFoundException('role not found in this workspace');
 
     const permission = await this.ensurePermission(permissionSlug, actorUserId);
     await this.prisma.permissionRole.upsert({
@@ -543,25 +497,20 @@ export class RbacRepository {
   }
 
   // Scoped by workspace, so an admin can't reach a role id belonging to a workspace they aren't in.
-  async detachPermissionFromRole(
-    workspaceId: string,
-    roleId: string,
-    permissionSlug: string,
-  ): Promise<void> {
+  async detachPermissionFromRole(workspaceId: string, roleId: string, permissionSlug: string): Promise<void> {
     const workspaceIdBig = toId(workspaceId);
     const roleIdBig = toId(roleId);
     const role = await this.prisma.role.findUnique({
       where: { id: roleIdBig, isDeleted: false },
       select: { id: true, workspaceId: true },
     });
-    if (!role || role.workspaceId !== workspaceIdBig)
-      throw new NotFoundException("role not found in this workspace");
+    if (!role || role.workspaceId !== workspaceIdBig) throw new NotFoundException('role not found in this workspace');
 
     const permission = await this.prisma.permission.findUnique({
       where: { slug: permissionSlug },
       select: { id: true },
     });
-    if (!permission) throw new NotFoundException("permission not found");
+    if (!permission) throw new NotFoundException('permission not found');
 
     await this.prisma.permissionRole.deleteMany({
       where: { roleId: roleIdBig, permissionId: permission.id },
@@ -569,11 +518,7 @@ export class RbacRepository {
     await this.cache.invalidatePolicy();
   }
 
-  async assignRoleToMember(
-    workspaceId: string,
-    userId: string,
-    roleSlug: string,
-  ): Promise<void> {
+  async assignRoleToMember(workspaceId: string, userId: string, roleSlug: string): Promise<void> {
     const role = await this.requireRole(workspaceId, roleSlug);
     const member = await this.requireMember(workspaceId, userId);
     await this.prisma.roleMember.upsert({
@@ -584,11 +529,7 @@ export class RbacRepository {
     await this.invalidateMember(userId, workspaceId);
   }
 
-  async revokeRoleFromMember(
-    workspaceId: string,
-    userId: string,
-    roleSlug: string,
-  ): Promise<void> {
+  async revokeRoleFromMember(workspaceId: string, userId: string, roleSlug: string): Promise<void> {
     const member = await this.requireMember(workspaceId, userId);
     const role = await this.prisma.role.findUnique({
       where: {
@@ -616,7 +557,7 @@ export class RbacRepository {
       select: { id: true, workspaceId: true },
     });
     if (!member || member.workspaceId !== workspaceIdBig)
-      throw new NotFoundException("member not found in this workspace");
+      throw new NotFoundException('member not found in this workspace');
 
     const roles = await this.prisma.role.findMany({
       where: {
@@ -626,13 +567,8 @@ export class RbacRepository {
       },
       select: { id: true, slug: true },
     });
-    const unknown = roleSlugs.filter(
-      (slug) => !roles.some((role) => role.slug === slug),
-    );
-    if (unknown.length)
-      throw new NotFoundException(
-        `role(s) not defined in this workspace: ${unknown.join(", ")}`,
-      );
+    const unknown = roleSlugs.filter((slug) => !roles.some((role) => role.slug === slug));
+    if (unknown.length) throw new NotFoundException(`role(s) not defined in this workspace: ${unknown.join(', ')}`);
 
     // One transaction: a member must never be briefly role-less to a concurrent request.
     await this.prisma.$transaction([
@@ -682,11 +618,7 @@ export class RbacRepository {
     await this.invalidateMember(userId, workspaceId);
   }
 
-  async revokePermissionFromMember(
-    workspaceId: string,
-    userId: string,
-    permissionSlug: string,
-  ): Promise<void> {
+  async revokePermissionFromMember(workspaceId: string, userId: string, permissionSlug: string): Promise<void> {
     const member = await this.requireMember(workspaceId, userId);
     const permission = await this.prisma.permission.findUnique({
       where: { slug: permissionSlug },
@@ -701,10 +633,7 @@ export class RbacRepository {
 
   // Returns bigint directly: its one caller (assignRoleToMember) feeds the id straight into
   // another Prisma call.
-  private async requireRole(
-    workspaceId: string,
-    slug: string,
-  ): Promise<{ id: bigint }> {
+  private async requireRole(workspaceId: string, slug: string): Promise<{ id: bigint }> {
     const role = await this.prisma.role.findUnique({
       where: {
         workspaceId_slug: { workspaceId: toId(workspaceId), slug },
@@ -712,17 +641,13 @@ export class RbacRepository {
       },
       select: { id: true },
     });
-    if (!role)
-      throw new NotFoundException(`role "${slug}" not found in this workspace`);
+    if (!role) throw new NotFoundException(`role "${slug}" not found in this workspace`);
     return role;
   }
 
   // Creates the row for a slug granted before anyone defined it; leaves an existing definition alone.
   // Returns bigint directly: both callers feed the id straight into another Prisma call.
-  private async ensurePermission(
-    slug: string,
-    actorUserId: string | null,
-  ): Promise<{ id: bigint }> {
+  private async ensurePermission(slug: string, actorUserId: string | null): Promise<{ id: bigint }> {
     const existing = await this.prisma.permission.findUnique({
       where: { slug },
       select: { id: true },
@@ -734,7 +659,7 @@ export class RbacRepository {
           slug,
           name: slug,
           displayName: slug,
-          group: "Custom",
+          group: 'Custom',
           createdBy: toIdOrNull(actorUserId),
           updatedBy: toIdOrNull(actorUserId),
         },

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { checkRateLimit, RateLimitDeps } from "../rate-limit.js";
+import { checkRateLimit, RateLimitDeps } from "../rate-limit";
 
 function fakeCounter(): RateLimitDeps & { counts: Map<string, number> } {
   const counts = new Map<string, number>();

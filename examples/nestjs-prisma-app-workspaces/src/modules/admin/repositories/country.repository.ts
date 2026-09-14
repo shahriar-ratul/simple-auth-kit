@@ -1,17 +1,7 @@
-import {
-  ConflictException,
-  Inject,
-  Injectable,
-  NotFoundException,
-} from "@nestjs/common";
-import { Prisma, PrismaClient } from "@/database/generated/prisma/client.js";
-import { toId, toIdOrNull } from "../../../common/helpers/id.helper.js";
-import {
-  buildPageMeta,
-  normalizeLimit,
-  normalizePage,
-  type Paginated,
-} from "../../../common/helpers/pagination.js";
+import { ConflictException, Inject, Injectable, NotFoundException } from '@nestjs/common';
+import { Prisma, PrismaClient } from '@/database/generated/prisma/client';
+import { toId, toIdOrNull } from '../../../common/helpers/id.helper';
+import { buildPageMeta, normalizeLimit, normalizePage, type Paginated } from '../../../common/helpers/pagination';
 
 /** A `Country` row as `findUnique`/`findMany` return it. */
 export type CountryRow = Prisma.CountryGetPayload<object>;
@@ -88,10 +78,7 @@ export class CountryRepository {
   constructor(@Inject(PrismaClient) private readonly prisma: PrismaClient) {}
 
   /** Newest-first, page-paginated; `search` matches name/code/isoCode. Returns raw rows — shaping is the caller's job. */
-  async list(
-    workspaceId: string,
-    filter: CountryListFilter = {},
-  ): Promise<CountryListResult> {
+  async list(workspaceId: string, filter: CountryListFilter = {}): Promise<CountryListResult> {
     const page = normalizePage(filter.page);
     const limit = normalizeLimit(filter.limit);
     const where: Prisma.CountryWhereInput = {
@@ -100,9 +87,9 @@ export class CountryRepository {
       isActive: filter.activeOnly ? true : undefined,
       OR: filter.search
         ? [
-            { name: { contains: filter.search, mode: "insensitive" } },
-            { code: { contains: filter.search, mode: "insensitive" } },
-            { isoCode: { contains: filter.search, mode: "insensitive" } },
+            { name: { contains: filter.search, mode: 'insensitive' } },
+            { code: { contains: filter.search, mode: 'insensitive' } },
+            { isoCode: { contains: filter.search, mode: 'insensitive' } },
           ]
         : undefined,
     };
@@ -110,7 +97,7 @@ export class CountryRepository {
     const [rows, total] = await this.prisma.$transaction([
       this.prisma.country.findMany({
         where,
-        orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+        orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
         take: limit,
         skip: (page - 1) * limit,
       }),
@@ -135,11 +122,7 @@ export class CountryRepository {
     return toCountrySummary(row);
   }
 
-  async create(
-    workspaceId: string,
-    input: CountryInput,
-    actorUserId: string | null,
-  ): Promise<CountrySummary> {
+  async create(workspaceId: string, input: CountryInput, actorUserId: string | null): Promise<CountrySummary> {
     const workspaceIdBig = toId(workspaceId);
     const existing = await this.prisma.country.findFirst({
       where: {
@@ -147,10 +130,7 @@ export class CountryRepository {
         OR: [{ code: input.code }, { isoCode: input.isoCode }],
       },
     });
-    if (existing)
-      throw new ConflictException(
-        "a country with this code or ISO code already exists in this workspace",
-      );
+    if (existing) throw new ConflictException('a country with this code or ISO code already exists in this workspace');
 
     const row = await this.prisma.country.create({
       data: {
@@ -179,8 +159,7 @@ export class CountryRepository {
       },
       select: { id: true },
     });
-    if (!existing)
-      throw new NotFoundException(`country "${countryId}" not found`);
+    if (!existing) throw new NotFoundException(`country "${countryId}" not found`);
 
     if (input.code !== undefined || input.isoCode !== undefined) {
       const clash = await this.prisma.country.findFirst({
@@ -190,10 +169,7 @@ export class CountryRepository {
           OR: [{ code: input.code }, { isoCode: input.isoCode }],
         },
       });
-      if (clash)
-        throw new ConflictException(
-          "a country with this code or ISO code already exists in this workspace",
-        );
+      if (clash) throw new ConflictException('a country with this code or ISO code already exists in this workspace');
     }
 
     const row = await this.prisma.country.update({
@@ -204,12 +180,7 @@ export class CountryRepository {
   }
 
   // Soft-delete, matching every other table's isDeleted/deletedAt/deletedBy/deletedReason pattern.
-  async delete(
-    workspaceId: string,
-    countryId: string,
-    actorUserId: string | null,
-    reason?: string,
-  ): Promise<void> {
+  async delete(workspaceId: string, countryId: string, actorUserId: string | null, reason?: string): Promise<void> {
     const workspaceIdBig = toId(workspaceId);
     const countryIdBig = toId(countryId);
     const existing = await this.prisma.country.findUnique({
@@ -220,8 +191,7 @@ export class CountryRepository {
       },
       select: { id: true },
     });
-    if (!existing)
-      throw new NotFoundException(`country "${countryId}" not found`);
+    if (!existing) throw new NotFoundException(`country "${countryId}" not found`);
     await this.prisma.country.update({
       where: { id: countryIdBig },
       data: {
@@ -249,8 +219,7 @@ export class CountryRepository {
       },
       select: { id: true },
     });
-    if (!existing)
-      throw new NotFoundException(`country "${countryId}" not found`);
+    if (!existing) throw new NotFoundException(`country "${countryId}" not found`);
     await this.prisma.country.update({
       where: { id: countryIdBig },
       data: { isActive, updatedBy: toIdOrNull(actorUserId) },

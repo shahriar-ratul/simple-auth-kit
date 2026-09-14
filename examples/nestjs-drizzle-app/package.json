@@ -1,18 +1,24 @@
 {
-  "name": "example-nestjs-drizzle-app",
+  "name": "my-app",
   "private": true,
-  "version": "0.0.0",
-  "description": "A fresh consumer project demonstrating `simple-auth-kit add nestjs-drizzle` end to end.",
-  "type": "module",
+  "version": "0.0.1",
   "scripts": {
-    "start": "tsx src/main.ts",
-    "seed": "tsx database/seed.ts"
+    "build": "rm -rf dist && nest build -p tsconfig.build.json && tsc-alias -p tsconfig.build.json",
+    "start": "nest start",
+    "start:dev": "nest start --watch",
+    "start:prod": "node dist/src/main.js",
+    "seed": "tsx database/seed.ts",
+    "lint": "eslint \"src/**/*.ts\" --fix",
+    "format": "prettier --write \"src/**/*.ts\"",
+    "prepare": "husky",
+    "test:e2e": "jest --config e2e/jest-e2e.json"
   },
   "dependencies": {
     "@casl/ability": "^7.0.1",
     "@nestjs/common": "^11.2.3",
     "@nestjs/config": "^4.0.2",
     "@nestjs/core": "^11.2.3",
+    "@nestjs/jwt": "^12.0.2",
     "@nestjs/platform-express": "^11.2.3",
     "@nestjs/swagger": "^11.4.7",
     "@nestjs/throttler": "^6.5.0",
@@ -26,12 +32,35 @@
     "rxjs": "^7.8.2"
   },
   "devDependencies": {
+    "@commitlint/cli": "^21.0.2",
+    "@commitlint/config-conventional": "^21.0.2",
+    "@commitlint/types": "^21.0.1",
+    "@eslint/eslintrc": "^3.3.5",
+    "@eslint/js": "^10.0.1",
+    "@nestjs/cli": "^11.0.21",
+    "@nestjs/testing": "^11.1.28",
     "@types/express": "^5.0.6",
+    "@types/jest": "^30.0.0",
     "@types/node": "^26.2.0",
     "@types/pg": "^8.21.0",
+    "@types/supertest": "^7.2.0",
     "dotenv": "^17.4.2",
+    "eslint": "^10.4.1",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-prettier": "^5.5.6",
+    "globals": "^17.6.0",
+    "husky": "^9.1.7",
+    "jest": "^30.4.2",
+    "lint-staged": "^17.0.7",
+    "prettier": "^3.8.3",
+    "supertest": "^7.2.2",
+    "ts-jest": "^29.4.11",
+    "ts-node": "^10.9.2",
+    "tsc-alias": "^1.8.17",
+    "tsconfig-paths": "^4.2.0",
     "tsx": "^4.23.11",
-    "typescript": "^7.0.2"
+    "typescript": "^6.0.3",
+    "typescript-eslint": "^8.60.1"
   },
   "allowScripts": {
     "argon2@0.45.1": true,
@@ -39,5 +68,11 @@
     "esbuild@0.18.20": true,
     "esbuild@0.25.12": true,
     "esbuild@0.28.2": true
+  },
+  "lint-staged": {
+    "*.{ts,tsx}": [
+      "eslint --fix",
+      "prettier --write"
+    ]
   }
 }

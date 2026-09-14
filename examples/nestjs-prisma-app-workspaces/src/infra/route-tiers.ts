@@ -4,33 +4,27 @@
 // route declaring none of the three — so an ungated admin route can't ship silently. The check
 // also verifies the guards actually attached match the declared tier, so a route marked
 // @Authenticated() with no AuthGuard can't masquerade as gated.
-import { RequestMethod, SetMetadata } from "@nestjs/common";
-import {
-  GUARDS_METADATA,
-  METHOD_METADATA,
-  PATH_METADATA,
-} from "@nestjs/common/constants.js";
-import type { PermissionSlug } from "../modules/auth/rbac.defaults.js";
+import { RequestMethod, SetMetadata } from '@nestjs/common';
+import { GUARDS_METADATA, METHOD_METADATA, PATH_METADATA } from '@nestjs/common/constants.js';
+import type { PermissionSlug } from '../modules/auth/rbac.defaults';
 
-export const ROUTE_TIER_KEY = "routeTier";
-export const CHECK_ABILITY_KEY = "checkAbility";
+export const ROUTE_TIER_KEY = 'routeTier';
+export const CHECK_ABILITY_KEY = 'checkAbility';
 
-export type RouteTier = "public" | "authenticated" | "ability";
+export type RouteTier = 'public' | 'authenticated' | 'ability';
 
-export const Public = () =>
-  SetMetadata(ROUTE_TIER_KEY, "public" satisfies RouteTier);
+export const Public = () => SetMetadata(ROUTE_TIER_KEY, 'public' satisfies RouteTier);
 
 // Pair with @UseGuards(AuthGuard) — the startup check refuses a route that claims this tier
 // without an authentication guard behind it.
-export const Authenticated = () =>
-  SetMetadata(ROUTE_TIER_KEY, "authenticated" satisfies RouteTier);
+export const Authenticated = () => SetMetadata(ROUTE_TIER_KEY, 'authenticated' satisfies RouteTier);
 
 // Requires AuthGuard, then the variant's authorization guard, then AbilityGuard. All named
 // slugs must be held — the guard ANDs them. The argument is typed as `PermissionSlug` (the
 // catalog in rbac.defaults.ts) so a route can't be gated on a slug nothing will ever grant.
 export const CheckAbility = (...abilities: PermissionSlug[]) =>
   applyBoth(
-    SetMetadata(ROUTE_TIER_KEY, "ability" satisfies RouteTier),
+    SetMetadata(ROUTE_TIER_KEY, 'ability' satisfies RouteTier),
     SetMetadata(CHECK_ABILITY_KEY, abilities as string[]),
   );
 
@@ -59,35 +53,26 @@ type HandlerFn = (...args: any[]) => unknown;
 type GuardEntry = Ctor | { constructor: Ctor };
 
 const guardClassesOn = (target: object): Ctor[] =>
-  (
-    (Reflect.getMetadata(GUARDS_METADATA, target) as
-      GuardEntry[] | undefined) ?? []
-  ).map((g) => (typeof g === "function" ? g : g.constructor));
+  ((Reflect.getMetadata(GUARDS_METADATA, target) as GuardEntry[] | undefined) ?? []).map((g) =>
+    typeof g === 'function' ? g : g.constructor,
+  );
 
 const joinPath = (...parts: unknown[]) =>
-  "/" +
+  '/' +
   parts
-    .filter((p): p is string => typeof p === "string")
-    .flatMap((p) => p.split("/"))
+    .filter((p): p is string => typeof p === 'string')
+    .flatMap((p) => p.split('/'))
     .filter((segment) => segment.length > 0)
-    .join("/");
+    .join('/');
 
 /** Own methods carrying Nest's route metadata. Controllers here are flat classes; inherited routes are not a shape this combo uses. */
-function routeHandlersOf(
-  controller: Ctor,
-): Array<{ name: string; handler: HandlerFn }> {
+function routeHandlersOf(controller: Ctor): Array<{ name: string; handler: HandlerFn }> {
   const prototype = controller.prototype as Record<string, unknown>;
   return Object.getOwnPropertyNames(prototype)
-    .filter((name) => name !== "constructor")
+    .filter((name) => name !== 'constructor')
     .map((name) => ({ name, handler: prototype[name] }))
-    .filter(
-      (entry): entry is { name: string; handler: HandlerFn } =>
-        typeof entry.handler === "function",
-    )
-    .filter(
-      (entry) =>
-        Reflect.getMetadata(PATH_METADATA, entry.handler) !== undefined,
-    );
+    .filter((entry): entry is { name: string; handler: HandlerFn } => typeof entry.handler === 'function')
+    .filter((entry) => Reflect.getMetadata(PATH_METADATA, entry.handler) !== undefined);
 }
 
 // Fail-closed at startup over the whole route table this library owns. Called from
@@ -105,19 +90,13 @@ export function assertEveryRouteDeclaresATier(
     const controllerGuards = guardClassesOn(controller);
 
     for (const { name, handler } of routeHandlersOf(controller)) {
-      const method =
-        RequestMethod[
-          Reflect.getMetadata(METHOD_METADATA, handler) as RequestMethod
-        ] ?? "?";
+      const method = RequestMethod[Reflect.getMetadata(METHOD_METADATA, handler) as RequestMethod] ?? '?';
       const route = `${method} ${joinPath(controllerPath, Reflect.getMetadata(PATH_METADATA, handler))} (${controller.name}.${name})`;
 
       const tier: RouteTier | undefined =
-        Reflect.getMetadata(ROUTE_TIER_KEY, handler) ??
-        Reflect.getMetadata(ROUTE_TIER_KEY, controller);
+        Reflect.getMetadata(ROUTE_TIER_KEY, handler) ?? Reflect.getMetadata(ROUTE_TIER_KEY, controller);
       if (!tier) {
-        offenders.push(
-          `${route} — declares no tier: add @Public(), @Authenticated(), or @CheckAbility(slug)`,
-        );
+        offenders.push(`${route} — declares no tier: add @Public(), @Authenticated(), or @CheckAbility(slug)`);
         continue;
       }
 
@@ -127,19 +106,15 @@ export function assertEveryRouteDeclaresATier(
       const authenticated = attached.includes(guards.authentication);
       const ability = attached.includes(guards.ability);
 
-      if (tier === "public" && (authenticated || ability))
-        offenders.push(
-          `${route} — declares @Public() but is behind ${attached.map((g) => g.name).join(", ")}`,
-        );
-      if (tier === "authenticated" && !authenticated)
-        offenders.push(
-          `${route} — declares @Authenticated() but has no ${guards.authentication.name}`,
-        );
-      if (tier === "authenticated" && ability)
+      if (tier === 'public' && (authenticated || ability))
+        offenders.push(`${route} — declares @Public() but is behind ${attached.map((g) => g.name).join(', ')}`);
+      if (tier === 'authenticated' && !authenticated)
+        offenders.push(`${route} — declares @Authenticated() but has no ${guards.authentication.name}`);
+      if (tier === 'authenticated' && ability)
         offenders.push(
           `${route} — declares @Authenticated() but is behind ${guards.ability.name}; use @CheckAbility instead`,
         );
-      if (tier === "ability" && !(authenticated && ability))
+      if (tier === 'ability' && !(authenticated && ability))
         offenders.push(
           `${route} — declares @CheckAbility but is not behind ${guards.authentication.name} + ${guards.ability.name}`,
         );
@@ -149,7 +124,7 @@ export function assertEveryRouteDeclaresATier(
   if (offenders.length) {
     throw new Error(
       `${offenders.length} route(s) are not correctly tiered — refusing to start:\n  ` +
-        offenders.join("\n  ") +
+        offenders.join('\n  ') +
         `\n\nEvery route must be exactly one of: @Public() (no auth), @Authenticated() (any logged-in user), @CheckAbility(slug) (a permission).`,
     );
   }

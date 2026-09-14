@@ -1,39 +1,39 @@
 import { Inject, Injectable } from "@nestjs/common";
-import { hashPassword } from "@/lib/auth/core/crypto.js";
-import { blockUser, deactivateUser } from "@/lib/auth/core/session-policy.js";
-import type { Revoker } from "@/lib/auth/core/types.js";
-import { PrismaClient } from "@/database/generated/prisma/client.js";
-import { AuditLogRepository } from "../../audit-log/repositories/audit-log.repository.js";
+import { hashPassword } from "@/lib/auth/core/crypto";
+import { blockUser, deactivateUser } from "@/lib/auth/core/session-policy";
+import type { Revoker } from "@/lib/auth/core/types";
+import { PrismaClient } from "@/database/generated/prisma/client";
+import { AuditLogRepository } from "../../audit-log/repositories/audit-log.repository";
 import {
   CountryInput,
   CountryListFilter,
   CountryListResult,
   CountryRepository,
   CountrySummary,
-} from "../repositories/country.repository.js";
+} from "../repositories/country.repository";
 import {
   CustomerInput,
   CustomerListFilter,
   CustomerListResult,
   CustomerRepository,
   CustomerSummary,
-} from "../repositories/customer.repository.js";
+} from "../repositories/customer.repository";
 import {
   LanguageInput,
   LanguageListFilter,
   LanguageListResult,
   LanguageRepository,
   LanguageSummary,
-} from "../repositories/language.repository.js";
+} from "../repositories/language.repository";
 import {
   RbacRepository,
   toUserSummary,
   UserListFilter,
   UserListResult,
   UserSummary,
-} from "../../auth/repositories/rbac.repository.js";
-import { SessionRepository } from "../../auth/repositories/session.repository.js";
-import { toId, toIdOrNull } from "../../../common/helpers/id.helper.js";
+} from "../../auth/repositories/rbac.repository";
+import { SessionRepository } from "../../auth/repositories/session.repository";
+import { toId, toIdOrNull } from "../../../common/helpers/id.helper";
 
 /**
  * User management, block/unblock/deactivate/activate, user-scoped role/permission assignment,

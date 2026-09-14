@@ -1,39 +1,39 @@
-import { Inject, Injectable } from "@nestjs/common";
-import { hashPassword } from "@/core/crypto.js";
-import { blockUser, deactivateUser } from "@/core/session-policy.js";
-import type { Revoker } from "@/core/types.js";
-import { PrismaClient } from "@/database/generated/prisma/client.js";
-import { AuditLogRepository } from "../../audit-log/repositories/audit-log.repository.js";
+import { Inject, Injectable } from '@nestjs/common';
+import { hashPassword } from '@/core/crypto';
+import { blockUser, deactivateUser } from '@/core/session-policy';
+import type { Revoker } from '@/core/types';
+import { PrismaClient } from '@/database/generated/prisma/client';
+import { AuditLogRepository } from '../../audit-log/repositories/audit-log.repository';
 import {
   CountryInput,
   CountryListFilter,
   CountryListResult,
   CountryRepository,
   CountrySummary,
-} from "../repositories/country.repository.js";
+} from '../repositories/country.repository';
 import {
   CustomerInput,
   CustomerListFilter,
   CustomerListResult,
   CustomerRepository,
   CustomerSummary,
-} from "../repositories/customer.repository.js";
+} from '../repositories/customer.repository';
 import {
   LanguageInput,
   LanguageListFilter,
   LanguageListResult,
   LanguageRepository,
   LanguageSummary,
-} from "../repositories/language.repository.js";
+} from '../repositories/language.repository';
 import {
   RbacRepository,
   toUserSummary,
   UserListFilter,
   UserListResult,
   UserSummary,
-} from "../../auth/repositories/rbac.repository.js";
-import { SessionRepository } from "../../auth/repositories/session.repository.js";
-import { toId, toIdOrNull } from "../../../common/helpers/id.helper.js";
+} from '../../auth/repositories/rbac.repository';
+import { SessionRepository } from '../../auth/repositories/session.repository';
+import { toId, toIdOrNull } from '../../../common/helpers/id.helper';
 
 /**
  * User management, block/unblock/deactivate/activate, user-scoped role/permission assignment,
@@ -101,18 +101,14 @@ export class AdminService {
     return this.rbac.updateUser(userId, input, actorUserId);
   }
 
-  async deleteUser(
-    userId: string,
-    actorUserId: string | null,
-    reason?: string,
-  ): Promise<void> {
+  async deleteUser(userId: string, actorUserId: string | null, reason?: string): Promise<void> {
     await this.rbac.deleteUser(userId, actorUserId, reason);
   }
 
   async assignRole(userId: string, roleSlug: string): Promise<void> {
     await this.rbac.assignRoleToUser(userId, roleSlug);
     await this.auditLog.append({
-      type: "role_assigned",
+      type: 'role_assigned',
       userId,
       role: roleSlug,
     });
@@ -121,32 +117,25 @@ export class AdminService {
   async revokeRole(userId: string, roleSlug: string): Promise<void> {
     await this.rbac.revokeRoleFromUser(userId, roleSlug);
     await this.auditLog.append({
-      type: "role_revoked",
+      type: 'role_revoked',
       userId,
       role: roleSlug,
     });
   }
 
-  async grantPermission(
-    userId: string,
-    permissionSlug: string,
-    actorUserId: string | null,
-  ): Promise<void> {
+  async grantPermission(userId: string, permissionSlug: string, actorUserId: string | null): Promise<void> {
     await this.rbac.grantPermissionToUser(userId, permissionSlug, actorUserId);
     await this.auditLog.append({
-      type: "permission_granted",
+      type: 'permission_granted',
       userId,
       permission: permissionSlug,
     });
   }
 
-  async revokePermission(
-    userId: string,
-    permissionSlug: string,
-  ): Promise<void> {
+  async revokePermission(userId: string, permissionSlug: string): Promise<void> {
     await this.rbac.revokePermissionFromUser(userId, permissionSlug);
     await this.auditLog.append({
-      type: "permission_revoked",
+      type: 'permission_revoked',
       userId,
       permission: permissionSlug,
     });
@@ -200,10 +189,7 @@ export class AdminService {
     return this.countries.get(countryId);
   }
 
-  async createCountry(
-    input: CountryInput,
-    actorUserId: string | null,
-  ): Promise<CountrySummary> {
+  async createCountry(input: CountryInput, actorUserId: string | null): Promise<CountrySummary> {
     return this.countries.create(input, actorUserId);
   }
 
@@ -215,25 +201,15 @@ export class AdminService {
     return this.countries.update(countryId, input, actorUserId);
   }
 
-  async deleteCountry(
-    countryId: string,
-    actorUserId: string | null,
-    reason?: string,
-  ): Promise<void> {
+  async deleteCountry(countryId: string, actorUserId: string | null, reason?: string): Promise<void> {
     await this.countries.delete(countryId, actorUserId, reason);
   }
 
-  async activateCountry(
-    countryId: string,
-    actorUserId: string | null,
-  ): Promise<void> {
+  async activateCountry(countryId: string, actorUserId: string | null): Promise<void> {
     await this.countries.setActive(countryId, true, actorUserId);
   }
 
-  async deactivateCountry(
-    countryId: string,
-    actorUserId: string | null,
-  ): Promise<void> {
+  async deactivateCountry(countryId: string, actorUserId: string | null): Promise<void> {
     await this.countries.setActive(countryId, false, actorUserId);
   }
 
@@ -247,10 +223,7 @@ export class AdminService {
     return this.languages.get(languageId);
   }
 
-  async createLanguage(
-    input: LanguageInput,
-    actorUserId: string | null,
-  ): Promise<LanguageSummary> {
+  async createLanguage(input: LanguageInput, actorUserId: string | null): Promise<LanguageSummary> {
     return this.languages.create(input, actorUserId);
   }
 
@@ -262,25 +235,15 @@ export class AdminService {
     return this.languages.update(languageId, input, actorUserId);
   }
 
-  async deleteLanguage(
-    languageId: string,
-    actorUserId: string | null,
-    reason?: string,
-  ): Promise<void> {
+  async deleteLanguage(languageId: string, actorUserId: string | null, reason?: string): Promise<void> {
     await this.languages.delete(languageId, actorUserId, reason);
   }
 
-  async activateLanguage(
-    languageId: string,
-    actorUserId: string | null,
-  ): Promise<void> {
+  async activateLanguage(languageId: string, actorUserId: string | null): Promise<void> {
     await this.languages.setActive(languageId, true, actorUserId);
   }
 
-  async deactivateLanguage(
-    languageId: string,
-    actorUserId: string | null,
-  ): Promise<void> {
+  async deactivateLanguage(languageId: string, actorUserId: string | null): Promise<void> {
     await this.languages.setActive(languageId, false, actorUserId);
   }
 
@@ -295,10 +258,7 @@ export class AdminService {
     return this.customers.get(customerId);
   }
 
-  async createCustomer(
-    input: CustomerInput,
-    actorUserId: string | null,
-  ): Promise<CustomerSummary> {
+  async createCustomer(input: CustomerInput, actorUserId: string | null): Promise<CustomerSummary> {
     return this.customers.create(input, actorUserId);
   }
 
@@ -310,25 +270,15 @@ export class AdminService {
     return this.customers.update(customerId, input, actorUserId);
   }
 
-  async deleteCustomer(
-    customerId: string,
-    actorUserId: string | null,
-    reason?: string,
-  ): Promise<void> {
+  async deleteCustomer(customerId: string, actorUserId: string | null, reason?: string): Promise<void> {
     await this.customers.delete(customerId, actorUserId, reason);
   }
 
-  async activateCustomer(
-    customerId: string,
-    actorUserId: string | null,
-  ): Promise<void> {
+  async activateCustomer(customerId: string, actorUserId: string | null): Promise<void> {
     await this.customers.setActive(customerId, true, actorUserId);
   }
 
-  async deactivateCustomer(
-    customerId: string,
-    actorUserId: string | null,
-  ): Promise<void> {
+  async deactivateCustomer(customerId: string, actorUserId: string | null): Promise<void> {
     await this.customers.setActive(customerId, false, actorUserId);
   }
 }

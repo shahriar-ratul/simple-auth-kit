@@ -1,11 +1,11 @@
 import type { NextFunction, Request, RequestHandler, Response } from "express";
-import { AuditLogService } from "../services/audit-log.service.js";
+import { AuditLogService } from "../services/audit-log.service";
 import {
   ability,
   createTieredRouter,
   type TierMiddleware,
-} from "../../../infra/route-tiers.js";
-import "../../../infra/request-context.js";
+} from "../../../infra/route-tiers";
+import "../../../infra/request-context";
 
 export interface AuditLogRouterDeps extends TierMiddleware {
   auditLog: AuditLogService;

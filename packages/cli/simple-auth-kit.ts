@@ -499,11 +499,11 @@ async function buildMergePlan(
     return null;
   })();
   const skipFromShared = orm
-    ? new Set([...NEVER_COPY, orm.configFile])
-    : NEVER_COPY;
+    ? new Set([...NEVER_COPY, orm.configFile, "root"])
+    : new Set([...NEVER_COPY, "root"]);
   const skipFromVariant = orm
-    ? new Set([...NEVER_COPY, orm.dataDir])
-    : NEVER_COPY;
+    ? new Set([...NEVER_COPY, orm.dataDir, "root"])
+    : new Set([...NEVER_COPY, "root"]);
 
   return {
     destRoot,
@@ -624,6 +624,32 @@ async function runMergeCopy(
       join(plan.variantDir, plan.orm.dataDir),
       join(targetRoot, plan.orm.dataDir),
       copyOpts,
+      plan.destRoot,
+      result,
+    );
+  }
+
+  // shared/root/ and variants/<variant>/root/ hold project-root scaffolding (package.json,
+  // nest-cli.json, tsconfig.build.json, lint/format/commit config, docker-compose.yml) — real
+  // consumer-facing content, not this library's own source, so (like prisma.config.ts/database/
+  // above) it's written at targetRoot directly rather than under destRoot ("src" by default).
+  // SCAFFOLD_NEVER_COPY (not NEVER_COPY) is used here on purpose: package.json/tsconfig.json are
+  // exactly what belongs in this folder, so they must not be filtered out the way they are for
+  // the library-source copy above.
+  if (await pathExists(join(plan.sharedDir, "root"))) {
+    await copyDir(
+      join(plan.sharedDir, "root"),
+      targetRoot,
+      { ...copyOpts, neverCopy: SCAFFOLD_NEVER_COPY },
+      plan.destRoot,
+      result,
+    );
+  }
+  if (await pathExists(join(plan.variantDir, "root"))) {
+    await copyDir(
+      join(plan.variantDir, "root"),
+      targetRoot,
+      { ...copyOpts, neverCopy: SCAFFOLD_NEVER_COPY },
       plan.destRoot,
       result,
     );

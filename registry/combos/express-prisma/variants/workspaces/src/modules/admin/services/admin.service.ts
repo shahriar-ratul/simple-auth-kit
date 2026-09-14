@@ -1,19 +1,19 @@
-import { hashPassword } from "@/lib/auth/core/crypto.js";
-import { blockUser, deactivateUser } from "@/lib/auth/core/session-policy.js";
-import type { Revoker } from "@/lib/auth/core/types.js";
-import { PrismaClient } from "@/database/generated/prisma/client.js";
-import type { AuthzContext } from "../../../common/auth/middleware/authz.middleware.js";
-import { AuditLogRepository } from "../../audit-log/repositories/audit-log.repository.js";
+import { hashPassword } from "@/lib/auth/core/crypto";
+import { blockUser, deactivateUser } from "@/lib/auth/core/session-policy";
+import type { Revoker } from "@/lib/auth/core/types";
+import { PrismaClient } from "@/database/generated/prisma/client";
+import type { AuthzContext } from "../../../common/auth/middleware/authz.middleware";
+import { AuditLogRepository } from "../../audit-log/repositories/audit-log.repository";
 import {
   MemberListFilter,
   MemberListResult,
   MemberSummary,
   RbacRepository,
   toMemberSummary,
-} from "../../auth/repositories/rbac.repository.js";
-import { SessionRepository } from "../../auth/repositories/session.repository.js";
-import { WorkspaceRepository } from "../../auth/repositories/workspace.repository.js";
-import { toId, toIdOrNull } from "../../../common/helpers/id.helper.js";
+} from "../../auth/repositories/rbac.repository";
+import { SessionRepository } from "../../auth/repositories/session.repository";
+import { WorkspaceRepository } from "../../auth/repositories/workspace.repository";
+import { toId, toIdOrNull } from "../../../common/helpers/id.helper";
 
 /**
  * Member management, block/unblock/deactivate/activate, and member-scoped role/permission

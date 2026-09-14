@@ -1,20 +1,20 @@
-import { Inject, Injectable } from "@nestjs/common";
-import { eq } from "drizzle-orm";
-import { blockUser, deactivateUser } from "@/core/session-policy.js";
-import type { Revoker } from "@/core/types.js";
-import { DRIZZLE_DB, type Database } from "../../../common/config/db.js";
-import type { AuthzContext } from "../../../common/auth/guards/authz.guard.js";
-import { AuditLogRepository } from "../../audit-log/repositories/audit-log.repository.js";
+import { Inject, Injectable } from '@nestjs/common';
+import { eq } from 'drizzle-orm';
+import { blockUser, deactivateUser } from '@/core/session-policy';
+import type { Revoker } from '@/core/types';
+import { DRIZZLE_DB, type Database } from '../../../common/config/db';
+import type { AuthzContext } from '../../../common/auth/guards/authz.guard';
+import { AuditLogRepository } from '../../audit-log/repositories/audit-log.repository';
 import {
   MemberListFilter,
   MemberListResult,
   MemberSummary,
   RbacRepository,
   toMemberSummary,
-} from "../../auth/repositories/rbac.repository.js";
-import { SessionRepository } from "../../auth/repositories/session.repository.js";
-import { users } from "@/database/schema.js";
-import { toId, toIdOrNull } from "../../../common/helpers/id.helper.js";
+} from '../../auth/repositories/rbac.repository';
+import { SessionRepository } from '../../auth/repositories/session.repository';
+import { users } from '@/database/schema';
+import { toId, toIdOrNull } from '../../../common/helpers/id.helper';
 
 /**
  * Member management, block/unblock/deactivate/activate, and member-scoped role/permission
@@ -30,14 +30,8 @@ export class AdminService {
     @Inject(RbacRepository) private readonly rbac: RbacRepository,
   ) {}
 
-  async listUsers(
-    ctx: AuthzContext,
-    filter: MemberListFilter,
-  ): Promise<MemberListResult> {
-    const { items, meta } = await this.rbac.listMembers(
-      ctx.workspaceId,
-      filter,
-    );
+  async listUsers(ctx: AuthzContext, filter: MemberListFilter): Promise<MemberListResult> {
+    const { items, meta } = await this.rbac.listMembers(ctx.workspaceId, filter);
     return { items: items.map(toMemberSummary), meta };
   }
 
@@ -61,37 +55,18 @@ export class AdminService {
     return this.rbac.updateMember(ctx.workspaceId, userId, input, actorUserId);
   }
 
-  async deleteUser(
-    ctx: AuthzContext,
-    userId: string,
-    actorUserId: string | null,
-    reason?: string,
-  ): Promise<void> {
+  async deleteUser(ctx: AuthzContext, userId: string, actorUserId: string | null, reason?: string): Promise<void> {
     await this.rbac.deleteMember(ctx.workspaceId, userId, actorUserId, reason);
   }
 
-  async assignRole(
-    ctx: AuthzContext,
-    userId: string,
-    roleSlug: string,
-  ): Promise<void> {
+  async assignRole(ctx: AuthzContext, userId: string, roleSlug: string): Promise<void> {
     await this.rbac.assignRoleToMember(ctx.workspaceId, userId, roleSlug);
-    await this.auditLog.append(
-      { type: "role_assigned", userId, role: roleSlug },
-      { workspaceId: ctx.workspaceId },
-    );
+    await this.auditLog.append({ type: 'role_assigned', userId, role: roleSlug }, { workspaceId: ctx.workspaceId });
   }
 
-  async revokeRole(
-    ctx: AuthzContext,
-    userId: string,
-    roleSlug: string,
-  ): Promise<void> {
+  async revokeRole(ctx: AuthzContext, userId: string, roleSlug: string): Promise<void> {
     await this.rbac.revokeRoleFromMember(ctx.workspaceId, userId, roleSlug);
-    await this.auditLog.append(
-      { type: "role_revoked", userId, role: roleSlug },
-      { workspaceId: ctx.workspaceId },
-    );
+    await this.auditLog.append({ type: 'role_revoked', userId, role: roleSlug }, { workspaceId: ctx.workspaceId });
   }
 
   async grantPermission(
@@ -100,30 +75,17 @@ export class AdminService {
     permissionSlug: string,
     actorUserId: string | null,
   ): Promise<void> {
-    await this.rbac.grantPermissionToMember(
-      ctx.workspaceId,
-      userId,
-      permissionSlug,
-      actorUserId,
-    );
+    await this.rbac.grantPermissionToMember(ctx.workspaceId, userId, permissionSlug, actorUserId);
     await this.auditLog.append(
-      { type: "permission_granted", userId, permission: permissionSlug },
+      { type: 'permission_granted', userId, permission: permissionSlug },
       { workspaceId: ctx.workspaceId },
     );
   }
 
-  async revokePermission(
-    ctx: AuthzContext,
-    userId: string,
-    permissionSlug: string,
-  ): Promise<void> {
-    await this.rbac.revokePermissionFromMember(
-      ctx.workspaceId,
-      userId,
-      permissionSlug,
-    );
+  async revokePermission(ctx: AuthzContext, userId: string, permissionSlug: string): Promise<void> {
+    await this.rbac.revokePermissionFromMember(ctx.workspaceId, userId, permissionSlug);
     await this.auditLog.append(
-      { type: "permission_revoked", userId, permission: permissionSlug },
+      { type: 'permission_revoked', userId, permission: permissionSlug },
       { workspaceId: ctx.workspaceId },
     );
   }
@@ -133,11 +95,7 @@ export class AdminService {
    * caller's workspace — otherwise an admin of one workspace could disable an account they
    * have no relationship with.
    */
-  async block(
-    ctx: AuthzContext,
-    userId: string,
-    revoker?: Revoker,
-  ): Promise<void> {
+  async block(ctx: AuthzContext, userId: string, revoker?: Revoker): Promise<void> {
     await this.rbac.requireMember(ctx.workspaceId, userId);
     await this.db
       .update(users)
@@ -152,11 +110,7 @@ export class AdminService {
     await this.rbac.invalidateMember(userId, ctx.workspaceId);
   }
 
-  async unblock(
-    ctx: AuthzContext,
-    userId: string,
-    revoker?: Revoker,
-  ): Promise<void> {
+  async unblock(ctx: AuthzContext, userId: string, revoker?: Revoker): Promise<void> {
     await this.rbac.requireMember(ctx.workspaceId, userId);
     await this.db
       .update(users)
@@ -168,11 +122,7 @@ export class AdminService {
    * A routine administrative on/off toggle — distinct from `block`/`unblock`, which is a
    * security/moderation action. Both independently deny login; see the note on the `users` table.
    */
-  async deactivate(
-    ctx: AuthzContext,
-    userId: string,
-    revoker?: Revoker,
-  ): Promise<void> {
+  async deactivate(ctx: AuthzContext, userId: string, revoker?: Revoker): Promise<void> {
     await this.rbac.requireMember(ctx.workspaceId, userId);
     await this.db
       .update(users)
@@ -182,11 +132,7 @@ export class AdminService {
     await this.rbac.invalidateMember(userId, ctx.workspaceId);
   }
 
-  async activate(
-    ctx: AuthzContext,
-    userId: string,
-    revoker?: Revoker,
-  ): Promise<void> {
+  async activate(ctx: AuthzContext, userId: string, revoker?: Revoker): Promise<void> {
     await this.rbac.requireMember(ctx.workspaceId, userId);
     await this.db
       .update(users)

@@ -1,14 +1,7 @@
-import {
-  CanActivate,
-  ExecutionContext,
-  Inject,
-  Injectable,
-  UnauthorizedException,
-} from "@nestjs/common";
-import { verifyAccessToken } from "@/core/token-service.js";
-import { KeyProviderService } from "../../config/key-provider.js";
-import "../../../infra/request-context.js";
-import { SessionRepository } from "../../../modules/auth/repositories/session.repository.js";
+import { CanActivate, ExecutionContext, Inject, Injectable, UnauthorizedException } from '@nestjs/common';
+import { AuthTokenService } from '../token.service';
+import '../../../infra/request-context';
+import { SessionRepository } from '../../../modules/auth/repositories/session.repository';
 
 /**
  * Authentication only — proves who the caller is and populates `req.auth`. Authorization
@@ -18,28 +11,21 @@ import { SessionRepository } from "../../../modules/auth/repositories/session.re
 @Injectable()
 export class AuthGuard implements CanActivate {
   constructor(
-    @Inject(KeyProviderService) private readonly keys: KeyProviderService,
+    @Inject(AuthTokenService) private readonly tokens: AuthTokenService,
     @Inject(SessionRepository) private readonly sessions: SessionRepository,
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const req = context.switchToHttp().getRequest();
-    const header: string | undefined = req.headers["authorization"];
-    if (!header?.startsWith("Bearer "))
-      throw new UnauthorizedException("missing bearer token");
+    const header: string | undefined = req.headers['authorization'];
+    if (!header?.startsWith('Bearer ')) throw new UnauthorizedException('missing bearer token');
 
     try {
-      req.auth = await verifyAccessToken(
-        {
-          secret: this.keys.secret,
-          isDenylisted: (jti) => this.sessions.isDenylisted(jti),
-        },
-        header.slice("Bearer ".length),
-      );
+      req.auth = await this.tokens.verifyAccessToken(header.slice('Bearer '.length), {
+        isDenylisted: (jti) => this.sessions.isDenylisted(jti),
+      });
     } catch (err) {
-      throw new UnauthorizedException(
-        err instanceof Error ? err.message : "invalid access token",
-      );
+      throw new UnauthorizedException(err instanceof Error ? err.message : 'invalid access token');
     }
     return true;
   }

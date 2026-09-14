@@ -2,7 +2,11 @@
 // deviation from the standard flow: its "client secret" is a short-lived signed JWT, not a
 // static string.
 import { createRemoteJWKSet, importPKCS8, jwtVerify, SignJWT } from "jose";
-import { AuditEvent, OAuthExchangeError, OAuthProfileInvalidError } from "./types.js";
+import {
+  AuditEvent,
+  OAuthExchangeError,
+  OAuthProfileInvalidError,
+} from "./types";
 
 export interface OAuthProviderDescriptor {
   id: string;
@@ -33,7 +37,12 @@ export const APPLE_OIDC_PROVIDER: OAuthProviderDescriptor = {
 
 export function buildAuthorizationUrl(
   provider: OAuthProviderDescriptor,
-  opts: { clientId: string; redirectUri: string; state: string; scope?: string },
+  opts: {
+    clientId: string;
+    redirectUri: string;
+    state: string;
+    scope?: string;
+  },
 ): string {
   const params = new URLSearchParams({
     client_id: opts.clientId,
@@ -49,7 +58,12 @@ export function buildAuthorizationUrl(
 
 export async function exchangeCodeForTokens(
   provider: OAuthProviderDescriptor,
-  opts: { clientId: string; clientSecret: string; redirectUri: string; code: string },
+  opts: {
+    clientId: string;
+    clientSecret: string;
+    redirectUri: string;
+    code: string;
+  },
 ): Promise<{ idToken: string; accessToken: string }> {
   const body = new URLSearchParams({
     grant_type: "authorization_code",
@@ -63,10 +77,17 @@ export async function exchangeCodeForTokens(
     headers: { "content-type": "application/x-www-form-urlencoded" },
     body,
   });
-  if (!response.ok) throw new OAuthExchangeError(`token exchange failed with status ${response.status}`);
+  if (!response.ok)
+    throw new OAuthExchangeError(
+      `token exchange failed with status ${response.status}`,
+    );
 
-  const json = (await response.json()) as { id_token?: string; access_token?: string };
-  if (!json.id_token) throw new OAuthExchangeError("provider response missing id_token");
+  const json = (await response.json()) as {
+    id_token?: string;
+    access_token?: string;
+  };
+  if (!json.id_token)
+    throw new OAuthExchangeError("provider response missing id_token");
   return { idToken: json.id_token, accessToken: json.access_token ?? "" };
 }
 
@@ -112,22 +133,35 @@ export async function verifyIdTokenAndExtractProfile(
 
   let payload;
   try {
-    ({ payload } = await jwtVerify(opts.idToken, jwks, { issuer: provider.issuer, audience: opts.clientId }));
+    ({ payload } = await jwtVerify(opts.idToken, jwks, {
+      issuer: provider.issuer,
+      audience: opts.clientId,
+    }));
   } catch {
     throw new OAuthProfileInvalidError();
   }
-  if (typeof payload.sub !== "string") throw new OAuthProfileInvalidError("missing sub claim");
+  if (typeof payload.sub !== "string")
+    throw new OAuthProfileInvalidError("missing sub claim");
 
   return {
     providerAccountId: payload.sub,
     email: typeof payload.email === "string" ? payload.email : undefined,
-    emailVerified: payload.email_verified === true || payload.email_verified === "true",
+    emailVerified:
+      payload.email_verified === true || payload.email_verified === "true",
   };
 }
 
 export interface OAuthStoreDeps {
-  findAccountByProvider: (provider: string, providerAccountId: string) => Promise<{ userId: string } | null>;
-  linkAccount: (input: { userId: string; provider: string; providerAccountId: string; email?: string }) => Promise<void>;
+  findAccountByProvider: (
+    provider: string,
+    providerAccountId: string,
+  ) => Promise<{ userId: string } | null>;
+  linkAccount: (input: {
+    userId: string;
+    provider: string;
+    providerAccountId: string;
+    email?: string;
+  }) => Promise<void>;
   findUserByVerifiedEmail: (email: string) => Promise<{ id: string } | null>;
   createUserFromOAuth: (input: { email?: string }) => Promise<{ id: string }>;
   appendAuditEvent?: (event: AuditEvent) => Promise<void>;
@@ -140,7 +174,10 @@ export async function completeOAuthLogin(
   deps: OAuthStoreDeps,
   input: { provider: string; profile: OAuthProfile },
 ): Promise<{ userId: string; isNewUser: boolean }> {
-  const existing = await deps.findAccountByProvider(input.provider, input.profile.providerAccountId);
+  const existing = await deps.findAccountByProvider(
+    input.provider,
+    input.profile.providerAccountId,
+  );
   if (existing) return { userId: existing.userId, isNewUser: false };
 
   const matchedByEmail =
@@ -153,7 +190,16 @@ export async function completeOAuthLogin(
     : (await deps.createUserFromOAuth({ email: input.profile.email })).id;
   const isNewUser = !matchedByEmail;
 
-  await deps.linkAccount({ userId, provider: input.provider, providerAccountId: input.profile.providerAccountId, email: input.profile.email });
-  await deps.appendAuditEvent?.({ type: "oauth_account_linked", userId, provider: input.provider });
+  await deps.linkAccount({
+    userId,
+    provider: input.provider,
+    providerAccountId: input.profile.providerAccountId,
+    email: input.profile.email,
+  });
+  await deps.appendAuditEvent?.({
+    type: "oauth_account_linked",
+    userId,
+    provider: input.provider,
+  });
   return { userId, isNewUser };
 }

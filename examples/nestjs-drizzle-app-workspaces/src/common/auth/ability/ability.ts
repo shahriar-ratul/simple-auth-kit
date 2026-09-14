@@ -17,11 +17,7 @@
 // database, no `(action, subject)` pairing to get wrong, and no conditions — which in turn means
 // there is no such thing as a rule the route guard can only *partially* evaluate. What a slug
 // means is decided entirely by which routes name it.
-import {
-  AbilityBuilder,
-  createMongoAbility,
-  type MongoAbility,
-} from "@casl/ability";
+import { AbilityBuilder, createMongoAbility, type MongoAbility } from '@casl/ability';
 
 /**
  * The subject every rule is written against. CASL needs one; this model does not use subjects, so
@@ -29,7 +25,7 @@ import {
  * site — `can("users:read", "")` in one place and `can("users:read", "all")` in another would
  * silently never match.
  */
-export const ABILITY_SUBJECT = "";
+export const ABILITY_SUBJECT = '';
 
 /** Actions are permission slugs; the subject is always `ABILITY_SUBJECT`. */
 export type AppAbility = MongoAbility<[string, typeof ABILITY_SUBJECT]>;
@@ -41,9 +37,7 @@ export type AppAbility = MongoAbility<[string, typeof ABILITY_SUBJECT]>;
  * answer for "we could not resolve any permissions", and the same answer as "this user genuinely
  * has none". There is no default-allow branch anywhere in this file.
  */
-export function defineAbilitiesFor(
-  permissions: readonly string[] = [],
-): AppAbility {
+export function defineAbilitiesFor(permissions: readonly string[] = []): AppAbility {
   const { can, build } = new AbilityBuilder<AppAbility>(createMongoAbility);
   for (const permission of permissions) can(permission, ABILITY_SUBJECT);
   return build();

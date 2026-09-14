@@ -13,13 +13,13 @@
 // Authentication is deliberately not cached here: token validity/denylist/blocked-user checks
 // happen on `AuthGuard`, which never reads this cache. Negative results aren't cached either —
 // "not a member of this workspace" is re-read every time.
-import { Inject, Injectable } from "@nestjs/common";
-import { AUTH_CONFIG, AuthConfig } from "../../config/auth.config.js";
+import { Inject, Injectable } from '@nestjs/common';
+import { AUTH_CONFIG, AuthConfig } from '../../config/auth.config';
 
 /** DI token for the store. Provide your own to `AuthModule.forRoot({ permissionCacheStore })`. */
-export const PERMISSION_CACHE_STORE = Symbol("PERMISSION_CACHE_STORE");
+export const PERMISSION_CACHE_STORE = Symbol('PERMISSION_CACHE_STORE');
 
-export const CACHE_NAMESPACE = "simpleauthkit:authz";
+export const CACHE_NAMESPACE = 'simpleauthkit:authz';
 
 // Small and string-valued: each op maps onto one Redis command (GET, MGET, SET EX, INCR).
 export interface PermissionCacheStore {
@@ -37,10 +37,7 @@ export interface PermissionCacheStore {
 // database resolution, not N.
 export class InMemoryPermissionCacheStore implements PermissionCacheStore {
   readonly stats = { hits: 0, misses: 0, writes: 0 };
-  private readonly entries = new Map<
-    string,
-    { value: string; expiresAt: number }
-  >();
+  private readonly entries = new Map<string, { value: string; expiresAt: number }>();
 
   async get(key: string): Promise<string | undefined> {
     const entry = this.entries.get(key);
@@ -73,8 +70,7 @@ export class InMemoryPermissionCacheStore implements PermissionCacheStore {
 
   async bump(key: string): Promise<number> {
     const entry = this.entries.get(key);
-    const next =
-      Number(entry && entry.expiresAt > Date.now() ? entry.value : 0) + 1;
+    const next = Number(entry && entry.expiresAt > Date.now() ? entry.value : 0) + 1;
     // Version counters outlive entries on purpose: a counter that expired back to 0 would make
     // every superseded entry reachable again.
     this.entries.set(key, {
@@ -89,8 +85,7 @@ export class InMemoryPermissionCacheStore implements PermissionCacheStore {
 // migration, a psql session) can bump the counter itself — otherwise an out-of-band write is
 // only picked up once the cache entry expires.
 export const POLICY_VERSION_KEY = `${CACHE_NAMESPACE}:policy-version`;
-export const subjectVersionKey = (subject: string) =>
-  `${CACHE_NAMESPACE}:subject-version:${subject}`;
+export const subjectVersionKey = (subject: string) => `${CACHE_NAMESPACE}:subject-version:${subject}`;
 const entryKey = (subject: string, policy: string, subjectVersion: string) =>
   `${CACHE_NAMESPACE}:entry:${subject}:p${policy}:s${subjectVersion}`;
 
@@ -110,17 +105,11 @@ export class PermissionCache {
   // under load costs one database read per instance rather than one per request.
   private readonly inFlight = new Map<string, Promise<unknown>>();
 
-  async resolve<T>(
-    subject: string,
-    load: () => Promise<T | null>,
-  ): Promise<T | null> {
+  async resolve<T>(subject: string, load: () => Promise<T | null>): Promise<T | null> {
     const ttl = this.config.permissionCacheTtlSeconds;
     if (ttl <= 0) return load(); // caching off; the semantics are identical, only the cost differs
 
-    const [policy = "0", version = "0"] = await this.store.getMany([
-      POLICY_VERSION_KEY,
-      subjectVersionKey(subject),
-    ]);
+    const [policy = '0', version = '0'] = await this.store.getMany([POLICY_VERSION_KEY, subjectVersionKey(subject)]);
     const key = entryKey(subject, policy, version);
 
     const cached = await this.store.get(key);
@@ -132,8 +121,7 @@ export class PermissionCache {
     const pending = (async () => {
       const resolved = await load();
       // A negative result is not written: see the module comment. Only a real answer is cached.
-      if (resolved !== null)
-        await this.store.set(key, JSON.stringify(resolved), ttl);
+      if (resolved !== null) await this.store.set(key, JSON.stringify(resolved), ttl);
       return resolved;
     })();
 

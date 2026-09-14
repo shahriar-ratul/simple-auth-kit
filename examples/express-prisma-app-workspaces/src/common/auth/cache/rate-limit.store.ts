@@ -1,4 +1,4 @@
-import type { RateLimitDeps } from "@/core/rate-limit.js";
+import type { RateLimitDeps } from '@/core/rate-limit';
 
 /**
  * In-memory window counter — fine for a single instance / the reference combo's proof.
@@ -6,10 +6,7 @@ import type { RateLimitDeps } from "@/core/rate-limit.js";
  * more than one instance; nothing above this layer needs to change.
  */
 export class InMemoryRateLimitStore implements RateLimitDeps {
-  private readonly windows = new Map<
-    string,
-    { count: number; resetAt: number }
-  >();
+  private readonly windows = new Map<string, { count: number; resetAt: number }>();
 
   async increment(key: string, windowMs: number): Promise<number> {
     const now = Date.now();

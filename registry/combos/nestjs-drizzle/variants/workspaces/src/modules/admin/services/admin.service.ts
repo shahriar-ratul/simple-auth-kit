@@ -1,20 +1,20 @@
 import { Inject, Injectable } from "@nestjs/common";
 import { eq } from "drizzle-orm";
-import { blockUser, deactivateUser } from "@/lib/auth/core/session-policy.js";
-import type { Revoker } from "@/lib/auth/core/types.js";
-import { DRIZZLE_DB, type Database } from "../../../common/config/db.js";
-import type { AuthzContext } from "../../../common/auth/guards/authz.guard.js";
-import { AuditLogRepository } from "../../audit-log/repositories/audit-log.repository.js";
+import { blockUser, deactivateUser } from "@/lib/auth/core/session-policy";
+import type { Revoker } from "@/lib/auth/core/types";
+import { DRIZZLE_DB, type Database } from "../../../common/config/db";
+import type { AuthzContext } from "../../../common/auth/guards/authz.guard";
+import { AuditLogRepository } from "../../audit-log/repositories/audit-log.repository";
 import {
   MemberListFilter,
   MemberListResult,
   MemberSummary,
   RbacRepository,
   toMemberSummary,
-} from "../../auth/repositories/rbac.repository.js";
-import { SessionRepository } from "../../auth/repositories/session.repository.js";
-import { users } from "@/database/schema.js";
-import { toId, toIdOrNull } from "../../../common/helpers/id.helper.js";
+} from "../../auth/repositories/rbac.repository";
+import { SessionRepository } from "../../auth/repositories/session.repository";
+import { users } from "@/database/schema";
+import { toId, toIdOrNull } from "../../../common/helpers/id.helper";
 
 /**
  * Member management, block/unblock/deactivate/activate, and member-scoped role/permission

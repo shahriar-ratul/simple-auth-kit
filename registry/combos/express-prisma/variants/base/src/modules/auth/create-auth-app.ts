@@ -1,39 +1,36 @@
 import { PrismaPg } from "@prisma/adapter-pg";
 import express, { type Express } from "express";
 import swaggerUi from "swagger-ui-express";
-import type { RateLimitDeps } from "@/lib/auth/core/rate-limit.js";
-import { AdminService } from "../admin/services/admin.service.js";
-import { createAdminRouter } from "../admin/routers/admin.router.js";
-import { AuditLogRepository } from "../audit-log/repositories/audit-log.repository.js";
-import { AuditLogService } from "../audit-log/services/audit-log.service.js";
-import { createAuditLogRouter } from "../audit-log/routers/audit-log.router.js";
-import { PermissionService } from "../permissions/services/permission.service.js";
-import { createPermissionRouter } from "../permissions/routers/permissions.router.js";
-import { RoleService } from "../roles/services/role.service.js";
-import { createRoleRouter } from "../roles/routers/roles.router.js";
-import { authCoreErrorMiddleware } from "../../infra/middleware/auth-core-error.middleware.js";
-import {
-  AuthConfig,
-  defaultAuthConfig,
-} from "../../common/config/auth.config.js";
-import { createAuthMiddleware } from "../../common/auth/middleware/auth.middleware.js";
-import { createAuthRouter } from "./routers/auth.router.js";
-import { AuthService } from "./services/auth.service.js";
-import { createAuthzMiddleware } from "../../common/auth/middleware/authz.middleware.js";
-import { PrismaClient } from "@/database/generated/prisma/client.js";
-import { KeyProviderService } from "../../common/config/key-provider.js";
-import { OAuthRepository } from "./repositories/oauth.repository.js";
-import { openApiSpec } from "../../infra/openapi/openapi-spec.js";
-import { PasswordResetRepository } from "./repositories/password-reset.repository.js";
+import type { RateLimitDeps } from "@/lib/auth/core/rate-limit";
+import { AdminService } from "../admin/services/admin.service";
+import { createAdminRouter } from "../admin/routers/admin.router";
+import { AuditLogRepository } from "../audit-log/repositories/audit-log.repository";
+import { AuditLogService } from "../audit-log/services/audit-log.service";
+import { createAuditLogRouter } from "../audit-log/routers/audit-log.router";
+import { PermissionService } from "../permissions/services/permission.service";
+import { createPermissionRouter } from "../permissions/routers/permissions.router";
+import { RoleService } from "../roles/services/role.service";
+import { createRoleRouter } from "../roles/routers/roles.router";
+import { authCoreErrorMiddleware } from "../../infra/middleware/auth-core-error.middleware";
+import { AuthConfig, defaultAuthConfig } from "../../common/config/auth.config";
+import { createAuthMiddleware } from "../../common/auth/middleware/auth.middleware";
+import { createAuthRouter } from "./routers/auth.router";
+import { AuthService } from "./services/auth.service";
+import { createAuthzMiddleware } from "../../common/auth/middleware/authz.middleware";
+import { PrismaClient } from "@/database/generated/prisma/client";
+import { KeyProviderService } from "../../common/config/key-provider";
+import { OAuthRepository } from "./repositories/oauth.repository";
+import { openApiSpec } from "../../infra/openapi/openapi-spec";
+import { PasswordResetRepository } from "./repositories/password-reset.repository";
 import {
   InMemoryPermissionCacheStore,
   PermissionCache,
-} from "../../common/auth/cache/permission-cache.js";
-import { InMemoryRateLimitStore } from "../../common/auth/cache/rate-limit.store.js";
-import { RbacRepository } from "./repositories/rbac.repository.js";
-import { responseEnvelope } from "../../infra/middleware/response-envelope.middleware.js";
-import { SessionRepository } from "./repositories/session.repository.js";
-import { TwoFactorRepository } from "./repositories/two-factor.repository.js";
+} from "../../common/auth/cache/permission-cache";
+import { InMemoryRateLimitStore } from "../../common/auth/cache/rate-limit.store";
+import { RbacRepository } from "./repositories/rbac.repository";
+import { responseEnvelope } from "../../infra/middleware/response-envelope.middleware";
+import { SessionRepository } from "./repositories/session.repository";
+import { TwoFactorRepository } from "./repositories/two-factor.repository";
 
 export interface CreateAuthAppOptions {
   /** Overrides merged on top of `defaultAuthConfig`, same shape as the reference combo's `AuthModule.forRoot(config)`. */

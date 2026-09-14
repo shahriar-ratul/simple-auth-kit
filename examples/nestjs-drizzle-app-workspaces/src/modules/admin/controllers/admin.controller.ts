@@ -12,7 +12,7 @@ import {
   Query,
   Req,
   UseGuards,
-} from "@nestjs/common";
+} from '@nestjs/common';
 import {
   ApiBearerAuth,
   ApiBody,
@@ -22,22 +22,16 @@ import {
   ApiQuery,
   ApiResponse,
   ApiTags,
-} from "@nestjs/swagger";
-import type { Request } from "express";
-import { AbilityGuard } from "../../../common/auth/ability/ability.guard.js";
-import { AdminService } from "../services/admin.service.js";
-import { AuthGuard } from "../../../common/auth/guards/auth.guard.js";
-import {
-  WORKSPACE_HEADER,
-  WorkspaceGuard,
-} from "../../../common/auth/guards/authz.guard.js";
-import { CheckAbility } from "../../../infra/route-tiers.js";
-import {
-  DeleteReasonDto,
-  OkResponseDto,
-} from "../../../common/dto/shared.dto.js";
-import { WorkspaceRepository } from "../../auth/repositories/workspace.repository.js";
-import { hashPassword } from "@/core/crypto.js";
+} from '@nestjs/swagger';
+import type { Request } from 'express';
+import { AbilityGuard } from '../../../common/auth/ability/ability.guard';
+import { AdminService } from '../services/admin.service';
+import { AuthGuard } from '../../../common/auth/guards/auth.guard';
+import { WORKSPACE_HEADER, WorkspaceGuard } from '../../../common/auth/guards/authz.guard';
+import { CheckAbility } from '../../../infra/route-tiers';
+import { DeleteReasonDto, OkResponseDto } from '../../../common/dto/shared.dto';
+import { WorkspaceRepository } from '../../auth/repositories/workspace.repository';
+import { hashPassword } from '@/core/crypto';
 import {
   AssignRoleDto,
   CreateUserDto,
@@ -45,16 +39,14 @@ import {
   UpdateUserDto,
   UserListResponseDto,
   UserSummaryDto,
-} from "../dto/admin.dto.js";
+} from '../dto/admin.dto';
 
 function requireString(value: unknown, field: string): string {
-  if (typeof value !== "string" || value.length === 0)
-    throw new BadRequestException(`${field} is required`);
+  if (typeof value !== 'string' || value.length === 0) throw new BadRequestException(`${field} is required`);
   return value;
 }
 
-const optionalString = (value: unknown): string | undefined =>
-  typeof value === "string" ? value : undefined;
+const optionalString = (value: unknown): string | undefined => (typeof value === 'string' ? value : undefined);
 
 /**
  * Administration *of one workspace*, and of nothing else. Authority is a permission, never a role
@@ -75,14 +67,13 @@ const optionalString = (value: unknown): string | undefined =>
  * holding a role called "admin" that carries no permissions in this workspace gets exactly the
  * same 403 as holding no role at all.
  */
-@ApiTags("admin")
-@Controller("v1/admin")
+@ApiTags('admin')
+@Controller('v1/admin')
 @ApiBearerAuth()
 @ApiHeader({
   name: WORKSPACE_HEADER,
   required: true,
-  description:
-    "The workspace this request administers. The caller must be an admin member of it.",
+  description: 'The workspace this request administers. The caller must be an admin member of it.',
 })
 @UseGuards(AuthGuard, WorkspaceGuard, AbilityGuard)
 export class AdminController {
@@ -92,30 +83,30 @@ export class AdminController {
     private readonly workspaces: WorkspaceRepository,
   ) {}
 
-  @Get("users")
-  @CheckAbility("users:read")
-  @ApiOperation({ summary: "[admin] List the members of this workspace" })
+  @Get('users')
+  @CheckAbility('users:read')
+  @ApiOperation({ summary: '[admin] List the members of this workspace' })
   @ApiQuery({
-    name: "search",
+    name: 'search',
     required: false,
-    description: "Email substring match",
+    description: 'Email substring match',
   })
   @ApiQuery({
-    name: "page",
+    name: 'page',
     required: false,
-    description: "1-indexed. Defaults to 1.",
+    description: '1-indexed. Defaults to 1.',
   })
   @ApiQuery({
-    name: "limit",
+    name: 'limit',
     required: false,
-    description: "Defaults to 25, capped at 100.",
+    description: 'Defaults to 25, capped at 100.',
   })
   @ApiResponse({ status: 200, type: UserListResponseDto })
   async listUsers(
     @Req() req: Request,
-    @Query("search") search?: string,
-    @Query("page") page?: string,
-    @Query("limit") limit?: string,
+    @Query('search') search?: string,
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
   ) {
     return this.admin.listUsers(req.authz!, {
       search,
@@ -124,23 +115,20 @@ export class AdminController {
     });
   }
 
-  @Post("users")
-  @CheckAbility("users:manage")
+  @Post('users')
+  @CheckAbility('users:manage')
   @ApiOperation({
-    summary: "[admin] Create a user and add them to this workspace",
-    description:
-      "No invitation email — the account is usable immediately with the password given here.",
+    summary: '[admin] Create a user and add them to this workspace',
+    description: 'No invitation email — the account is usable immediately with the password given here.',
   })
   @ApiBody({ type: CreateUserDto })
   @ApiResponse({ status: 201, type: UserSummaryDto })
   async createUser(@Body() body: Record<string, unknown>, @Req() req: Request) {
-    const passwordHash = await hashPassword(
-      requireString(body.password, "password"),
-    );
+    const passwordHash = await hashPassword(requireString(body.password, 'password'));
     const member = await this.workspaces.createMember(
       req.authz!.workspaceId,
       {
-        email: requireString(body.email, "email"),
+        email: requireString(body.email, 'email'),
         passwordHash,
         firstName: optionalString(body.firstName),
         lastName: optionalString(body.lastName),
@@ -148,9 +136,7 @@ export class AdminController {
         phone: optionalString(body.phone),
         username: optionalString(body.username),
         roles: Array.isArray(body.roles)
-          ? body.roles.filter(
-              (role): role is string => typeof role === "string",
-            )
+          ? body.roles.filter((role): role is string => typeof role === 'string')
           : undefined,
       },
       req.auth!.sub,
@@ -158,39 +144,32 @@ export class AdminController {
     return this.admin.getUser(req.authz!, member.userId);
   }
 
-  @Get("users/:userId")
-  @CheckAbility("users:read")
+  @Get('users/:userId')
+  @CheckAbility('users:read')
   @ApiOperation({ summary: "[admin] Fetch a single member's profile" })
-  @ApiParam({ name: "userId" })
+  @ApiParam({ name: 'userId' })
   @ApiResponse({ status: 200, type: UserSummaryDto })
-  async getUser(@Param("userId") userId: string, @Req() req: Request) {
+  async getUser(@Param('userId') userId: string, @Req() req: Request) {
     return this.admin.getUser(req.authz!, userId);
   }
 
-  @Patch("users/:userId")
-  @CheckAbility("users:manage")
+  @Patch('users/:userId')
+  @CheckAbility('users:manage')
   @ApiOperation({
     summary: "[admin] Edit a member's profile",
-    description:
-      "Profile fields only — email is the login identifier and is not editable here.",
+    description: 'Profile fields only — email is the login identifier and is not editable here.',
   })
-  @ApiParam({ name: "userId" })
+  @ApiParam({ name: 'userId' })
   @ApiBody({ type: UpdateUserDto })
   @ApiResponse({ status: 200, type: UserSummaryDto })
-  async updateUser(
-    @Param("userId") userId: string,
-    @Body() body: Record<string, unknown>,
-    @Req() req: Request,
-  ) {
+  async updateUser(@Param('userId') userId: string, @Body() body: Record<string, unknown>, @Req() req: Request) {
     return this.admin.updateUser(
       req.authz!,
       userId,
       {
-        firstName:
-          body.firstName === null ? null : optionalString(body.firstName),
+        firstName: body.firstName === null ? null : optionalString(body.firstName),
         lastName: body.lastName === null ? null : optionalString(body.lastName),
-        displayName:
-          body.displayName === null ? null : optionalString(body.displayName),
+        displayName: body.displayName === null ? null : optionalString(body.displayName),
         phone: body.phone === null ? null : optionalString(body.phone),
         username: body.username === null ? null : optionalString(body.username),
         photo: body.photo === null ? null : optionalString(body.photo),
@@ -199,128 +178,95 @@ export class AdminController {
     );
   }
 
-  @Delete("users/:userId")
-  @CheckAbility("users:manage")
+  @Delete('users/:userId')
+  @CheckAbility('users:manage')
   @ApiOperation({
     summary: "[admin] Delete a member's account",
     description:
-      "Soft-delete: the row survives for audit purposes, stops appearing in listings, and can no longer authenticate. " +
-      "This disables the account across every workspace it belongs to, not just this one — the same reach `block` already has.",
+      'Soft-delete: the row survives for audit purposes, stops appearing in listings, and can no longer authenticate. ' +
+      'This disables the account across every workspace it belongs to, not just this one — the same reach `block` already has.',
   })
-  @ApiParam({ name: "userId" })
+  @ApiParam({ name: 'userId' })
   @ApiBody({ type: DeleteReasonDto, required: false })
   @ApiResponse({ status: 200, type: OkResponseDto })
-  async deleteUser(
-    @Param("userId") userId: string,
-    @Body() body: Record<string, unknown>,
-    @Req() req: Request,
-  ) {
-    if (userId === req.auth!.sub)
-      throw new ForbiddenException("cannot delete your own account");
-    await this.admin.deleteUser(
-      req.authz!,
-      userId,
-      req.auth!.sub,
-      optionalString(body?.reason),
-    );
+  async deleteUser(@Param('userId') userId: string, @Body() body: Record<string, unknown>, @Req() req: Request) {
+    if (userId === req.auth!.sub) throw new ForbiddenException('cannot delete your own account');
+    await this.admin.deleteUser(req.authz!, userId, req.auth!.sub, optionalString(body?.reason));
     return { ok: true };
   }
 
-  @Post("users/:userId/roles")
-  @CheckAbility("roles:assign")
+  @Post('users/:userId/roles')
+  @CheckAbility('roles:assign')
   @ApiOperation({
-    summary: "[admin] Assign a role to a member of this workspace",
+    summary: '[admin] Assign a role to a member of this workspace',
   })
-  @ApiParam({ name: "userId" })
+  @ApiParam({ name: 'userId' })
   @ApiBody({ type: AssignRoleDto })
   @ApiResponse({ status: 201, type: OkResponseDto })
-  async assignRole(
-    @Param("userId") userId: string,
-    @Body() body: Record<string, unknown>,
-    @Req() req: Request,
-  ) {
-    await this.admin.assignRole(
-      req.authz!,
-      userId,
-      requireString(body.role, "role"),
-    );
+  async assignRole(@Param('userId') userId: string, @Body() body: Record<string, unknown>, @Req() req: Request) {
+    await this.admin.assignRole(req.authz!, userId, requireString(body.role, 'role'));
     return { ok: true };
   }
 
-  @Post("users/:userId/roles/:roleSlug/revoke")
-  @CheckAbility("roles:assign")
+  @Post('users/:userId/roles/:roleSlug/revoke')
+  @CheckAbility('roles:assign')
   @ApiOperation({
-    summary: "[admin] Revoke a role from a member of this workspace",
+    summary: '[admin] Revoke a role from a member of this workspace',
   })
-  @ApiParam({ name: "userId" })
-  @ApiParam({ name: "roleSlug" })
+  @ApiParam({ name: 'userId' })
+  @ApiParam({ name: 'roleSlug' })
   @ApiResponse({ status: 201, type: OkResponseDto })
-  async revokeRole(
-    @Param("userId") userId: string,
-    @Param("roleSlug") roleSlug: string,
-    @Req() req: Request,
-  ) {
+  async revokeRole(@Param('userId') userId: string, @Param('roleSlug') roleSlug: string, @Req() req: Request) {
     // Revoking your own `admin` would strip the very permission that authorised the call. In a
     // workspace there is no way back in afterwards, so the route refuses it the same way
     // self-block does. Assigning to yourself is fine; it can't lock anyone out.
-    if (userId === req.auth!.sub)
-      throw new ForbiddenException("cannot change your own roles");
+    if (userId === req.auth!.sub) throw new ForbiddenException('cannot change your own roles');
     await this.admin.revokeRole(req.authz!, userId, roleSlug);
     return { ok: true };
   }
 
-  @Post("users/:userId/permissions")
-  @CheckAbility("permissions:grant")
+  @Post('users/:userId/permissions')
+  @CheckAbility('permissions:grant')
   @ApiOperation({
-    summary: "[admin] Grant a permission directly to a member, bypassing roles",
-    description: "The grant is scoped to this workspace.",
+    summary: '[admin] Grant a permission directly to a member, bypassing roles',
+    description: 'The grant is scoped to this workspace.',
   })
-  @ApiParam({ name: "userId" })
+  @ApiParam({ name: 'userId' })
   @ApiBody({ type: GrantPermissionDto })
   @ApiResponse({ status: 201, type: OkResponseDto })
-  async grantPermission(
-    @Param("userId") userId: string,
-    @Body() body: Record<string, unknown>,
-    @Req() req: Request,
-  ) {
-    await this.admin.grantPermission(
-      req.authz!,
-      userId,
-      requireString(body.permission, "permission"),
-      req.auth!.sub,
-    );
+  async grantPermission(@Param('userId') userId: string, @Body() body: Record<string, unknown>, @Req() req: Request) {
+    await this.admin.grantPermission(req.authz!, userId, requireString(body.permission, 'permission'), req.auth!.sub);
     return { ok: true };
   }
 
-  @Post("users/:userId/permissions/:permissionSlug/revoke")
-  @CheckAbility("permissions:grant")
+  @Post('users/:userId/permissions/:permissionSlug/revoke')
+  @CheckAbility('permissions:grant')
   @ApiOperation({
-    summary: "[admin] Revoke a direct permission grant from a member",
+    summary: '[admin] Revoke a direct permission grant from a member',
   })
-  @ApiParam({ name: "userId" })
-  @ApiParam({ name: "permissionSlug" })
+  @ApiParam({ name: 'userId' })
+  @ApiParam({ name: 'permissionSlug' })
   @ApiResponse({ status: 201, type: OkResponseDto })
   async revokePermission(
-    @Param("userId") userId: string,
-    @Param("permissionSlug") permissionSlug: string,
+    @Param('userId') userId: string,
+    @Param('permissionSlug') permissionSlug: string,
     @Req() req: Request,
   ) {
     await this.admin.revokePermission(req.authz!, userId, permissionSlug);
     return { ok: true };
   }
 
-  @Post("users/:userId/block")
-  @CheckAbility("users:block")
+  @Post('users/:userId/block')
+  @CheckAbility('users:block')
   @ApiOperation({
-    summary: "[admin] Block a member, revoking all their sessions immediately",
+    summary: '[admin] Block a member, revoking all their sessions immediately',
     description:
-      "Blocking disables the whole account, so it is only allowed against a member of the workspace you administer.",
+      'Blocking disables the whole account, so it is only allowed against a member of the workspace you administer.',
   })
-  @ApiParam({ name: "userId" })
+  @ApiParam({ name: 'userId' })
   @ApiResponse({ status: 201, type: OkResponseDto })
-  async block(@Param("userId") userId: string, @Req() req: Request) {
-    if (userId === req.auth!.sub)
-      throw new ForbiddenException("cannot block your own account");
+  async block(@Param('userId') userId: string, @Req() req: Request) {
+    if (userId === req.auth!.sub) throw new ForbiddenException('cannot block your own account');
     await this.admin.block(req.authz!, userId, {
       userId: req.auth!.sub,
       ip: req.ip,
@@ -328,12 +274,12 @@ export class AdminController {
     return { ok: true };
   }
 
-  @Post("users/:userId/unblock")
-  @CheckAbility("users:block")
-  @ApiOperation({ summary: "[admin] Unblock a member" })
-  @ApiParam({ name: "userId" })
+  @Post('users/:userId/unblock')
+  @CheckAbility('users:block')
+  @ApiOperation({ summary: '[admin] Unblock a member' })
+  @ApiParam({ name: 'userId' })
   @ApiResponse({ status: 201, type: OkResponseDto })
-  async unblock(@Param("userId") userId: string, @Req() req: Request) {
+  async unblock(@Param('userId') userId: string, @Req() req: Request) {
     await this.admin.unblock(req.authz!, userId, {
       userId: req.auth!.sub,
       ip: req.ip,
@@ -341,19 +287,17 @@ export class AdminController {
     return { ok: true };
   }
 
-  @Post("users/:userId/deactivate")
-  @CheckAbility("users:block")
+  @Post('users/:userId/deactivate')
+  @CheckAbility('users:block')
   @ApiOperation({
-    summary:
-      "[admin] Deactivate a member, revoking all their sessions immediately",
+    summary: '[admin] Deactivate a member, revoking all their sessions immediately',
     description:
-      "Distinct from block/unblock — a routine administrative toggle, not a security action. Both independently deny login.",
+      'Distinct from block/unblock — a routine administrative toggle, not a security action. Both independently deny login.',
   })
-  @ApiParam({ name: "userId" })
+  @ApiParam({ name: 'userId' })
   @ApiResponse({ status: 201, type: OkResponseDto })
-  async deactivate(@Param("userId") userId: string, @Req() req: Request) {
-    if (userId === req.auth!.sub)
-      throw new ForbiddenException("cannot deactivate your own account");
+  async deactivate(@Param('userId') userId: string, @Req() req: Request) {
+    if (userId === req.auth!.sub) throw new ForbiddenException('cannot deactivate your own account');
     await this.admin.deactivate(req.authz!, userId, {
       userId: req.auth!.sub,
       ip: req.ip,
@@ -361,12 +305,12 @@ export class AdminController {
     return { ok: true };
   }
 
-  @Post("users/:userId/activate")
-  @CheckAbility("users:block")
-  @ApiOperation({ summary: "[admin] Reactivate a member" })
-  @ApiParam({ name: "userId" })
+  @Post('users/:userId/activate')
+  @CheckAbility('users:block')
+  @ApiOperation({ summary: '[admin] Reactivate a member' })
+  @ApiParam({ name: 'userId' })
   @ApiResponse({ status: 201, type: OkResponseDto })
-  async activate(@Param("userId") userId: string, @Req() req: Request) {
+  async activate(@Param('userId') userId: string, @Req() req: Request) {
     await this.admin.activate(req.authz!, userId, {
       userId: req.auth!.sub,
       ip: req.ip,

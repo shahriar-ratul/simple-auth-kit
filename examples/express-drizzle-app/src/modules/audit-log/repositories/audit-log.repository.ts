@@ -1,17 +1,9 @@
-import { and, count, desc, eq, gte, lte, type SQL } from "drizzle-orm";
-import type { NodePgDatabase } from "drizzle-orm/node-postgres";
-import type { AuditEvent } from "@/core/types.js";
-import {
-  buildPageMeta,
-  normalizeLimit,
-  normalizePage,
-  type Paginated,
-} from "../../../common/helpers/pagination.js";
-import * as schema from "@/database/schema.js";
-import {
-  toIdOrNull,
-  toIdOrUndefined,
-} from "../../../common/helpers/id.helper.js";
+import { and, count, desc, eq, gte, lte, type SQL } from 'drizzle-orm';
+import type { NodePgDatabase } from 'drizzle-orm/node-postgres';
+import type { AuditEvent } from '@/core/types';
+import { buildPageMeta, normalizeLimit, normalizePage, type Paginated } from '../../../common/helpers/pagination';
+import * as schema from '@/database/schema';
+import { toIdOrNull, toIdOrUndefined } from '../../../common/helpers/id.helper';
 
 export interface AuditLogEntry {
   id: string;
@@ -52,11 +44,8 @@ export function toAuditLogEntry(row: AuditLogRow): AuditLogEntry {
 
 /** "role_assigned" -> "Role assigned". Derived rather than passed in, so core never has to carry display text. */
 export function humanizeAction(action: string): string {
-  const words = action.split("_");
-  return [
-    words[0].charAt(0).toUpperCase() + words[0].slice(1),
-    ...words.slice(1),
-  ].join(" ");
+  const words = action.split('_');
+  return [words[0].charAt(0).toUpperCase() + words[0].slice(1), ...words.slice(1)].join(' ');
 }
 
 /**
@@ -67,14 +56,11 @@ export function humanizeAction(action: string): string {
 export class AuditLogRepository {
   constructor(private readonly db: NodePgDatabase<typeof schema>) {}
 
-  async append(
-    event: AuditEvent,
-    opts: { remarks?: string } = {},
-  ): Promise<void> {
+  async append(event: AuditEvent, opts: { remarks?: string } = {}): Promise<void> {
     await this.db.insert(schema.auditLogs).values({
       action: event.type,
       name: humanizeAction(event.type),
-      userId: "userId" in event ? toIdOrNull(event.userId) : null,
+      userId: 'userId' in event ? toIdOrNull(event.userId) : null,
       info: event,
       remarks: opts.remarks ?? null,
     });
@@ -87,14 +73,10 @@ export class AuditLogRepository {
     const conditions: SQL[] = [];
 
     const userIdBig = toIdOrUndefined(filter.userId);
-    if (userIdBig !== undefined)
-      conditions.push(eq(schema.auditLogs.userId, userIdBig));
-    if (filter.action)
-      conditions.push(eq(schema.auditLogs.action, filter.action));
-    if (filter.since)
-      conditions.push(gte(schema.auditLogs.createdAt, new Date(filter.since)));
-    if (filter.until)
-      conditions.push(lte(schema.auditLogs.createdAt, new Date(filter.until)));
+    if (userIdBig !== undefined) conditions.push(eq(schema.auditLogs.userId, userIdBig));
+    if (filter.action) conditions.push(eq(schema.auditLogs.action, filter.action));
+    if (filter.since) conditions.push(gte(schema.auditLogs.createdAt, new Date(filter.since)));
+    if (filter.until) conditions.push(lte(schema.auditLogs.createdAt, new Date(filter.until)));
     const where = conditions.length ? and(...conditions) : undefined;
 
     const rows = await this.db
@@ -104,10 +86,7 @@ export class AuditLogRepository {
       .orderBy(desc(schema.auditLogs.createdAt), desc(schema.auditLogs.id))
       .limit(limit)
       .offset((page - 1) * limit);
-    const [{ value: total }] = await this.db
-      .select({ value: count() })
-      .from(schema.auditLogs)
-      .where(where);
+    const [{ value: total }] = await this.db.select({ value: count() }).from(schema.auditLogs).where(where);
 
     return { items: rows, meta: buildPageMeta(page, limit, total) };
   }

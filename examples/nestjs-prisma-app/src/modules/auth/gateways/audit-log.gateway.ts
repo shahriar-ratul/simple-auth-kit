@@ -1,40 +1,30 @@
-import { Inject } from "@nestjs/common";
-import {
-  OnGatewayConnection,
-  WebSocketGateway,
-  WebSocketServer,
-} from "@nestjs/websockets";
-import type { Server, Socket } from "socket.io";
-import { verifyAccessToken } from "@/core/token-service.js";
-import {
-  AuditLogEntry,
-  AuditLogRepository,
-} from "../../audit-log/repositories/audit-log.repository.js";
-import { KeyProviderService } from "../../../common/config/key-provider.js";
-import { SessionRepository } from "../repositories/session.repository.js";
+import { Inject } from '@nestjs/common';
+import { OnGatewayConnection, WebSocketGateway, WebSocketServer } from '@nestjs/websockets';
+import type { Server, Socket } from 'socket.io';
+import { AuditLogEntry, AuditLogRepository } from '../../audit-log/repositories/audit-log.repository';
+import { AuthTokenService } from '../../../common/auth/token.service';
+import { SessionRepository } from '../repositories/session.repository';
 
 // socket.io clients disagree on where a bearer token travels: `auth.token` (the socket.io-native
 // slot), an Authorization header, or a `token` query param. Accept all three, first present wins.
 function extractToken(client: Socket): string | undefined {
   const raw =
-    client.handshake.auth?.["token"] ??
-    client.handshake.headers.authorization ??
-    client.handshake.query?.["token"];
+    client.handshake.auth?.['token'] ?? client.handshake.headers.authorization ?? client.handshake.query?.['token'];
   const value = Array.isArray(raw) ? raw[0] : raw;
-  if (typeof value !== "string" || value.length === 0) return undefined;
-  return value.startsWith("Bearer ") ? value.slice("Bearer ".length) : value;
+  if (typeof value !== 'string' || value.length === 0) return undefined;
+  return value.startsWith('Bearer ') ? value.slice('Bearer '.length) : value;
 }
 
 // Live feed of the audit log. This gateway only pushes, so the single decision is whether a
 // socket may attach at all — made with the same `verifyAccessToken` + session-denylist pair
 // AuthGuard uses on HTTP, not a parallel verification path.
-@WebSocketGateway({ namespace: "/audit-logs", cors: { origin: true } })
+@WebSocketGateway({ namespace: '/audit-logs', cors: { origin: true } })
 export class AuditLogGateway implements OnGatewayConnection {
   @WebSocketServer()
   private server?: Server;
 
   constructor(
-    @Inject(KeyProviderService) private readonly keys: KeyProviderService,
+    @Inject(AuthTokenService) private readonly tokens: AuthTokenService,
     @Inject(SessionRepository) private readonly sessions: SessionRepository,
     @Inject(AuditLogRepository) auditLog: AuditLogRepository,
   ) {
@@ -48,13 +38,9 @@ export class AuditLogGateway implements OnGatewayConnection {
       return;
     }
     try {
-      await verifyAccessToken(
-        {
-          secret: this.keys.secret,
-          isDenylisted: (jti) => this.sessions.isDenylisted(jti),
-        },
-        token,
-      );
+      await this.tokens.verifyAccessToken(token, {
+        isDenylisted: (jti) => this.sessions.isDenylisted(jti),
+      });
     } catch {
       client.disconnect(true);
     }
@@ -62,6 +48,6 @@ export class AuditLogGateway implements OnGatewayConnection {
 
   private broadcast(entry: AuditLogEntry): void {
     // Undefined only before gateway init — a write that early is simply not broadcast.
-    this.server?.emit("audit-log:created", entry);
+    this.server?.emit('audit-log:created', entry);
   }
 }

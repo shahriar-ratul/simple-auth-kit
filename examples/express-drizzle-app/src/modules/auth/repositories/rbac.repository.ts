@@ -1,32 +1,11 @@
-import {
-  and,
-  asc,
-  count,
-  desc,
-  eq,
-  ilike,
-  inArray,
-  type SQL,
-} from "drizzle-orm";
-import { resolvePermissions } from "@/core/rbac.js";
-import type { Database } from "../../../common/config/db.js";
-import {
-  buildPageMeta,
-  normalizeLimit,
-  normalizePage,
-  type Paginated,
-} from "../../../common/helpers/pagination.js";
-import { PermissionCache } from "../../../common/auth/cache/permission-cache.js";
-import {
-  permissionRole,
-  permissionUser,
-  permissions,
-  roleUser,
-  roles,
-  users,
-} from "@/database/schema.js";
-import { HttpError } from "../../../infra/errors/http-error.js";
-import { toId, toIdOrNull } from "../../../common/helpers/id.helper.js";
+import { and, asc, count, desc, eq, ilike, inArray, type SQL } from 'drizzle-orm';
+import { resolvePermissions } from '@/core/rbac';
+import type { Database } from '../../../common/config/db';
+import { buildPageMeta, normalizeLimit, normalizePage, type Paginated } from '../../../common/helpers/pagination';
+import { PermissionCache } from '../../../common/auth/cache/permission-cache';
+import { permissionRole, permissionUser, permissions, roleUser, roles, users } from '@/database/schema';
+import { HttpError } from '../../../infra/errors/http-error';
+import { toId, toIdOrNull } from '../../../common/helpers/id.helper';
 
 /**
  * Every column the `users` table has, except the two secrets (`passwordHash`, `twoFactorSecret`
@@ -204,9 +183,7 @@ export class RbacRepository {
    * makes deactivating either one enforcement-changing without unpicking any grant; `isDeleted`
    * on the user themselves takes the whole answer to empty.
    */
-  async resolveAuthzContext(
-    userId: string,
-  ): Promise<{ roles: string[]; permissions: string[] }> {
+  async resolveAuthzContext(userId: string): Promise<{ roles: string[]; permissions: string[] }> {
     const userIdBig = toId(userId);
     const [user] = await this.db
       .select({ id: users.id })
@@ -221,14 +198,7 @@ export class RbacRepository {
       this.db
         .select({ roleSlug: roles.slug, permissionSlug: permissions.slug })
         .from(roleUser)
-        .innerJoin(
-          roles,
-          and(
-            eq(roles.id, roleUser.roleId),
-            eq(roles.isActive, true),
-            eq(roles.isDeleted, false),
-          ),
-        )
+        .innerJoin(roles, and(eq(roles.id, roleUser.roleId), eq(roles.isActive, true), eq(roles.isDeleted, false)))
         .leftJoin(permissionRole, eq(permissionRole.roleId, roles.id))
         .leftJoin(
           permissions,
@@ -256,9 +226,7 @@ export class RbacRepository {
     return {
       roles: [...new Set(roleRows.map((row) => row.roleSlug))].sort(),
       permissions: resolvePermissions(
-        roleRows
-          .map((row) => row.permissionSlug)
-          .filter((slug): slug is string => slug !== null),
+        roleRows.map((row) => row.permissionSlug).filter((slug): slug is string => slug !== null),
         directRows.map((row) => row.slug),
       ),
     };
@@ -274,8 +242,7 @@ export class RbacRepository {
     const limit = normalizeLimit(filter.limit);
 
     const conditions: SQL[] = [eq(users.isDeleted, false)];
-    if (filter.search)
-      conditions.push(ilike(users.email, `%${filter.search}%`));
+    if (filter.search) conditions.push(ilike(users.email, `%${filter.search}%`));
     const where = and(...conditions)!;
 
     const rows = await this.db
@@ -285,10 +252,7 @@ export class RbacRepository {
       .orderBy(desc(users.createdAt), desc(users.id))
       .limit(limit)
       .offset((page - 1) * limit);
-    const [{ value: total }] = await this.db
-      .select({ value: count() })
-      .from(users)
-      .where(where);
+    const [{ value: total }] = await this.db.select({ value: count() }).from(users).where(where);
 
     // One read for the page's role assignments rather than one per user.
     const assignments = rows.length
@@ -353,12 +317,8 @@ export class RbacRepository {
     },
     actorUserId: string | null,
   ): Promise<UserSummary> {
-    const [existing] = await this.db
-      .select({ id: users.id })
-      .from(users)
-      .where(eq(users.email, input.email))
-      .limit(1);
-    if (existing) throw new HttpError(409, "email already registered");
+    const [existing] = await this.db.select({ id: users.id }).from(users).where(eq(users.email, input.email)).limit(1);
+    if (existing) throw new HttpError(409, 'email already registered');
 
     const [user] = await this.db
       .insert(users)
@@ -378,13 +338,7 @@ export class RbacRepository {
       const granted = await this.db
         .select({ id: roles.id })
         .from(roles)
-        .where(
-          and(
-            inArray(roles.slug, input.roles),
-            eq(roles.isActive, true),
-            eq(roles.isDeleted, false),
-          ),
-        );
+        .where(and(inArray(roles.slug, input.roles), eq(roles.isActive, true), eq(roles.isDeleted, false)));
       if (granted.length) {
         await this.db
           .insert(roleUser)
@@ -435,11 +389,7 @@ export class RbacRepository {
    * pattern — the row survives for audit purposes, it just stops appearing in listings and can no
    * longer authenticate (mirrors how `block` already disables login without removing the row).
    */
-  async deleteUser(
-    userId: string,
-    actorUserId: string | null,
-    reason?: string,
-  ): Promise<void> {
+  async deleteUser(userId: string, actorUserId: string | null, reason?: string): Promise<void> {
     const userIdBig = toId(userId);
     const [existing] = await this.db
       .select({ id: users.id })
@@ -476,7 +426,7 @@ export class RbacRepository {
       .from(roles)
       .where(and(eq(roles.id, roleIdBig), eq(roles.isDeleted, false)))
       .limit(1);
-    if (!existing) throw new HttpError(404, "role not found");
+    if (!existing) throw new HttpError(404, 'role not found');
 
     const [role] = await this.db
       .update(roles)
@@ -493,18 +443,14 @@ export class RbacRepository {
    * deleted role simply stops being returned by `listRoles`/`resolveAuthzContext`, rather than
    * cascading a delete that would silently strip a user's other roles' foreign keys.
    */
-  async deleteRole(
-    roleId: string,
-    actorUserId: string | null,
-    reason?: string,
-  ): Promise<void> {
+  async deleteRole(roleId: string, actorUserId: string | null, reason?: string): Promise<void> {
     const roleIdBig = toId(roleId);
     const [existing] = await this.db
       .select({ id: roles.id })
       .from(roles)
       .where(and(eq(roles.id, roleIdBig), eq(roles.isDeleted, false)))
       .limit(1);
-    if (!existing) throw new HttpError(404, "role not found");
+    if (!existing) throw new HttpError(404, 'role not found');
 
     await this.db
       .update(roles)
@@ -526,12 +472,7 @@ export class RbacRepository {
       .select(PERMISSION_COLUMNS)
       .from(permissions)
       .where(eq(permissions.isDeleted, false))
-      .orderBy(
-        asc(permissions.groupOrder),
-        asc(permissions.group),
-        asc(permissions.order),
-        asc(permissions.slug),
-      );
+      .orderBy(asc(permissions.groupOrder), asc(permissions.group), asc(permissions.order), asc(permissions.slug));
     return rows.map(asPermissionSummary);
   }
 
@@ -544,10 +485,7 @@ export class RbacRepository {
    * Upserted on `slug`, which stays the stable identifier grants and revocations use, so renaming
    * `name`/`displayName` never breaks a grant.
    */
-  async upsertPermission(
-    input: PermissionInput,
-    actorUserId: string | null,
-  ): Promise<PermissionSummary> {
+  async upsertPermission(input: PermissionInput, actorUserId: string | null): Promise<PermissionSummary> {
     const actorId = toIdOrNull(actorUserId);
     // Only the fields the caller sent are written; an absent one leaves its column alone, so a
     // partial edit cannot blank out metadata it did not mention.
@@ -570,7 +508,7 @@ export class RbacRepository {
         ...changed,
         name: input.name ?? input.displayName ?? input.slug,
         displayName: input.displayName ?? input.slug,
-        group: input.group ?? "Custom",
+        group: input.group ?? 'Custom',
         createdBy: actorId,
         updatedBy: actorId,
       })
@@ -628,18 +566,14 @@ export class RbacRepository {
    * closed-catalog property the routes always had — `@CheckAbility` only accepts slugs from
    * `rbac.defaults.ts`, so an invented slug cannot gate anything shipped by this library.
    */
-  async attachPermissionToRole(
-    roleId: string,
-    permissionSlug: string,
-    actorUserId: string | null,
-  ): Promise<void> {
+  async attachPermissionToRole(roleId: string, permissionSlug: string, actorUserId: string | null): Promise<void> {
     const roleIdBig = toId(roleId);
     const [role] = await this.db
       .select({ id: roles.id })
       .from(roles)
       .where(and(eq(roles.id, roleIdBig), eq(roles.isDeleted, false)))
       .limit(1);
-    if (!role) throw new HttpError(404, "role not found");
+    if (!role) throw new HttpError(404, 'role not found');
 
     const permission = await this.ensurePermission(permissionSlug, actorUserId);
     await this.db
@@ -653,18 +587,10 @@ export class RbacRepository {
 
   async assignRoleToUser(userId: string, roleSlug: string): Promise<void> {
     const userIdBig = toId(userId);
-    const [role] = await this.db
-      .select({ id: roles.id })
-      .from(roles)
-      .where(eq(roles.slug, roleSlug))
-      .limit(1);
+    const [role] = await this.db.select({ id: roles.id }).from(roles).where(eq(roles.slug, roleSlug)).limit(1);
     if (!role) throw new HttpError(404, `role "${roleSlug}" not found`);
 
-    const [user] = await this.db
-      .select({ id: users.id })
-      .from(users)
-      .where(eq(users.id, userIdBig))
-      .limit(1);
+    const [user] = await this.db.select({ id: users.id }).from(users).where(eq(users.id, userIdBig)).limit(1);
     if (!user) throw new HttpError(404, `user "${userId}" not found`);
 
     await this.db
@@ -676,15 +602,9 @@ export class RbacRepository {
 
   async revokeRoleFromUser(userId: string, roleSlug: string): Promise<void> {
     const userIdBig = toId(userId);
-    const [role] = await this.db
-      .select({ id: roles.id })
-      .from(roles)
-      .where(eq(roles.slug, roleSlug))
-      .limit(1);
+    const [role] = await this.db.select({ id: roles.id }).from(roles).where(eq(roles.slug, roleSlug)).limit(1);
     if (!role) return;
-    await this.db
-      .delete(roleUser)
-      .where(and(eq(roleUser.userId, userIdBig), eq(roleUser.roleId, role.id)));
+    await this.db.delete(roleUser).where(and(eq(roleUser.userId, userIdBig), eq(roleUser.roleId, role.id)));
     await this.cache.invalidateSubject(userId);
   }
 
@@ -700,13 +620,7 @@ export class RbacRepository {
     const defaults = await this.db
       .select({ id: roles.id })
       .from(roles)
-      .where(
-        and(
-          eq(roles.isDefault, true),
-          eq(roles.isActive, true),
-          eq(roles.isDeleted, false),
-        ),
-      );
+      .where(and(eq(roles.isDefault, true), eq(roles.isActive, true), eq(roles.isDeleted, false)));
     if (!defaults.length) return;
     await this.db
       .insert(roleUser)
@@ -716,18 +630,11 @@ export class RbacRepository {
   }
 
   async hasAnyRole(userId: bigint): Promise<boolean> {
-    const [row] = await this.db
-      .select({ value: count() })
-      .from(roleUser)
-      .where(eq(roleUser.userId, userId));
+    const [row] = await this.db.select({ value: count() }).from(roleUser).where(eq(roleUser.userId, userId));
     return (row?.value ?? 0) > 0;
   }
 
-  async grantPermissionToUser(
-    userId: string,
-    permissionSlug: string,
-    actorUserId: string | null,
-  ): Promise<void> {
+  async grantPermissionToUser(userId: string, permissionSlug: string, actorUserId: string | null): Promise<void> {
     const userIdBig = toId(userId);
     const permission = await this.ensurePermission(permissionSlug, actorUserId);
     await this.db
@@ -739,10 +646,7 @@ export class RbacRepository {
     await this.cache.invalidateSubject(userId);
   }
 
-  async revokePermissionFromUser(
-    userId: string,
-    permissionSlug: string,
-  ): Promise<void> {
+  async revokePermissionFromUser(userId: string, permissionSlug: string): Promise<void> {
     const userIdBig = toId(userId);
     const [permission] = await this.db
       .select({ id: permissions.id })
@@ -752,12 +656,7 @@ export class RbacRepository {
     if (!permission) return;
     await this.db
       .delete(permissionUser)
-      .where(
-        and(
-          eq(permissionUser.userId, userIdBig),
-          eq(permissionUser.permissionId, permission.id),
-        ),
-      );
+      .where(and(eq(permissionUser.userId, userIdBig), eq(permissionUser.permissionId, permission.id)));
     await this.cache.invalidateSubject(userId);
   }
 
@@ -770,10 +669,7 @@ export class RbacRepository {
    * Creates the row for a slug granted before anyone defined it; leaves an existing definition
    * alone. Returns bigint directly: both callers feed the id straight into another database call.
    */
-  private async ensurePermission(
-    slug: string,
-    actorUserId: string | null,
-  ): Promise<{ id: bigint }> {
+  private async ensurePermission(slug: string, actorUserId: string | null): Promise<{ id: bigint }> {
     const [existing] = await this.db
       .select({ id: permissions.id })
       .from(permissions)
@@ -787,7 +683,7 @@ export class RbacRepository {
         slug,
         name: slug,
         displayName: slug,
-        group: "Custom",
+        group: 'Custom',
         createdBy: actorId,
         updatedBy: actorId,
       })

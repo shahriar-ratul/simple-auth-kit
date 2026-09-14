@@ -2,44 +2,41 @@ import express, { Express } from "express";
 import swaggerUi from "swagger-ui-express";
 import { drizzle } from "drizzle-orm/node-postgres";
 import { Pool } from "pg";
-import type { RateLimitDeps } from "@/lib/auth/core/rate-limit.js";
-import { createAdminRouter } from "../admin/routers/admin.router.js";
-import { AdminService } from "../admin/services/admin.service.js";
-import { createRolesRouter } from "../roles/routers/roles.router.js";
-import { RolesService } from "../roles/services/roles.service.js";
-import { createPermissionsRouter } from "../permissions/routers/permissions.router.js";
-import { PermissionsService } from "../permissions/services/permissions.service.js";
-import { createAuditLogRouter } from "../audit-log/routers/audit-log.router.js";
-import { AuditLogService } from "../audit-log/services/audit-log.service.js";
-import { AuditLogRepository } from "../audit-log/repositories/audit-log.repository.js";
-import { authCoreErrorMiddleware } from "../../infra/middleware/auth-core-error.middleware.js";
-import {
-  AuthConfig,
-  defaultAuthConfig,
-} from "../../common/config/auth.config.js";
-import { createAuthMiddleware } from "../../common/auth/middleware/auth.middleware.js";
-import { createAuthRouter } from "./routers/auth.router.js";
-import { AuthService } from "./services/auth.service.js";
+import type { RateLimitDeps } from "@/lib/auth/core/rate-limit";
+import { createAdminRouter } from "../admin/routers/admin.router";
+import { AdminService } from "../admin/services/admin.service";
+import { createRolesRouter } from "../roles/routers/roles.router";
+import { RolesService } from "../roles/services/roles.service";
+import { createPermissionsRouter } from "../permissions/routers/permissions.router";
+import { PermissionsService } from "../permissions/services/permissions.service";
+import { createAuditLogRouter } from "../audit-log/routers/audit-log.router";
+import { AuditLogService } from "../audit-log/services/audit-log.service";
+import { AuditLogRepository } from "../audit-log/repositories/audit-log.repository";
+import { authCoreErrorMiddleware } from "../../infra/middleware/auth-core-error.middleware";
+import { AuthConfig, defaultAuthConfig } from "../../common/config/auth.config";
+import { createAuthMiddleware } from "../../common/auth/middleware/auth.middleware";
+import { createAuthRouter } from "./routers/auth.router";
+import { AuthService } from "./services/auth.service";
 import {
   createAuthzMiddleware,
   createWorkspaceMiddleware,
-} from "../../common/auth/middleware/authz.middleware.js";
-import { KeyProviderService } from "../../common/config/key-provider.js";
-import { OAuthRepository } from "./repositories/oauth.repository.js";
-import { openApiSpec } from "../../infra/openapi/openapi-spec.js";
-import { PasswordResetRepository } from "./repositories/password-reset.repository.js";
+} from "../../common/auth/middleware/authz.middleware";
+import { KeyProviderService } from "../../common/config/key-provider";
+import { OAuthRepository } from "./repositories/oauth.repository";
+import { openApiSpec } from "../../infra/openapi/openapi-spec";
+import { PasswordResetRepository } from "./repositories/password-reset.repository";
 import {
   InMemoryPermissionCacheStore,
   PermissionCache,
-} from "../../common/auth/cache/permission-cache.js";
-import { InMemoryRateLimitStore } from "../../common/auth/cache/rate-limit.store.js";
-import { RbacRepository } from "./repositories/rbac.repository.js";
-import { responseEnvelope } from "../../infra/middleware/response-envelope.middleware.js";
-import * as schema from "@/database/schema.js";
-import { SessionRepository } from "./repositories/session.repository.js";
-import { TwoFactorRepository } from "./repositories/two-factor.repository.js";
-import { createWorkspaceRouter } from "./routers/workspace.router.js";
-import { WorkspaceRepository } from "./repositories/workspace.repository.js";
+} from "../../common/auth/cache/permission-cache";
+import { InMemoryRateLimitStore } from "../../common/auth/cache/rate-limit.store";
+import { RbacRepository } from "./repositories/rbac.repository";
+import { responseEnvelope } from "../../infra/middleware/response-envelope.middleware";
+import * as schema from "@/database/schema";
+import { SessionRepository } from "./repositories/session.repository";
+import { TwoFactorRepository } from "./repositories/two-factor.repository";
+import { createWorkspaceRouter } from "./routers/workspace.router";
+import { WorkspaceRepository } from "./repositories/workspace.repository";
 
 /**
  * Factory wiring a Drizzle `NodePgDatabase` (from a `pg.Pool`) plus all the plain classes,

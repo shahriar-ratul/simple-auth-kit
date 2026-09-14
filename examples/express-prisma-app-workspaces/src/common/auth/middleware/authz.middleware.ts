@@ -1,14 +1,11 @@
-import type { NextFunction, Request, RequestHandler, Response } from "express";
-import { defineAbilitiesFor } from "../ability/ability.js";
-import { HttpError } from "../../../infra/errors/http-error.js";
-import type { PermissionCache } from "../cache/permission-cache.js";
-import {
-  memberCacheKey,
-  type RbacRepository,
-} from "../../../modules/auth/repositories/rbac.repository.js";
-import "../../../infra/request-context.js";
+import type { NextFunction, Request, RequestHandler, Response } from 'express';
+import { defineAbilitiesFor } from '../ability/ability';
+import { HttpError } from '../../../infra/errors/http-error';
+import type { PermissionCache } from '../cache/permission-cache';
+import { memberCacheKey, type RbacRepository } from '../../../modules/auth/repositories/rbac.repository';
+import '../../../infra/request-context';
 
-export const WORKSPACE_HEADER = "x-workspace-id";
+export const WORKSPACE_HEADER = 'x-workspace-id';
 
 /**
  * Roles and permissions belong to a *membership*, not a user, so they could not be baked into the
@@ -48,17 +45,15 @@ async function resolve(deps: AuthzMiddlewareDeps, req: Request): Promise<void> {
   if (req.authz) return;
 
   const workspaceId = req.headers[WORKSPACE_HEADER];
-  if (!req.auth || typeof workspaceId !== "string" || workspaceId.length === 0)
-    return;
+  if (!req.auth || typeof workspaceId !== 'string' || workspaceId.length === 0) return;
 
   const userId = req.auth.sub;
-  const authz = await deps.cache.resolve<AuthzContext>(
-    memberCacheKey(userId, workspaceId),
-    () => deps.rbac.resolveAuthzContext(userId, workspaceId),
+  const authz = await deps.cache.resolve<AuthzContext>(memberCacheKey(userId, workspaceId), () =>
+    deps.rbac.resolveAuthzContext(userId, workspaceId),
   );
   // Deliberately the same answer for "no such workspace" and "not your workspace": a caller
   // outside a workspace must not be able to probe whether it exists.
-  if (!authz) throw new HttpError(403, "not a member of this workspace");
+  if (!authz) throw new HttpError(403, 'not a member of this workspace');
   req.authz = authz;
   // Scoped to this workspace by construction: the permissions it is built from are the ones that
   // membership carries *here*, so the ability /auth/me describes grants nothing anywhere else.
@@ -72,14 +67,8 @@ async function resolve(deps: AuthzMiddlewareDeps, req: Request): Promise<void> {
  *
  * Replaces the reference combo's `AuthzGuard`.
  */
-export function createAuthzMiddleware(
-  deps: AuthzMiddlewareDeps,
-): RequestHandler {
-  return async function authzMiddleware(
-    req: Request,
-    _res: Response,
-    next: NextFunction,
-  ): Promise<void> {
+export function createAuthzMiddleware(deps: AuthzMiddlewareDeps): RequestHandler {
+  return async function authzMiddleware(req: Request, _res: Response, next: NextFunction): Promise<void> {
     try {
       await resolve(deps, req);
       next();
@@ -94,18 +83,11 @@ export function createAuthzMiddleware(
  *
  * Replaces the reference combo's `WorkspaceGuard`.
  */
-export function createWorkspaceMiddleware(
-  deps: AuthzMiddlewareDeps,
-): RequestHandler {
-  return async function workspaceMiddleware(
-    req: Request,
-    _res: Response,
-    next: NextFunction,
-  ): Promise<void> {
+export function createWorkspaceMiddleware(deps: AuthzMiddlewareDeps): RequestHandler {
+  return async function workspaceMiddleware(req: Request, _res: Response, next: NextFunction): Promise<void> {
     try {
       await resolve(deps, req);
-      if (!req.authz)
-        throw new HttpError(403, `${WORKSPACE_HEADER} header is required`);
+      if (!req.authz) throw new HttpError(403, `${WORKSPACE_HEADER} header is required`);
       next();
     } catch (err) {
       next(err);

@@ -24,15 +24,12 @@ import {
   ApiTags,
 } from "@nestjs/swagger";
 import type { Request } from "express";
-import { AbilityGuard } from "../../../common/auth/ability/ability.guard.js";
-import { AdminService } from "../services/admin.service.js";
-import { AuthGuard } from "../../../common/auth/guards/auth.guard.js";
-import { AuthzGuard } from "../../../common/auth/guards/authz.guard.js";
-import { CheckAbility } from "../../../infra/route-tiers.js";
-import {
-  DeleteReasonDto,
-  OkResponseDto,
-} from "../../../common/dto/shared.dto.js";
+import { AbilityGuard } from "../../../common/auth/ability/ability.guard";
+import { AdminService } from "../services/admin.service";
+import { AuthGuard } from "../../../common/auth/guards/auth.guard";
+import { AuthzGuard } from "../../../common/auth/guards/authz.guard";
+import { CheckAbility } from "../../../infra/route-tiers";
+import { DeleteReasonDto, OkResponseDto } from "../../../common/dto/shared.dto";
 import {
   AssignRoleDto,
   CreateUserDto,
@@ -40,25 +37,25 @@ import {
   UpdateUserDto,
   UserListResponseDto,
   UserSummaryDto,
-} from "../dto/admin.dto.js";
+} from "../dto/admin.dto";
 import {
   CountryListResponseDto,
   CountrySummaryDto,
   CreateCountryDto,
   UpdateCountryDto,
-} from "../dto/country.dto.js";
+} from "../dto/country.dto";
 import {
   CreateCustomerDto,
   CustomerListResponseDto,
   CustomerSummaryDto,
   UpdateCustomerDto,
-} from "../dto/customer.dto.js";
+} from "../dto/customer.dto";
 import {
   CreateLanguageDto,
   LanguageListResponseDto,
   LanguageSummaryDto,
   UpdateLanguageDto,
-} from "../dto/language.dto.js";
+} from "../dto/language.dto";
 
 function requireString(value: unknown, field: string): string {
   if (typeof value !== "string" || value.length === 0)

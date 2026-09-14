@@ -7,6 +7,6 @@
 // Express has no DI container, so `createAuthApp` (see create-auth-app.ts) just builds the
 // database and passes it to each class's constructor directly.
 import type { NodePgDatabase } from "drizzle-orm/node-postgres";
-import type * as schema from "@/database/schema.js";
+import type * as schema from "@/database/schema";
 
 export type Database = NodePgDatabase<typeof schema>;

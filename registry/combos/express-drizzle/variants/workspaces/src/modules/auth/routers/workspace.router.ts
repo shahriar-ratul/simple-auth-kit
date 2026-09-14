@@ -1,14 +1,14 @@
 import { Router } from "express";
 import type { NextFunction, Request, RequestHandler, Response } from "express";
-import { HttpError } from "../../../infra/errors/http-error.js";
-import { RbacRepository } from "../repositories/rbac.repository.js";
+import { HttpError } from "../../../infra/errors/http-error";
+import { RbacRepository } from "../repositories/rbac.repository";
 import {
   ability,
   authenticated,
   createTieredRouter,
-} from "../../../infra/route-tiers.js";
-import { WorkspaceRepository } from "../repositories/workspace.repository.js";
-import "../../../infra/request-context.js";
+} from "../../../infra/route-tiers";
+import { WorkspaceRepository } from "../repositories/workspace.repository";
+import "../../../infra/request-context";
 
 function requireString(value: unknown, field: string): string {
   if (typeof value !== "string" || value.length === 0)

@@ -13,7 +13,7 @@
 //
 // Typed loosely: this is a giant JSON literal, not application logic. Correctness of the JSON
 // shape (valid OpenAPI) matters far more than TS precision here.
-import { adminSpec } from "./openapi-admin.js";
+import { adminSpec } from "./openapi-admin";
 
 export const openApiSpec: Record<string, unknown> = {
   openapi: "3.0.3",

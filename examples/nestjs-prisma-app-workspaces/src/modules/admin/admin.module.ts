@@ -1,10 +1,10 @@
-import { Module } from "@nestjs/common";
-import { AdminController } from "./controllers/admin.controller.js";
-import { AdminService } from "./services/admin.service.js";
-import { AuditLogModule } from "../audit-log/audit-log.module.js";
-import { CountryRepository } from "./repositories/country.repository.js";
-import { CustomerRepository } from "./repositories/customer.repository.js";
-import { LanguageRepository } from "./repositories/language.repository.js";
+import { Module } from '@nestjs/common';
+import { AdminController } from './controllers/admin.controller';
+import { AdminService } from './services/admin.service';
+import { AuditLogModule } from '../audit-log/audit-log.module';
+import { CountryRepository } from './repositories/country.repository';
+import { CustomerRepository } from './repositories/customer.repository';
+import { LanguageRepository } from './repositories/language.repository';
 
 // Plain feature module — no forRoot(). Relies on CoreAuthModule already being imported
 // (it's @Global()) for RbacRepository/SessionRepository/PrismaClient/the guards/AUTH_CONFIG —
@@ -15,11 +15,6 @@ import { LanguageRepository } from "./repositories/language.repository.js";
 @Module({
   imports: [AuditLogModule],
   controllers: [AdminController],
-  providers: [
-    AdminService,
-    CountryRepository,
-    LanguageRepository,
-    CustomerRepository,
-  ],
+  providers: [AdminService, CountryRepository, LanguageRepository, CustomerRepository],
 })
 export class AdminModule {}

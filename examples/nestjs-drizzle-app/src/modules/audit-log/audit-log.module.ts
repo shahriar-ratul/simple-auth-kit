@@ -1,7 +1,7 @@
-import { Module } from "@nestjs/common";
-import { AuditLogController } from "./controllers/audit-log.controller.js";
-import { AuditLogRepository } from "./repositories/audit-log.repository.js";
-import { AuditLogService } from "./services/audit-log.service.js";
+import { Module } from '@nestjs/common';
+import { AuditLogController } from './controllers/audit-log.controller';
+import { AuditLogRepository } from './repositories/audit-log.repository';
+import { AuditLogService } from './services/audit-log.service';
 
 // Plain feature module — no forRoot(). Exports AuditLogRepository: SessionRepository
 // (modules/auth) writes to it via appendAuditEvent(), and AdminModule writes to it directly for

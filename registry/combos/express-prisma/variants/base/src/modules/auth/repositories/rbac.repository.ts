@@ -1,14 +1,14 @@
-import { resolvePermissions } from "@/lib/auth/core/rbac.js";
-import { Prisma, PrismaClient } from "@/database/generated/prisma/client.js";
-import { HttpError } from "../../../infra/errors/http-error.js";
+import { resolvePermissions } from "@/lib/auth/core/rbac";
+import { Prisma, PrismaClient } from "@/database/generated/prisma/client";
+import { HttpError } from "../../../infra/errors/http-error";
 import {
   buildPageMeta,
   normalizeLimit,
   normalizePage,
   type Paginated,
-} from "../../../common/helpers/pagination.js";
-import { PermissionCache } from "../../../common/auth/cache/permission-cache.js";
-import { toId, toIdOrNull } from "../../../common/helpers/id.helper.js";
+} from "../../../common/helpers/pagination";
+import { PermissionCache } from "../../../common/auth/cache/permission-cache";
+import { toId, toIdOrNull } from "../../../common/helpers/id.helper";
 
 export interface UserSummary {
   id: string;

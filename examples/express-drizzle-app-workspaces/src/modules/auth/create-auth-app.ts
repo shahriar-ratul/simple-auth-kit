@@ -1,45 +1,36 @@
-import express, { Express } from "express";
-import swaggerUi from "swagger-ui-express";
-import { drizzle } from "drizzle-orm/node-postgres";
-import { Pool } from "pg";
-import type { RateLimitDeps } from "@/core/rate-limit.js";
-import { createAdminRouter } from "../admin/routers/admin.router.js";
-import { AdminService } from "../admin/services/admin.service.js";
-import { createRolesRouter } from "../roles/routers/roles.router.js";
-import { RolesService } from "../roles/services/roles.service.js";
-import { createPermissionsRouter } from "../permissions/routers/permissions.router.js";
-import { PermissionsService } from "../permissions/services/permissions.service.js";
-import { createAuditLogRouter } from "../audit-log/routers/audit-log.router.js";
-import { AuditLogService } from "../audit-log/services/audit-log.service.js";
-import { AuditLogRepository } from "../audit-log/repositories/audit-log.repository.js";
-import { authCoreErrorMiddleware } from "../../infra/middleware/auth-core-error.middleware.js";
-import {
-  AuthConfig,
-  defaultAuthConfig,
-} from "../../common/config/auth.config.js";
-import { createAuthMiddleware } from "../../common/auth/middleware/auth.middleware.js";
-import { createAuthRouter } from "./routers/auth.router.js";
-import { AuthService } from "./services/auth.service.js";
-import {
-  createAuthzMiddleware,
-  createWorkspaceMiddleware,
-} from "../../common/auth/middleware/authz.middleware.js";
-import { KeyProviderService } from "../../common/config/key-provider.js";
-import { OAuthRepository } from "./repositories/oauth.repository.js";
-import { openApiSpec } from "../../infra/openapi/openapi-spec.js";
-import { PasswordResetRepository } from "./repositories/password-reset.repository.js";
-import {
-  InMemoryPermissionCacheStore,
-  PermissionCache,
-} from "../../common/auth/cache/permission-cache.js";
-import { InMemoryRateLimitStore } from "../../common/auth/cache/rate-limit.store.js";
-import { RbacRepository } from "./repositories/rbac.repository.js";
-import { responseEnvelope } from "../../infra/middleware/response-envelope.middleware.js";
-import * as schema from "@/database/schema.js";
-import { SessionRepository } from "./repositories/session.repository.js";
-import { TwoFactorRepository } from "./repositories/two-factor.repository.js";
-import { createWorkspaceRouter } from "./routers/workspace.router.js";
-import { WorkspaceRepository } from "./repositories/workspace.repository.js";
+import express, { Express } from 'express';
+import swaggerUi from 'swagger-ui-express';
+import { drizzle } from 'drizzle-orm/node-postgres';
+import { Pool } from 'pg';
+import type { RateLimitDeps } from '@/core/rate-limit';
+import { createAdminRouter } from '../admin/routers/admin.router';
+import { AdminService } from '../admin/services/admin.service';
+import { createRolesRouter } from '../roles/routers/roles.router';
+import { RolesService } from '../roles/services/roles.service';
+import { createPermissionsRouter } from '../permissions/routers/permissions.router';
+import { PermissionsService } from '../permissions/services/permissions.service';
+import { createAuditLogRouter } from '../audit-log/routers/audit-log.router';
+import { AuditLogService } from '../audit-log/services/audit-log.service';
+import { AuditLogRepository } from '../audit-log/repositories/audit-log.repository';
+import { authCoreErrorMiddleware } from '../../infra/middleware/auth-core-error.middleware';
+import { AuthConfig, defaultAuthConfig } from '../../common/config/auth.config';
+import { createAuthMiddleware } from '../../common/auth/middleware/auth.middleware';
+import { createAuthRouter } from './routers/auth.router';
+import { AuthService } from './services/auth.service';
+import { createAuthzMiddleware, createWorkspaceMiddleware } from '../../common/auth/middleware/authz.middleware';
+import { KeyProviderService } from '../../common/config/key-provider';
+import { OAuthRepository } from './repositories/oauth.repository';
+import { openApiSpec } from '../../infra/openapi/openapi-spec';
+import { PasswordResetRepository } from './repositories/password-reset.repository';
+import { InMemoryPermissionCacheStore, PermissionCache } from '../../common/auth/cache/permission-cache';
+import { InMemoryRateLimitStore } from '../../common/auth/cache/rate-limit.store';
+import { RbacRepository } from './repositories/rbac.repository';
+import { responseEnvelope } from '../../infra/middleware/response-envelope.middleware';
+import * as schema from '@/database/schema';
+import { SessionRepository } from './repositories/session.repository';
+import { TwoFactorRepository } from './repositories/two-factor.repository';
+import { createWorkspaceRouter } from './routers/workspace.router';
+import { WorkspaceRepository } from './repositories/workspace.repository';
 
 /**
  * Factory wiring a Drizzle `NodePgDatabase` (from a `pg.Pool`) plus all the plain classes,
@@ -57,7 +48,7 @@ import { WorkspaceRepository } from "./repositories/workspace.repository.js";
  * lives in.
  */
 export function createAuthApp(config: Partial<AuthConfig> = {}): Express {
-  const pool = new Pool({ connectionString: process.env["DATABASE_URL"] });
+  const pool = new Pool({ connectionString: process.env['DATABASE_URL'] });
   const db = drizzle(pool, { schema });
 
   const resolvedConfig: AuthConfig = { ...defaultAuthConfig, ...config };
@@ -66,8 +57,7 @@ export function createAuthApp(config: Partial<AuthConfig> = {}): Express {
   const keys = new KeyProviderService();
   // Swap the store for a Redis-backed one by passing `rateLimitStore` in `config` — nothing in
   // this library's source changes.
-  const rateLimit: RateLimitDeps =
-    resolvedConfig.rateLimitStore ?? new InMemoryRateLimitStore();
+  const rateLimit: RateLimitDeps = resolvedConfig.rateLimitStore ?? new InMemoryRateLimitStore();
   // The cache seam. Swap the store for a Redis-backed one by passing `permissionCacheStore` in
   // `config` — nothing in this library's source changes. Keys are namespaced simpleauthkit:authz:*.
   const permissionCache = new PermissionCache(
@@ -79,16 +69,7 @@ export function createAuthApp(config: Partial<AuthConfig> = {}): Express {
   const twoFactor = new TwoFactorRepository(db);
   const oauth = new OAuthRepository(db);
   const passwordReset = new PasswordResetRepository(db);
-  const authService = new AuthService(
-    db,
-    sessions,
-    keys,
-    rateLimit,
-    twoFactor,
-    oauth,
-    passwordReset,
-    resolvedConfig,
-  );
+  const authService = new AuthService(db, sessions, keys, rateLimit, twoFactor, oauth, passwordReset, resolvedConfig);
   const adminService = new AdminService(db, sessions, auditLog, rbac);
   const rolesService = new RolesService(rbac);
   const permissionsService = new PermissionsService(rbac);
@@ -106,9 +87,9 @@ export function createAuthApp(config: Partial<AuthConfig> = {}): Express {
 
   if (!resolvedConfig.permissionCacheStore || !resolvedConfig.rateLimitStore) {
     console.warn(
-      "[simple-auth-kit] permissionCacheStore/rateLimitStore not overridden — using in-memory defaults. " +
-        "Fine for a single instance; silently inconsistent (stale grants, wrong rate-limit counts) " +
-        "across replicas once you run more than one. Override permissionCacheStore/rateLimitStore " +
+      '[simple-auth-kit] permissionCacheStore/rateLimitStore not overridden — using in-memory defaults. ' +
+        'Fine for a single instance; silently inconsistent (stale grants, wrong rate-limit counts) ' +
+        'across replicas once you run more than one. Override permissionCacheStore/rateLimitStore ' +
         "in createAuthApp's config before scaling out.",
     );
   }
@@ -120,7 +101,7 @@ export function createAuthApp(config: Partial<AuthConfig> = {}): Express {
   // your own app.
   app.use(responseEnvelope());
   app.use(
-    "/api/v1/admin",
+    '/api/v1/admin',
     createAdminRouter({
       admin: adminService,
       workspaces,
@@ -129,7 +110,7 @@ export function createAuthApp(config: Partial<AuthConfig> = {}): Express {
     }),
   );
   app.use(
-    "/api/v1/roles",
+    '/api/v1/roles',
     createRolesRouter({
       roles: rolesService,
       authentication: requireAuth,
@@ -137,7 +118,7 @@ export function createAuthApp(config: Partial<AuthConfig> = {}): Express {
     }),
   );
   app.use(
-    "/api/v1/permissions",
+    '/api/v1/permissions',
     createPermissionsRouter({
       permissions: permissionsService,
       authentication: requireAuth,
@@ -145,7 +126,7 @@ export function createAuthApp(config: Partial<AuthConfig> = {}): Express {
     }),
   );
   app.use(
-    "/api/v1/audit-log",
+    '/api/v1/audit-log',
     createAuditLogRouter({
       auditLog: auditLogService,
       authentication: requireAuth,
@@ -153,7 +134,7 @@ export function createAuthApp(config: Partial<AuthConfig> = {}): Express {
     }),
   );
   app.use(
-    "/api/v1/auth",
+    '/api/v1/auth',
     createAuthRouter({
       auth: authService,
       config: resolvedConfig,
@@ -162,7 +143,7 @@ export function createAuthApp(config: Partial<AuthConfig> = {}): Express {
     }),
   );
   app.use(
-    "/api/v1/workspaces",
+    '/api/v1/workspaces',
     createWorkspaceRouter({
       workspaces,
       rbac,
@@ -173,8 +154,8 @@ export function createAuthApp(config: Partial<AuthConfig> = {}): Express {
   );
   // Hand-authored OpenAPI spec (see openapi-spec.ts) — this combo has no NestJS decorators to
   // generate one from, so it's served as static JSON, same as the nestjs-* combos' /docs-json.
-  app.use("/docs", swaggerUi.serve, swaggerUi.setup(openApiSpec));
-  app.get("/docs-json", (req, res) => res.json(openApiSpec));
+  app.use('/docs', swaggerUi.serve, swaggerUi.setup(openApiSpec));
+  app.get('/docs-json', (req, res) => res.json(openApiSpec));
   app.use(authCoreErrorMiddleware);
 
   return app;

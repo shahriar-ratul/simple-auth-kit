@@ -1,5 +1,5 @@
-import { Injectable } from "@nestjs/common";
-import type { RateLimitDeps } from "@/core/rate-limit.js";
+import { Injectable } from '@nestjs/common';
+import type { RateLimitDeps } from '@/core/rate-limit';
 
 /**
  * In-memory window counter — fine for a single instance / the reference combo's proof.
@@ -8,10 +8,7 @@ import type { RateLimitDeps } from "@/core/rate-limit.js";
  */
 @Injectable()
 export class InMemoryRateLimitStore implements RateLimitDeps {
-  private readonly windows = new Map<
-    string,
-    { count: number; resetAt: number }
-  >();
+  private readonly windows = new Map<string, { count: number; resetAt: number }>();
 
   async increment(key: string, windowMs: number): Promise<number> {
     const now = Date.now();
@@ -26,4 +23,4 @@ export class InMemoryRateLimitStore implements RateLimitDeps {
 }
 
 /** DI token for the store. Provide your own to `AuthModule.forRoot({ rateLimitStore })` — mirrors `PERMISSION_CACHE_STORE`. */
-export const RATE_LIMIT_STORE = Symbol("RATE_LIMIT_STORE");
+export const RATE_LIMIT_STORE = Symbol('RATE_LIMIT_STORE');

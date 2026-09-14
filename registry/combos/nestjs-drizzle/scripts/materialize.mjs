@@ -32,8 +32,13 @@ const REPLACED_ENTRIES = [
 
 const TSCONFIG = {
   // Depth is fixed by the layout: <repo>/registry/combos/<combo>/.variant/<variant>/
+  // module/moduleResolution are overridden to CommonJS/bundler, not inherited from the root
+  // tsconfig.base.json's NodeNext - this tree proves the exact module system the CLI ships to a
+  // consumer's project (see shared/root/tsconfig.build.json), not the monorepo's own ESM setup.
   extends: "../../../../../tsconfig.base.json",
   compilerOptions: {
+    module: "CommonJS",
+    moduleResolution: "bundler",
     paths: {
       "@/lib/auth/core/*": ["../../../../core/*"],
       "@/database/*": ["./database/*"],

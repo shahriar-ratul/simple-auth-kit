@@ -1,7 +1,7 @@
-import { and, eq, isNull } from "drizzle-orm";
-import type { NodePgDatabase } from "drizzle-orm/node-postgres";
-import { verifyBackupCode } from "@/core/two-factor.js";
-import * as schema from "@/database/schema.js";
+import { and, eq, isNull } from 'drizzle-orm';
+import type { NodePgDatabase } from 'drizzle-orm/node-postgres';
+import { verifyBackupCode } from '@/core/two-factor';
+import * as schema from '@/database/schema';
 
 /**
  * Plain class, no decorators — Drizzle-specific implementation mirroring the reference
@@ -15,25 +15,16 @@ export class TwoFactorRepository {
 
   /** Replaces any prior set — re-confirming enrollment invalidates old backup codes. */
   async saveBackupCodes(userId: bigint, hashes: string[]): Promise<void> {
-    await this.db
-      .delete(schema.twoFactorBackupCodes)
-      .where(eq(schema.twoFactorBackupCodes.userId, userId));
+    await this.db.delete(schema.twoFactorBackupCodes).where(eq(schema.twoFactorBackupCodes.userId, userId));
     if (hashes.length === 0) return;
-    await this.db
-      .insert(schema.twoFactorBackupCodes)
-      .values(hashes.map((codeHash) => ({ userId, codeHash })));
+    await this.db.insert(schema.twoFactorBackupCodes).values(hashes.map((codeHash) => ({ userId, codeHash })));
   }
 
   async consumeBackupCode(userId: bigint, code: string): Promise<boolean> {
     const unused = await this.db
       .select()
       .from(schema.twoFactorBackupCodes)
-      .where(
-        and(
-          eq(schema.twoFactorBackupCodes.userId, userId),
-          isNull(schema.twoFactorBackupCodes.usedAt),
-        ),
-      );
+      .where(and(eq(schema.twoFactorBackupCodes.userId, userId), isNull(schema.twoFactorBackupCodes.usedAt)));
     const match = unused.find((row) => verifyBackupCode(code, row.codeHash));
     if (!match) return false;
 
@@ -45,8 +36,6 @@ export class TwoFactorRepository {
   }
 
   async clearBackupCodes(userId: bigint): Promise<void> {
-    await this.db
-      .delete(schema.twoFactorBackupCodes)
-      .where(eq(schema.twoFactorBackupCodes.userId, userId));
+    await this.db.delete(schema.twoFactorBackupCodes).where(eq(schema.twoFactorBackupCodes.userId, userId));
   }
 }

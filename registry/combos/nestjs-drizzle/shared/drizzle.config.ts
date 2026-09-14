@@ -1,10 +1,9 @@
 import { existsSync } from "node:fs";
 import { dirname, join } from "node:path";
-import { fileURLToPath } from "node:url";
 import { config as loadDotenv } from "dotenv";
 import { defineConfig } from "drizzle-kit";
 
-const thisDir = dirname(fileURLToPath(import.meta.url));
+const thisDir: string = __dirname;
 
 // Plain `import "dotenv/config"` only loads `.env` relative to the process's cwd, which misses
 // the project's real `.env` at the root. Resolve from this file's own location instead and walk

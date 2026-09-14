@@ -21,25 +21,22 @@ import {
   ApiTags,
 } from "@nestjs/swagger";
 import type { Request } from "express";
-import { AbilityGuard } from "../../../common/auth/ability/ability.guard.js";
-import { AuthGuard } from "../../../common/auth/guards/auth.guard.js";
+import { AbilityGuard } from "../../../common/auth/ability/ability.guard";
+import { AuthGuard } from "../../../common/auth/guards/auth.guard";
 import {
   WORKSPACE_HEADER,
   WorkspaceGuard,
-} from "../../../common/auth/guards/authz.guard.js";
-import { CheckAbility } from "../../../infra/route-tiers.js";
-import {
-  DeleteReasonDto,
-  OkResponseDto,
-} from "../../../common/dto/shared.dto.js";
+} from "../../../common/auth/guards/authz.guard";
+import { CheckAbility } from "../../../infra/route-tiers";
+import { DeleteReasonDto, OkResponseDto } from "../../../common/dto/shared.dto";
 import {
   AttachPermissionDto,
   CreateRoleDto,
   RoleListResponseDto,
   RoleSummaryDto,
   UpdateRoleDto,
-} from "../dto/role.dto.js";
-import { RoleService } from "../services/role.service.js";
+} from "../dto/role.dto";
+import { RoleService } from "../services/role.service";
 
 function requireString(value: unknown, field: string): string {
   if (typeof value !== "string" || value.length === 0)

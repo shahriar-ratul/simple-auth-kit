@@ -8,8 +8,13 @@ import {
   revokeSession,
   rotateRefreshToken,
   SessionStoreDeps,
-} from "../session-policy.js";
-import { AuditEvent, RefreshInvalidError, RefreshReuseDetectedError, SessionRecord } from "../types.js";
+} from "../session-policy";
+import {
+  AuditEvent,
+  RefreshInvalidError,
+  RefreshReuseDetectedError,
+  SessionRecord,
+} from "../types";
 
 /** What a store would read from config. Long enough that no test trips over it by accident. */
 const SESSION_TTL_MS = 60 * 60 * 1000;
@@ -83,7 +88,11 @@ describe("session-policy", () => {
     const session = await createSession(store.deps, { userId: "user-1" });
     expect(session.sessionVersion).toBe(0);
     expect(session.revokedAt).toBeNull();
-    expect(store.auditLog).toContainEqual({ type: "session_created", sessionId: session.id, userId: "user-1" });
+    expect(store.auditLog).toContainEqual({
+      type: "session_created",
+      sessionId: session.id,
+      userId: "user-1",
+    });
   });
 
   it("rotates a refresh token on legitimate use, issuing a new jti", async () => {
@@ -103,15 +112,27 @@ describe("session-policy", () => {
     const session = await createSession(store.deps, { userId: "user-1" });
     const staleJti = session.currentRefreshJti;
 
-    await rotateRefreshToken(store.deps, { sub: "user-1", sessionId: session.id, sv: session.sessionVersion, jti: staleJti });
+    await rotateRefreshToken(store.deps, {
+      sub: "user-1",
+      sessionId: session.id,
+      sv: session.sessionVersion,
+      jti: staleJti,
+    });
 
     await expect(
-      rotateRefreshToken(store.deps, { sub: "user-1", sessionId: session.id, sv: session.sessionVersion, jti: staleJti }),
+      rotateRefreshToken(store.deps, {
+        sub: "user-1",
+        sessionId: session.id,
+        sv: session.sessionVersion,
+        jti: staleJti,
+      }),
     ).rejects.toBeInstanceOf(RefreshReuseDetectedError);
 
     const updated = await store.deps.findSession(session.id);
     expect(updated?.revokedAt).not.toBeNull();
-    expect(store.auditLog.some((e) => e.type === "refresh_reuse_detected")).toBe(true);
+    expect(
+      store.auditLog.some((e) => e.type === "refresh_reuse_detected"),
+    ).toBe(true);
   });
 
   it("rejects a refresh token whose sv is stale (session was revoked)", async () => {
@@ -148,20 +169,27 @@ describe("session-policy", () => {
 
     expect((await store.deps.findSession(current.id))?.revokedAt).toBeNull();
     expect((await store.deps.findSession(other.id))?.revokedAt).not.toBeNull();
-    expect(store.auditLog.some((e) => e.type === "other_sessions_revoked")).toBe(true);
+    expect(
+      store.auditLog.some((e) => e.type === "other_sessions_revoked"),
+    ).toBe(true);
   });
 
   it("blockUser revokes every session immediately, not just future logins", async () => {
     const session = await createSession(store.deps, { userId: "user-1" });
     await blockUser(store.deps, "user-1");
 
-    expect((await store.deps.findSession(session.id))?.revokedAt).not.toBeNull();
+    expect(
+      (await store.deps.findSession(session.id))?.revokedAt,
+    ).not.toBeNull();
     expect(store.auditLog.some((e) => e.type === "user_blocked")).toBe(true);
   });
 
   it("records who revoked a session, and from where", async () => {
     const session = await createSession(store.deps, { userId: "user-1" });
-    await revokeSession(store.deps, session.id, { userId: "user-1", ip: "10.0.0.9" });
+    await revokeSession(store.deps, session.id, {
+      userId: "user-1",
+      ip: "10.0.0.9",
+    });
 
     const revoked = await store.deps.findSession(session.id);
     expect(revoked?.revokedBy).toBe("user-1");
@@ -170,7 +198,10 @@ describe("session-policy", () => {
 
   it("blockUser records the administrator as the revoker, not the blocked user", async () => {
     const session = await createSession(store.deps, { userId: "user-1" });
-    await blockUser(store.deps, "user-1", { userId: "admin-1", ip: "10.0.0.1" });
+    await blockUser(store.deps, "user-1", {
+      userId: "admin-1",
+      ip: "10.0.0.1",
+    });
 
     // The distinction the column exists for: afterwards the row says an administrator ended this,
     // not merely that it ended.
@@ -182,28 +213,53 @@ describe("session-policy", () => {
   it("a refresh-reuse kill records no revoker — nobody did it", async () => {
     const session = await createSession(store.deps, { userId: "user-1" });
     const staleJti = session.currentRefreshJti;
-    await rotateRefreshToken(store.deps, { sub: "user-1", sessionId: session.id, sv: session.sessionVersion, jti: staleJti });
+    await rotateRefreshToken(store.deps, {
+      sub: "user-1",
+      sessionId: session.id,
+      sv: session.sessionVersion,
+      jti: staleJti,
+    });
 
     await expect(
-      rotateRefreshToken(store.deps, { sub: "user-1", sessionId: session.id, sv: session.sessionVersion, jti: staleJti }),
+      rotateRefreshToken(store.deps, {
+        sub: "user-1",
+        sessionId: session.id,
+        sv: session.sessionVersion,
+        jti: staleJti,
+      }),
     ).rejects.toBeInstanceOf(RefreshReuseDetectedError);
 
-    expect((await store.deps.findSession(session.id))?.revokedBy).toBeUndefined();
+    expect(
+      (await store.deps.findSession(session.id))?.revokedBy,
+    ).toBeUndefined();
   });
 
   it("refuses to rotate a session past its own expiry, however valid the token is", async () => {
     const session = await createSession(store.deps, { userId: "user-1" });
     // Everything about the presented token stays correct — only the wall clock has moved on.
-    store.sessions.set(session.id, { ...session, expiresAt: new Date(Date.now() - 1000).toISOString() });
+    store.sessions.set(session.id, {
+      ...session,
+      expiresAt: new Date(Date.now() - 1000).toISOString(),
+    });
 
     await expect(
-      rotateRefreshToken(store.deps, { sub: "user-1", sessionId: session.id, sv: session.sessionVersion, jti: session.currentRefreshJti }),
+      rotateRefreshToken(store.deps, {
+        sub: "user-1",
+        sessionId: session.id,
+        sv: session.sessionVersion,
+        jti: session.currentRefreshJti,
+      }),
     ).rejects.toBeInstanceOf(RefreshInvalidError);
   });
 
   it("carries the login provider onto the session", async () => {
-    const session = await createSession(store.deps, { userId: "user-1", provider: "google" });
+    const session = await createSession(store.deps, {
+      userId: "user-1",
+      provider: "google",
+    });
     expect(session.provider).toBe("google");
-    expect((await createSession(store.deps, { userId: "user-1" })).provider).toBeUndefined();
+    expect(
+      (await createSession(store.deps, { userId: "user-1" })).provider,
+    ).toBeUndefined();
   });
 });

@@ -1,7 +1,7 @@
 import { and, eq, isNull } from "drizzle-orm";
 import type { NodePgDatabase } from "drizzle-orm/node-postgres";
-import { verifyBackupCode } from "@/lib/auth/core/two-factor.js";
-import * as schema from "@/database/schema.js";
+import { verifyBackupCode } from "@/lib/auth/core/two-factor";
+import * as schema from "@/database/schema";
 
 /**
  * Plain class, no decorators — Drizzle-specific implementation mirroring the reference

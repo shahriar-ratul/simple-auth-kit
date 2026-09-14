@@ -1,18 +1,9 @@
-import {
-  CanActivate,
-  ExecutionContext,
-  ForbiddenException,
-  Inject,
-  Injectable,
-} from "@nestjs/common";
-import { defineAbilitiesFor } from "../ability/ability.js";
-import { PermissionCache } from "../cache/permission-cache.js";
-import {
-  memberCacheKey,
-  RbacRepository,
-} from "../../../modules/auth/repositories/rbac.repository.js";
+import { CanActivate, ExecutionContext, ForbiddenException, Inject, Injectable } from '@nestjs/common';
+import { defineAbilitiesFor } from '../ability/ability';
+import { PermissionCache } from '../cache/permission-cache';
+import { memberCacheKey, RbacRepository } from '../../../modules/auth/repositories/rbac.repository';
 
-export const WORKSPACE_HEADER = "x-workspace-id";
+export const WORKSPACE_HEADER = 'x-workspace-id';
 
 /**
  * Roles and permissions belong to a *membership*, not a user, so they could not be baked into the
@@ -43,26 +34,20 @@ export interface AuthzContext {
  * Idempotent: a route may legitimately sit behind both guards, and resolving twice would double
  * the hot path's query count for no gain.
  */
-async function resolve(
-  rbac: RbacRepository,
-  cache: PermissionCache,
-  context: ExecutionContext,
-): Promise<void> {
+async function resolve(rbac: RbacRepository, cache: PermissionCache, context: ExecutionContext): Promise<void> {
   const req = context.switchToHttp().getRequest();
   if (req.authz) return;
 
   const workspaceId = req.headers[WORKSPACE_HEADER];
-  if (!req.auth || typeof workspaceId !== "string" || workspaceId.length === 0)
-    return;
+  if (!req.auth || typeof workspaceId !== 'string' || workspaceId.length === 0) return;
 
   const userId = req.auth.sub as string;
-  const authz = await cache.resolve<AuthzContext>(
-    memberCacheKey(userId, workspaceId),
-    () => rbac.resolveAuthzContext(userId, workspaceId),
+  const authz = await cache.resolve<AuthzContext>(memberCacheKey(userId, workspaceId), () =>
+    rbac.resolveAuthzContext(userId, workspaceId),
   );
   // Deliberately the same answer for "no such workspace" and "not your workspace": a caller
   // outside a workspace must not be able to probe whether it exists.
-  if (!authz) throw new ForbiddenException("not a member of this workspace");
+  if (!authz) throw new ForbiddenException('not a member of this workspace');
   req.authz = authz;
   // Scoped to this workspace by construction: the permissions it is built from are the ones that
   // membership carries *here*, so the ability /auth/me describes grants nothing anywhere else.
@@ -98,8 +83,7 @@ export class WorkspaceGuard implements CanActivate {
   async canActivate(context: ExecutionContext): Promise<boolean> {
     await resolve(this.rbac, this.cache, context);
     const req = context.switchToHttp().getRequest();
-    if (!req.authz)
-      throw new ForbiddenException(`${WORKSPACE_HEADER} header is required`);
+    if (!req.authz) throw new ForbiddenException(`${WORKSPACE_HEADER} header is required`);
     return true;
   }
 }

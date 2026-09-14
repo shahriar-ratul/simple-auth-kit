@@ -4,7 +4,7 @@
 // `provisionDefaultRoles` writes these rows once at seed time; from then on the database is
 // authoritative and nothing in the request path reads this file. Callers: `src/seed.ts` and
 // `variants/base/test/variant-hooks.ts`.
-import type { PrismaClient } from "@/database/generated/prisma/client.js";
+import type { PrismaClient } from '@/database/generated/prisma/client';
 
 export interface PermissionSeed {
   displayName: string;
@@ -17,129 +17,123 @@ export interface PermissionSeed {
 // same noun are separate slugs; block and unblock share one since they're a single capability
 // used in two directions.
 export const PERMISSION_CATALOG = {
-  "users:read": {
-    displayName: "List users",
-    description: "GET /api/v1/admin/users, GET /api/v1/admin/users/:userId",
-    group: "Users",
+  'users:read': {
+    displayName: 'List users',
+    description: 'GET /api/v1/admin/users, GET /api/v1/admin/users/:userId',
+    group: 'Users',
     order: 1,
   },
-  "users:block": {
-    displayName: "Block and unblock users",
-    description: "POST /api/v1/admin/users/:userId/block, .../unblock",
-    group: "Users",
+  'users:block': {
+    displayName: 'Block and unblock users',
+    description: 'POST /api/v1/admin/users/:userId/block, .../unblock',
+    group: 'Users',
     order: 2,
   },
-  "users:manage": {
-    displayName: "Create, edit, and delete users",
+  'users:manage': {
+    displayName: 'Create, edit, and delete users',
     description:
       "Create a user directly, edit a user's profile, or delete their account — POST /api/v1/admin/users, PATCH /api/v1/admin/users/:userId, DELETE /api/v1/admin/users/:userId",
-    group: "Users",
+    group: 'Users',
     order: 3,
   },
-  "roles:manage": {
-    displayName: "Define roles",
+  'roles:manage': {
+    displayName: 'Define roles',
     description:
-      "Create, edit, or delete roles and say what they carry — POST/PATCH/DELETE /api/v1/roles(/:roleId), POST /api/v1/roles/:roleId/permissions",
-    group: "Roles",
+      'Create, edit, or delete roles and say what they carry — POST/PATCH/DELETE /api/v1/roles(/:roleId), POST /api/v1/roles/:roleId/permissions',
+    group: 'Roles',
     order: 1,
   },
-  "roles:assign": {
-    displayName: "Assign roles",
+  'roles:assign': {
+    displayName: 'Assign roles',
     description:
       "Assign and revoke a user's roles — POST /api/v1/admin/users/:userId/roles, .../roles/:roleSlug/revoke",
-    group: "Roles",
+    group: 'Roles',
     order: 2,
   },
-  "permissions:read": {
-    displayName: "Read the permission catalog",
-    description: "GET /api/v1/permissions",
-    group: "Permissions",
+  'permissions:read': {
+    displayName: 'Read the permission catalog',
+    description: 'GET /api/v1/permissions',
+    group: 'Permissions',
     order: 1,
   },
-  "permissions:define": {
-    displayName: "Define permissions",
+  'permissions:define': {
+    displayName: 'Define permissions',
     description:
-      "Create a permission, rename it, or deactivate it — POST /api/v1/permissions. The authority that defines all the others.",
-    group: "Permissions",
+      'Create a permission, rename it, or deactivate it — POST /api/v1/permissions. The authority that defines all the others.',
+    group: 'Permissions',
     order: 2,
   },
-  "permissions:grant": {
-    displayName: "Grant permissions directly",
+  'permissions:grant': {
+    displayName: 'Grant permissions directly',
     description:
-      "Grant and revoke a permission straight to a user, bypassing roles — POST /api/v1/admin/users/:userId/permissions, .../permissions/:slug/revoke",
-    group: "Permissions",
+      'Grant and revoke a permission straight to a user, bypassing roles — POST /api/v1/admin/users/:userId/permissions, .../permissions/:slug/revoke',
+    group: 'Permissions',
     order: 3,
   },
-  "audit-log:read": {
-    displayName: "Read the audit log",
-    description: "GET /api/v1/audit-log",
-    group: "Audit",
+  'audit-log:read': {
+    displayName: 'Read the audit log',
+    description: 'GET /api/v1/audit-log',
+    group: 'Audit',
     order: 1,
   },
 
-  "countries:read": {
-    displayName: "List countries",
-    description:
-      "GET /api/v1/admin/countries, GET /api/v1/admin/countries/:countryId",
-    group: "Countries",
+  'countries:read': {
+    displayName: 'List countries',
+    description: 'GET /api/v1/admin/countries, GET /api/v1/admin/countries/:countryId',
+    group: 'Countries',
     order: 1,
   },
-  "countries:manage": {
-    displayName: "Create, edit, and delete countries",
+  'countries:manage': {
+    displayName: 'Create, edit, and delete countries',
     description:
-      "POST /api/v1/admin/countries, PATCH /api/v1/admin/countries/:countryId, DELETE /api/v1/admin/countries/:countryId",
-    group: "Countries",
+      'POST /api/v1/admin/countries, PATCH /api/v1/admin/countries/:countryId, DELETE /api/v1/admin/countries/:countryId',
+    group: 'Countries',
     order: 2,
   },
-  "countries:status": {
-    displayName: "Activate and deactivate countries",
-    description:
-      "POST /api/v1/admin/countries/:countryId/activate, .../deactivate",
-    group: "Countries",
+  'countries:status': {
+    displayName: 'Activate and deactivate countries',
+    description: 'POST /api/v1/admin/countries/:countryId/activate, .../deactivate',
+    group: 'Countries',
     order: 3,
   },
 
-  "languages:read": {
-    displayName: "List languages",
-    description:
-      "GET /api/v1/admin/languages, GET /api/v1/admin/languages/:languageId",
-    group: "Languages",
+  'languages:read': {
+    displayName: 'List languages',
+    description: 'GET /api/v1/admin/languages, GET /api/v1/admin/languages/:languageId',
+    group: 'Languages',
     order: 1,
   },
-  "languages:manage": {
-    displayName: "Create, edit, and delete languages",
+  'languages:manage': {
+    displayName: 'Create, edit, and delete languages',
     description:
-      "POST /api/v1/admin/languages, PATCH /api/v1/admin/languages/:languageId, DELETE /api/v1/admin/languages/:languageId",
-    group: "Languages",
+      'POST /api/v1/admin/languages, PATCH /api/v1/admin/languages/:languageId, DELETE /api/v1/admin/languages/:languageId',
+    group: 'Languages',
     order: 2,
   },
-  "languages:status": {
-    displayName: "Activate and deactivate languages",
-    description:
-      "POST /api/v1/admin/languages/:languageId/activate, .../deactivate",
-    group: "Languages",
+  'languages:status': {
+    displayName: 'Activate and deactivate languages',
+    description: 'POST /api/v1/admin/languages/:languageId/activate, .../deactivate',
+    group: 'Languages',
     order: 3,
   },
 
-  "customers:read": {
-    displayName: "List customers",
-    description:
-      "GET /api/v1/admin/customers, GET /api/v1/admin/customers/:customerId",
-    group: "Customers",
+  'customers:read': {
+    displayName: 'List customers',
+    description: 'GET /api/v1/admin/customers, GET /api/v1/admin/customers/:customerId',
+    group: 'Customers',
     order: 1,
   },
-  "customers:manage": {
-    displayName: "Create, edit, and delete customers",
+  'customers:manage': {
+    displayName: 'Create, edit, and delete customers',
     description:
-      "POST /api/v1/admin/customers, PATCH /api/v1/admin/customers/:customerId, DELETE /api/v1/admin/customers/:customerId",
-    group: "Customers",
+      'POST /api/v1/admin/customers, PATCH /api/v1/admin/customers/:customerId, DELETE /api/v1/admin/customers/:customerId',
+    group: 'Customers',
     order: 2,
   },
-  "customers:status": {
-    displayName: "Activate and deactivate customers",
-    description:
-      "POST /api/v1/admin/customers/:customerId/activate, .../deactivate",
-    group: "Customers",
+  'customers:status': {
+    displayName: 'Activate and deactivate customers',
+    description: 'POST /api/v1/admin/customers/:customerId/activate, .../deactivate',
+    group: 'Customers',
     order: 3,
   },
 } as const satisfies Record<string, PermissionSeed>;
@@ -149,9 +143,7 @@ export const PERMISSION_CATALOG = {
 // type at compile time.
 export type PermissionSlug = keyof typeof PERMISSION_CATALOG;
 
-export const PERMISSION_SLUGS = Object.keys(
-  PERMISSION_CATALOG,
-) as PermissionSlug[];
+export const PERMISSION_SLUGS = Object.keys(PERMISSION_CATALOG) as PermissionSlug[];
 
 /** Groups, in render order for an admin console. Derived from the catalog so it can't drift. */
 export const PERMISSION_GROUP_ORDER: string[] = [
@@ -173,26 +165,26 @@ export interface RoleSeed {
 // role carries.
 export const DEFAULT_ROLES: readonly RoleSeed[] = [
   {
-    slug: "admin",
-    displayName: "Administrator",
-    description: "Carries every permission in the catalog.",
+    slug: 'admin',
+    displayName: 'Administrator',
+    description: 'Carries every permission in the catalog.',
     isDefault: false,
     order: 0,
     permissions: PERMISSION_SLUGS,
   },
   {
-    slug: "superadmin",
-    displayName: "Super Admin",
+    slug: 'superadmin',
+    displayName: 'Super Admin',
     description:
-      "Carries every permission in the catalog — same authority as admin, held by the seeded super_admin account (see SEED_SUPERADMIN_* in seed.ts).",
+      'Carries every permission in the catalog — same authority as admin, held by the seeded super_admin account (see SEED_SUPERADMIN_* in seed.ts).',
     isDefault: false,
     order: 1,
     permissions: PERMISSION_SLUGS,
   },
   {
-    slug: "member",
-    displayName: "Member",
-    description: "The signup default. Carries no administrative permission.",
+    slug: 'member',
+    displayName: 'Member',
+    description: 'The signup default. Carries no administrative permission.',
     isDefault: true,
     order: 2,
     permissions: [],
@@ -200,15 +192,12 @@ export const DEFAULT_ROLES: readonly RoleSeed[] = [
 ];
 
 /** Role slugs given to the seeded admin. `member` is included so the admin is also an ordinary user. */
-export const SEED_ADMIN_ROLES: string[] = ["admin", "member"];
+export const SEED_ADMIN_ROLES: string[] = ['admin', 'member'];
 
 /** Role slugs given to the seeded super_admin. `member` is included so they're also an ordinary user. */
-export const SEED_SUPERADMIN_ROLES: string[] = ["superadmin", "member"];
+export const SEED_SUPERADMIN_ROLES: string[] = ['superadmin', 'member'];
 
-export type RbacWriter = Pick<
-  PrismaClient,
-  "permission" | "role" | "permissionRole"
->;
+export type RbacWriter = Pick<PrismaClient, 'permission' | 'role' | 'permissionRole'>;
 
 // Idempotent and safe to run concurrently: every insert is `skipDuplicates` on the natural
 // unique key, and nothing is ever deleted or updated.
@@ -220,9 +209,7 @@ export async function provisionDefaultRoles(db: RbacWriter): Promise<void> {
       displayName: PERMISSION_CATALOG[slug].displayName,
       description: PERMISSION_CATALOG[slug].description,
       group: PERMISSION_CATALOG[slug].group,
-      groupOrder: PERMISSION_GROUP_ORDER.indexOf(
-        PERMISSION_CATALOG[slug].group,
-      ),
+      groupOrder: PERMISSION_GROUP_ORDER.indexOf(PERMISSION_CATALOG[slug].group),
       order: PERMISSION_CATALOG[slug].order,
     })),
     skipDuplicates: true,

@@ -1,16 +1,8 @@
-import { Inject, Injectable } from "@nestjs/common";
-import type { AuditEvent } from "@/core/types.js";
-import { Prisma, PrismaClient } from "@/database/generated/prisma/client.js";
-import {
-  toIdOrNull,
-  toIdOrUndefined,
-} from "../../../common/helpers/id.helper.js";
-import {
-  buildPageMeta,
-  normalizeLimit,
-  normalizePage,
-  type Paginated,
-} from "../../../common/helpers/pagination.js";
+import { Inject, Injectable } from '@nestjs/common';
+import type { AuditEvent } from '@/core/types';
+import { Prisma, PrismaClient } from '@/database/generated/prisma/client';
+import { toIdOrNull, toIdOrUndefined } from '../../../common/helpers/id.helper';
+import { buildPageMeta, normalizeLimit, normalizePage, type Paginated } from '../../../common/helpers/pagination';
 
 export interface AuditLogEntry {
   id: string;
@@ -34,11 +26,8 @@ export interface AuditLogListFilter {
 
 // "role_assigned" -> "Role assigned". Derived rather than passed in, so core never carries display text.
 export function humanizeAction(action: string): string {
-  const words = action.split("_");
-  return [
-    words[0].charAt(0).toUpperCase() + words[0].slice(1),
-    ...words.slice(1),
-  ].join(" ");
+  const words = action.split('_');
+  return [words[0].charAt(0).toUpperCase() + words[0].slice(1), ...words.slice(1)].join(' ');
 }
 
 /** An `AuditLog` row as `findMany` returns it. */
@@ -74,15 +63,12 @@ export class AuditLogRepository {
     this.listeners.add(listener);
   }
 
-  async append(
-    event: AuditEvent,
-    opts: { remarks?: string } = {},
-  ): Promise<void> {
+  async append(event: AuditEvent, opts: { remarks?: string } = {}): Promise<void> {
     const row = await this.prisma.auditLog.create({
       data: {
         action: event.type,
         name: humanizeAction(event.type),
-        userId: "userId" in event ? toIdOrNull(event.userId) : null,
+        userId: 'userId' in event ? toIdOrNull(event.userId) : null,
         info: event as unknown as Prisma.InputJsonValue,
         remarks: opts.remarks ?? null,
       },
@@ -113,7 +99,7 @@ export class AuditLogRepository {
     const [rows, total] = await this.prisma.$transaction([
       this.prisma.auditLog.findMany({
         where,
-        orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+        orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
         take: limit,
         skip: (page - 1) * limit,
       }),

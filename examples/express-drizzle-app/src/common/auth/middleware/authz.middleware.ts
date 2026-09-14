@@ -1,8 +1,8 @@
-import type { NextFunction, Request, RequestHandler, Response } from "express";
-import { defineAbilitiesFor } from "../ability/ability.js";
-import type { PermissionCache } from "../cache/permission-cache.js";
-import type { RbacRepository } from "../../../modules/auth/repositories/rbac.repository.js";
-import "../../../infra/request-context.js";
+import type { NextFunction, Request, RequestHandler, Response } from 'express';
+import { defineAbilitiesFor } from '../ability/ability';
+import type { PermissionCache } from '../cache/permission-cache';
+import type { RbacRepository } from '../../../modules/auth/repositories/rbac.repository';
+import '../../../infra/request-context';
 
 /**
  * Roles and permissions are global to this deployment: a user has one set, and it applies
@@ -41,21 +41,16 @@ export interface AuthzMiddlewareDeps {
  *
  * Replaces the reference combo's `AuthzGuard`.
  */
-export function createAuthzMiddleware(
-  deps: AuthzMiddlewareDeps,
-): RequestHandler {
+export function createAuthzMiddleware(deps: AuthzMiddlewareDeps): RequestHandler {
   const { rbac, cache } = deps;
-  return async function authzMiddleware(
-    req: Request,
-    _res: Response,
-    next: NextFunction,
-  ): Promise<void> {
+  return async function authzMiddleware(req: Request, _res: Response, next: NextFunction): Promise<void> {
     try {
       if (req.auth) {
         const userId = req.auth.sub;
-        req.authz = (await cache.resolve<AuthzContext>(userId, () =>
-          rbac.resolveAuthzContext(userId),
-        )) ?? { roles: [], permissions: [] };
+        req.authz = (await cache.resolve<AuthzContext>(userId, () => rbac.resolveAuthzContext(userId))) ?? {
+          roles: [],
+          permissions: [],
+        };
         req.ability = defineAbilitiesFor(req.authz.permissions);
       }
       next();

@@ -1,4 +1,4 @@
-import { randomUUID } from "node:crypto";
+import { randomUUID } from 'node:crypto';
 import {
   BadRequestException,
   ConflictException,
@@ -8,9 +8,9 @@ import {
   Injectable,
   NotFoundException,
   UnauthorizedException,
-} from "@nestjs/common";
-import { and, desc, eq, gt, or } from "drizzle-orm";
-import { hashPassword, verifyPassword } from "@/core/crypto.js";
+} from '@nestjs/common';
+import { and, desc, eq, gt, or } from 'drizzle-orm';
+import { hashPassword, verifyPassword } from '@/core/crypto';
 import {
   buildAuthorizationUrl,
   APPLE_OIDC_PROVIDER,
@@ -20,12 +20,12 @@ import {
   OAuthProviderDescriptor,
   signAppleClientSecret,
   verifyIdTokenAndExtractProfile,
-} from "@/core/oauth.js";
+} from '@/core/oauth';
 import {
   requestPasswordReset as coreRequestPasswordReset,
   resetPassword as coreResetPassword,
-} from "@/core/password-reset.js";
-import { checkRateLimit, type RateLimitDeps } from "@/core/rate-limit.js";
+} from '@/core/password-reset';
+import { checkRateLimit, type RateLimitDeps } from '@/core/rate-limit';
 import {
   createSession,
   revokeAccessToken,
@@ -33,35 +33,20 @@ import {
   revokeOtherSessionsForUser,
   revokeSession,
   rotateRefreshToken,
-} from "@/core/session-policy.js";
-import {
-  signAccessToken,
-  signRefreshToken,
-  signTwoFactorChallengeToken,
-  verifyRefreshToken,
-  verifyTwoFactorChallengeToken,
-} from "@/core/token-service.js";
-import {
-  buildTotpProvisioningUri,
-  generateBackupCodes,
-  generateTotpSecret,
-  verifyTotpCode,
-} from "@/core/two-factor.js";
-import { AUTH_CONFIG, AuthConfig } from "../../../common/config/auth.config.js";
-import { DRIZZLE_DB, type Database } from "../../../common/config/db.js";
-import { KeyProviderService } from "../../../common/config/key-provider.js";
-import { OAuthRepository } from "../repositories/oauth.repository.js";
-import { PasswordResetRepository } from "../repositories/password-reset.repository.js";
-import { RATE_LIMIT_STORE } from "../../../common/auth/cache/rate-limit.store.js";
-import type { Revoker } from "@/core/types.js";
-import {
-  RbacRepository,
-  UserSummary,
-} from "../repositories/rbac.repository.js";
-import { sessions, users } from "@/database/schema.js";
-import { SessionRepository } from "../repositories/session.repository.js";
-import { TwoFactorRepository } from "../repositories/two-factor.repository.js";
-import { toId } from "../../../common/helpers/id.helper.js";
+} from '@/core/session-policy';
+import { buildTotpProvisioningUri, generateBackupCodes, generateTotpSecret, verifyTotpCode } from '@/core/two-factor';
+import { AUTH_CONFIG, AuthConfig } from '../../../common/config/auth.config';
+import { DRIZZLE_DB, type Database } from '../../../common/config/db';
+import { AuthTokenService } from '../../../common/auth/token.service';
+import { OAuthRepository } from '../repositories/oauth.repository';
+import { PasswordResetRepository } from '../repositories/password-reset.repository';
+import { RATE_LIMIT_STORE } from '../../../common/auth/cache/rate-limit.store';
+import type { Revoker } from '@/core/types';
+import { RbacRepository, UserSummary } from '../repositories/rbac.repository';
+import { sessions, users } from '@/database/schema';
+import { SessionRepository } from '../repositories/session.repository';
+import { TwoFactorRepository } from '../repositories/two-factor.repository';
+import { toId } from '../../../common/helpers/id.helper';
 
 export interface AuthTokens {
   accessToken: string;
@@ -98,7 +83,7 @@ export class AuthService {
   constructor(
     @Inject(DRIZZLE_DB) private readonly db: Database,
     @Inject(SessionRepository) private readonly sessions: SessionRepository,
-    @Inject(KeyProviderService) private readonly keys: KeyProviderService,
+    @Inject(AuthTokenService) private readonly tokens: AuthTokenService,
     @Inject(RATE_LIMIT_STORE) private readonly rateLimit: RateLimitDeps,
     @Inject(RbacRepository) private readonly rbac: RbacRepository,
     @Inject(TwoFactorRepository)
@@ -121,12 +106,8 @@ export class AuthService {
     userAgent?: string;
     ip?: string;
   }): Promise<AuthTokens> {
-    const [existing] = await this.db
-      .select()
-      .from(users)
-      .where(eq(users.email, input.email))
-      .limit(1);
-    if (existing) throw new ConflictException("email already registered");
+    const [existing] = await this.db.select().from(users).where(eq(users.email, input.email)).limit(1);
+    if (existing) throw new ConflictException('email already registered');
 
     const passwordHash = await hashPassword(input.password);
     const [user] = await this.db
@@ -157,46 +138,24 @@ export class AuthService {
     userAgent?: string;
     ip?: string;
   }): Promise<AuthTokens | TwoFactorChallenge> {
-    const { allowed } = await checkRateLimit(
-      this.rateLimit,
-      "login",
-      input.identifier,
-    );
-    if (!allowed)
-      throw new HttpException(
-        "too many login attempts",
-        HttpStatus.TOO_MANY_REQUESTS,
-      );
+    const { allowed } = await checkRateLimit(this.rateLimit, 'login', input.identifier);
+    if (!allowed) throw new HttpException('too many login attempts', HttpStatus.TOO_MANY_REQUESTS);
 
     const [user] = await this.db
       .select()
       .from(users)
       .where(
-        or(
-          eq(users.email, input.identifier),
-          eq(users.username, input.identifier),
-          eq(users.phone, input.identifier),
-        ),
+        or(eq(users.email, input.identifier), eq(users.username, input.identifier), eq(users.phone, input.identifier)),
       )
       .limit(1);
-    if (
-      !user ||
-      user.blocked ||
-      !user.isActive ||
-      user.isDeleted ||
-      !user.passwordHash
-    )
-      throw new UnauthorizedException("invalid credentials");
+    if (!user || user.blocked || !user.isActive || user.isDeleted || !user.passwordHash)
+      throw new UnauthorizedException('invalid credentials');
 
     const valid = await verifyPassword(user.passwordHash, input.password);
-    if (!valid) throw new UnauthorizedException("invalid credentials");
+    if (!valid) throw new UnauthorizedException('invalid credentials');
 
     if (user.twoFactorEnabled) {
-      const key = await this.keys.getActiveKey();
-      const { token } = await signTwoFactorChallengeToken(
-        { activeKey: key },
-        user.id.toString(),
-      ); // core-facing: sub must be string
+      const { token } = await this.tokens.signTwoFactorChallengeToken(user.id.toString()); // core-facing: sub must be string
       return { twoFactorRequired: true, challengeToken: token };
     }
 
@@ -213,36 +172,24 @@ export class AuthService {
     userAgent?: string;
     ip?: string;
   }): Promise<AuthTokens> {
-    const { sub } = await verifyTwoFactorChallengeToken(
-      { secret: this.keys.secret },
-      input.challengeToken,
-    );
+    const { sub } = await this.tokens.verifyTwoFactorChallengeToken(input.challengeToken);
 
     const [user] = await this.db
       .select()
       .from(users)
       .where(eq(users.id, toId(sub)))
       .limit(1);
-    if (
-      !user ||
-      user.blocked ||
-      !user.isActive ||
-      user.isDeleted ||
-      !user.twoFactorEnabled ||
-      !user.twoFactorSecret
-    )
-      throw new UnauthorizedException("invalid credentials");
+    if (!user || user.blocked || !user.isActive || user.isDeleted || !user.twoFactorEnabled || !user.twoFactorSecret)
+      throw new UnauthorizedException('invalid credentials');
 
     const validTotp = verifyTotpCode(user.twoFactorSecret, input.code);
-    const validBackup =
-      !validTotp &&
-      (await this.twoFactor.consumeBackupCode(user.id, input.code));
+    const validBackup = !validTotp && (await this.twoFactor.consumeBackupCode(user.id, input.code));
     if (!validTotp && !validBackup) {
       await this.sessions.appendAuditEvent({
-        type: "two_factor_challenge_failed",
+        type: 'two_factor_challenge_failed',
         userId: user.id.toString(),
       }); // core-facing: string
-      throw new UnauthorizedException("invalid two-factor code");
+      throw new UnauthorizedException('invalid two-factor code');
     }
 
     return this.issueSessionTokens(user, {
@@ -251,17 +198,12 @@ export class AuthService {
     });
   }
 
-  async enrollTwoFactor(
-    userId: string,
-  ): Promise<{ secret: string; provisioningUri: string }> {
+  async enrollTwoFactor(userId: string): Promise<{ secret: string; provisioningUri: string }> {
     const idBig = toId(userId);
     const user = await this.getUserOrThrow(userId);
     const secret = generateTotpSecret();
     // Not enabled yet — confirmTwoFactor() flips that, so an abandoned enrollment never locks the account out.
-    await this.db
-      .update(users)
-      .set({ twoFactorSecret: secret, twoFactorEnabled: false })
-      .where(eq(users.id, idBig));
+    await this.db.update(users).set({ twoFactorSecret: secret, twoFactorEnabled: false }).where(eq(users.id, idBig));
     return {
       secret,
       provisioningUri: buildTotpProvisioningUri({
@@ -272,28 +214,20 @@ export class AuthService {
     };
   }
 
-  async confirmTwoFactor(
-    userId: string,
-    code: string,
-  ): Promise<{ backupCodes: string[] }> {
+  async confirmTwoFactor(userId: string, code: string): Promise<{ backupCodes: string[] }> {
     const idBig = toId(userId);
     const user = await this.getUserOrThrow(userId);
-    if (!user.twoFactorSecret)
-      throw new BadRequestException("call enrollTwoFactor first");
-    if (!verifyTotpCode(user.twoFactorSecret, code))
-      throw new UnauthorizedException("invalid two-factor code");
+    if (!user.twoFactorSecret) throw new BadRequestException('call enrollTwoFactor first');
+    if (!verifyTotpCode(user.twoFactorSecret, code)) throw new UnauthorizedException('invalid two-factor code');
 
     const backupCodes = generateBackupCodes();
     await this.twoFactor.saveBackupCodes(
       idBig,
       backupCodes.map((c) => c.hash),
     );
-    await this.db
-      .update(users)
-      .set({ twoFactorEnabled: true })
-      .where(eq(users.id, idBig));
+    await this.db.update(users).set({ twoFactorEnabled: true }).where(eq(users.id, idBig));
     await this.sessions.appendAuditEvent({
-      type: "two_factor_enabled",
+      type: 'two_factor_enabled',
       userId,
     });
     return { backupCodes: backupCodes.map((c) => c.code) };
@@ -302,56 +236,34 @@ export class AuthService {
   async disableTwoFactor(userId: string, code: string): Promise<void> {
     const idBig = toId(userId);
     const user = await this.getUserOrThrow(userId);
-    if (!user.twoFactorEnabled || !user.twoFactorSecret)
-      throw new BadRequestException("two-factor is not enabled");
+    if (!user.twoFactorEnabled || !user.twoFactorSecret) throw new BadRequestException('two-factor is not enabled');
 
     const validTotp = verifyTotpCode(user.twoFactorSecret, code);
-    const validBackup =
-      !validTotp && (await this.twoFactor.consumeBackupCode(idBig, code));
-    if (!validTotp && !validBackup)
-      throw new UnauthorizedException("invalid two-factor code");
+    const validBackup = !validTotp && (await this.twoFactor.consumeBackupCode(idBig, code));
+    if (!validTotp && !validBackup) throw new UnauthorizedException('invalid two-factor code');
 
-    await this.db
-      .update(users)
-      .set({ twoFactorEnabled: false, twoFactorSecret: null })
-      .where(eq(users.id, idBig));
+    await this.db.update(users).set({ twoFactorEnabled: false, twoFactorSecret: null }).where(eq(users.id, idBig));
     await this.twoFactor.clearBackupCodes(idBig);
     await this.sessions.appendAuditEvent({
-      type: "two_factor_disabled",
+      type: 'two_factor_disabled',
       userId,
     });
   }
 
   /** Always succeeds from the caller's point of view — an unknown email or a throttled request looks identical, to avoid enumeration. */
   async requestPasswordReset(email: string): Promise<void> {
-    const [user] = await this.db
-      .select()
-      .from(users)
-      .where(eq(users.email, email))
-      .limit(1);
+    const [user] = await this.db.select().from(users).where(eq(users.email, email)).limit(1);
     if (!user || user.isDeleted) return;
 
-    const { allowed } = await checkRateLimit(
-      this.rateLimit,
-      "password-reset",
-      email,
-    );
+    const { allowed } = await checkRateLimit(this.rateLimit, 'password-reset', email);
     if (!allowed) return;
 
-    const { token } = await coreRequestPasswordReset(
-      this.passwordReset,
-      user.id.toString(),
-    );
-    if (this.config.sendPasswordResetEmail)
-      await this.config.sendPasswordResetEmail(email, token);
+    const { token } = await coreRequestPasswordReset(this.passwordReset, user.id.toString());
+    if (this.config.sendPasswordResetEmail) await this.config.sendPasswordResetEmail(email, token);
   }
 
   async resetPassword(token: string, newPassword: string): Promise<void> {
-    const { userId } = await coreResetPassword(
-      this.passwordReset,
-      token,
-      newPassword,
-    );
+    const { userId } = await coreResetPassword(this.passwordReset, token, newPassword);
     // The old password is no longer trusted, so neither are its sessions. The revoker is the user
     // themselves — they proved control of the account by consuming the reset token.
     await revokeAllSessionsForUser(this.sessions, userId, { userId });
@@ -359,14 +271,11 @@ export class AuthService {
 
   /** Builds the redirect URL for `provider`. `state` is an opaque anti-CSRF nonce the provider echoes back verbatim. */
   async startOAuth(provider: string): Promise<{ url: string }> {
-    const state = Buffer.from(JSON.stringify({ nonce: randomUUID() })).toString(
-      "base64url",
-    );
+    const state = Buffer.from(JSON.stringify({ nonce: randomUUID() })).toString('base64url');
 
-    if (provider === "google") {
+    if (provider === 'google') {
       const creds = this.config.oauthProviders.google;
-      if (!creds)
-        throw new BadRequestException("google OAuth is not configured");
+      if (!creds) throw new BadRequestException('google OAuth is not configured');
       return {
         url: buildAuthorizationUrl(GOOGLE_OIDC_PROVIDER, {
           clientId: creds.clientId,
@@ -375,10 +284,9 @@ export class AuthService {
         }),
       };
     }
-    if (provider === "apple") {
+    if (provider === 'apple') {
       const creds = this.config.oauthProviders.apple;
-      if (!creds)
-        throw new BadRequestException("apple OAuth is not configured");
+      if (!creds) throw new BadRequestException('apple OAuth is not configured');
       return {
         url: buildAuthorizationUrl(APPLE_OIDC_PROVIDER, {
           clientId: creds.clientId,
@@ -390,19 +298,14 @@ export class AuthService {
     throw new BadRequestException(`unknown OAuth provider "${provider}"`);
   }
 
-  async completeOAuthCallback(
-    provider: string,
-    code: string,
-    _state: string,
-  ): Promise<AuthTokens> {
+  async completeOAuthCallback(provider: string, code: string, _state: string): Promise<AuthTokens> {
     let providerDescriptor: OAuthProviderDescriptor;
     let clientId: string;
     let idToken: string;
 
-    if (provider === "google") {
+    if (provider === 'google') {
       const creds = this.config.oauthProviders.google;
-      if (!creds)
-        throw new BadRequestException("google OAuth is not configured");
+      if (!creds) throw new BadRequestException('google OAuth is not configured');
       providerDescriptor = GOOGLE_OIDC_PROVIDER;
       clientId = creds.clientId;
       idToken = (
@@ -413,10 +316,9 @@ export class AuthService {
           code,
         })
       ).idToken;
-    } else if (provider === "apple") {
+    } else if (provider === 'apple') {
       const creds = this.config.oauthProviders.apple;
-      if (!creds)
-        throw new BadRequestException("apple OAuth is not configured");
+      if (!creds) throw new BadRequestException('apple OAuth is not configured');
       providerDescriptor = APPLE_OIDC_PROVIDER;
       clientId = creds.clientId;
       const clientSecret = await signAppleClientSecret({
@@ -447,20 +349,16 @@ export class AuthService {
     });
 
     const user = await this.getUserOrThrow(userId);
-    if (user.blocked || !user.isActive || user.isDeleted)
-      throw new UnauthorizedException("account is blocked");
+    if (user.blocked || !user.isActive || user.isDeleted) throw new UnauthorizedException('account is blocked');
     // A user this login just created holds no roles at all; give them the defaults. Guarded on
     // "holds none" rather than "was created", so it can never re-add a role an administrator
     // revoked from someone who has been logging in for months.
-    if (!(await this.rbac.hasAnyRole(user.id)))
-      await this.rbac.assignDefaultRoles(user.id);
+    if (!(await this.rbac.hasAnyRole(user.id))) await this.rbac.assignDefaultRoles(user.id);
     return this.issueSessionTokens(user, { provider });
   }
 
   /** `req.auth` (the JWT claims) never carries 2FA status, so `/auth/me` fetches it fresh — the one bit of the response that isn't just echoing the token. */
-  async getTwoFactorStatus(
-    userId: string,
-  ): Promise<{ twoFactorEnabled: boolean }> {
+  async getTwoFactorStatus(userId: string): Promise<{ twoFactorEnabled: boolean }> {
     const [user] = await this.db
       .select({ twoFactorEnabled: users.twoFactorEnabled })
       .from(users)
@@ -485,13 +383,7 @@ export class AuthService {
     const rows = await this.db
       .select()
       .from(sessions)
-      .where(
-        and(
-          eq(sessions.userId, toId(userId)),
-          eq(sessions.isRevoked, false),
-          gt(sessions.expiresAt, new Date()),
-        ),
-      )
+      .where(and(eq(sessions.userId, toId(userId)), eq(sessions.isRevoked, false), gt(sessions.expiresAt, new Date())))
       .orderBy(desc(sessions.createdAt));
     return rows.map((row) => ({
       id: row.id.toString(),
@@ -503,16 +395,9 @@ export class AuthService {
     }));
   }
 
-  async refresh(refreshToken: string): Promise<Omit<AuthTokens, "sessionId">> {
-    const key = await this.keys.getActiveKey();
-    const presented = await verifyRefreshToken(
-      { secret: this.keys.secret },
-      refreshToken,
-    );
-    const { session, nextJti } = await rotateRefreshToken(
-      this.sessions,
-      presented,
-    );
+  async refresh(refreshToken: string): Promise<Omit<AuthTokens, 'sessionId'>> {
+    const presented = await this.tokens.verifyRefreshToken(refreshToken);
+    const { session, nextJti } = await rotateRefreshToken(this.sessions, presented);
 
     const [user] = await this.db
       .select()
@@ -520,17 +405,15 @@ export class AuthService {
       .where(eq(users.id, toId(session.userId)))
       .limit(1);
     if (!user || user.blocked || !user.isActive || user.isDeleted)
-      throw new UnauthorizedException("invalid credentials");
+      throw new UnauthorizedException('invalid credentials');
 
     // Identity only. Authorization is resolved from the database on every request (AuthzGuard),
     // so a token issued before a grant is as authoritative as one issued after it.
-    const access = await signAccessToken(
-      { activeKey: key },
+    const access = await this.tokens.signAccessToken(
       { sub: user.id.toString(), sessionId: session.id },
       { ttlSeconds: this.config.accessTokenTtlSeconds },
     );
-    const refresh = await signRefreshToken(
-      { activeKey: key },
+    const refresh = await this.tokens.signRefreshToken(
       {
         sub: user.id.toString(),
         sessionId: session.id,
@@ -548,28 +431,15 @@ export class AuthService {
     revoker?: Revoker,
   ): Promise<void> {
     await revokeSession(this.sessions, sessionId, revoker);
-    await revokeAccessToken(
-      this.sessions,
-      accessJti,
-      accessRemainingTtlSeconds,
-    );
+    await revokeAccessToken(this.sessions, accessJti, accessRemainingTtlSeconds);
   }
 
   async logoutAll(userId: string, revoker?: Revoker): Promise<void> {
     await revokeAllSessionsForUser(this.sessions, userId, revoker);
   }
 
-  async logoutOthers(
-    userId: string,
-    keepSessionId: string,
-    revoker?: Revoker,
-  ): Promise<void> {
-    await revokeOtherSessionsForUser(
-      this.sessions,
-      userId,
-      keepSessionId,
-      revoker,
-    );
+  async logoutOthers(userId: string, keepSessionId: string, revoker?: Revoker): Promise<void> {
+    await revokeOtherSessionsForUser(this.sessions, userId, keepSessionId, revoker);
   }
 
   async changePassword(
@@ -578,31 +448,15 @@ export class AuthService {
     input: { currentPassword: string; newPassword: string },
   ): Promise<void> {
     const userIdBig = toId(userId);
-    const [user] = await this.db
-      .select()
-      .from(users)
-      .where(eq(users.id, userIdBig))
-      .limit(1);
-    if (
-      !user ||
-      user.blocked ||
-      !user.isActive ||
-      user.isDeleted ||
-      !user.passwordHash
-    )
-      throw new UnauthorizedException("invalid credentials");
+    const [user] = await this.db.select().from(users).where(eq(users.id, userIdBig)).limit(1);
+    if (!user || user.blocked || !user.isActive || user.isDeleted || !user.passwordHash)
+      throw new UnauthorizedException('invalid credentials');
 
-    const valid = await verifyPassword(
-      user.passwordHash,
-      input.currentPassword,
-    );
-    if (!valid) throw new UnauthorizedException("invalid credentials");
+    const valid = await verifyPassword(user.passwordHash, input.currentPassword);
+    if (!valid) throw new UnauthorizedException('invalid credentials');
 
     const passwordHash = await hashPassword(input.newPassword);
-    await this.db
-      .update(users)
-      .set({ passwordHash, updatedBy: userIdBig })
-      .where(eq(users.id, userIdBig));
+    await this.db.update(users).set({ passwordHash, updatedBy: userIdBig }).where(eq(users.id, userIdBig));
     // The old password is no longer trusted everywhere else it's signed in — but leave the
     // session making this very call alone, the same courtesy `logoutOthers` extends.
     await revokeOtherSessionsForUser(this.sessions, userId, currentSessionId, {
@@ -646,14 +500,10 @@ export class AuthService {
       photo?: string | null;
     },
   ): Promise<SelfProfile> {
-    return this.toSelfProfile(
-      await this.rbac.updateUser(userId, input, userId),
-    );
+    return this.toSelfProfile(await this.rbac.updateUser(userId, input, userId));
   }
 
-  private async getUserOrThrow(
-    userId: string,
-  ): Promise<typeof users.$inferSelect> {
+  private async getUserOrThrow(userId: string): Promise<typeof users.$inferSelect> {
     const [user] = await this.db
       .select()
       .from(users)
@@ -674,15 +524,12 @@ export class AuthService {
       userId: user.id.toString(),
       ...meta,
     });
-    const key = await this.keys.getActiveKey();
 
-    const access = await signAccessToken(
-      { activeKey: key },
+    const access = await this.tokens.signAccessToken(
       { sub: user.id.toString(), sessionId: session.id },
       { ttlSeconds: this.config.accessTokenTtlSeconds },
     );
-    const refresh = await signRefreshToken(
-      { activeKey: key },
+    const refresh = await this.tokens.signRefreshToken(
       {
         sub: user.id.toString(),
         sessionId: session.id,

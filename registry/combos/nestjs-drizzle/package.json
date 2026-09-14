@@ -16,6 +16,7 @@
     "@casl/ability": "^7.0.1",
     "@nestjs/common": "^11.1.28",
     "@nestjs/core": "^11.1.28",
+    "@nestjs/jwt": "^12.0.2",
     "@nestjs/platform-express": "^11.1.28",
     "@nestjs/swagger": "^11.4.6",
     "drizzle-orm": "^0.45.2",

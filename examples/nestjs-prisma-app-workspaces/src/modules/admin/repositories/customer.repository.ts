@@ -1,17 +1,7 @@
-import {
-  ConflictException,
-  Inject,
-  Injectable,
-  NotFoundException,
-} from "@nestjs/common";
-import { Prisma, PrismaClient } from "@/database/generated/prisma/client.js";
-import { toId, toIdOrNull } from "../../../common/helpers/id.helper.js";
-import {
-  buildPageMeta,
-  normalizeLimit,
-  normalizePage,
-  type Paginated,
-} from "../../../common/helpers/pagination.js";
+import { ConflictException, Inject, Injectable, NotFoundException } from '@nestjs/common';
+import { Prisma, PrismaClient } from '@/database/generated/prisma/client';
+import { toId, toIdOrNull } from '../../../common/helpers/id.helper';
+import { buildPageMeta, normalizeLimit, normalizePage, type Paginated } from '../../../common/helpers/pagination';
 
 /** A `Customer` row as `findUnique`/`findMany` return it. */
 export type CustomerRow = Prisma.CustomerGetPayload<object>;
@@ -88,23 +78,14 @@ export interface CustomerInput {
   isActive?: boolean;
 }
 
-function toPrismaInput(input: Partial<CustomerInput>): Omit<
-  Partial<CustomerInput>,
-  "dob" | "joinedDate"
-> & {
+function toPrismaInput(input: Partial<CustomerInput>): Omit<Partial<CustomerInput>, 'dob' | 'joinedDate'> & {
   dob?: Date | null;
   joinedDate?: Date;
 } {
   return {
     ...input,
-    dob:
-      input.dob === undefined
-        ? undefined
-        : input.dob === null
-          ? null
-          : new Date(input.dob),
-    joinedDate:
-      input.joinedDate === undefined ? undefined : new Date(input.joinedDate),
+    dob: input.dob === undefined ? undefined : input.dob === null ? null : new Date(input.dob),
+    joinedDate: input.joinedDate === undefined ? undefined : new Date(input.joinedDate),
   };
 }
 
@@ -118,10 +99,7 @@ export class CustomerRepository {
   constructor(@Inject(PrismaClient) private readonly prisma: PrismaClient) {}
 
   /** Newest-first, page-paginated; `search` matches name/email/username/phone. Returns raw rows — shaping is the caller's job. */
-  async list(
-    workspaceId: string,
-    filter: CustomerListFilter = {},
-  ): Promise<CustomerListResult> {
+  async list(workspaceId: string, filter: CustomerListFilter = {}): Promise<CustomerListResult> {
     const page = normalizePage(filter.page);
     const limit = normalizeLimit(filter.limit);
     const where: Prisma.CustomerWhereInput = {
@@ -130,11 +108,11 @@ export class CustomerRepository {
       isActive: filter.activeOnly ? true : undefined,
       OR: filter.search
         ? [
-            { firstName: { contains: filter.search, mode: "insensitive" } },
-            { lastName: { contains: filter.search, mode: "insensitive" } },
-            { email: { contains: filter.search, mode: "insensitive" } },
-            { username: { contains: filter.search, mode: "insensitive" } },
-            { phone: { contains: filter.search, mode: "insensitive" } },
+            { firstName: { contains: filter.search, mode: 'insensitive' } },
+            { lastName: { contains: filter.search, mode: 'insensitive' } },
+            { email: { contains: filter.search, mode: 'insensitive' } },
+            { username: { contains: filter.search, mode: 'insensitive' } },
+            { phone: { contains: filter.search, mode: 'insensitive' } },
           ]
         : undefined,
     };
@@ -142,7 +120,7 @@ export class CustomerRepository {
     const [rows, total] = await this.prisma.$transaction([
       this.prisma.customer.findMany({
         where,
-        orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+        orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
         take: limit,
         skip: (page - 1) * limit,
       }),
@@ -167,19 +145,12 @@ export class CustomerRepository {
     return toCustomerSummary(row);
   }
 
-  async create(
-    workspaceId: string,
-    input: CustomerInput,
-    actorUserId: string | null,
-  ): Promise<CustomerSummary> {
+  async create(workspaceId: string, input: CustomerInput, actorUserId: string | null): Promise<CustomerSummary> {
     const workspaceIdBig = toId(workspaceId);
     const existing = await this.prisma.customer.findFirst({
       where: { workspaceId: workspaceIdBig, email: input.email },
     });
-    if (existing)
-      throw new ConflictException(
-        "a customer with this email already exists in this workspace",
-      );
+    if (existing) throw new ConflictException('a customer with this email already exists in this workspace');
 
     const row = await this.prisma.customer.create({
       data: {
@@ -209,8 +180,7 @@ export class CustomerRepository {
       },
       select: { id: true },
     });
-    if (!existing)
-      throw new NotFoundException(`customer "${customerId}" not found`);
+    if (!existing) throw new NotFoundException(`customer "${customerId}" not found`);
 
     if (input.email !== undefined) {
       const clash = await this.prisma.customer.findFirst({
@@ -220,10 +190,7 @@ export class CustomerRepository {
           email: input.email,
         },
       });
-      if (clash)
-        throw new ConflictException(
-          "a customer with this email already exists in this workspace",
-        );
+      if (clash) throw new ConflictException('a customer with this email already exists in this workspace');
     }
 
     const row = await this.prisma.customer.update({
@@ -234,12 +201,7 @@ export class CustomerRepository {
   }
 
   // Soft-delete, matching every other table's isDeleted/deletedAt/deletedBy/deletedReason pattern.
-  async delete(
-    workspaceId: string,
-    customerId: string,
-    actorUserId: string | null,
-    reason?: string,
-  ): Promise<void> {
+  async delete(workspaceId: string, customerId: string, actorUserId: string | null, reason?: string): Promise<void> {
     const workspaceIdBig = toId(workspaceId);
     const customerIdBig = toId(customerId);
     const existing = await this.prisma.customer.findUnique({
@@ -250,8 +212,7 @@ export class CustomerRepository {
       },
       select: { id: true },
     });
-    if (!existing)
-      throw new NotFoundException(`customer "${customerId}" not found`);
+    if (!existing) throw new NotFoundException(`customer "${customerId}" not found`);
     await this.prisma.customer.update({
       where: { id: customerIdBig },
       data: {
@@ -279,8 +240,7 @@ export class CustomerRepository {
       },
       select: { id: true },
     });
-    if (!existing)
-      throw new NotFoundException(`customer "${customerId}" not found`);
+    if (!existing) throw new NotFoundException(`customer "${customerId}" not found`);
     await this.prisma.customer.update({
       where: { id: customerIdBig },
       data: { isActive, updatedBy: toIdOrNull(actorUserId) },

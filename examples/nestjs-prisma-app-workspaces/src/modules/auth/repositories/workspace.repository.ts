@@ -1,16 +1,8 @@
-import {
-  ConflictException,
-  Inject,
-  Injectable,
-  NotFoundException,
-} from "@nestjs/common";
-import { PrismaClient } from "@/database/generated/prisma/client.js";
-import {
-  provisionDefaultRoles,
-  WORKSPACE_CREATOR_ROLES,
-} from "../rbac.defaults.js";
-import { RbacRepository } from "./rbac.repository.js";
-import { toId } from "../../../common/helpers/id.helper.js";
+import { ConflictException, Inject, Injectable, NotFoundException } from '@nestjs/common';
+import { PrismaClient } from '@/database/generated/prisma/client';
+import { provisionDefaultRoles, WORKSPACE_CREATOR_ROLES } from '../rbac.defaults';
+import { RbacRepository } from './rbac.repository';
+import { toId } from '../../../common/helpers/id.helper';
 
 export interface WorkspaceSummary {
   id: string;
@@ -79,7 +71,7 @@ export class WorkspaceRepository {
         workspace: true,
         roles: { select: { role: { select: { slug: true } } } },
       },
-      orderBy: { createdAt: "asc" },
+      orderBy: { createdAt: 'asc' },
     });
     return memberships.map((m) => ({
       id: m.workspace.id.toString(),
@@ -96,7 +88,7 @@ export class WorkspaceRepository {
         user: true,
         roles: { select: { role: { select: { slug: true } } } },
       },
-      orderBy: { createdAt: "asc" },
+      orderBy: { createdAt: 'asc' },
     });
     return rows.map((row) => ({
       memberId: row.id.toString(),
@@ -107,10 +99,7 @@ export class WorkspaceRepository {
     }));
   }
 
-  private async resolveMemberRoles(
-    workspaceIdBig: bigint,
-    roleSlugs?: string[],
-  ) {
+  private async resolveMemberRoles(workspaceIdBig: bigint, roleSlugs?: string[]) {
     const roles = await this.prisma.role.findMany({
       where: roleSlugs
         ? {
@@ -126,36 +115,26 @@ export class WorkspaceRepository {
           },
       select: { id: true, slug: true },
     });
-    const unknown = (roleSlugs ?? []).filter(
-      (slug) => !roles.some((role) => role.slug === slug),
-    );
-    if (unknown.length)
-      throw new NotFoundException(
-        `role(s) not defined in this workspace: ${unknown.join(", ")}`,
-      );
+    const unknown = (roleSlugs ?? []).filter((slug) => !roles.some((role) => role.slug === slug));
+    if (unknown.length) throw new NotFoundException(`role(s) not defined in this workspace: ${unknown.join(', ')}`);
     return roles;
   }
 
   // Adds an existing user by email — there is no invite/email flow in this library. With no
   // roles named, the new membership gets whichever of this workspace's roles are flagged `isDefault`.
-  async addMember(
-    workspaceId: string,
-    email: string,
-    roleSlugs?: string[],
-  ): Promise<MembershipSummary> {
+  async addMember(workspaceId: string, email: string, roleSlugs?: string[]): Promise<MembershipSummary> {
     const workspaceIdBig = toId(workspaceId);
     const user = await this.prisma.user.findUnique({
       where: { email, isDeleted: false },
     });
-    if (!user) throw new NotFoundException("no user with that email");
+    if (!user) throw new NotFoundException('no user with that email');
 
     const existing = await this.prisma.workspaceMember.findUnique({
       where: {
         userId_workspaceId: { userId: user.id, workspaceId: workspaceIdBig },
       },
     });
-    if (existing)
-      throw new ConflictException("already a member of this workspace");
+    if (existing) throw new ConflictException('already a member of this workspace');
 
     const roles = await this.resolveMemberRoles(workspaceIdBig, roleSlugs);
     const member = await this.prisma.workspaceMember.create({
@@ -198,7 +177,7 @@ export class WorkspaceRepository {
     const existing = await this.prisma.user.findUnique({
       where: { email: input.email },
     });
-    if (existing) throw new ConflictException("email already registered");
+    if (existing) throw new ConflictException('email already registered');
 
     const roles = await this.resolveMemberRoles(workspaceIdBig, input.roles);
     const user = await this.prisma.user.create({
@@ -237,7 +216,7 @@ export class WorkspaceRepository {
       where: { id: memberIdBig },
     });
     if (!member || member.workspaceId !== workspaceIdBig)
-      throw new NotFoundException("member not found in this workspace");
+      throw new NotFoundException('member not found in this workspace');
 
     // Role assignments and direct grants belong to the membership, so `onDelete: Cascade` on
     // both join tables takes them with it.

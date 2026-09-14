@@ -1,11 +1,8 @@
-import { PrismaClient } from "@/database/generated/prisma/client.js";
-import { HttpError } from "../../../infra/errors/http-error.js";
-import {
-  provisionDefaultRoles,
-  WORKSPACE_CREATOR_ROLES,
-} from "../rbac.defaults.js";
-import { RbacRepository } from "./rbac.repository.js";
-import { toId } from "../../../common/helpers/id.helper.js";
+import { PrismaClient } from '@/database/generated/prisma/client';
+import { HttpError } from '../../../infra/errors/http-error';
+import { provisionDefaultRoles, WORKSPACE_CREATOR_ROLES } from '../rbac.defaults';
+import { RbacRepository } from './rbac.repository';
+import { toId } from '../../../common/helpers/id.helper';
 
 export interface WorkspaceSummary {
   id: string;
@@ -78,7 +75,7 @@ export class WorkspaceRepository {
         workspace: true,
         roles: { select: { role: { select: { slug: true } } } },
       },
-      orderBy: { createdAt: "asc" },
+      orderBy: { createdAt: 'asc' },
     });
     return memberships.map((m) => ({
       id: m.workspace.id.toString(),
@@ -95,7 +92,7 @@ export class WorkspaceRepository {
         user: true,
         roles: { select: { role: { select: { slug: true } } } },
       },
-      orderBy: { createdAt: "asc" },
+      orderBy: { createdAt: 'asc' },
     });
     return rows.map((row) => ({
       memberId: row.id.toString(),
@@ -106,10 +103,7 @@ export class WorkspaceRepository {
     }));
   }
 
-  private async resolveMemberRoles(
-    workspaceIdBig: bigint,
-    roleSlugs?: string[],
-  ) {
+  private async resolveMemberRoles(workspaceIdBig: bigint, roleSlugs?: string[]) {
     const roles = await this.prisma.role.findMany({
       where: roleSlugs
         ? {
@@ -125,14 +119,8 @@ export class WorkspaceRepository {
           },
       select: { id: true, slug: true },
     });
-    const unknown = (roleSlugs ?? []).filter(
-      (slug) => !roles.some((role) => role.slug === slug),
-    );
-    if (unknown.length)
-      throw new HttpError(
-        404,
-        `role(s) not defined in this workspace: ${unknown.join(", ")}`,
-      );
+    const unknown = (roleSlugs ?? []).filter((slug) => !roles.some((role) => role.slug === slug));
+    if (unknown.length) throw new HttpError(404, `role(s) not defined in this workspace: ${unknown.join(', ')}`);
     return roles;
   }
 
@@ -141,24 +129,19 @@ export class WorkspaceRepository {
    * consuming app's job. With no roles named, the new membership gets whichever of this
    * workspace's roles are flagged `isDefault`, not a slug spelled in code.
    */
-  async addMember(
-    workspaceId: string,
-    email: string,
-    roleSlugs?: string[],
-  ): Promise<MembershipSummary> {
+  async addMember(workspaceId: string, email: string, roleSlugs?: string[]): Promise<MembershipSummary> {
     const workspaceIdBig = toId(workspaceId);
     const user = await this.prisma.user.findUnique({
       where: { email, isDeleted: false },
     });
-    if (!user) throw new HttpError(404, "no user with that email");
+    if (!user) throw new HttpError(404, 'no user with that email');
 
     const existing = await this.prisma.workspaceMember.findUnique({
       where: {
         userId_workspaceId: { userId: user.id, workspaceId: workspaceIdBig },
       },
     });
-    if (existing)
-      throw new HttpError(409, "already a member of this workspace");
+    if (existing) throw new HttpError(409, 'already a member of this workspace');
 
     const roles = await this.resolveMemberRoles(workspaceIdBig, roleSlugs);
     const member = await this.prisma.workspaceMember.create({
@@ -200,7 +183,7 @@ export class WorkspaceRepository {
     const existing = await this.prisma.user.findUnique({
       where: { email: input.email },
     });
-    if (existing) throw new HttpError(409, "email already registered");
+    if (existing) throw new HttpError(409, 'email already registered');
 
     const roles = await this.resolveMemberRoles(workspaceIdBig, input.roles);
     const user = await this.prisma.user.create({
@@ -238,7 +221,7 @@ export class WorkspaceRepository {
       where: { id: memberIdBig },
     });
     if (!member || member.workspaceId !== workspaceIdBig)
-      throw new HttpError(404, "member not found in this workspace");
+      throw new HttpError(404, 'member not found in this workspace');
 
     // Role assignments and direct grants belong to the membership, so they go with it — that is
     // the point of hanging them off the member row. `onDelete: Cascade` on both join tables is

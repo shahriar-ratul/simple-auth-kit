@@ -1,7 +1,7 @@
 import { Module } from "@nestjs/common";
-import { AdminController } from "./controllers/admin.controller.js";
-import { AdminService } from "./services/admin.service.js";
-import { AuditLogModule } from "../audit-log/audit-log.module.js";
+import { AdminController } from "./controllers/admin.controller";
+import { AdminService } from "./services/admin.service";
+import { AuditLogModule } from "../audit-log/audit-log.module";
 
 // Plain feature module — no forRoot(). Relies on CoreAuthModule already being imported
 // (it's @Global()) for RbacRepository/SessionRepository/the Drizzle db/the guards/AUTH_CONFIG —

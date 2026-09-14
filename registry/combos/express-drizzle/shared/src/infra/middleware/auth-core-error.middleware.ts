@@ -1,6 +1,6 @@
 import type { NextFunction, Request, Response } from "express";
-import { AuthCoreError } from "@/lib/auth/core/types.js";
-import { HttpError } from "../errors/http-error.js";
+import { AuthCoreError } from "@/lib/auth/core/types";
+import { HttpError } from "../errors/http-error";
 
 /**
  * Replaces the reference combo's `AuthCoreErrorFilter` (a Nest global `@Catch` exception

@@ -21,17 +21,10 @@ export function normalizePage(page: number | undefined): number {
 }
 
 export function normalizeLimit(limit: number | undefined): number {
-  return Math.min(
-    limit && limit > 0 ? Math.floor(limit) : DEFAULT_PAGE_SIZE,
-    MAX_PAGE_SIZE,
-  );
+  return Math.min(limit && limit > 0 ? Math.floor(limit) : DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE);
 }
 
-export function buildPageMeta(
-  page: number,
-  limit: number,
-  total: number,
-): PageMeta {
+export function buildPageMeta(page: number, limit: number, total: number): PageMeta {
   const pageCount = Math.ceil(total / limit);
   return {
     page,

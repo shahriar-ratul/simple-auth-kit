@@ -1,12 +1,12 @@
-import { randomUUID } from "node:crypto";
-import { and, eq, isNull, ne, sql } from "drizzle-orm";
-import type { SessionStoreDeps } from "@/core/session-policy.js";
-import type { AuditEvent, Revoker, SessionRecord } from "@/core/types.js";
-import { AuditLogRepository } from "../../audit-log/repositories/audit-log.repository.js";
-import type { AuthConfig } from "../../../common/config/auth.config.js";
-import type { Database } from "../../../common/config/db.js";
-import { denylistedAccessTokens, sessions } from "@/database/schema.js";
-import { toId, toIdOrNull } from "../../../common/helpers/id.helper.js";
+import { randomUUID } from 'node:crypto';
+import { and, eq, isNull, ne, sql } from 'drizzle-orm';
+import type { SessionStoreDeps } from '@/core/session-policy';
+import type { AuditEvent, Revoker, SessionRecord } from '@/core/types';
+import { AuditLogRepository } from '../../audit-log/repositories/audit-log.repository';
+import type { AuthConfig } from '../../../common/config/auth.config';
+import type { Database } from '../../../common/config/db';
+import { denylistedAccessTokens, sessions } from '@/database/schema';
+import { toId, toIdOrNull } from '../../../common/helpers/id.helper';
 
 function toSessionRecord(row: typeof sessions.$inferSelect): SessionRecord {
   return {
@@ -115,40 +115,25 @@ export class SessionRepository implements SessionStoreDeps {
         ...revocationFields(revoker),
         sessionVersion: sql`${sessions.sessionVersion} + 1`,
       })
-      .where(
-        and(eq(sessions.userId, toId(userId)), isNull(sessions.revokedAt)),
-      );
+      .where(and(eq(sessions.userId, toId(userId)), isNull(sessions.revokedAt)));
   }
 
-  async revokeAllByUserExcept(
-    userId: string,
-    keepSessionId: string,
-    revoker?: Revoker,
-  ): Promise<void> {
+  async revokeAllByUserExcept(userId: string, keepSessionId: string, revoker?: Revoker): Promise<void> {
     await this.db
       .update(sessions)
       .set({
         ...revocationFields(revoker),
         sessionVersion: sql`${sessions.sessionVersion} + 1`,
       })
-      .where(
-        and(
-          eq(sessions.userId, toId(userId)),
-          ne(sessions.id, toId(keepSessionId)),
-          isNull(sessions.revokedAt),
-        ),
-      );
+      .where(and(eq(sessions.userId, toId(userId)), ne(sessions.id, toId(keepSessionId)), isNull(sessions.revokedAt)));
   }
 
   async denylistJti(jti: string, ttlSeconds: number): Promise<void> {
     const expiresAt = new Date(Date.now() + ttlSeconds * 1000);
-    await this.db
-      .insert(denylistedAccessTokens)
-      .values({ jti, expiresAt })
-      .onConflictDoUpdate({
-        target: denylistedAccessTokens.jti,
-        set: { expiresAt },
-      });
+    await this.db.insert(denylistedAccessTokens).values({ jti, expiresAt }).onConflictDoUpdate({
+      target: denylistedAccessTokens.jti,
+      set: { expiresAt },
+    });
   }
 
   async isDenylisted(jti: string): Promise<boolean> {

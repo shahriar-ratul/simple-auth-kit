@@ -14,15 +14,15 @@ import {
   inArray,
   type SQL,
 } from "drizzle-orm";
-import { resolvePermissions } from "@/lib/auth/core/rbac.js";
-import { DRIZZLE_DB, type Database } from "../../../common/config/db.js";
+import { resolvePermissions } from "@/lib/auth/core/rbac";
+import { DRIZZLE_DB, type Database } from "../../../common/config/db";
 import {
   buildPageMeta,
   normalizeLimit,
   normalizePage,
   type Paginated,
-} from "../../../common/helpers/pagination.js";
-import { PermissionCache } from "../../../common/auth/cache/permission-cache.js";
+} from "../../../common/helpers/pagination";
+import { PermissionCache } from "../../../common/auth/cache/permission-cache";
 import {
   permissionRole,
   permissionUser,
@@ -30,8 +30,8 @@ import {
   roleUser,
   roles,
   users,
-} from "@/database/schema.js";
-import { toId, toIdOrNull } from "../../../common/helpers/id.helper.js";
+} from "@/database/schema";
+import { toId, toIdOrNull } from "../../../common/helpers/id.helper";
 
 export interface UserSummary {
   id: string;

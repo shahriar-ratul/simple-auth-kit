@@ -1,37 +1,28 @@
-import { Pool } from "pg";
-import { drizzle } from "drizzle-orm/node-postgres";
-import { DynamicModule, Global, Module } from "@nestjs/common";
-import { AbilityGuard } from "./ability/ability.guard.js";
-import { AdminController } from "../../modules/admin/controllers/admin.controller.js";
-import { AuditLogController } from "../../modules/audit-log/controllers/audit-log.controller.js";
-import {
-  AUTH_CONFIG,
-  AuthConfig,
-  defaultAuthConfig,
-} from "../config/auth.config.js";
-import { AuthController } from "../../modules/auth/controllers/auth.controller.js";
-import { AuthGuard } from "./guards/auth.guard.js";
-import { AuthzGuard, WorkspaceGuard } from "./guards/authz.guard.js";
-import { DRIZZLE_DB } from "../config/db.js";
-import { KeyProviderService } from "../config/key-provider.js";
-import {
-  InMemoryPermissionCacheStore,
-  PERMISSION_CACHE_STORE,
-  PermissionCache,
-} from "./cache/permission-cache.js";
-import {
-  InMemoryRateLimitStore,
-  RATE_LIMIT_STORE,
-} from "./cache/rate-limit.store.js";
-import { PermissionController } from "../../modules/permissions/controllers/permission.controller.js";
-import { RbacRepository } from "../../modules/auth/repositories/rbac.repository.js";
-import { RoleController } from "../../modules/roles/controllers/role.controller.js";
-import { WorkspaceController } from "../../modules/auth/controllers/workspace.controller.js";
-import { WorkspaceRepository } from "../../modules/auth/repositories/workspace.repository.js";
-import { AuditLogModule } from "../../modules/audit-log/audit-log.module.js";
-import { SessionRepository } from "../../modules/auth/repositories/session.repository.js";
-import { assertEveryRouteDeclaresATier } from "../../infra/route-tiers.js";
-import * as schema from "@/database/schema.js";
+import { Pool } from 'pg';
+import { drizzle } from 'drizzle-orm/node-postgres';
+import { DynamicModule, Global, Module } from '@nestjs/common';
+import { JwtModule } from '@nestjs/jwt';
+import { AbilityGuard } from './ability/ability.guard';
+import { AdminController } from '../../modules/admin/controllers/admin.controller';
+import { AuditLogController } from '../../modules/audit-log/controllers/audit-log.controller';
+import { AUTH_CONFIG, AuthConfig, defaultAuthConfig } from '../config/auth.config';
+import { AuthController } from '../../modules/auth/controllers/auth.controller';
+import { AuthGuard } from './guards/auth.guard';
+import { AuthzGuard, WorkspaceGuard } from './guards/authz.guard';
+import { DRIZZLE_DB } from '../config/db';
+import { loadJwtSecret } from '../config/key-provider';
+import { AuthTokenService } from './token.service';
+import { InMemoryPermissionCacheStore, PERMISSION_CACHE_STORE, PermissionCache } from './cache/permission-cache';
+import { InMemoryRateLimitStore, RATE_LIMIT_STORE } from './cache/rate-limit.store';
+import { PermissionController } from '../../modules/permissions/controllers/permission.controller';
+import { RbacRepository } from '../../modules/auth/repositories/rbac.repository';
+import { RoleController } from '../../modules/roles/controllers/role.controller';
+import { WorkspaceController } from '../../modules/auth/controllers/workspace.controller';
+import { WorkspaceRepository } from '../../modules/auth/repositories/workspace.repository';
+import { AuditLogModule } from '../../modules/audit-log/audit-log.module';
+import { SessionRepository } from '../../modules/auth/repositories/session.repository';
+import { assertEveryRouteDeclaresATier } from '../../infra/route-tiers';
+import * as schema from '@/database/schema';
 
 // Every controller this combo ships, across every feature module — the one array the boot-time
 // tier check walks. Built here (rather than each feature module registering itself) so there's
@@ -72,33 +63,41 @@ export class CoreAuthModule {
     });
 
     const resolved: AuthConfig = { ...defaultAuthConfig, ...config };
-    const pool = new Pool({ connectionString: process.env["DATABASE_URL"] });
+    const pool = new Pool({ connectionString: process.env['DATABASE_URL'] });
     const db = drizzle(pool, { schema });
 
     if (!config.permissionCacheStore || !config.rateLimitStore) {
       console.warn(
-        "[simple-auth-kit] permissionCacheStore/rateLimitStore not overridden — using in-memory defaults. " +
-          "Fine for a single instance; silently inconsistent (stale grants, wrong rate-limit counts) " +
-          "across replicas once you run more than one. Override permissionCacheStore/rateLimitStore " +
-          "with a shared store (e.g. Redis) in CoreAuthModule.forRoot() before scaling out.",
+        '[simple-auth-kit] permissionCacheStore/rateLimitStore not overridden — using in-memory defaults. ' +
+          'Fine for a single instance; silently inconsistent (stale grants, wrong rate-limit counts) ' +
+          'across replicas once you run more than one. Override permissionCacheStore/rateLimitStore ' +
+          'with a shared store (e.g. Redis) in CoreAuthModule.forRoot() before scaling out.',
       );
     }
 
     return {
       module: CoreAuthModule,
       global: true,
-      imports: [AuditLogModule],
+      imports: [
+        AuditLogModule,
+        JwtModule.registerAsync({
+          useFactory: () => ({
+            secret: loadJwtSecret(),
+            signOptions: { algorithm: 'HS256' },
+            verifyOptions: { algorithms: ['HS256'] },
+          }),
+        }),
+      ],
       providers: [
         { provide: AUTH_CONFIG, useValue: resolved },
         { provide: DRIZZLE_DB, useValue: db },
         // Swap for a Redis-backed store by passing `permissionCacheStore` to forRoot.
         {
           provide: PERMISSION_CACHE_STORE,
-          useValue:
-            config.permissionCacheStore ?? new InMemoryPermissionCacheStore(),
+          useValue: config.permissionCacheStore ?? new InMemoryPermissionCacheStore(),
         },
         PermissionCache,
-        KeyProviderService,
+        AuthTokenService,
         {
           provide: RATE_LIMIT_STORE,
           useValue: config.rateLimitStore ?? new InMemoryRateLimitStore(),
@@ -114,7 +113,7 @@ export class CoreAuthModule {
       exports: [
         AUTH_CONFIG,
         DRIZZLE_DB,
-        KeyProviderService,
+        AuthTokenService,
         PERMISSION_CACHE_STORE,
         PermissionCache,
         RATE_LIMIT_STORE,

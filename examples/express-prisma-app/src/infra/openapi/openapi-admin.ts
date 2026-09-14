@@ -9,12 +9,7 @@
 // bypass, which is why the 403s say which permission was missing rather than "admin role
 // required": holding a role called "admin" that carries nothing gets the same answer as holding
 // no role at all.
-import {
-  errorResponse,
-  missingPermission,
-  requiresPermission,
-  type OpenApiFragment,
-} from "./openapi-fragment.js";
+import { errorResponse, missingPermission, requiresPermission, type OpenApiFragment } from './openapi-fragment';
 
 export const adminSpec: OpenApiFragment = {
   tags: [],
@@ -23,1078 +18,1026 @@ export const adminSpec: OpenApiFragment = {
 
   schemas: {
     PermissionSummary: {
-      type: "object",
+      type: 'object',
       properties: {
-        id: { type: "string" },
+        id: { type: 'string' },
         slug: {
-          type: "string",
+          type: 'string',
           description:
-            "The ability itself: `ability(slug)` on the server, `ability.can(slug, ABILITY_SUBJECT)` in a client.",
-          example: "users:read",
+            'The ability itself: `ability(slug)` on the server, `ability.can(slug, ABILITY_SUBJECT)` in a client.',
+          example: 'users:read',
         },
-        displayName: { type: "string", example: "List users" },
-        description: { type: "string", nullable: true },
+        displayName: { type: 'string', example: 'List users' },
+        description: { type: 'string', nullable: true },
         group: {
-          type: "string",
-          description:
-            "Console grouping — a permission matrix renders one section per group.",
-          example: "Users",
+          type: 'string',
+          description: 'Console grouping — a permission matrix renders one section per group.',
+          example: 'Users',
         },
-        groupOrder: { type: "integer" },
-        order: { type: "integer" },
+        groupOrder: { type: 'integer' },
+        order: { type: 'integer' },
         isActive: {
-          type: "boolean",
+          type: 'boolean',
           description:
-            "false takes the permission out of every ability that would otherwise carry it, without unpicking a single grant.",
+            'false takes the permission out of every ability that would otherwise carry it, without unpicking a single grant.',
         },
       },
     },
     PermissionListResponse: {
-      type: "object",
+      type: 'object',
       properties: {
         permissions: {
-          type: "array",
-          items: { $ref: "#/components/schemas/PermissionSummary" },
+          type: 'array',
+          items: { $ref: '#/components/schemas/PermissionSummary' },
         },
       },
     },
     DefinePermissionRequest: {
-      type: "object",
-      required: ["slug"],
+      type: 'object',
+      required: ['slug'],
       properties: {
-        slug: { type: "string", example: "billing:manage" },
+        slug: { type: 'string', example: 'billing:manage' },
         displayName: {
-          type: "string",
-          description: "Defaults to the slug when creating.",
+          type: 'string',
+          description: 'Defaults to the slug when creating.',
         },
-        description: { type: "string", nullable: true },
+        description: { type: 'string', nullable: true },
         group: {
-          type: "string",
+          type: 'string',
           description: 'Defaults to "Custom" when creating.',
         },
-        groupOrder: { type: "integer" },
-        order: { type: "integer" },
-        isActive: { type: "boolean" },
+        groupOrder: { type: 'integer' },
+        order: { type: 'integer' },
+        isActive: { type: 'boolean' },
       },
     },
     RoleListResponse: {
-      type: "object",
+      type: 'object',
       properties: {
         roles: {
-          type: "array",
-          items: { $ref: "#/components/schemas/RoleSummary" },
+          type: 'array',
+          items: { $ref: '#/components/schemas/RoleSummary' },
         },
       },
     },
     CreateRoleRequest: {
-      type: "object",
-      required: ["slug"],
+      type: 'object',
+      required: ['slug'],
       properties: {
         slug: {
-          type: "string",
-          description:
-            "Stable identifier. Grants and assignments are keyed on it.",
-          example: "billing-manager",
+          type: 'string',
+          description: 'Stable identifier. Grants and assignments are keyed on it.',
+          example: 'billing-manager',
         },
         displayName: {
-          type: "string",
-          description: "Human label for the console. Defaults to the slug.",
-          example: "Billing manager",
+          type: 'string',
+          description: 'Human label for the console. Defaults to the slug.',
+          example: 'Billing manager',
         },
-        description: { type: "string", nullable: true },
+        description: { type: 'string', nullable: true },
       },
     },
     AttachPermissionRequest: {
-      type: "object",
-      required: ["permission"],
+      type: 'object',
+      required: ['permission'],
       properties: {
-        permission: { type: "string", example: "billing:manage" },
+        permission: { type: 'string', example: 'billing:manage' },
       },
     },
     AssignRoleRequest: {
-      type: "object",
-      required: ["role"],
+      type: 'object',
+      required: ['role'],
       properties: {
         role: {
-          type: "string",
-          description: "Role slug",
-          example: "billing-manager",
+          type: 'string',
+          description: 'Role slug',
+          example: 'billing-manager',
         },
       },
     },
     GrantPermissionRequest: {
-      type: "object",
-      required: ["permission"],
+      type: 'object',
+      required: ['permission'],
       properties: {
-        permission: { type: "string", example: "billing:manage" },
+        permission: { type: 'string', example: 'billing:manage' },
       },
     },
     RoleSummary: {
-      type: "object",
-      required: ["id", "slug", "displayName", "isDefault", "isActive"],
+      type: 'object',
+      required: ['id', 'slug', 'displayName', 'isDefault', 'isActive'],
       properties: {
-        id: { type: "string" },
-        slug: { type: "string", example: "billing-manager" },
-        displayName: { type: "string", example: "Billing manager" },
+        id: { type: 'string' },
+        slug: { type: 'string', example: 'billing-manager' },
+        displayName: { type: 'string', example: 'Billing manager' },
         isDefault: {
-          type: "boolean",
+          type: 'boolean',
           description:
-            "Given to every new principal. The signup/membership default is this row, not a name spelled in code.",
+            'Given to every new principal. The signup/membership default is this row, not a name spelled in code.',
         },
         isActive: {
-          type: "boolean",
-          description:
-            "false suspends the role without deleting it; every assignment pointing at it survives.",
+          type: 'boolean',
+          description: 'false suspends the role without deleting it; every assignment pointing at it survives.',
         },
       },
     },
     UserSummary: {
-      type: "object",
-      required: [
-        "id",
-        "uuid",
-        "email",
-        "blocked",
-        "isActive",
-        "twoFactorEnabled",
-        "roles",
-        "createdAt",
-        "updatedAt",
-      ],
+      type: 'object',
+      required: ['id', 'uuid', 'email', 'blocked', 'isActive', 'twoFactorEnabled', 'roles', 'createdAt', 'updatedAt'],
       properties: {
-        id: { type: "string" },
-        uuid: { type: "string" },
-        email: { type: "string" },
+        id: { type: 'string' },
+        uuid: { type: 'string' },
+        email: { type: 'string' },
         firstName: {
-          type: "string",
+          type: 'string',
           nullable: true,
-          description: "Unique across the deployment.",
+          description: 'Unique across the deployment.',
         },
         lastName: {
-          type: "string",
+          type: 'string',
           nullable: true,
-          description: "Unique across the deployment.",
+          description: 'Unique across the deployment.',
         },
-        displayName: { type: "string", nullable: true },
+        displayName: { type: 'string', nullable: true },
         phone: {
-          type: "string",
+          type: 'string',
           nullable: true,
-          description: "Unique across the deployment.",
+          description: 'Unique across the deployment.',
         },
         username: {
-          type: "string",
+          type: 'string',
           nullable: true,
-          description: "Unique across the deployment.",
+          description: 'Unique across the deployment.',
         },
-        photo: { type: "string", nullable: true },
+        photo: { type: 'string', nullable: true },
         lastLogin: {
-          type: "string",
-          format: "date-time",
+          type: 'string',
+          format: 'date-time',
           nullable: true,
-          description:
-            "Set on every successful signup/login/OAuth callback, never on a token refresh.",
+          description: 'Set on every successful signup/login/OAuth callback, never on a token refresh.',
         },
         blocked: {
-          type: "boolean",
-          description:
-            "Security/moderation block — distinct from isActive, see the model note.",
+          type: 'boolean',
+          description: 'Security/moderation block — distinct from isActive, see the model note.',
         },
         isActive: {
-          type: "boolean",
-          description:
-            "Routine administrative on/off toggle — distinct from blocked, see the model note.",
+          type: 'boolean',
+          description: 'Routine administrative on/off toggle — distinct from blocked, see the model note.',
         },
-        twoFactorEnabled: { type: "boolean" },
-        roles: { type: "array", items: { type: "string" } },
+        twoFactorEnabled: { type: 'boolean' },
+        roles: { type: 'array', items: { type: 'string' } },
         createdBy: {
-          type: "string",
+          type: 'string',
           nullable: true,
-          description:
-            "User id of whoever created this account, if it wasn't a self-signup.",
+          description: "User id of whoever created this account, if it wasn't a self-signup.",
         },
         updatedBy: {
-          type: "string",
+          type: 'string',
           nullable: true,
           description: "User id of whoever last edited this account's profile.",
         },
-        createdAt: { type: "string", format: "date-time" },
-        updatedAt: { type: "string", format: "date-time" },
+        createdAt: { type: 'string', format: 'date-time' },
+        updatedAt: { type: 'string', format: 'date-time' },
       },
     },
     CreateUserRequest: {
-      type: "object",
-      required: ["email", "password"],
+      type: 'object',
+      required: ['email', 'password'],
       properties: {
-        email: { type: "string", example: "alice@example.com" },
+        email: { type: 'string', example: 'alice@example.com' },
         password: {
-          type: "string",
-          description:
-            "Set directly — there is no invitation email, the account is usable immediately.",
+          type: 'string',
+          description: 'Set directly — there is no invitation email, the account is usable immediately.',
         },
         firstName: {
-          type: "string",
-          description: "Unique across the deployment.",
+          type: 'string',
+          description: 'Unique across the deployment.',
         },
         lastName: {
-          type: "string",
-          description: "Unique across the deployment.",
+          type: 'string',
+          description: 'Unique across the deployment.',
         },
-        displayName: { type: "string" },
-        phone: { type: "string", description: "Unique across the deployment." },
+        displayName: { type: 'string' },
+        phone: { type: 'string', description: 'Unique across the deployment.' },
         username: {
-          type: "string",
-          description: "Unique across the deployment.",
+          type: 'string',
+          description: 'Unique across the deployment.',
         },
         roles: {
-          type: "array",
-          items: { type: "string" },
+          type: 'array',
+          items: { type: 'string' },
           description:
-            "Role slugs to assign. Defaults to whichever roles are flagged isDefault, same as a self-signup.",
+            'Role slugs to assign. Defaults to whichever roles are flagged isDefault, same as a self-signup.',
         },
       },
     },
     UpdateUserRequest: {
-      type: "object",
+      type: 'object',
       properties: {
         firstName: {
-          type: "string",
+          type: 'string',
           nullable: true,
-          description: "Unique across the deployment.",
+          description: 'Unique across the deployment.',
         },
         lastName: {
-          type: "string",
+          type: 'string',
           nullable: true,
-          description: "Unique across the deployment.",
+          description: 'Unique across the deployment.',
         },
-        displayName: { type: "string", nullable: true },
+        displayName: { type: 'string', nullable: true },
         phone: {
-          type: "string",
+          type: 'string',
           nullable: true,
-          description: "Unique across the deployment.",
+          description: 'Unique across the deployment.',
         },
         username: {
-          type: "string",
+          type: 'string',
           nullable: true,
-          description: "Unique across the deployment.",
+          description: 'Unique across the deployment.',
         },
-        photo: { type: "string", nullable: true },
+        photo: { type: 'string', nullable: true },
       },
     },
     UpdateRoleRequest: {
-      type: "object",
+      type: 'object',
       properties: {
-        name: { type: "string" },
-        displayName: { type: "string" },
-        description: { type: "string", nullable: true },
+        name: { type: 'string' },
+        displayName: { type: 'string' },
+        description: { type: 'string', nullable: true },
         isActive: {
-          type: "boolean",
-          description:
-            "false suspends the role without deleting it — it stops granting immediately.",
+          type: 'boolean',
+          description: 'false suspends the role without deleting it — it stops granting immediately.',
         },
       },
     },
     DeleteReasonRequest: {
-      type: "object",
+      type: 'object',
       properties: {
         reason: {
-          type: "string",
-          description:
-            "Free-text note, for whoever reviews the deletion later.",
+          type: 'string',
+          description: 'Free-text note, for whoever reviews the deletion later.',
         },
       },
     },
     PageMeta: {
-      type: "object",
-      required: [
-        "page",
-        "limit",
-        "total",
-        "pageCount",
-        "hasPreviousPage",
-        "hasNextPage",
-      ],
+      type: 'object',
+      required: ['page', 'limit', 'total', 'pageCount', 'hasPreviousPage', 'hasNextPage'],
       properties: {
-        page: { type: "integer", description: "1-indexed" },
-        limit: { type: "integer" },
-        total: { type: "integer" },
-        pageCount: { type: "integer" },
-        hasPreviousPage: { type: "boolean" },
-        hasNextPage: { type: "boolean" },
+        page: { type: 'integer', description: '1-indexed' },
+        limit: { type: 'integer' },
+        total: { type: 'integer' },
+        pageCount: { type: 'integer' },
+        hasPreviousPage: { type: 'boolean' },
+        hasNextPage: { type: 'boolean' },
       },
     },
     UserListResponse: {
-      type: "object",
-      required: ["items", "meta"],
+      type: 'object',
+      required: ['items', 'meta'],
       properties: {
         items: {
-          type: "array",
-          items: { $ref: "#/components/schemas/UserSummary" },
+          type: 'array',
+          items: { $ref: '#/components/schemas/UserSummary' },
         },
-        meta: { $ref: "#/components/schemas/PageMeta" },
+        meta: { $ref: '#/components/schemas/PageMeta' },
       },
     },
     AuditLogEntry: {
-      type: "object",
-      required: [
-        "id",
-        "userId",
-        "name",
-        "action",
-        "info",
-        "remarks",
-        "createdAt",
-        "updatedAt",
-      ],
+      type: 'object',
+      required: ['id', 'userId', 'name', 'action', 'info', 'remarks', 'createdAt', 'updatedAt'],
       properties: {
-        id: { type: "string" },
+        id: { type: 'string' },
         userId: {
-          type: "string",
+          type: 'string',
           nullable: true,
-          description:
-            "Who the event is about; null when it is not attributable to one user",
+          description: 'Who the event is about; null when it is not attributable to one user',
         },
         name: {
-          type: "string",
-          description: "Human-readable label for `action`",
-          example: "Role assigned",
+          type: 'string',
+          description: 'Human-readable label for `action`',
+          example: 'Role assigned',
         },
         action: {
-          type: "string",
-          description: "AuditEvent discriminant",
-          example: "role_assigned",
+          type: 'string',
+          description: 'AuditEvent discriminant',
+          example: 'role_assigned',
         },
-        info: { type: "object", description: "The rest of the event's fields" },
-        remarks: { type: "string", nullable: true },
-        createdAt: { type: "string", format: "date-time" },
-        updatedAt: { type: "string", format: "date-time" },
+        info: { type: 'object', description: "The rest of the event's fields" },
+        remarks: { type: 'string', nullable: true },
+        createdAt: { type: 'string', format: 'date-time' },
+        updatedAt: { type: 'string', format: 'date-time' },
       },
     },
     AuditLogListResponse: {
-      type: "object",
-      required: ["items", "meta"],
+      type: 'object',
+      required: ['items', 'meta'],
       properties: {
         items: {
-          type: "array",
-          items: { $ref: "#/components/schemas/AuditLogEntry" },
+          type: 'array',
+          items: { $ref: '#/components/schemas/AuditLogEntry' },
         },
-        meta: { $ref: "#/components/schemas/PageMeta" },
+        meta: { $ref: '#/components/schemas/PageMeta' },
       },
     },
   },
 
   paths: {
-    "/admin/users": {
+    '/admin/users': {
       get: {
-        tags: ["auth"],
-        summary: "[admin] List users",
-        description: requiresPermission("users:read"),
+        tags: ['auth'],
+        summary: '[admin] List users',
+        description: requiresPermission('users:read'),
         security: [{ bearerAuth: [] }],
         parameters: [
           {
-            name: "search",
-            in: "query",
+            name: 'search',
+            in: 'query',
             required: false,
-            schema: { type: "string" },
-            description: "Email substring match",
+            schema: { type: 'string' },
+            description: 'Email substring match',
           },
           {
-            name: "page",
-            in: "query",
+            name: 'page',
+            in: 'query',
             required: false,
-            schema: { type: "integer" },
-            description: "1-indexed. Defaults to 1.",
+            schema: { type: 'integer' },
+            description: '1-indexed. Defaults to 1.',
           },
           {
-            name: "limit",
-            in: "query",
+            name: 'limit',
+            in: 'query',
             required: false,
-            schema: { type: "integer" },
-            description: "Defaults to 25, capped at 100.",
+            schema: { type: 'integer' },
+            description: 'Defaults to 25, capped at 100.',
           },
         ],
         responses: {
-          "200": {
-            description: "OK",
+          '200': {
+            description: 'OK',
             content: {
-              "application/json": {
-                schema: { $ref: "#/components/schemas/UserListResponse" },
+              'application/json': {
+                schema: { $ref: '#/components/schemas/UserListResponse' },
               },
             },
           },
-          "401": errorResponse("Missing or invalid access token"),
-          "403": missingPermission("users:read"),
+          '401': errorResponse('Missing or invalid access token'),
+          '403': missingPermission('users:read'),
         },
       },
       post: {
-        tags: ["auth"],
-        summary: "[admin] Create a user directly",
+        tags: ['auth'],
+        summary: '[admin] Create a user directly',
         description:
-          requiresPermission("users:manage") +
-          " No invitation email — the account is usable immediately with the password given here.",
+          requiresPermission('users:manage') +
+          ' No invitation email — the account is usable immediately with the password given here.',
         security: [{ bearerAuth: [] }],
         requestBody: {
           required: true,
           content: {
-            "application/json": {
-              schema: { $ref: "#/components/schemas/CreateUserRequest" },
+            'application/json': {
+              schema: { $ref: '#/components/schemas/CreateUserRequest' },
             },
           },
         },
         responses: {
-          "201": {
-            description: "Created",
+          '201': {
+            description: 'Created',
             content: {
-              "application/json": {
-                schema: { $ref: "#/components/schemas/UserSummary" },
+              'application/json': {
+                schema: { $ref: '#/components/schemas/UserSummary' },
               },
             },
           },
-          "400": errorResponse("Missing required field"),
-          "401": errorResponse("Missing or invalid access token"),
-          "403": missingPermission("users:manage"),
-          "409": errorResponse("Email already registered"),
+          '400': errorResponse('Missing required field'),
+          '401': errorResponse('Missing or invalid access token'),
+          '403': missingPermission('users:manage'),
+          '409': errorResponse('Email already registered'),
         },
       },
     },
-    "/admin/users/{userId}": {
+    '/admin/users/{userId}': {
       get: {
-        tags: ["auth"],
-        summary: "[admin] Fetch a single user",
-        description: requiresPermission("users:read"),
+        tags: ['auth'],
+        summary: '[admin] Fetch a single user',
+        description: requiresPermission('users:read'),
         security: [{ bearerAuth: [] }],
         parameters: [
           {
-            name: "userId",
-            in: "path",
+            name: 'userId',
+            in: 'path',
             required: true,
-            schema: { type: "string" },
+            schema: { type: 'string' },
           },
         ],
         responses: {
-          "200": {
-            description: "OK",
+          '200': {
+            description: 'OK',
             content: {
-              "application/json": {
-                schema: { $ref: "#/components/schemas/UserSummary" },
+              'application/json': {
+                schema: { $ref: '#/components/schemas/UserSummary' },
               },
             },
           },
-          "401": errorResponse("Missing or invalid access token"),
-          "403": missingPermission("users:read"),
-          "404": errorResponse("User not found"),
+          '401': errorResponse('Missing or invalid access token'),
+          '403': missingPermission('users:read'),
+          '404': errorResponse('User not found'),
         },
       },
       patch: {
-        tags: ["auth"],
+        tags: ['auth'],
         summary: "[admin] Edit a user's profile",
         description:
-          requiresPermission("users:manage") +
-          " Profile fields only — email is the login identifier and is not editable here.",
+          requiresPermission('users:manage') +
+          ' Profile fields only — email is the login identifier and is not editable here.',
         security: [{ bearerAuth: [] }],
         parameters: [
           {
-            name: "userId",
-            in: "path",
+            name: 'userId',
+            in: 'path',
             required: true,
-            schema: { type: "string" },
+            schema: { type: 'string' },
           },
         ],
         requestBody: {
           required: true,
           content: {
-            "application/json": {
-              schema: { $ref: "#/components/schemas/UpdateUserRequest" },
+            'application/json': {
+              schema: { $ref: '#/components/schemas/UpdateUserRequest' },
             },
           },
         },
         responses: {
-          "200": {
-            description: "OK",
+          '200': {
+            description: 'OK',
             content: {
-              "application/json": {
-                schema: { $ref: "#/components/schemas/UserSummary" },
+              'application/json': {
+                schema: { $ref: '#/components/schemas/UserSummary' },
               },
             },
           },
-          "401": errorResponse("Missing or invalid access token"),
-          "403": missingPermission("users:manage"),
-          "404": errorResponse("User not found"),
+          '401': errorResponse('Missing or invalid access token'),
+          '403': missingPermission('users:manage'),
+          '404': errorResponse('User not found'),
         },
       },
       delete: {
-        tags: ["auth"],
-        summary: "[admin] Delete a user",
+        tags: ['auth'],
+        summary: '[admin] Delete a user',
         description:
-          requiresPermission("users:manage") +
-          " Soft-delete: the row survives for audit purposes, stops appearing in listings, and can no longer authenticate.",
+          requiresPermission('users:manage') +
+          ' Soft-delete: the row survives for audit purposes, stops appearing in listings, and can no longer authenticate.',
         security: [{ bearerAuth: [] }],
         parameters: [
           {
-            name: "userId",
-            in: "path",
+            name: 'userId',
+            in: 'path',
             required: true,
-            schema: { type: "string" },
+            schema: { type: 'string' },
           },
         ],
         requestBody: {
           required: false,
           content: {
-            "application/json": {
-              schema: { $ref: "#/components/schemas/DeleteReasonRequest" },
+            'application/json': {
+              schema: { $ref: '#/components/schemas/DeleteReasonRequest' },
             },
           },
         },
         responses: {
-          "200": {
-            description: "OK",
+          '200': {
+            description: 'OK',
             content: {
-              "application/json": {
-                schema: { $ref: "#/components/schemas/OkResponse" },
+              'application/json': {
+                schema: { $ref: '#/components/schemas/OkResponse' },
               },
             },
           },
-          "401": errorResponse("Missing or invalid access token"),
-          "403": missingPermission(
-            "users:manage",
-            "cannot delete your own account",
-          ),
-          "404": errorResponse("User not found"),
+          '401': errorResponse('Missing or invalid access token'),
+          '403': missingPermission('users:manage', 'cannot delete your own account'),
+          '404': errorResponse('User not found'),
         },
       },
     },
-    "/audit-log": {
+    '/audit-log': {
       get: {
-        tags: ["auth"],
-        summary: "[admin] List audit log entries, newest first",
-        description: requiresPermission("audit-log:read"),
+        tags: ['auth'],
+        summary: '[admin] List audit log entries, newest first',
+        description: requiresPermission('audit-log:read'),
         security: [{ bearerAuth: [] }],
         parameters: [
           {
-            name: "userId",
-            in: "query",
+            name: 'userId',
+            in: 'query',
             required: false,
-            schema: { type: "string" },
+            schema: { type: 'string' },
           },
           {
-            name: "action",
-            in: "query",
+            name: 'action',
+            in: 'query',
             required: false,
-            schema: { type: "string" },
+            schema: { type: 'string' },
             description: "AuditEvent discriminant, e.g. 'role_assigned'",
           },
           {
-            name: "since",
-            in: "query",
+            name: 'since',
+            in: 'query',
             required: false,
-            schema: { type: "string", format: "date-time" },
+            schema: { type: 'string', format: 'date-time' },
           },
           {
-            name: "until",
-            in: "query",
+            name: 'until',
+            in: 'query',
             required: false,
-            schema: { type: "string", format: "date-time" },
+            schema: { type: 'string', format: 'date-time' },
           },
           {
-            name: "page",
-            in: "query",
+            name: 'page',
+            in: 'query',
             required: false,
-            schema: { type: "integer" },
-            description: "1-indexed. Defaults to 1.",
+            schema: { type: 'integer' },
+            description: '1-indexed. Defaults to 1.',
           },
           {
-            name: "limit",
-            in: "query",
+            name: 'limit',
+            in: 'query',
             required: false,
-            schema: { type: "integer" },
-            description: "Defaults to 25, capped at 100.",
+            schema: { type: 'integer' },
+            description: 'Defaults to 25, capped at 100.',
           },
         ],
         responses: {
-          "200": {
-            description: "OK",
+          '200': {
+            description: 'OK',
             content: {
-              "application/json": {
-                schema: { $ref: "#/components/schemas/AuditLogListResponse" },
+              'application/json': {
+                schema: { $ref: '#/components/schemas/AuditLogListResponse' },
               },
             },
           },
-          "401": errorResponse("Missing or invalid access token"),
-          "403": missingPermission("audit-log:read"),
+          '401': errorResponse('Missing or invalid access token'),
+          '403': missingPermission('audit-log:read'),
         },
       },
     },
-    "/permissions": {
+    '/permissions': {
       get: {
-        tags: ["auth"],
-        summary: "[admin] List the permission catalog",
+        tags: ['auth'],
+        summary: '[admin] List the permission catalog',
         description:
-          requiresPermission("permissions:read") +
-          " Grouped and ordered for a permission matrix. This is the whole vocabulary of the deployment — there is nothing about authorization outside these rows.",
+          requiresPermission('permissions:read') +
+          ' Grouped and ordered for a permission matrix. This is the whole vocabulary of the deployment — there is nothing about authorization outside these rows.',
         security: [{ bearerAuth: [] }],
         responses: {
-          "200": {
-            description: "OK",
+          '200': {
+            description: 'OK',
             content: {
-              "application/json": {
-                schema: { $ref: "#/components/schemas/PermissionListResponse" },
+              'application/json': {
+                schema: { $ref: '#/components/schemas/PermissionListResponse' },
               },
             },
           },
-          "401": errorResponse("Missing or invalid access token"),
-          "403": missingPermission("permissions:read"),
+          '401': errorResponse('Missing or invalid access token'),
+          '403': missingPermission('permissions:read'),
         },
       },
       post: {
-        tags: ["auth"],
-        summary: "[admin] Define or edit a permission",
+        tags: ['auth'],
+        summary: '[admin] Define or edit a permission',
         description:
-          requiresPermission("permissions:define") +
-          " Upserted on `slug`, which is the stable identifier grants and revocations use — renaming the display name never breaks a grant." +
-          " `isActive: false` takes the permission out of every ability that carries it, in one write, effective on the next request.",
+          requiresPermission('permissions:define') +
+          ' Upserted on `slug`, which is the stable identifier grants and revocations use — renaming the display name never breaks a grant.' +
+          ' `isActive: false` takes the permission out of every ability that carries it, in one write, effective on the next request.',
         security: [{ bearerAuth: [] }],
         requestBody: {
           required: true,
           content: {
-            "application/json": {
-              schema: { $ref: "#/components/schemas/DefinePermissionRequest" },
+            'application/json': {
+              schema: { $ref: '#/components/schemas/DefinePermissionRequest' },
             },
           },
         },
         responses: {
-          "201": {
-            description: "Created",
+          '201': {
+            description: 'Created',
             content: {
-              "application/json": {
-                schema: { $ref: "#/components/schemas/PermissionSummary" },
+              'application/json': {
+                schema: { $ref: '#/components/schemas/PermissionSummary' },
               },
             },
           },
-          "401": errorResponse("Missing or invalid access token"),
-          "403": missingPermission("permissions:define"),
+          '401': errorResponse('Missing or invalid access token'),
+          '403': missingPermission('permissions:define'),
         },
       },
     },
-    "/roles": {
+    '/roles': {
       get: {
-        tags: ["auth"],
-        summary: "[admin] List the roles this deployment defines",
-        description: requiresPermission("roles:manage"),
+        tags: ['auth'],
+        summary: '[admin] List the roles this deployment defines',
+        description: requiresPermission('roles:manage'),
         security: [{ bearerAuth: [] }],
         responses: {
-          "200": {
-            description: "OK",
+          '200': {
+            description: 'OK',
             content: {
-              "application/json": {
-                schema: { $ref: "#/components/schemas/RoleListResponse" },
+              'application/json': {
+                schema: { $ref: '#/components/schemas/RoleListResponse' },
               },
             },
           },
-          "401": errorResponse("Missing or invalid access token"),
-          "403": missingPermission("roles:manage"),
+          '401': errorResponse('Missing or invalid access token'),
+          '403': missingPermission('roles:manage'),
         },
       },
       post: {
-        tags: ["auth"],
-        summary: "[admin] Create a role",
-        description: requiresPermission("roles:manage"),
+        tags: ['auth'],
+        summary: '[admin] Create a role',
+        description: requiresPermission('roles:manage'),
         security: [{ bearerAuth: [] }],
         requestBody: {
           required: true,
           content: {
-            "application/json": {
-              schema: { $ref: "#/components/schemas/CreateRoleRequest" },
+            'application/json': {
+              schema: { $ref: '#/components/schemas/CreateRoleRequest' },
             },
           },
         },
         responses: {
-          "201": {
-            description: "Created",
+          '201': {
+            description: 'Created',
             content: {
-              "application/json": {
-                schema: { $ref: "#/components/schemas/RoleSummary" },
+              'application/json': {
+                schema: { $ref: '#/components/schemas/RoleSummary' },
               },
             },
           },
-          "401": errorResponse("Missing or invalid access token"),
-          "403": missingPermission("roles:manage"),
+          '401': errorResponse('Missing or invalid access token'),
+          '403': missingPermission('roles:manage'),
         },
       },
     },
-    "/roles/{roleId}": {
+    '/roles/{roleId}': {
       patch: {
-        tags: ["auth"],
-        summary: "[admin] Edit a role",
-        description: requiresPermission("roles:manage"),
+        tags: ['auth'],
+        summary: '[admin] Edit a role',
+        description: requiresPermission('roles:manage'),
         security: [{ bearerAuth: [] }],
         parameters: [
           {
-            name: "roleId",
-            in: "path",
+            name: 'roleId',
+            in: 'path',
             required: true,
-            schema: { type: "string" },
+            schema: { type: 'string' },
           },
         ],
         requestBody: {
           required: true,
           content: {
-            "application/json": {
-              schema: { $ref: "#/components/schemas/UpdateRoleRequest" },
+            'application/json': {
+              schema: { $ref: '#/components/schemas/UpdateRoleRequest' },
             },
           },
         },
         responses: {
-          "200": {
-            description: "OK",
+          '200': {
+            description: 'OK',
             content: {
-              "application/json": {
-                schema: { $ref: "#/components/schemas/RoleSummary" },
+              'application/json': {
+                schema: { $ref: '#/components/schemas/RoleSummary' },
               },
             },
           },
-          "401": errorResponse("Missing or invalid access token"),
-          "403": missingPermission("roles:manage"),
-          "404": errorResponse("Role not found"),
+          '401': errorResponse('Missing or invalid access token'),
+          '403': missingPermission('roles:manage'),
+          '404': errorResponse('Role not found'),
         },
       },
       delete: {
-        tags: ["auth"],
-        summary: "[admin] Delete a role",
+        tags: ['auth'],
+        summary: '[admin] Delete a role',
         description:
-          requiresPermission("roles:manage") +
-          " Soft-delete: existing assignments are left in place rather than cascade-deleted, and the role simply stops being resolved.",
+          requiresPermission('roles:manage') +
+          ' Soft-delete: existing assignments are left in place rather than cascade-deleted, and the role simply stops being resolved.',
         security: [{ bearerAuth: [] }],
         parameters: [
           {
-            name: "roleId",
-            in: "path",
+            name: 'roleId',
+            in: 'path',
             required: true,
-            schema: { type: "string" },
+            schema: { type: 'string' },
           },
         ],
         requestBody: {
           required: false,
           content: {
-            "application/json": {
-              schema: { $ref: "#/components/schemas/DeleteReasonRequest" },
+            'application/json': {
+              schema: { $ref: '#/components/schemas/DeleteReasonRequest' },
             },
           },
         },
         responses: {
-          "200": {
-            description: "OK",
+          '200': {
+            description: 'OK',
             content: {
-              "application/json": {
-                schema: { $ref: "#/components/schemas/OkResponse" },
+              'application/json': {
+                schema: { $ref: '#/components/schemas/OkResponse' },
               },
             },
           },
-          "401": errorResponse("Missing or invalid access token"),
-          "403": missingPermission("roles:manage"),
-          "404": errorResponse("Role not found"),
+          '401': errorResponse('Missing or invalid access token'),
+          '403': missingPermission('roles:manage'),
+          '404': errorResponse('Role not found'),
         },
       },
     },
-    "/roles/{roleId}/permissions": {
+    '/roles/{roleId}/permissions': {
       post: {
-        tags: ["auth"],
-        summary: "[admin] Attach a permission to a role",
-        description: requiresPermission("roles:manage"),
+        tags: ['auth'],
+        summary: '[admin] Attach a permission to a role',
+        description: requiresPermission('roles:manage'),
         security: [{ bearerAuth: [] }],
         parameters: [
           {
-            name: "roleId",
-            in: "path",
+            name: 'roleId',
+            in: 'path',
             required: true,
-            schema: { type: "string" },
+            schema: { type: 'string' },
           },
         ],
         requestBody: {
           required: true,
           content: {
-            "application/json": {
-              schema: { $ref: "#/components/schemas/AttachPermissionRequest" },
+            'application/json': {
+              schema: { $ref: '#/components/schemas/AttachPermissionRequest' },
             },
           },
         },
         responses: {
-          "201": {
-            description: "Created",
+          '201': {
+            description: 'Created',
             content: {
-              "application/json": {
-                schema: { $ref: "#/components/schemas/OkResponse" },
+              'application/json': {
+                schema: { $ref: '#/components/schemas/OkResponse' },
               },
             },
           },
-          "401": errorResponse("Missing or invalid access token"),
-          "403": missingPermission("roles:manage"),
-          "404": errorResponse("Role not found"),
+          '401': errorResponse('Missing or invalid access token'),
+          '403': missingPermission('roles:manage'),
+          '404': errorResponse('Role not found'),
         },
       },
     },
-    "/admin/users/{userId}/roles": {
+    '/admin/users/{userId}/roles': {
       post: {
-        tags: ["auth"],
-        summary: "[admin] Assign a role to a user",
-        description: requiresPermission("roles:assign"),
+        tags: ['auth'],
+        summary: '[admin] Assign a role to a user',
+        description: requiresPermission('roles:assign'),
         security: [{ bearerAuth: [] }],
         parameters: [
           {
-            name: "userId",
-            in: "path",
+            name: 'userId',
+            in: 'path',
             required: true,
-            schema: { type: "string" },
+            schema: { type: 'string' },
           },
         ],
         requestBody: {
           required: true,
           content: {
-            "application/json": {
-              schema: { $ref: "#/components/schemas/AssignRoleRequest" },
+            'application/json': {
+              schema: { $ref: '#/components/schemas/AssignRoleRequest' },
             },
           },
         },
         responses: {
-          "201": {
-            description: "Created",
+          '201': {
+            description: 'Created',
             content: {
-              "application/json": {
-                schema: { $ref: "#/components/schemas/OkResponse" },
+              'application/json': {
+                schema: { $ref: '#/components/schemas/OkResponse' },
               },
             },
           },
-          "401": errorResponse("Missing or invalid access token"),
-          "403": missingPermission("roles:assign"),
-          "404": errorResponse("Role not found"),
+          '401': errorResponse('Missing or invalid access token'),
+          '403': missingPermission('roles:assign'),
+          '404': errorResponse('Role not found'),
         },
       },
     },
-    "/admin/users/{userId}/roles/{roleSlug}/revoke": {
+    '/admin/users/{userId}/roles/{roleSlug}/revoke': {
       post: {
-        tags: ["auth"],
-        summary: "[admin] Revoke a role from a user",
-        description: requiresPermission("roles:assign"),
+        tags: ['auth'],
+        summary: '[admin] Revoke a role from a user',
+        description: requiresPermission('roles:assign'),
         security: [{ bearerAuth: [] }],
         parameters: [
           {
-            name: "userId",
-            in: "path",
+            name: 'userId',
+            in: 'path',
             required: true,
-            schema: { type: "string" },
+            schema: { type: 'string' },
           },
           {
-            name: "roleSlug",
-            in: "path",
+            name: 'roleSlug',
+            in: 'path',
             required: true,
-            schema: { type: "string" },
+            schema: { type: 'string' },
           },
         ],
         responses: {
-          "201": {
-            description: "Created",
+          '201': {
+            description: 'Created',
             content: {
-              "application/json": {
-                schema: { $ref: "#/components/schemas/OkResponse" },
+              'application/json': {
+                schema: { $ref: '#/components/schemas/OkResponse' },
               },
             },
           },
-          "401": errorResponse("Missing or invalid access token"),
-          "403": missingPermission(
-            "roles:assign",
-            "cannot change your own roles",
-          ),
+          '401': errorResponse('Missing or invalid access token'),
+          '403': missingPermission('roles:assign', 'cannot change your own roles'),
         },
       },
     },
-    "/admin/users/{userId}/permissions": {
+    '/admin/users/{userId}/permissions': {
       post: {
-        tags: ["auth"],
-        summary:
-          "[admin] Grant a permission directly to a user, bypassing roles",
-        description: requiresPermission("permissions:grant"),
+        tags: ['auth'],
+        summary: '[admin] Grant a permission directly to a user, bypassing roles',
+        description: requiresPermission('permissions:grant'),
         security: [{ bearerAuth: [] }],
         parameters: [
           {
-            name: "userId",
-            in: "path",
+            name: 'userId',
+            in: 'path',
             required: true,
-            schema: { type: "string" },
+            schema: { type: 'string' },
           },
         ],
         requestBody: {
           required: true,
           content: {
-            "application/json": {
-              schema: { $ref: "#/components/schemas/GrantPermissionRequest" },
+            'application/json': {
+              schema: { $ref: '#/components/schemas/GrantPermissionRequest' },
             },
           },
         },
         responses: {
-          "201": {
-            description: "Created",
+          '201': {
+            description: 'Created',
             content: {
-              "application/json": {
-                schema: { $ref: "#/components/schemas/OkResponse" },
+              'application/json': {
+                schema: { $ref: '#/components/schemas/OkResponse' },
               },
             },
           },
-          "401": errorResponse("Missing or invalid access token"),
-          "403": missingPermission("permissions:grant"),
+          '401': errorResponse('Missing or invalid access token'),
+          '403': missingPermission('permissions:grant'),
         },
       },
     },
-    "/admin/users/{userId}/permissions/{permissionSlug}/revoke": {
+    '/admin/users/{userId}/permissions/{permissionSlug}/revoke': {
       post: {
-        tags: ["auth"],
-        summary: "[admin] Revoke a direct permission grant from a user",
-        description: requiresPermission("permissions:grant"),
+        tags: ['auth'],
+        summary: '[admin] Revoke a direct permission grant from a user',
+        description: requiresPermission('permissions:grant'),
         security: [{ bearerAuth: [] }],
         parameters: [
           {
-            name: "userId",
-            in: "path",
+            name: 'userId',
+            in: 'path',
             required: true,
-            schema: { type: "string" },
+            schema: { type: 'string' },
           },
           {
-            name: "permissionSlug",
-            in: "path",
+            name: 'permissionSlug',
+            in: 'path',
             required: true,
-            schema: { type: "string" },
+            schema: { type: 'string' },
           },
         ],
         responses: {
-          "201": {
-            description: "Created",
+          '201': {
+            description: 'Created',
             content: {
-              "application/json": {
-                schema: { $ref: "#/components/schemas/OkResponse" },
+              'application/json': {
+                schema: { $ref: '#/components/schemas/OkResponse' },
               },
             },
           },
-          "401": errorResponse("Missing or invalid access token"),
-          "403": missingPermission("permissions:grant"),
+          '401': errorResponse('Missing or invalid access token'),
+          '403': missingPermission('permissions:grant'),
         },
       },
     },
-    "/admin/users/{userId}/block": {
+    '/admin/users/{userId}/block': {
       post: {
-        tags: ["auth"],
-        summary:
-          "[admin] Block a user, revoking all their sessions immediately",
-        description: requiresPermission("users:block"),
+        tags: ['auth'],
+        summary: '[admin] Block a user, revoking all their sessions immediately',
+        description: requiresPermission('users:block'),
         security: [{ bearerAuth: [] }],
         parameters: [
           {
-            name: "userId",
-            in: "path",
+            name: 'userId',
+            in: 'path',
             required: true,
-            schema: { type: "string" },
+            schema: { type: 'string' },
           },
         ],
         responses: {
-          "201": {
-            description: "Created",
+          '201': {
+            description: 'Created',
             content: {
-              "application/json": {
-                schema: { $ref: "#/components/schemas/OkResponse" },
+              'application/json': {
+                schema: { $ref: '#/components/schemas/OkResponse' },
               },
             },
           },
-          "401": errorResponse("Missing or invalid access token"),
-          "403": missingPermission(
-            "users:block",
-            "cannot block your own account",
-          ),
+          '401': errorResponse('Missing or invalid access token'),
+          '403': missingPermission('users:block', 'cannot block your own account'),
         },
       },
     },
-    "/admin/users/{userId}/unblock": {
+    '/admin/users/{userId}/unblock': {
       post: {
-        tags: ["auth"],
-        summary: "[admin] Unblock a user",
-        description: requiresPermission("users:block"),
+        tags: ['auth'],
+        summary: '[admin] Unblock a user',
+        description: requiresPermission('users:block'),
         security: [{ bearerAuth: [] }],
         parameters: [
           {
-            name: "userId",
-            in: "path",
+            name: 'userId',
+            in: 'path',
             required: true,
-            schema: { type: "string" },
+            schema: { type: 'string' },
           },
         ],
         responses: {
-          "201": {
-            description: "Created",
+          '201': {
+            description: 'Created',
             content: {
-              "application/json": {
-                schema: { $ref: "#/components/schemas/OkResponse" },
+              'application/json': {
+                schema: { $ref: '#/components/schemas/OkResponse' },
               },
             },
           },
-          "401": errorResponse("Missing or invalid access token"),
-          "403": missingPermission("users:block"),
+          '401': errorResponse('Missing or invalid access token'),
+          '403': missingPermission('users:block'),
         },
       },
     },
-    "/admin/users/{userId}/deactivate": {
+    '/admin/users/{userId}/deactivate': {
       post: {
-        tags: ["auth"],
-        summary:
-          "[admin] Deactivate a user, revoking all their sessions immediately",
+        tags: ['auth'],
+        summary: '[admin] Deactivate a user, revoking all their sessions immediately',
         description:
-          requiresPermission("users:block") +
-          " Distinct from block/unblock — a routine administrative toggle, not a security action. Both independently deny login.",
+          requiresPermission('users:block') +
+          ' Distinct from block/unblock — a routine administrative toggle, not a security action. Both independently deny login.',
         security: [{ bearerAuth: [] }],
         parameters: [
           {
-            name: "userId",
-            in: "path",
+            name: 'userId',
+            in: 'path',
             required: true,
-            schema: { type: "string" },
+            schema: { type: 'string' },
           },
         ],
         responses: {
-          "201": {
-            description: "Created",
+          '201': {
+            description: 'Created',
             content: {
-              "application/json": {
-                schema: { $ref: "#/components/schemas/OkResponse" },
+              'application/json': {
+                schema: { $ref: '#/components/schemas/OkResponse' },
               },
             },
           },
-          "401": errorResponse("Missing or invalid access token"),
-          "403": missingPermission(
-            "users:block",
-            "cannot deactivate your own account",
-          ),
+          '401': errorResponse('Missing or invalid access token'),
+          '403': missingPermission('users:block', 'cannot deactivate your own account'),
         },
       },
     },
-    "/admin/users/{userId}/activate": {
+    '/admin/users/{userId}/activate': {
       post: {
-        tags: ["auth"],
-        summary: "[admin] Reactivate a user",
-        description: requiresPermission("users:block"),
+        tags: ['auth'],
+        summary: '[admin] Reactivate a user',
+        description: requiresPermission('users:block'),
         security: [{ bearerAuth: [] }],
         parameters: [
           {
-            name: "userId",
-            in: "path",
+            name: 'userId',
+            in: 'path',
             required: true,
-            schema: { type: "string" },
+            schema: { type: 'string' },
           },
         ],
         responses: {
-          "201": {
-            description: "Created",
+          '201': {
+            description: 'Created',
             content: {
-              "application/json": {
-                schema: { $ref: "#/components/schemas/OkResponse" },
+              'application/json': {
+                schema: { $ref: '#/components/schemas/OkResponse' },
               },
             },
           },
-          "401": errorResponse("Missing or invalid access token"),
-          "403": missingPermission("users:block"),
+          '401': errorResponse('Missing or invalid access token'),
+          '403': missingPermission('users:block'),
         },
       },
     },

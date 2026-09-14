@@ -1,23 +1,9 @@
-import {
-  and,
-  asc,
-  count,
-  desc,
-  eq,
-  ilike,
-  inArray,
-  type SQL,
-} from "drizzle-orm";
-import { resolvePermissions } from "@/core/rbac.js";
-import type { AuthzContext } from "../../../common/auth/middleware/authz.middleware.js";
-import type { Database } from "../../../common/config/db.js";
-import {
-  buildPageMeta,
-  normalizeLimit,
-  normalizePage,
-  type Paginated,
-} from "../../../common/helpers/pagination.js";
-import { PermissionCache } from "../../../common/auth/cache/permission-cache.js";
+import { and, asc, count, desc, eq, ilike, inArray, type SQL } from 'drizzle-orm';
+import { resolvePermissions } from '@/core/rbac';
+import type { AuthzContext } from '../../../common/auth/middleware/authz.middleware';
+import type { Database } from '../../../common/config/db';
+import { buildPageMeta, normalizeLimit, normalizePage, type Paginated } from '../../../common/helpers/pagination';
+import { PermissionCache } from '../../../common/auth/cache/permission-cache';
 import {
   permissionMember,
   permissionRole,
@@ -26,9 +12,9 @@ import {
   roles,
   users,
   workspaceMembers,
-} from "@/database/schema.js";
-import { HttpError } from "../../../infra/errors/http-error.js";
-import { toId, toIdOrNull } from "../../../common/helpers/id.helper.js";
+} from '@/database/schema';
+import { HttpError } from '../../../infra/errors/http-error';
+import { toId, toIdOrNull } from '../../../common/helpers/id.helper';
 
 /**
  * Every column the `users` table has (plus the membership's own `memberId`/`createdAt`), except
@@ -228,8 +214,7 @@ const asRoleSummary = (row: RoleRow): RoleSummary => ({
  * between the two one-directional — the guard needs this repository at runtime, so the repository
  * must not need the guard.
  */
-export const memberCacheKey = (userId: string, workspaceId: string) =>
-  `${userId}:${workspaceId}`;
+export const memberCacheKey = (userId: string, workspaceId: string) => `${userId}:${workspaceId}`;
 
 export class RbacRepository {
   constructor(
@@ -260,11 +245,7 @@ export class RbacRepository {
       .from(workspaceMembers)
       .where(eq(workspaceMembers.id, memberId))
       .limit(1);
-    if (member)
-      await this.invalidateMember(
-        member.userId.toString(),
-        member.workspaceId.toString(),
-      );
+    if (member) await this.invalidateMember(member.userId.toString(), member.workspaceId.toString());
   }
 
   /**
@@ -282,10 +263,7 @@ export class RbacRepository {
    * `isActive: false` on a role or a permission takes it out of the answer, which is what makes
    * deactivating either one enforcement-changing without unpicking any grant.
    */
-  async resolveAuthzContext(
-    userId: string,
-    workspaceId: string,
-  ): Promise<AuthzContext | null> {
+  async resolveAuthzContext(userId: string, workspaceId: string): Promise<AuthzContext | null> {
     // workspaceId arrives straight from the untrusted `X-Workspace-Id` header — a value that
     // isn't a valid bigint is exactly as "not a member" as one that parses but names no
     // membership, so it must not throw and 500 the request.
@@ -301,16 +279,8 @@ export class RbacRepository {
     const [member] = await this.db
       .select({ id: workspaceMembers.id })
       .from(workspaceMembers)
-      .innerJoin(
-        users,
-        and(eq(users.id, workspaceMembers.userId), eq(users.isDeleted, false)),
-      )
-      .where(
-        and(
-          eq(workspaceMembers.userId, userIdBig),
-          eq(workspaceMembers.workspaceId, workspaceIdBig),
-        ),
-      )
+      .innerJoin(users, and(eq(users.id, workspaceMembers.userId), eq(users.isDeleted, false)))
+      .where(and(eq(workspaceMembers.userId, userIdBig), eq(workspaceMembers.workspaceId, workspaceIdBig)))
       .limit(1);
     if (!member) return null;
 
@@ -320,14 +290,7 @@ export class RbacRepository {
       this.db
         .select({ roleSlug: roles.slug, permissionSlug: permissions.slug })
         .from(roleMember)
-        .innerJoin(
-          roles,
-          and(
-            eq(roles.id, roleMember.roleId),
-            eq(roles.isActive, true),
-            eq(roles.isDeleted, false),
-          ),
-        )
+        .innerJoin(roles, and(eq(roles.id, roleMember.roleId), eq(roles.isActive, true), eq(roles.isDeleted, false)))
         .leftJoin(permissionRole, eq(permissionRole.roleId, roles.id))
         .leftJoin(
           permissions,
@@ -357,9 +320,7 @@ export class RbacRepository {
       memberId: member.id.toString(),
       roles: [...new Set(roleRows.map((row) => row.roleSlug))].sort(),
       permissions: resolvePermissions(
-        roleRows
-          .map((row) => row.permissionSlug)
-          .filter((slug): slug is string => slug !== null),
+        roleRows.map((row) => row.permissionSlug).filter((slug): slug is string => slug !== null),
         directRows.map((row) => row.slug),
       ),
     };
@@ -371,22 +332,13 @@ export class RbacRepository {
    * caller feeds the id straight into another database call, and the one external caller
    * (AuthService) discards the result.
    */
-  async requireMember(
-    workspaceId: string,
-    userId: string,
-  ): Promise<{ id: bigint }> {
+  async requireMember(workspaceId: string, userId: string): Promise<{ id: bigint }> {
     const [member] = await this.db
       .select({ id: workspaceMembers.id })
       .from(workspaceMembers)
-      .where(
-        and(
-          eq(workspaceMembers.userId, toId(userId)),
-          eq(workspaceMembers.workspaceId, toId(workspaceId)),
-        ),
-      )
+      .where(and(eq(workspaceMembers.userId, toId(userId)), eq(workspaceMembers.workspaceId, toId(workspaceId))))
       .limit(1);
-    if (!member)
-      throw new HttpError(404, "user is not a member of this workspace");
+    if (!member) throw new HttpError(404, 'user is not a member of this workspace');
     return member;
   }
 
@@ -394,19 +346,12 @@ export class RbacRepository {
    * Newest-first, page-paginated; `search` matches an email substring. Returns raw rows —
    * shaping the collection is the caller's job, see `toMemberSummary`.
    */
-  async listMembers(
-    workspaceId: string,
-    filter: MemberListFilter = {},
-  ): Promise<Paginated<MemberRow>> {
+  async listMembers(workspaceId: string, filter: MemberListFilter = {}): Promise<Paginated<MemberRow>> {
     const page = normalizePage(filter.page);
     const limit = normalizeLimit(filter.limit);
     const workspaceIdBig = toId(workspaceId);
-    const conditions: SQL[] = [
-      eq(workspaceMembers.workspaceId, workspaceIdBig),
-      eq(users.isDeleted, false),
-    ];
-    if (filter.search)
-      conditions.push(ilike(users.email, `%${filter.search}%`));
+    const conditions: SQL[] = [eq(workspaceMembers.workspaceId, workspaceIdBig), eq(users.isDeleted, false)];
+    if (filter.search) conditions.push(ilike(users.email, `%${filter.search}%`));
     const where = and(...conditions)!;
 
     const rows = await this.db
@@ -463,10 +408,7 @@ export class RbacRepository {
     const [row] = await this.db
       .select(MEMBER_SELECT)
       .from(workspaceMembers)
-      .innerJoin(
-        users,
-        and(eq(users.id, workspaceMembers.userId), eq(users.isDeleted, false)),
-      )
+      .innerJoin(users, and(eq(users.id, workspaceMembers.userId), eq(users.isDeleted, false)))
       .where(eq(workspaceMembers.id, member.id))
       .limit(1);
     if (!row) throw new HttpError(404, `user "${userId}" not found`);
@@ -511,12 +453,7 @@ export class RbacRepository {
    * member's account — this disables the account across every workspace it belongs to, not just
    * this one, which is why it's gated the same way `block` is.
    */
-  async deleteMember(
-    workspaceId: string,
-    userId: string,
-    actorUserId: string | null,
-    reason?: string,
-  ): Promise<void> {
+  async deleteMember(workspaceId: string, userId: string, actorUserId: string | null, reason?: string): Promise<void> {
     await this.requireMember(workspaceId, userId);
     await this.db
       .update(users)
@@ -549,7 +486,7 @@ export class RbacRepository {
       .where(and(eq(roles.id, roleIdBig), eq(roles.isDeleted, false)))
       .limit(1);
     if (!existing || existing.workspaceId !== workspaceIdBig)
-      throw new HttpError(404, "role not found in this workspace");
+      throw new HttpError(404, 'role not found in this workspace');
 
     const [role] = await this.db
       .update(roles)
@@ -564,12 +501,7 @@ export class RbacRepository {
    * Soft-delete. `role_member`/`permission_role` rows pointing at it are left in place — the role
    * simply stops being resolved by `resolveAuthzContext`/`listRoles`.
    */
-  async deleteRole(
-    workspaceId: string,
-    roleId: string,
-    actorUserId: string | null,
-    reason?: string,
-  ): Promise<void> {
+  async deleteRole(workspaceId: string, roleId: string, actorUserId: string | null, reason?: string): Promise<void> {
     const workspaceIdBig = toId(workspaceId);
     const roleIdBig = toId(roleId);
     const [existing] = await this.db
@@ -578,7 +510,7 @@ export class RbacRepository {
       .where(and(eq(roles.id, roleIdBig), eq(roles.isDeleted, false)))
       .limit(1);
     if (!existing || existing.workspaceId !== workspaceIdBig)
-      throw new HttpError(404, "role not found in this workspace");
+      throw new HttpError(404, 'role not found in this workspace');
 
     await this.db
       .update(roles)
@@ -604,12 +536,7 @@ export class RbacRepository {
       .select(PERMISSION_COLUMNS)
       .from(permissions)
       .where(eq(permissions.isDeleted, false))
-      .orderBy(
-        asc(permissions.groupOrder),
-        asc(permissions.group),
-        asc(permissions.order),
-        asc(permissions.slug),
-      );
+      .orderBy(asc(permissions.groupOrder), asc(permissions.group), asc(permissions.order), asc(permissions.slug));
     return rows.map(asPermissionSummary);
   }
 
@@ -622,10 +549,7 @@ export class RbacRepository {
    * Upserted on `slug`, which stays the stable identifier grants and revocations use, so renaming
    * `name`/`displayName` never breaks a grant.
    */
-  async upsertPermission(
-    input: PermissionInput,
-    actorUserId: string | null,
-  ): Promise<PermissionSummary> {
+  async upsertPermission(input: PermissionInput, actorUserId: string | null): Promise<PermissionSummary> {
     const actorId = toIdOrNull(actorUserId);
     // Only the fields the caller sent are written; an absent one leaves its column alone, so a
     // partial edit cannot blank out metadata it did not mention.
@@ -648,7 +572,7 @@ export class RbacRepository {
         ...changed,
         name: input.name ?? input.displayName ?? input.slug,
         displayName: input.displayName ?? input.slug,
-        group: input.group ?? "Custom",
+        group: input.group ?? 'Custom',
         createdBy: actorId,
         updatedBy: actorId,
       })
@@ -671,12 +595,7 @@ export class RbacRepository {
     const rows = await this.db
       .select(ROLE_COLUMNS)
       .from(roles)
-      .where(
-        and(
-          eq(roles.workspaceId, toId(workspaceId)),
-          eq(roles.isDeleted, false),
-        ),
-      )
+      .where(and(eq(roles.workspaceId, toId(workspaceId)), eq(roles.isDeleted, false)))
       .orderBy(asc(roles.order), asc(roles.slug));
     return rows.map(asRoleSummary);
   }
@@ -726,8 +645,7 @@ export class RbacRepository {
       .from(roles)
       .where(and(eq(roles.id, roleIdBig), eq(roles.isDeleted, false)))
       .limit(1);
-    if (!role || role.workspaceId !== workspaceIdBig)
-      throw new HttpError(404, "role not found in this workspace");
+    if (!role || role.workspaceId !== workspaceIdBig) throw new HttpError(404, 'role not found in this workspace');
 
     const permission = await this.ensurePermission(permissionSlug, actorUserId);
     await this.db
@@ -739,11 +657,7 @@ export class RbacRepository {
     await this.cache.invalidatePolicy(); // every membership holding this role is affected
   }
 
-  async assignRoleToMember(
-    workspaceId: string,
-    userId: string,
-    roleSlug: string,
-  ): Promise<void> {
+  async assignRoleToMember(workspaceId: string, userId: string, roleSlug: string): Promise<void> {
     const role = await this.requireRole(workspaceId, roleSlug);
     const member = await this.requireMember(workspaceId, userId);
     await this.db
@@ -755,25 +669,15 @@ export class RbacRepository {
     await this.invalidateMember(userId, workspaceId);
   }
 
-  async revokeRoleFromMember(
-    workspaceId: string,
-    userId: string,
-    roleSlug: string,
-  ): Promise<void> {
+  async revokeRoleFromMember(workspaceId: string, userId: string, roleSlug: string): Promise<void> {
     const member = await this.requireMember(workspaceId, userId);
     const [role] = await this.db
       .select({ id: roles.id })
       .from(roles)
-      .where(
-        and(eq(roles.workspaceId, toId(workspaceId)), eq(roles.slug, roleSlug)),
-      )
+      .where(and(eq(roles.workspaceId, toId(workspaceId)), eq(roles.slug, roleSlug)))
       .limit(1);
     if (!role) return;
-    await this.db
-      .delete(roleMember)
-      .where(
-        and(eq(roleMember.memberId, member.id), eq(roleMember.roleId, role.id)),
-      );
+    await this.db.delete(roleMember).where(and(eq(roleMember.memberId, member.id), eq(roleMember.roleId, role.id)));
     await this.invalidateMember(userId, workspaceId);
   }
 
@@ -794,27 +698,16 @@ export class RbacRepository {
       .where(eq(workspaceMembers.id, memberIdBig))
       .limit(1);
     if (!member || member.workspaceId !== workspaceIdBig)
-      throw new HttpError(404, "member not found in this workspace");
+      throw new HttpError(404, 'member not found in this workspace');
 
     const found = roleSlugs.length
       ? await this.db
           .select({ id: roles.id, slug: roles.slug })
           .from(roles)
-          .where(
-            and(
-              eq(roles.workspaceId, workspaceIdBig),
-              inArray(roles.slug, roleSlugs),
-            ),
-          )
+          .where(and(eq(roles.workspaceId, workspaceIdBig), inArray(roles.slug, roleSlugs)))
       : [];
-    const unknown = roleSlugs.filter(
-      (slug) => !found.some((role) => role.slug === slug),
-    );
-    if (unknown.length)
-      throw new HttpError(
-        404,
-        `role(s) not defined in this workspace: ${unknown.join(", ")}`,
-      );
+    const unknown = roleSlugs.filter((slug) => !found.some((role) => role.slug === slug));
+    if (unknown.length) throw new HttpError(404, `role(s) not defined in this workspace: ${unknown.join(', ')}`);
 
     // Replace, in one transaction: a member must never be briefly role-less to a concurrent request.
     await this.db.transaction(async (tx) => {
@@ -822,9 +715,7 @@ export class RbacRepository {
       if (found.length) {
         await tx
           .insert(roleMember)
-          .values(
-            found.map((role) => ({ memberId: memberIdBig, roleId: role.id })),
-          )
+          .values(found.map((role) => ({ memberId: memberIdBig, roleId: role.id })))
           .onConflictDoNothing({
             target: [roleMember.memberId, roleMember.roleId],
           });
@@ -871,11 +762,7 @@ export class RbacRepository {
     await this.invalidateMember(userId, workspaceId);
   }
 
-  async revokePermissionFromMember(
-    workspaceId: string,
-    userId: string,
-    permissionSlug: string,
-  ): Promise<void> {
+  async revokePermissionFromMember(workspaceId: string, userId: string, permissionSlug: string): Promise<void> {
     const member = await this.requireMember(workspaceId, userId);
     const [permission] = await this.db
       .select({ id: permissions.id })
@@ -885,34 +772,19 @@ export class RbacRepository {
     if (!permission) return;
     await this.db
       .delete(permissionMember)
-      .where(
-        and(
-          eq(permissionMember.memberId, member.id),
-          eq(permissionMember.permissionId, permission.id),
-        ),
-      );
+      .where(and(eq(permissionMember.memberId, member.id), eq(permissionMember.permissionId, permission.id)));
     await this.invalidateMember(userId, workspaceId);
   }
 
   // Returns bigint directly: its one caller (assignRoleToMember) feeds the id straight into
   // another database call.
-  private async requireRole(
-    workspaceId: string,
-    slug: string,
-  ): Promise<{ id: bigint }> {
+  private async requireRole(workspaceId: string, slug: string): Promise<{ id: bigint }> {
     const [role] = await this.db
       .select({ id: roles.id })
       .from(roles)
-      .where(
-        and(
-          eq(roles.workspaceId, toId(workspaceId)),
-          eq(roles.slug, slug),
-          eq(roles.isDeleted, false),
-        ),
-      )
+      .where(and(eq(roles.workspaceId, toId(workspaceId)), eq(roles.slug, slug), eq(roles.isDeleted, false)))
       .limit(1);
-    if (!role)
-      throw new HttpError(404, `role "${slug}" not found in this workspace`);
+    if (!role) throw new HttpError(404, `role "${slug}" not found in this workspace`);
     return role;
   }
 
@@ -920,10 +792,7 @@ export class RbacRepository {
    * Creates the row for a slug granted before anyone defined it; leaves an existing definition
    * alone. Returns bigint directly: both callers feed the id straight into another database call.
    */
-  private async ensurePermission(
-    slug: string,
-    actorUserId: string | null,
-  ): Promise<{ id: bigint }> {
+  private async ensurePermission(slug: string, actorUserId: string | null): Promise<{ id: bigint }> {
     const [existing] = await this.db
       .select({ id: permissions.id })
       .from(permissions)
@@ -937,7 +806,7 @@ export class RbacRepository {
         slug,
         name: slug,
         displayName: slug,
-        group: "Custom",
+        group: 'Custom',
         createdBy: actorId,
         updatedBy: actorId,
       })

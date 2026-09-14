@@ -4,7 +4,7 @@
 // routes plus the fragment `openapi-admin.ts` contributes, and both of those import from here,
 // so nothing imports in a circle. (`rbac.defaults.ts` below is a leaf too — it imports only a
 // Prisma type — so naming the permission catalog here keeps that property.)
-import type { PermissionSlug } from "../../modules/auth/rbac.defaults.js";
+import type { PermissionSlug } from '../../modules/auth/rbac.defaults';
 
 /** One module's contribution to the assembled OpenAPI document — see openapi-spec.ts. */
 export interface OpenApiFragment {
@@ -24,8 +24,8 @@ export function errorResponse(description: string): Record<string, unknown> {
   return {
     description,
     content: {
-      "application/json": {
-        schema: { $ref: "#/components/schemas/ErrorResponse" },
+      'application/json': {
+        schema: { $ref: '#/components/schemas/ErrorResponse' },
       },
     },
   };
@@ -48,11 +48,6 @@ export function requiresPermission(permission: PermissionSlug): string {
  * self-checks, and anything about the scope the request named, where this deployment has one
  * narrower than itself.
  */
-export function missingPermission(
-  permission: PermissionSlug,
-  ...alsoWhen: string[]
-): Record<string, unknown> {
-  return errorResponse(
-    [`Missing the \`${permission}\` permission`, ...alsoWhen].join(", or "),
-  );
+export function missingPermission(permission: PermissionSlug, ...alsoWhen: string[]): Record<string, unknown> {
+  return errorResponse([`Missing the \`${permission}\` permission`, ...alsoWhen].join(', or '));
 }

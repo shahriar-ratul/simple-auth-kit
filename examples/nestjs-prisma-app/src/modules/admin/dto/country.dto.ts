@@ -2,36 +2,36 @@
 // dto/auth.dto.ts: the controller keeps its `Record<string, unknown>` + `requireString()`
 // validation. Every `@ApiProperty` passes an explicit `type` because this repo runs via `tsx`
 // (esbuild), which doesn't reliably emit decorator type metadata for reflection.
-import { ApiProperty } from "@nestjs/swagger";
-import { PageMetaDto } from "../../../common/dto/shared.dto.js";
+import { ApiProperty } from '@nestjs/swagger';
+import { PageMetaDto } from '../../../common/dto/shared.dto';
 
 export class CreateCountryDto {
   @ApiProperty({
     type: String,
-    description: "Stable identifier, unique across the deployment.",
-    example: "US",
+    description: 'Stable identifier, unique across the deployment.',
+    example: 'US',
   })
   code!: string;
 
-  @ApiProperty({ type: String, example: "United States" })
+  @ApiProperty({ type: String, example: 'United States' })
   name!: string;
 
-  @ApiProperty({ type: String, example: "🇺🇸" })
+  @ApiProperty({ type: String, example: '🇺🇸' })
   emoji!: string;
 
-  @ApiProperty({ type: String, example: "+1" })
+  @ApiProperty({ type: String, example: '+1' })
   phoneCode!: string;
 
-  @ApiProperty({ type: String, example: "USD" })
+  @ApiProperty({ type: String, example: 'USD' })
   currency!: string;
 
-  @ApiProperty({ type: String, example: "US Dollar" })
+  @ApiProperty({ type: String, example: 'US Dollar' })
   currencyName!: string;
 
   @ApiProperty({
     type: String,
-    description: "Unique across the deployment.",
-    example: "US",
+    description: 'Unique across the deployment.',
+    example: 'US',
   })
   isoCode!: string;
 
@@ -39,8 +39,7 @@ export class CreateCountryDto {
     type: String,
     required: false,
     nullable: true,
-    description:
-      "A data URI or an externally-hosted URL — stored as-is, never processed server-side.",
+    description: 'A data URI or an externally-hosted URL — stored as-is, never processed server-side.',
   })
   flag?: string | null;
 
@@ -74,8 +73,7 @@ export class UpdateCountryDto {
     type: String,
     required: false,
     nullable: true,
-    description:
-      "A data URI or an externally-hosted URL — stored as-is, never processed server-side.",
+    description: 'A data URI or an externally-hosted URL — stored as-is, never processed server-side.',
   })
   flag?: string | null;
 

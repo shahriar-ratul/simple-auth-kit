@@ -2,11 +2,11 @@
 // dto/auth.dto.ts: the controller keeps its `Record<string, unknown>` + `requireString()`
 // validation. Every `@ApiProperty` passes an explicit `type` because this repo runs via `tsx`
 // (esbuild), which doesn't reliably emit decorator type metadata for reflection.
-import { ApiProperty } from "@nestjs/swagger";
-import { PageMetaDto } from "../../../common/dto/shared.dto.js";
+import { ApiProperty } from '@nestjs/swagger';
+import { PageMetaDto } from '../../../common/dto/shared.dto';
 
 export class CreateCustomerDto {
-  @ApiProperty({ type: String, example: "customer@example.com" })
+  @ApiProperty({ type: String, example: 'customer@example.com' })
   email!: string;
 
   @ApiProperty({ type: String, required: false })
@@ -18,41 +18,40 @@ export class CreateCustomerDto {
   @ApiProperty({
     type: String,
     required: false,
-    description: "Unique across the deployment.",
+    description: 'Unique across the deployment.',
   })
   username?: string;
 
   @ApiProperty({
     type: String,
     required: false,
-    description: "Unique across the deployment.",
+    description: 'Unique across the deployment.',
   })
   phone?: string;
 
   @ApiProperty({
     type: String,
     required: false,
-    format: "date",
-    example: "1990-01-01",
+    format: 'date',
+    example: '1990-01-01',
   })
   dob?: string;
 
-  @ApiProperty({ type: String, required: false, example: "male" })
+  @ApiProperty({ type: String, required: false, example: 'male' })
   gender?: string;
 
   @ApiProperty({
     type: String,
     required: false,
-    format: "date",
-    description: "Defaults to today when creating.",
+    format: 'date',
+    description: 'Defaults to today when creating.',
   })
   joinedDate?: string;
 
   @ApiProperty({
     type: String,
     required: false,
-    description:
-      "A data URI or an externally-hosted URL — stored as-is, never processed server-side.",
+    description: 'A data URI or an externally-hosted URL — stored as-is, never processed server-side.',
   })
   photo?: string;
 
@@ -86,22 +85,21 @@ export class UpdateCustomerDto {
     type: String,
     required: false,
     nullable: true,
-    format: "date",
+    format: 'date',
   })
   dob?: string | null;
 
   @ApiProperty({ type: String, required: false, nullable: true })
   gender?: string | null;
 
-  @ApiProperty({ type: String, required: false, format: "date" })
+  @ApiProperty({ type: String, required: false, format: 'date' })
   joinedDate?: string;
 
   @ApiProperty({
     type: String,
     required: false,
     nullable: true,
-    description:
-      "A data URI or an externally-hosted URL — stored as-is, never processed server-side.",
+    description: 'A data URI or an externally-hosted URL — stored as-is, never processed server-side.',
   })
   photo?: string | null;
 
@@ -132,7 +130,7 @@ export class CustomerSummaryDto {
   @ApiProperty({
     type: String,
     nullable: true,
-    description: "Unique across the deployment.",
+    description: 'Unique across the deployment.',
   })
   username!: string | null;
 
@@ -142,24 +140,23 @@ export class CustomerSummaryDto {
   @ApiProperty({
     type: String,
     nullable: true,
-    description: "Unique across the deployment.",
+    description: 'Unique across the deployment.',
   })
   phone!: string | null;
 
-  @ApiProperty({ type: String, nullable: true, format: "date" })
+  @ApiProperty({ type: String, nullable: true, format: 'date' })
   dob!: string | null;
 
   @ApiProperty({ type: String, nullable: true })
   gender!: string | null;
 
-  @ApiProperty({ type: String, format: "date" })
+  @ApiProperty({ type: String, format: 'date' })
   joinedDate!: string;
 
   @ApiProperty({
     type: String,
     nullable: true,
-    description:
-      "A data URI or an externally-hosted URL — stored as-is, never processed server-side.",
+    description: 'A data URI or an externally-hosted URL — stored as-is, never processed server-side.',
   })
   photo!: string | null;
 
