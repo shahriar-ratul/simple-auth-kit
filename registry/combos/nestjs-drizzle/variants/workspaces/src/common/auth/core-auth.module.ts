@@ -31,6 +31,7 @@ import { WorkspaceRepository } from "@/modules/auth/repositories/workspace.repos
 import { AuditLogModule } from "@/modules/audit-log/audit-log.module";
 import { SessionRepository } from "@/modules/auth/repositories/session.repository";
 import { assertEveryRouteDeclaresATier } from "@/infra/route-tiers";
+import { log } from "@/infra/logger/logger";
 
 // Every controller this combo ships, across every feature module — the one array the boot-time
 // tier check walks. Built here (rather than each feature module registering itself) so there's
@@ -73,7 +74,8 @@ export class CoreAuthModule {
     const resolved: AuthConfig = { ...defaultAuthConfig, ...config };
 
     if (!config.permissionCacheStore || !config.rateLimitStore) {
-      console.warn(
+      log.warn(
+        "auth",
         "[simple-auth-kit] permissionCacheStore/rateLimitStore not overridden — using in-memory defaults. " +
           "Fine for a single instance; silently inconsistent (stale grants, wrong rate-limit counts) " +
           "across replicas once you run more than one. Override permissionCacheStore/rateLimitStore " +

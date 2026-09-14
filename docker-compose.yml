@@ -32,6 +32,12 @@ services:
       AUTH_JWT_SECRET: ${AUTH_JWT_SECRET_NESTJS_PRISMA:?set AUTH_JWT_SECRET_NESTJS_PRISMA in .env}
     ports:
       - "3001:3001"
+    # Logs land at ./logs/nestjs-prisma-app/<YYYY-MM-DD>/... on the host, surviving container
+    # recreation. Point a Filebeat/Logstash `paths` glob at logs/nestjs-prisma-app/*/info.log,
+    # logs/nestjs-prisma-app/*/warn.log, logs/nestjs-prisma-app/*/error.log (not the per-module
+    # subfolders, or every line is double-ingested).
+    volumes:
+      - ./logs/nestjs-prisma-app:/app/logs
     depends_on:
       postgres:
         condition: service_healthy
@@ -46,6 +52,8 @@ services:
       AUTH_JWT_SECRET: ${AUTH_JWT_SECRET_NESTJS_DRIZZLE:?set AUTH_JWT_SECRET_NESTJS_DRIZZLE in .env}
     ports:
       - "3002:3002"
+    volumes:
+      - ./logs/nestjs-drizzle-app:/app/logs
     depends_on:
       postgres:
         condition: service_healthy
@@ -60,6 +68,8 @@ services:
       AUTH_JWT_SECRET: ${AUTH_JWT_SECRET_EXPRESS_PRISMA:?set AUTH_JWT_SECRET_EXPRESS_PRISMA in .env}
     ports:
       - "3003:3003"
+    volumes:
+      - ./logs/express-prisma-app:/app/logs
     depends_on:
       postgres:
         condition: service_healthy
@@ -74,6 +84,8 @@ services:
       AUTH_JWT_SECRET: ${AUTH_JWT_SECRET_EXPRESS_DRIZZLE:?set AUTH_JWT_SECRET_EXPRESS_DRIZZLE in .env}
     ports:
       - "3004:3004"
+    volumes:
+      - ./logs/express-drizzle-app:/app/logs
     depends_on:
       postgres:
         condition: service_healthy
@@ -90,6 +102,8 @@ services:
       AUTH_JWT_SECRET: ${AUTH_JWT_SECRET_NESTJS_PRISMA_WORKSPACES:?set AUTH_JWT_SECRET_NESTJS_PRISMA_WORKSPACES in .env}
     ports:
       - "3005:3005"
+    volumes:
+      - ./logs/nestjs-prisma-app-workspaces:/app/logs
     depends_on:
       postgres:
         condition: service_healthy
@@ -104,6 +118,8 @@ services:
       AUTH_JWT_SECRET: ${AUTH_JWT_SECRET_NESTJS_DRIZZLE_WORKSPACES:?set AUTH_JWT_SECRET_NESTJS_DRIZZLE_WORKSPACES in .env}
     ports:
       - "3006:3006"
+    volumes:
+      - ./logs/nestjs-drizzle-app-workspaces:/app/logs
     depends_on:
       postgres:
         condition: service_healthy
@@ -118,6 +134,8 @@ services:
       AUTH_JWT_SECRET: ${AUTH_JWT_SECRET_EXPRESS_PRISMA_WORKSPACES:?set AUTH_JWT_SECRET_EXPRESS_PRISMA_WORKSPACES in .env}
     ports:
       - "3007:3007"
+    volumes:
+      - ./logs/express-prisma-app-workspaces:/app/logs
     depends_on:
       postgres:
         condition: service_healthy
@@ -132,6 +150,8 @@ services:
       AUTH_JWT_SECRET: ${AUTH_JWT_SECRET_EXPRESS_DRIZZLE_WORKSPACES:?set AUTH_JWT_SECRET_EXPRESS_DRIZZLE_WORKSPACES in .env}
     ports:
       - "3008:3008"
+    volumes:
+      - ./logs/express-drizzle-app-workspaces:/app/logs
     depends_on:
       postgres:
         condition: service_healthy

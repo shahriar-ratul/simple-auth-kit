@@ -21,6 +21,7 @@ import {
 } from "@/common/auth/middleware/authz.middleware";
 import { DrizzleService } from "@/modules/drizzle/drizzle.service";
 import { KeyProviderService } from "@/common/config/key-provider";
+import { log } from "@/infra/logger/logger";
 import { OAuthRepository } from "@/modules/auth/repositories/oauth.repository";
 import { openApiSpec } from "@/infra/openapi/openapi-spec";
 import { PasswordResetRepository } from "@/modules/auth/repositories/password-reset.repository";
@@ -30,6 +31,7 @@ import {
 } from "@/common/auth/cache/permission-cache";
 import { InMemoryRateLimitStore } from "@/common/auth/cache/rate-limit.store";
 import { RbacRepository } from "@/modules/auth/repositories/rbac.repository";
+import { requestLogger } from "@/infra/middleware/request-logger.middleware";
 import { responseEnvelope } from "@/infra/middleware/response-envelope.middleware";
 import { SessionRepository } from "@/modules/auth/repositories/session.repository";
 import { TwoFactorRepository } from "@/modules/auth/repositories/two-factor.repository";
@@ -100,7 +102,8 @@ export function createAuthApp(config: Partial<AuthConfig> = {}): Express {
   });
 
   if (!resolvedConfig.permissionCacheStore || !resolvedConfig.rateLimitStore) {
-    console.warn(
+    log.warn(
+      "auth",
       "[simple-auth-kit] permissionCacheStore/rateLimitStore not overridden — using in-memory defaults. " +
         "Fine for a single instance; silently inconsistent (stale grants, wrong rate-limit counts) " +
         "across replicas once you run more than one. Override permissionCacheStore/rateLimitStore " +
@@ -110,6 +113,7 @@ export function createAuthApp(config: Partial<AuthConfig> = {}): Express {
 
   const app = express();
   app.use(express.json());
+  app.use(requestLogger());
   // Express equivalent of the reference combo's global APP_FILTER/APP_INTERCEPTOR — the
   // response envelope and error handling ship mounted here rather than something you add to
   // your own app.

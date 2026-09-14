@@ -10,6 +10,7 @@ import { AuthModule } from "../src/modules/auth/auth.module.js";
 import { CoreAuthModule } from "../src/common/auth/core-auth.module.js";
 import { InMemoryPermissionCacheStore } from "../src/common/auth/cache/permission-cache.js";
 import { PermissionModule } from "../src/modules/permissions/permissions.module.js";
+import { RequestLoggerInterceptor } from "../src/infra/interceptor/request-logger.interceptor.js";
 import { ResponseInterceptor } from "../src/infra/interceptor/response.interceptor.js";
 import { RoleModule } from "../src/modules/roles/roles.module.js";
 
@@ -70,6 +71,10 @@ export async function bootstrap(port: number) {
     providers: [
       { provide: APP_GUARD, useClass: ThrottlerGuard },
       { provide: APP_FILTER, useClass: AuthCoreErrorFilter },
+      // RequestLoggerInterceptor first: Nest's first-registered interceptor is outermost, so its
+      // response-logging tap observes the value *after* ResponseInterceptor has enveloped it —
+      // the same body the client receives.
+      { provide: APP_INTERCEPTOR, useClass: RequestLoggerInterceptor },
       { provide: APP_INTERCEPTOR, useClass: ResponseInterceptor },
     ],
   })
