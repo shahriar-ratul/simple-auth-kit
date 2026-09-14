@@ -1,15 +1,13 @@
-import { hashPassword, hashToken, randomToken } from './crypto.js';
-import { AuditEvent, PasswordResetTokenInvalidError } from './types.js';
+import { hashPassword, hashToken, randomToken } from './crypto';
+import { AuditEvent, PasswordResetTokenInvalidError } from './types';
 
 const RESET_TOKEN_TTL_SECONDS_DEFAULT = 60 * 60; // 1 hour
 
 export interface PasswordResetStoreDeps {
   saveResetToken: (input: { userId: string; tokenHash: string; expiresAt: string }) => Promise<void>;
-  findValidResetToken: (tokenHash: string) => Promise<{
-    userId: string;
-    expiresAt: string;
-    consumedAt: string | null;
-  } | null>;
+  findValidResetToken: (
+    tokenHash: string,
+  ) => Promise<{ userId: string; expiresAt: string; consumedAt: string | null } | null>;
   consumeResetToken: (tokenHash: string) => Promise<void>;
   setPasswordHash: (userId: string, passwordHash: string) => Promise<void>;
   appendAuditEvent?: (event: AuditEvent) => Promise<void>;
@@ -45,9 +43,6 @@ export async function resetPassword(
   const passwordHash = await hashPassword(newPassword);
   await deps.setPasswordHash(record.userId, passwordHash);
   await deps.consumeResetToken(tokenHash);
-  await deps.appendAuditEvent?.({
-    type: 'password_reset_completed',
-    userId: record.userId,
-  });
+  await deps.appendAuditEvent?.({ type: 'password_reset_completed', userId: record.userId });
   return { userId: record.userId };
 }

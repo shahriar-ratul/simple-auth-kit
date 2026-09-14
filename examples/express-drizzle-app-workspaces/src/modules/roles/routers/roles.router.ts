@@ -1,17 +1,15 @@
-import type { NextFunction, Request, RequestHandler, Response } from "express";
-import { HttpError } from "../../../infra/errors/http-error.js";
-import { ability, createTieredRouter } from "../../../infra/route-tiers.js";
-import { RolesService } from "../services/roles.service.js";
-import "../../../infra/request-context.js";
+import type { NextFunction, Request, RequestHandler, Response } from 'express';
+import { HttpError } from '../../../infra/errors/http-error';
+import { ability, createTieredRouter } from '../../../infra/route-tiers';
+import { RolesService } from '../services/roles.service';
+import '../../../infra/request-context';
 
 function requireString(value: unknown, field: string): string {
-  if (typeof value !== "string" || value.length === 0)
-    throw new HttpError(400, `${field} is required`);
+  if (typeof value !== 'string' || value.length === 0) throw new HttpError(400, `${field} is required`);
   return value;
 }
 
-const optionalString = (value: unknown): string | undefined =>
-  typeof value === "string" ? value : undefined;
+const optionalString = (value: unknown): string | undefined => (typeof value === 'string' ? value : undefined);
 
 export interface RolesRouterDeps {
   roles: RolesService;
@@ -32,64 +30,50 @@ export function createRolesRouter(deps: RolesRouterDeps): RequestHandler {
     authorization: workspaceScope,
   });
 
-  router.route(
-    "get",
-    "/",
-    ability("roles:manage"),
-    async (req: Request, res: Response, next: NextFunction) => {
-      try {
-        res.status(200).json(await roles.listRoles(req.authz!));
-      } catch (err) {
-        next(err);
-      }
-    },
-  );
+  router.route('get', '/', ability('roles:manage'), async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      res.status(200).json(await roles.listRoles(req.authz!));
+    } catch (err) {
+      next(err);
+    }
+  });
+
+  router.route('post', '/', ability('roles:manage'), async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const body = req.body as Record<string, unknown>;
+      res.status(201).json(
+        await roles.createRole(
+          req.authz!,
+          {
+            slug: requireString(body.slug, 'slug'),
+            name: optionalString(body.name),
+            displayName: optionalString(body.displayName),
+            description: optionalString(body.description) ?? null,
+          },
+          req.auth!.sub,
+        ),
+      );
+    } catch (err) {
+      next(err);
+    }
+  });
 
   router.route(
-    "post",
-    "/",
-    ability("roles:manage"),
-    async (req: Request, res: Response, next: NextFunction) => {
-      try {
-        const body = req.body as Record<string, unknown>;
-        res.status(201).json(
-          await roles.createRole(
-            req.authz!,
-            {
-              slug: requireString(body.slug, "slug"),
-              name: optionalString(body.name),
-              displayName: optionalString(body.displayName),
-              description: optionalString(body.description) ?? null,
-            },
-            req.auth!.sub,
-          ),
-        );
-      } catch (err) {
-        next(err);
-      }
-    },
-  );
-
-  router.route(
-    "patch",
-    "/:roleId",
-    ability("roles:manage"),
+    'patch',
+    '/:roleId',
+    ability('roles:manage'),
     async (req: Request, res: Response, next: NextFunction) => {
       try {
         const body = req.body as Record<string, unknown>;
         res.status(200).json(
           await roles.updateRole(
             req.authz!,
-            requireString(req.params.roleId, "roleId"),
+            requireString(req.params.roleId, 'roleId'),
             {
               name: optionalString(body.name),
               displayName: optionalString(body.displayName),
-              description:
-                body.description === null
-                  ? null
-                  : optionalString(body.description),
-              isActive:
-                typeof body.isActive === "boolean" ? body.isActive : undefined,
+              description: body.description === null ? null : optionalString(body.description),
+              isActive: typeof body.isActive === 'boolean' ? body.isActive : undefined,
             },
             req.auth!.sub,
           ),
@@ -101,15 +85,15 @@ export function createRolesRouter(deps: RolesRouterDeps): RequestHandler {
   );
 
   router.route(
-    "delete",
-    "/:roleId",
-    ability("roles:manage"),
+    'delete',
+    '/:roleId',
+    ability('roles:manage'),
     async (req: Request, res: Response, next: NextFunction) => {
       try {
         const body = (req.body ?? {}) as Record<string, unknown>;
         await roles.deleteRole(
           req.authz!,
-          requireString(req.params.roleId, "roleId"),
+          requireString(req.params.roleId, 'roleId'),
           req.auth!.sub,
           optionalString(body.reason),
         );
@@ -121,16 +105,16 @@ export function createRolesRouter(deps: RolesRouterDeps): RequestHandler {
   );
 
   router.route(
-    "post",
-    "/:roleId/permissions",
-    ability("roles:manage"),
+    'post',
+    '/:roleId/permissions',
+    ability('roles:manage'),
     async (req: Request, res: Response, next: NextFunction) => {
       try {
         const body = req.body as Record<string, unknown>;
         await roles.attachPermissionToRole(
           req.authz!,
-          requireString(req.params.roleId, "roleId"),
-          requireString(body.permission, "permission"),
+          requireString(req.params.roleId, 'roleId'),
+          requireString(body.permission, 'permission'),
           req.auth!.sub,
         );
         res.status(201).json({ ok: true });

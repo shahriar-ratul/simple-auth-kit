@@ -1,9 +1,9 @@
 import { ConflictException, Inject, Injectable, NotFoundException } from '@nestjs/common';
-import { resolvePermissions } from '@/core/rbac.js';
-import { Prisma, PrismaClient } from '@/database/generated/prisma/client.js';
-import { PermissionCache } from '../../../common/auth/cache/permission-cache.js';
-import { toId, toIdOrNull } from '../../../common/helpers/id.helper.js';
-import { buildPageMeta, normalizeLimit, normalizePage, type Paginated } from '../../../common/helpers/pagination.js';
+import { resolvePermissions } from '@/core/rbac';
+import { Prisma, PrismaClient } from '@/database/generated/prisma/client';
+import { PermissionCache } from '../../../common/auth/cache/permission-cache';
+import { toId, toIdOrNull } from '../../../common/helpers/id.helper';
+import { buildPageMeta, normalizeLimit, normalizePage, type Paginated } from '../../../common/helpers/pagination';
 
 const USER_ROLES_INCLUDE = {
   roles: { select: { role: { select: { slug: true } } } },

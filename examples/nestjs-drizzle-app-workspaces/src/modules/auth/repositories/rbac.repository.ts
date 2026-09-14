@@ -1,10 +1,10 @@
 import { Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { and, asc, count, desc, eq, ilike, inArray, type SQL } from 'drizzle-orm';
-import { resolvePermissions } from '@/core/rbac.js';
-import type { AuthzContext } from '../../../common/auth/guards/authz.guard.js';
-import { DRIZZLE_DB, type Database } from '../../../common/config/db.js';
-import { buildPageMeta, normalizeLimit, normalizePage, type Paginated } from '../../../common/helpers/pagination.js';
-import { PermissionCache } from '../../../common/auth/cache/permission-cache.js';
+import { resolvePermissions } from '@/core/rbac';
+import type { AuthzContext } from '../../../common/auth/guards/authz.guard';
+import { DRIZZLE_DB, type Database } from '../../../common/config/db';
+import { buildPageMeta, normalizeLimit, normalizePage, type Paginated } from '../../../common/helpers/pagination';
+import { PermissionCache } from '../../../common/auth/cache/permission-cache';
 import {
   permissionMember,
   permissionRole,
@@ -13,8 +13,8 @@ import {
   roles,
   users,
   workspaceMembers,
-} from '@/database/schema.js';
-import { toId, toIdOrNull } from '../../../common/helpers/id.helper.js';
+} from '@/database/schema';
+import { toId, toIdOrNull } from '../../../common/helpers/id.helper';
 
 export interface MemberSummary {
   memberId: string;

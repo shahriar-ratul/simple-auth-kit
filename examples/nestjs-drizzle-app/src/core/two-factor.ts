@@ -1,6 +1,6 @@
 // RFC 6238 TOTP + RFC 4648 base32, hand-rolled on node:crypto to avoid a dependency.
 import { createHmac, randomBytes } from 'node:crypto';
-import { hashToken, timingSafeEqualString } from './crypto.js';
+import { hashToken, timingSafeEqualString } from './crypto';
 
 const BASE32_ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
 const TOTP_STEP_SECONDS = 30;

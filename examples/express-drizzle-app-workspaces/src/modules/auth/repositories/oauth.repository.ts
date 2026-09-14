@@ -1,9 +1,9 @@
-import { and, eq } from "drizzle-orm";
-import type { NodePgDatabase } from "drizzle-orm/node-postgres";
-import type { OAuthStoreDeps } from "@/core/oauth.js";
-import { HttpError } from "../../../infra/errors/http-error.js";
-import * as schema from "@/database/schema.js";
-import { toId } from "../../../common/helpers/id.helper.js";
+import { and, eq } from 'drizzle-orm';
+import type { NodePgDatabase } from 'drizzle-orm/node-postgres';
+import type { OAuthStoreDeps } from '@/core/oauth';
+import { HttpError } from '../../../infra/errors/http-error';
+import * as schema from '@/database/schema';
+import { toId } from '../../../common/helpers/id.helper';
 
 /**
  * Plain class, no decorators — Drizzle-specific implementation of `OAuthStoreDeps`
@@ -12,18 +12,12 @@ import { toId } from "../../../common/helpers/id.helper.js";
 export class OAuthRepository implements OAuthStoreDeps {
   constructor(private readonly db: NodePgDatabase<typeof schema>) {}
 
-  async findAccountByProvider(
-    provider: string,
-    providerAccountId: string,
-  ): Promise<{ userId: string } | null> {
+  async findAccountByProvider(provider: string, providerAccountId: string): Promise<{ userId: string } | null> {
     const [row] = await this.db
       .select()
       .from(schema.oauthAccounts)
       .where(
-        and(
-          eq(schema.oauthAccounts.provider, provider),
-          eq(schema.oauthAccounts.providerAccountId, providerAccountId),
-        ),
+        and(eq(schema.oauthAccounts.provider, provider), eq(schema.oauthAccounts.providerAccountId, providerAccountId)),
       )
       .limit(1);
     return row ? { userId: row.userId.toString() } : null;
@@ -44,27 +38,14 @@ export class OAuthRepository implements OAuthStoreDeps {
   }
 
   async findUserByVerifiedEmail(email: string): Promise<{ id: string } | null> {
-    const [row] = await this.db
-      .select()
-      .from(schema.users)
-      .where(eq(schema.users.email, email))
-      .limit(1);
+    const [row] = await this.db.select().from(schema.users).where(eq(schema.users.email, email)).limit(1);
     return row ? { id: row.id.toString() } : null;
   }
 
   /** OAuth-only signup: no password is ever set, which is why `User.passwordHash` is nullable. */
-  async createUserFromOAuth(input: {
-    email?: string;
-  }): Promise<{ id: string }> {
-    if (!input.email)
-      throw new HttpError(
-        400,
-        "OAuth provider did not return an email address",
-      );
-    const [row] = await this.db
-      .insert(schema.users)
-      .values({ email: input.email, passwordHash: null })
-      .returning();
+  async createUserFromOAuth(input: { email?: string }): Promise<{ id: string }> {
+    if (!input.email) throw new HttpError(400, 'OAuth provider did not return an email address');
+    const [row] = await this.db.insert(schema.users).values({ email: input.email, passwordHash: null }).returning();
     return { id: row.id.toString() };
   }
 }

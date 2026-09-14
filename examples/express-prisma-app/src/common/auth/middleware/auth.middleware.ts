@@ -1,8 +1,8 @@
-import type { NextFunction, Request, Response } from "express";
-import { verifyAccessToken } from "@/core/token-service.js";
-import { KeyProviderService } from "../../config/key-provider.js";
-import "../../../infra/request-context.js";
-import { SessionRepository } from "../../../modules/auth/repositories/session.repository.js";
+import type { NextFunction, Request, Response } from 'express';
+import { verifyAccessToken } from '@/core/token-service';
+import { KeyProviderService } from '../../config/key-provider';
+import '../../../infra/request-context';
+import { SessionRepository } from '../../../modules/auth/repositories/session.repository';
 
 export interface AuthMiddlewareDeps {
   keys: KeyProviderService;
@@ -19,17 +19,13 @@ export interface AuthMiddlewareDeps {
  * is the idiomatic equivalent.
  */
 export function createAuthMiddleware(deps: AuthMiddlewareDeps) {
-  return async function authMiddleware(
-    req: Request,
-    res: Response,
-    next: NextFunction,
-  ): Promise<void> {
-    const header = req.headers["authorization"];
-    if (!header?.startsWith("Bearer ")) {
+  return async function authMiddleware(req: Request, res: Response, next: NextFunction): Promise<void> {
+    const header = req.headers['authorization'];
+    if (!header?.startsWith('Bearer ')) {
       res.status(401).json({
         statusCode: 401,
-        code: "UNAUTHORIZED",
-        message: "missing bearer token",
+        code: 'UNAUTHORIZED',
+        message: 'missing bearer token',
       });
       return;
     }
@@ -40,13 +36,13 @@ export function createAuthMiddleware(deps: AuthMiddlewareDeps) {
           secret: deps.keys.secret,
           isDenylisted: (jti) => deps.sessions.isDenylisted(jti),
         },
-        header.slice("Bearer ".length),
+        header.slice('Bearer '.length),
       );
     } catch (err) {
       res.status(401).json({
         statusCode: 401,
-        code: "UNAUTHORIZED",
-        message: err instanceof Error ? err.message : "invalid access token",
+        code: 'UNAUTHORIZED',
+        message: err instanceof Error ? err.message : 'invalid access token',
       });
       return;
     }

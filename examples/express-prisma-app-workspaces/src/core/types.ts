@@ -56,23 +56,23 @@ export interface Revoker {
 }
 
 export type AuditEvent =
-  | { type: "session_created"; sessionId: string; userId: string }
-  | { type: "session_revoked"; sessionId: string; userId: string }
-  | { type: "all_sessions_revoked"; userId: string }
-  | { type: "other_sessions_revoked"; userId: string; keepSessionId: string }
-  | { type: "refresh_reuse_detected"; sessionId: string; userId: string }
-  | { type: "user_blocked"; userId: string }
-  | { type: "user_deactivated"; userId: string }
-  | { type: "password_reset_requested"; userId: string }
-  | { type: "password_reset_completed"; userId: string }
-  | { type: "two_factor_enabled"; userId: string }
-  | { type: "two_factor_disabled"; userId: string }
-  | { type: "two_factor_challenge_failed"; userId: string }
-  | { type: "oauth_account_linked"; userId: string; provider: string }
-  | { type: "role_assigned"; userId: string; role: string }
-  | { type: "role_revoked"; userId: string; role: string }
-  | { type: "permission_granted"; userId: string; permission: string }
-  | { type: "permission_revoked"; userId: string; permission: string };
+  | { type: 'session_created'; sessionId: string; userId: string }
+  | { type: 'session_revoked'; sessionId: string; userId: string }
+  | { type: 'all_sessions_revoked'; userId: string }
+  | { type: 'other_sessions_revoked'; userId: string; keepSessionId: string }
+  | { type: 'refresh_reuse_detected'; sessionId: string; userId: string }
+  | { type: 'user_blocked'; userId: string }
+  | { type: 'user_deactivated'; userId: string }
+  | { type: 'password_reset_requested'; userId: string }
+  | { type: 'password_reset_completed'; userId: string }
+  | { type: 'two_factor_enabled'; userId: string }
+  | { type: 'two_factor_disabled'; userId: string }
+  | { type: 'two_factor_challenge_failed'; userId: string }
+  | { type: 'oauth_account_linked'; userId: string; provider: string }
+  | { type: 'role_assigned'; userId: string; role: string }
+  | { type: 'role_revoked'; userId: string; role: string }
+  | { type: 'permission_granted'; userId: string; permission: string }
+  | { type: 'permission_revoked'; userId: string; permission: string };
 
 export class AuthCoreError extends Error {
   constructor(
@@ -80,54 +80,48 @@ export class AuthCoreError extends Error {
     public readonly code: string,
   ) {
     super(message);
-    this.name = "AuthCoreError";
+    this.name = 'AuthCoreError';
   }
 }
 
 export class RefreshInvalidError extends AuthCoreError {
-  constructor(message = "refresh token is invalid or revoked") {
-    super(message, "REFRESH_INVALID");
+  constructor(message = 'refresh token is invalid or revoked') {
+    super(message, 'REFRESH_INVALID');
   }
 }
 
 export class RefreshReuseDetectedError extends AuthCoreError {
-  constructor(
-    message = "refresh token reuse detected, session family revoked",
-  ) {
-    super(message, "REFRESH_REUSE_DETECTED");
+  constructor(message = 'refresh token reuse detected, session family revoked') {
+    super(message, 'REFRESH_REUSE_DETECTED');
   }
 }
 
 export class AccessTokenInvalidError extends AuthCoreError {
-  constructor(message = "access token is invalid, expired, or revoked") {
-    super(message, "ACCESS_TOKEN_INVALID");
+  constructor(message = 'access token is invalid, expired, or revoked') {
+    super(message, 'ACCESS_TOKEN_INVALID');
   }
 }
 
 export class TwoFactorChallengeInvalidError extends AuthCoreError {
-  constructor(message = "two-factor challenge token is invalid or expired") {
-    super(message, "TWO_FACTOR_CHALLENGE_INVALID");
+  constructor(message = 'two-factor challenge token is invalid or expired') {
+    super(message, 'TWO_FACTOR_CHALLENGE_INVALID');
   }
 }
 
 export class PasswordResetTokenInvalidError extends AuthCoreError {
-  constructor(
-    message = "password reset token is invalid, expired, or already used",
-  ) {
-    super(message, "PASSWORD_RESET_TOKEN_INVALID");
+  constructor(message = 'password reset token is invalid, expired, or already used') {
+    super(message, 'PASSWORD_RESET_TOKEN_INVALID');
   }
 }
 
 export class OAuthExchangeError extends AuthCoreError {
-  constructor(message = "OAuth code exchange with the provider failed") {
-    super(message, "OAUTH_EXCHANGE_FAILED");
+  constructor(message = 'OAuth code exchange with the provider failed') {
+    super(message, 'OAUTH_EXCHANGE_FAILED');
   }
 }
 
 export class OAuthProfileInvalidError extends AuthCoreError {
-  constructor(
-    message = "OAuth provider id_token is invalid or could not be verified",
-  ) {
-    super(message, "OAUTH_PROFILE_INVALID");
+  constructor(message = 'OAuth provider id_token is invalid or could not be verified') {
+    super(message, 'OAUTH_PROFILE_INVALID');
   }
 }

@@ -1,39 +1,33 @@
-import { PrismaPg } from "@prisma/adapter-pg";
-import express, { type Express } from "express";
-import swaggerUi from "swagger-ui-express";
-import type { RateLimitDeps } from "@/core/rate-limit.js";
-import { AdminService } from "../admin/services/admin.service.js";
-import { createAdminRouter } from "../admin/routers/admin.router.js";
-import { AuditLogRepository } from "../audit-log/repositories/audit-log.repository.js";
-import { AuditLogService } from "../audit-log/services/audit-log.service.js";
-import { createAuditLogRouter } from "../audit-log/routers/audit-log.router.js";
-import { PermissionService } from "../permissions/services/permission.service.js";
-import { createPermissionRouter } from "../permissions/routers/permissions.router.js";
-import { RoleService } from "../roles/services/role.service.js";
-import { createRoleRouter } from "../roles/routers/roles.router.js";
-import { authCoreErrorMiddleware } from "../../infra/middleware/auth-core-error.middleware.js";
-import {
-  AuthConfig,
-  defaultAuthConfig,
-} from "../../common/config/auth.config.js";
-import { createAuthMiddleware } from "../../common/auth/middleware/auth.middleware.js";
-import { createAuthRouter } from "./routers/auth.router.js";
-import { AuthService } from "./services/auth.service.js";
-import { createAuthzMiddleware } from "../../common/auth/middleware/authz.middleware.js";
-import { PrismaClient } from "@/database/generated/prisma/client.js";
-import { KeyProviderService } from "../../common/config/key-provider.js";
-import { OAuthRepository } from "./repositories/oauth.repository.js";
-import { openApiSpec } from "../../infra/openapi/openapi-spec.js";
-import { PasswordResetRepository } from "./repositories/password-reset.repository.js";
-import {
-  InMemoryPermissionCacheStore,
-  PermissionCache,
-} from "../../common/auth/cache/permission-cache.js";
-import { InMemoryRateLimitStore } from "../../common/auth/cache/rate-limit.store.js";
-import { RbacRepository } from "./repositories/rbac.repository.js";
-import { responseEnvelope } from "../../infra/middleware/response-envelope.middleware.js";
-import { SessionRepository } from "./repositories/session.repository.js";
-import { TwoFactorRepository } from "./repositories/two-factor.repository.js";
+import { PrismaPg } from '@prisma/adapter-pg';
+import express, { type Express } from 'express';
+import swaggerUi from 'swagger-ui-express';
+import type { RateLimitDeps } from '@/core/rate-limit';
+import { AdminService } from '../admin/services/admin.service';
+import { createAdminRouter } from '../admin/routers/admin.router';
+import { AuditLogRepository } from '../audit-log/repositories/audit-log.repository';
+import { AuditLogService } from '../audit-log/services/audit-log.service';
+import { createAuditLogRouter } from '../audit-log/routers/audit-log.router';
+import { PermissionService } from '../permissions/services/permission.service';
+import { createPermissionRouter } from '../permissions/routers/permissions.router';
+import { RoleService } from '../roles/services/role.service';
+import { createRoleRouter } from '../roles/routers/roles.router';
+import { authCoreErrorMiddleware } from '../../infra/middleware/auth-core-error.middleware';
+import { AuthConfig, defaultAuthConfig } from '../../common/config/auth.config';
+import { createAuthMiddleware } from '../../common/auth/middleware/auth.middleware';
+import { createAuthRouter } from './routers/auth.router';
+import { AuthService } from './services/auth.service';
+import { createAuthzMiddleware } from '../../common/auth/middleware/authz.middleware';
+import { PrismaClient } from '@/database/generated/prisma/client';
+import { KeyProviderService } from '../../common/config/key-provider';
+import { OAuthRepository } from './repositories/oauth.repository';
+import { openApiSpec } from '../../infra/openapi/openapi-spec';
+import { PasswordResetRepository } from './repositories/password-reset.repository';
+import { InMemoryPermissionCacheStore, PermissionCache } from '../../common/auth/cache/permission-cache';
+import { InMemoryRateLimitStore } from '../../common/auth/cache/rate-limit.store';
+import { RbacRepository } from './repositories/rbac.repository';
+import { responseEnvelope } from '../../infra/middleware/response-envelope.middleware';
+import { SessionRepository } from './repositories/session.repository';
+import { TwoFactorRepository } from './repositories/two-factor.repository';
 
 export interface CreateAuthAppOptions {
   /** Overrides merged on top of `defaultAuthConfig`, same shape as the reference combo's `AuthModule.forRoot(config)`. */
@@ -53,7 +47,7 @@ export function createAuthApp(options: CreateAuthAppOptions = {}): Express {
   const config: AuthConfig = { ...defaultAuthConfig, ...options.config };
 
   const adapter = new PrismaPg({
-    connectionString: process.env["DATABASE_URL"],
+    connectionString: process.env['DATABASE_URL'],
   });
   const prisma = new PrismaClient({ adapter });
 
@@ -62,8 +56,7 @@ export function createAuthApp(options: CreateAuthAppOptions = {}): Express {
   const keys = new KeyProviderService();
   // Swap the store for a Redis-backed one by passing `rateLimitStore` in `config` — nothing in
   // this library's source changes.
-  const rateLimit: RateLimitDeps =
-    config.rateLimitStore ?? new InMemoryRateLimitStore();
+  const rateLimit: RateLimitDeps = config.rateLimitStore ?? new InMemoryRateLimitStore();
   // The cache seam. Swap the store for a Redis-backed one by passing `permissionCacheStore` in
   // `config` — nothing in this library's source changes. Keys are namespaced simpleauthkit:authz:*.
   const permissionCache = new PermissionCache(
@@ -74,17 +67,7 @@ export function createAuthApp(options: CreateAuthAppOptions = {}): Express {
   const twoFactor = new TwoFactorRepository(prisma);
   const oauth = new OAuthRepository(prisma);
   const passwordReset = new PasswordResetRepository(prisma);
-  const authService = new AuthService(
-    prisma,
-    sessions,
-    keys,
-    rateLimit,
-    rbac,
-    twoFactor,
-    oauth,
-    passwordReset,
-    config,
-  );
+  const authService = new AuthService(prisma, sessions, keys, rateLimit, rbac, twoFactor, oauth, passwordReset, config);
   const adminService = new AdminService(prisma, sessions, rbac);
   const roleService = new RoleService(rbac);
   const permissionService = new PermissionService(rbac);
@@ -97,9 +80,9 @@ export function createAuthApp(options: CreateAuthAppOptions = {}): Express {
 
   if (!config.permissionCacheStore || !config.rateLimitStore) {
     console.warn(
-      "[simple-auth-kit] permissionCacheStore/rateLimitStore not overridden — using in-memory defaults. " +
-        "Fine for a single instance; silently inconsistent (stale grants, wrong rate-limit counts) " +
-        "across replicas once you run more than one. Override permissionCacheStore/rateLimitStore " +
+      '[simple-auth-kit] permissionCacheStore/rateLimitStore not overridden — using in-memory defaults. ' +
+        'Fine for a single instance; silently inconsistent (stale grants, wrong rate-limit counts) ' +
+        'across replicas once you run more than one. Override permissionCacheStore/rateLimitStore ' +
         "in createAuthApp's config before scaling out.",
     );
   }
@@ -112,28 +95,18 @@ export function createAuthApp(options: CreateAuthAppOptions = {}): Express {
   // slash) a plain 200 instead of swagger-ui-express's default 301 to "/docs/" — the
   // underlying static asset middleware would otherwise treat the mount root as a directory
   // listing and redirect.
-  app.use(
-    "/docs",
-    swaggerUi.serveWithOptions({ redirect: false }),
-    swaggerUi.setup(openApiSpec),
-  );
-  app.get("/docs-json", (_req, res) => res.json(openApiSpec));
+  app.use('/docs', swaggerUi.serveWithOptions({ redirect: false }), swaggerUi.setup(openApiSpec));
+  app.get('/docs-json', (_req, res) => res.json(openApiSpec));
   // Express equivalent of the reference combo's global APP_FILTER/APP_INTERCEPTOR — the
   // response envelope and error handling ship mounted here rather than something you add to
   // your own app.
   app.use(responseEnvelope());
   // Four separate routers — one per admin domain — plus the identity router, each mounted at
   // its own top-level path; paths no longer overlap the way a single `/api/v1/admin` mount did.
+  app.use('/api/v1/admin', createAdminRouter({ admin: adminService, authentication, authorization }));
+  app.use('/api/v1/roles', createRoleRouter({ roles: roleService, authentication, authorization }));
   app.use(
-    "/api/v1/admin",
-    createAdminRouter({ admin: adminService, authentication, authorization }),
-  );
-  app.use(
-    "/api/v1/roles",
-    createRoleRouter({ roles: roleService, authentication, authorization }),
-  );
-  app.use(
-    "/api/v1/permissions",
+    '/api/v1/permissions',
     createPermissionRouter({
       permissions: permissionService,
       authentication,
@@ -141,7 +114,7 @@ export function createAuthApp(options: CreateAuthAppOptions = {}): Express {
     }),
   );
   app.use(
-    "/api/v1/audit-log",
+    '/api/v1/audit-log',
     createAuditLogRouter({
       auditLog: auditLogService,
       authentication,
@@ -149,7 +122,7 @@ export function createAuthApp(options: CreateAuthAppOptions = {}): Express {
     }),
   );
   app.use(
-    "/api/v1/auth",
+    '/api/v1/auth',
     createAuthRouter({
       auth: authService,
       config,

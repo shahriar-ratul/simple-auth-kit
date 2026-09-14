@@ -1,8 +1,8 @@
 import { Inject, Injectable } from '@nestjs/common';
-import type { AuditEvent } from '@/core/types.js';
-import { Prisma, PrismaClient } from '@/database/generated/prisma/client.js';
-import { toIdOrNull, toIdOrUndefined } from '../../../common/helpers/id.helper.js';
-import { buildPageMeta, normalizeLimit, normalizePage, type Paginated } from '../../../common/helpers/pagination.js';
+import type { AuditEvent } from '@/core/types';
+import { Prisma, PrismaClient } from '@/database/generated/prisma/client';
+import { toIdOrNull, toIdOrUndefined } from '../../../common/helpers/id.helper';
+import { buildPageMeta, normalizeLimit, normalizePage, type Paginated } from '../../../common/helpers/pagination';
 
 export interface AuditLogEntry {
   id: string;
@@ -69,7 +69,7 @@ export class AuditLogRepository {
         action: event.type,
         name: humanizeAction(event.type),
         userId: 'userId' in event ? toIdOrNull(event.userId) : null,
-        info: event,
+        info: event as unknown as Prisma.InputJsonValue,
         remarks: opts.remarks ?? null,
       },
     });

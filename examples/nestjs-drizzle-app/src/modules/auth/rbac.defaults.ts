@@ -22,8 +22,8 @@
 // Callers: `src/seed.ts` (`npm run seed`, the only bootstrap in this variant) and
 // `variants/base/test/variant-hooks.ts`.
 import { inArray } from 'drizzle-orm';
-import type { Database } from '../../common/config/db.js';
-import { permissionRole, permissions, roles } from '@/database/schema.js';
+import type { Database } from '../../common/config/db';
+import { permissionRole, permissions, roles } from '@/database/schema';
 
 /** The display metadata a seeded permission carries. `group`/`order` exist so an admin console can render a stable matrix. */
 export interface PermissionSeed {

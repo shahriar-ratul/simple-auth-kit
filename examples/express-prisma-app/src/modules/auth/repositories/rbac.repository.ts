@@ -1,14 +1,9 @@
-import { resolvePermissions } from "@/core/rbac.js";
-import { Prisma, PrismaClient } from "@/database/generated/prisma/client.js";
-import { HttpError } from "../../../infra/errors/http-error.js";
-import {
-  buildPageMeta,
-  normalizeLimit,
-  normalizePage,
-  type Paginated,
-} from "../../../common/helpers/pagination.js";
-import { PermissionCache } from "../../../common/auth/cache/permission-cache.js";
-import { toId, toIdOrNull } from "../../../common/helpers/id.helper.js";
+import { resolvePermissions } from '@/core/rbac';
+import { Prisma, PrismaClient } from '@/database/generated/prisma/client';
+import { HttpError } from '../../../infra/errors/http-error';
+import { buildPageMeta, normalizeLimit, normalizePage, type Paginated } from '../../../common/helpers/pagination';
+import { PermissionCache } from '../../../common/auth/cache/permission-cache';
+import { toId, toIdOrNull } from '../../../common/helpers/id.helper';
 
 export interface UserSummary {
   id: string;
@@ -157,9 +152,7 @@ export class RbacRepository {
    * `isActive: false` on a role or a permission takes it out of the answer here, which is what
    * makes deactivating either one enforcement-changing without unpicking any grant.
    */
-  async resolveAuthzContext(
-    userId: string,
-  ): Promise<{ roles: string[]; permissions: string[] }> {
+  async resolveAuthzContext(userId: string): Promise<{ roles: string[]; permissions: string[] }> {
     const user = await this.prisma.user.findUnique({
       where: { id: toId(userId), isDeleted: false },
       select: {
@@ -185,9 +178,7 @@ export class RbacRepository {
     });
     if (!user) return { roles: [], permissions: [] };
 
-    const rolePermissions = user.roles.flatMap((roleUser) =>
-      roleUser.role.permissions.map((pr) => pr.permission.slug),
-    );
+    const rolePermissions = user.roles.flatMap((roleUser) => roleUser.role.permissions.map((pr) => pr.permission.slug));
     const directPermissions = user.permissions.map((pu) => pu.permission.slug);
 
     return {
@@ -206,16 +197,14 @@ export class RbacRepository {
     const limit = normalizeLimit(filter.limit);
     const where = {
       isDeleted: false,
-      email: filter.search
-        ? { contains: filter.search, mode: "insensitive" as const }
-        : undefined,
+      email: filter.search ? { contains: filter.search, mode: 'insensitive' as const } : undefined,
     };
 
     const [rows, total] = await this.prisma.$transaction([
       this.prisma.user.findMany({
         where,
         include: USER_ROLES_INCLUDE,
-        orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+        orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
         take: limit,
         skip: (page - 1) * limit,
       }),
@@ -254,7 +243,7 @@ export class RbacRepository {
     const existing = await this.prisma.user.findUnique({
       where: { email: input.email },
     });
-    if (existing) throw new HttpError(409, "email already registered");
+    if (existing) throw new HttpError(409, 'email already registered');
 
     const user = await this.prisma.user.create({
       data: {
@@ -318,11 +307,7 @@ export class RbacRepository {
   // Soft-delete, matching every other table's `isDeleted`/`deletedAt`/`deletedBy`/`deletedReason`
   // pattern — the row survives for audit purposes, it just stops appearing in listings and can
   // no longer authenticate (mirrors how `block` already disables login without removing the row).
-  async deleteUser(
-    userId: string,
-    actorUserId: string | null,
-    reason?: string,
-  ): Promise<void> {
+  async deleteUser(userId: string, actorUserId: string | null, reason?: string): Promise<void> {
     const userIdBig = toId(userId);
     const existing = await this.prisma.user.findUnique({
       where: { id: userIdBig, isDeleted: false },
@@ -356,7 +341,7 @@ export class RbacRepository {
       where: { id: roleIdBig, isDeleted: false },
       select: { id: true },
     });
-    if (!existing) throw new HttpError(404, "role not found");
+    if (!existing) throw new HttpError(404, 'role not found');
     const role = await this.prisma.role.update({
       where: { id: roleIdBig },
       data: { ...input, updatedBy: toIdOrNull(actorUserId) },
@@ -370,17 +355,13 @@ export class RbacRepository {
   // Soft-delete. The `role_user`/`permission_role` rows pointing at it are left in place — a
   // deleted role simply stops being returned by `listRoles`/`resolveAuthzContext`, rather than
   // cascading a delete that would silently strip a user's other roles' foreign keys.
-  async deleteRole(
-    roleId: string,
-    actorUserId: string | null,
-    reason?: string,
-  ): Promise<void> {
+  async deleteRole(roleId: string, actorUserId: string | null, reason?: string): Promise<void> {
     const roleIdBig = toId(roleId);
     const existing = await this.prisma.role.findUnique({
       where: { id: roleIdBig, isDeleted: false },
       select: { id: true },
     });
-    if (!existing) throw new HttpError(404, "role not found");
+    if (!existing) throw new HttpError(404, 'role not found');
     await this.prisma.role.update({
       where: { id: roleIdBig },
       data: {
@@ -400,12 +381,7 @@ export class RbacRepository {
     const rows = await this.prisma.permission.findMany({
       where: { isDeleted: false },
       select: PERMISSION_SELECT,
-      orderBy: [
-        { groupOrder: "asc" },
-        { group: "asc" },
-        { order: "asc" },
-        { slug: "asc" },
-      ],
+      orderBy: [{ groupOrder: 'asc' }, { group: 'asc' }, { order: 'asc' }, { slug: 'asc' }],
     });
     return rows.map((row) => ({ ...row, id: row.id.toString() }));
   }
@@ -419,10 +395,7 @@ export class RbacRepository {
    * Upserted on `slug`, which stays the stable identifier grants and revocations use, so renaming
    * `name`/`displayName` never breaks a grant.
    */
-  async upsertPermission(
-    input: PermissionInput,
-    actorUserId: string | null,
-  ): Promise<PermissionSummary> {
+  async upsertPermission(input: PermissionInput, actorUserId: string | null): Promise<PermissionSummary> {
     const shared = {
       name: input.name,
       displayName: input.displayName,
@@ -440,7 +413,7 @@ export class RbacRepository {
         ...shared,
         name: input.name ?? input.displayName ?? input.slug,
         displayName: input.displayName ?? input.slug,
-        group: input.group ?? "Custom",
+        group: input.group ?? 'Custom',
         createdBy: toIdOrNull(actorUserId),
       },
       // Only the fields the caller sent are written; `undefined` leaves a column alone, so a
@@ -457,7 +430,7 @@ export class RbacRepository {
     const rows = await this.prisma.role.findMany({
       where: { isDeleted: false },
       select: ROLE_SELECT,
-      orderBy: [{ order: "asc" }, { slug: "asc" }],
+      orderBy: [{ order: 'asc' }, { slug: 'asc' }],
     });
     return rows.map((row) => ({ ...row, id: row.id.toString() }));
   }
@@ -491,17 +464,13 @@ export class RbacRepository {
    * closed-catalog property the routes always had — `@CheckAbility` only accepts slugs from
    * `rbac.defaults.ts`, so an invented slug cannot gate anything shipped by this library.
    */
-  async attachPermissionToRole(
-    roleId: string,
-    permissionSlug: string,
-    actorUserId: string | null,
-  ): Promise<void> {
+  async attachPermissionToRole(roleId: string, permissionSlug: string, actorUserId: string | null): Promise<void> {
     const roleIdBig = toId(roleId);
     const role = await this.prisma.role.findUnique({
       where: { id: roleIdBig, isDeleted: false },
       select: { id: true },
     });
-    if (!role) throw new HttpError(404, "role not found");
+    if (!role) throw new HttpError(404, 'role not found');
 
     const permission = await this.ensurePermission(permissionSlug, actorUserId);
     await this.prisma.permissionRole.upsert({
@@ -571,11 +540,7 @@ export class RbacRepository {
     return (await this.prisma.roleUser.count({ where: { userId } })) > 0;
   }
 
-  async grantPermissionToUser(
-    userId: string,
-    permissionSlug: string,
-    actorUserId: string | null,
-  ): Promise<void> {
+  async grantPermissionToUser(userId: string, permissionSlug: string, actorUserId: string | null): Promise<void> {
     const userIdBig = toId(userId);
     const permission = await this.ensurePermission(permissionSlug, actorUserId);
     await this.prisma.permissionUser.upsert({
@@ -588,10 +553,7 @@ export class RbacRepository {
     await this.cache.invalidateSubject(userId);
   }
 
-  async revokePermissionFromUser(
-    userId: string,
-    permissionSlug: string,
-  ): Promise<void> {
+  async revokePermissionFromUser(userId: string, permissionSlug: string): Promise<void> {
     const permission = await this.prisma.permission.findUnique({
       where: { slug: permissionSlug },
       select: { id: true },
@@ -609,10 +571,7 @@ export class RbacRepository {
   }
 
   /** Creates the row for a slug granted before anyone defined it; leaves an existing definition alone. */
-  private async ensurePermission(
-    slug: string,
-    actorUserId: string | null,
-  ): Promise<{ id: bigint }> {
+  private async ensurePermission(slug: string, actorUserId: string | null): Promise<{ id: bigint }> {
     const existing = await this.prisma.permission.findUnique({
       where: { slug },
       select: { id: true },
@@ -624,7 +583,7 @@ export class RbacRepository {
           slug,
           name: slug,
           displayName: slug,
-          group: "Custom",
+          group: 'Custom',
           createdBy: toIdOrNull(actorUserId),
           updatedBy: toIdOrNull(actorUserId),
         },

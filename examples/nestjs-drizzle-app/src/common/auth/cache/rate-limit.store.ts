@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import type { RateLimitDeps } from '@/core/rate-limit.js';
+import type { RateLimitDeps } from '@/core/rate-limit';
 
 /**
  * In-memory window counter — fine for a single instance / the reference combo's proof.

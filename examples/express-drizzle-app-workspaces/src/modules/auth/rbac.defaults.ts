@@ -28,9 +28,9 @@
 // `src/workspace.repository.ts` (which provisions every workspace created afterwards, inside the
 // same transaction that creates it, so its creator is never locked out of a workspace they just
 // made).
-import { and, eq, inArray } from "drizzle-orm";
-import type { Database } from "../../common/config/db.js";
-import { permissionRole, permissions, roles } from "@/database/schema.js";
+import { and, eq, inArray } from 'drizzle-orm';
+import type { Database } from '../../common/config/db';
+import { permissionRole, permissions, roles } from '@/database/schema';
 
 /** The display metadata a seeded permission carries. `group`/`order` exist so an admin console can render a stable matrix. */
 export interface PermissionSeed {
@@ -55,70 +55,69 @@ export interface PermissionSeed {
  * evaluate.
  */
 export const PERMISSION_CATALOG = {
-  "users:read": {
-    displayName: "List members",
-    description: "GET /admin/users",
-    group: "Users",
+  'users:read': {
+    displayName: 'List members',
+    description: 'GET /admin/users',
+    group: 'Users',
     order: 1,
   },
-  "users:block": {
-    displayName: "Block and unblock members",
-    description: "POST /admin/users/:userId/block, .../unblock",
-    group: "Users",
+  'users:block': {
+    displayName: 'Block and unblock members',
+    description: 'POST /admin/users/:userId/block, .../unblock',
+    group: 'Users',
     order: 2,
   },
-  "users:manage": {
-    displayName: "Edit and delete members",
+  'users:manage': {
+    displayName: 'Edit and delete members',
     description:
       "Edit a member's profile or delete their account — PATCH /admin/users/:userId, DELETE /admin/users/:userId",
-    group: "Users",
+    group: 'Users',
     order: 3,
   },
-  "roles:manage": {
-    displayName: "Define roles",
+  'roles:manage': {
+    displayName: 'Define roles',
     description:
       "Create, edit, or delete this workspace's roles and say what they carry — POST/PATCH/DELETE /roles(/:roleId), POST /roles/:roleId/permissions",
-    group: "Roles",
+    group: 'Roles',
     order: 1,
   },
-  "roles:assign": {
-    displayName: "Assign roles",
+  'roles:assign': {
+    displayName: 'Assign roles',
     description:
       "Assign and revoke a member's roles — POST /admin/users/:userId/roles, .../roles/:roleSlug/revoke, PUT /workspaces/members/:memberId/roles",
-    group: "Roles",
+    group: 'Roles',
     order: 2,
   },
-  "permissions:read": {
-    displayName: "Read the permission catalog",
-    description: "GET /permissions",
-    group: "Permissions",
+  'permissions:read': {
+    displayName: 'Read the permission catalog',
+    description: 'GET /permissions',
+    group: 'Permissions',
     order: 1,
   },
-  "permissions:define": {
-    displayName: "Define permissions",
+  'permissions:define': {
+    displayName: 'Define permissions',
     description:
-      "Create a permission, rename it, or deactivate it — POST /permissions. The authority that defines all the others.",
-    group: "Permissions",
+      'Create a permission, rename it, or deactivate it — POST /permissions. The authority that defines all the others.',
+    group: 'Permissions',
     order: 2,
   },
-  "permissions:grant": {
-    displayName: "Grant permissions directly",
+  'permissions:grant': {
+    displayName: 'Grant permissions directly',
     description:
-      "Grant and revoke a permission straight to a member, bypassing roles — POST /admin/users/:userId/permissions, .../permissions/:slug/revoke",
-    group: "Permissions",
+      'Grant and revoke a permission straight to a member, bypassing roles — POST /admin/users/:userId/permissions, .../permissions/:slug/revoke',
+    group: 'Permissions',
     order: 3,
   },
-  "members:manage": {
-    displayName: "Add and remove members",
-    description:
-      "POST /workspaces/members, DELETE /workspaces/members/:memberId",
-    group: "Members",
+  'members:manage': {
+    displayName: 'Add and remove members',
+    description: 'POST /workspaces/members, DELETE /workspaces/members/:memberId',
+    group: 'Members',
     order: 1,
   },
-  "audit-log:read": {
-    displayName: "Read the audit log",
-    description: "GET /audit-log",
-    group: "Audit",
+  'audit-log:read': {
+    displayName: 'Read the audit log',
+    description: 'GET /audit-log',
+    group: 'Audit',
     order: 1,
   },
 } as const satisfies Record<string, PermissionSeed>;
@@ -132,9 +131,7 @@ export const PERMISSION_CATALOG = {
  */
 export type PermissionSlug = keyof typeof PERMISSION_CATALOG;
 
-export const PERMISSION_SLUGS = Object.keys(
-  PERMISSION_CATALOG,
-) as PermissionSlug[];
+export const PERMISSION_SLUGS = Object.keys(PERMISSION_CATALOG) as PermissionSlug[];
 
 /** Groups, in the order an admin console should render them. Derived from the catalog so it cannot drift from it. */
 export const PERMISSION_GROUP_ORDER: string[] = [
@@ -165,16 +162,16 @@ export interface RoleSeed {
  */
 export const DEFAULT_ROLES: readonly RoleSeed[] = [
   {
-    slug: "admin",
-    displayName: "Administrator",
-    description: "Carries every permission in the catalog.",
+    slug: 'admin',
+    displayName: 'Administrator',
+    description: 'Carries every permission in the catalog.',
     isDefault: false,
     order: 0,
     permissions: PERMISSION_SLUGS,
   },
   {
-    slug: "superadmin",
-    displayName: "Super Admin",
+    slug: 'superadmin',
+    displayName: 'Super Admin',
     description:
       "Carries every permission in the catalog — same authority as admin, held by the seeded super_admin account's membership (see SEED_SUPERADMIN_* in seed.ts).",
     isDefault: false,
@@ -182,10 +179,9 @@ export const DEFAULT_ROLES: readonly RoleSeed[] = [
     permissions: PERMISSION_SLUGS,
   },
   {
-    slug: "member",
-    displayName: "Member",
-    description:
-      "The default for a new membership. Carries no administrative permission.",
+    slug: 'member',
+    displayName: 'Member',
+    description: 'The default for a new membership. Carries no administrative permission.',
     isDefault: true,
     order: 2,
     permissions: [],
@@ -197,10 +193,10 @@ export const DEFAULT_ROLES: readonly RoleSeed[] = [
  * meaningful only because `provisionDefaultRoles` puts the matching `Role` rows in the same
  * workspace: a slug with no `Role` row behind it resolves to zero permissions.
  */
-export const WORKSPACE_CREATOR_ROLES: string[] = ["admin", "member"];
+export const WORKSPACE_CREATOR_ROLES: string[] = ['admin', 'member'];
 
 /** Role slugs given to the seeded super_admin's membership. `member` is included so they're also an ordinary member. */
-export const SEED_SUPERADMIN_ROLES: string[] = ["superadmin", "member"];
+export const SEED_SUPERADMIN_ROLES: string[] = ['superadmin', 'member'];
 
 /**
  * Anything that can write the catalog tables. Drizzle has no client class to name (see `db.ts`),
@@ -208,7 +204,7 @@ export const SEED_SUPERADMIN_ROLES: string[] = ["superadmin", "member"];
  * transaction handle exposes the same `insert`/`select` builders as the database handle, which is
  * what `WorkspaceRepository.create` passes straight through.
  */
-export type RbacWriter = Pick<Database, "insert" | "select">;
+export type RbacWriter = Pick<Database, 'insert' | 'select'>;
 
 /**
  * Writes the starting catalog, and one workspace's roles, into `db` — which may be a transaction
@@ -222,10 +218,7 @@ export type RbacWriter = Pick<Database, "insert" | "select">;
  */
 // Takes bigint directly: both callers (`WorkspaceRepository.create`, `seed.ts`) already have the
 // workspace row's id in hand from their own database call.
-export async function provisionDefaultRoles(
-  db: RbacWriter,
-  workspaceId: bigint,
-): Promise<void> {
+export async function provisionDefaultRoles(db: RbacWriter, workspaceId: bigint): Promise<void> {
   // Insert-then-read rather than `.returning()`: ON CONFLICT DO NOTHING returns no row for the
   // slugs that already existed, and the ids of *those* are exactly the ones a re-run needs.
   await db
@@ -237,9 +230,7 @@ export async function provisionDefaultRoles(
         displayName: PERMISSION_CATALOG[slug].displayName,
         description: PERMISSION_CATALOG[slug].description,
         group: PERMISSION_CATALOG[slug].group,
-        groupOrder: PERMISSION_GROUP_ORDER.indexOf(
-          PERMISSION_CATALOG[slug].group,
-        ),
+        groupOrder: PERMISSION_GROUP_ORDER.indexOf(PERMISSION_CATALOG[slug].group),
         order: PERMISSION_CATALOG[slug].order,
       })),
     )

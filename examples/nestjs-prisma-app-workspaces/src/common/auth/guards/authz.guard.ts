@@ -1,7 +1,7 @@
 import { CanActivate, ExecutionContext, ForbiddenException, Inject, Injectable } from '@nestjs/common';
-import { defineAbilitiesFor } from '../ability/ability.js';
-import { PermissionCache } from '../cache/permission-cache.js';
-import { memberCacheKey, RbacRepository } from '../../../modules/auth/repositories/rbac.repository.js';
+import { defineAbilitiesFor } from '../ability/ability';
+import { PermissionCache } from '../cache/permission-cache';
+import { memberCacheKey, RbacRepository } from '../../../modules/auth/repositories/rbac.repository';
 
 export const WORKSPACE_HEADER = 'x-workspace-id';
 

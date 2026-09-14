@@ -3,8 +3,8 @@ services:
   postgres:
     image: postgres
     ports:
-      - '5436:5432'
+      - '5435:5432'
     environment:
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=postgres
-      - POSTGRES_DB=nestjs_drizzle_ws
+      - POSTGRES_DB=nestjs_drizzle

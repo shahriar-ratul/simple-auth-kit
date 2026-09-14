@@ -1,7 +1,7 @@
 import { CanActivate, ExecutionContext, ForbiddenException, Inject, Injectable } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
-import { ABILITY_SUBJECT } from './ability.js';
-import { CHECK_ABILITY_KEY } from '../../../infra/route-tiers.js';
+import { ABILITY_SUBJECT } from './ability';
+import { CHECK_ABILITY_KEY } from '../../../infra/route-tiers';
 
 // The authorization boundary for tier-3 routes — no role-based bypass beside it, so a role
 // carrying no permissions confers no authority. Fail-closed: no ability, a missing slug, or a

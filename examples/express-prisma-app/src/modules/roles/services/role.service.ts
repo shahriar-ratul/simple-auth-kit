@@ -1,7 +1,4 @@
-import {
-  RbacRepository,
-  RoleSummary,
-} from "../../auth/repositories/rbac.repository.js";
+import { RbacRepository, RoleSummary } from '../../auth/repositories/rbac.repository';
 
 /** Thin wrapper over RbacRepository's role-catalog methods — see the note on AdminService for why RbacRepository itself isn't split. */
 export class RoleService {
@@ -36,19 +33,11 @@ export class RoleService {
     return this.rbac.updateRole(roleId, input, actorUserId);
   }
 
-  async deleteRole(
-    roleId: string,
-    actorUserId: string | null,
-    reason?: string,
-  ): Promise<void> {
+  async deleteRole(roleId: string, actorUserId: string | null, reason?: string): Promise<void> {
     await this.rbac.deleteRole(roleId, actorUserId, reason);
   }
 
-  async attachPermissionToRole(
-    roleId: string,
-    permissionSlug: string,
-    actorUserId: string | null,
-  ): Promise<void> {
+  async attachPermissionToRole(roleId: string, permissionSlug: string, actorUserId: string | null): Promise<void> {
     await this.rbac.attachPermissionToRole(roleId, permissionSlug, actorUserId);
   }
 }

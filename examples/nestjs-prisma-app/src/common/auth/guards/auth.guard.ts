@@ -1,8 +1,8 @@
 import { CanActivate, ExecutionContext, Inject, Injectable, UnauthorizedException } from '@nestjs/common';
-import { verifyAccessToken } from '@/core/token-service.js';
-import { KeyProviderService } from '../../config/key-provider.js';
-import '../../../infra/request-context.js';
-import { SessionRepository } from '../../../modules/auth/repositories/session.repository.js';
+import { verifyAccessToken } from '@/core/token-service';
+import { KeyProviderService } from '../../config/key-provider';
+import '../../../infra/request-context';
+import { SessionRepository } from '../../../modules/auth/repositories/session.repository';
 
 // Authentication only — proves who the caller is and populates `req.auth`. Pair with
 // `AuthzGuard` on any route that checks roles or permissions.

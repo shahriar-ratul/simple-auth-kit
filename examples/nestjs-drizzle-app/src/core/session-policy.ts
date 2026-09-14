@@ -6,7 +6,7 @@ import {
   RefreshTokenClaims,
   Revoker,
   SessionRecord,
-} from './types.js';
+} from './types';
 
 export interface SessionStoreDeps {
   findSession: (sessionId: string) => Promise<SessionRecord | null>;
@@ -33,11 +33,7 @@ export async function createSession(
   input: { userId: string; userAgent?: string; ip?: string; provider?: string },
 ): Promise<SessionRecord> {
   const session = await deps.createSession(input);
-  await deps.appendAuditEvent?.({
-    type: 'session_created',
-    sessionId: session.id,
-    userId: session.userId,
-  });
+  await deps.appendAuditEvent?.({ type: 'session_created', sessionId: session.id, userId: session.userId });
   return session;
 }
 
@@ -58,11 +54,7 @@ export async function rotateRefreshToken(
   if (session.currentRefreshJti !== presented.jti) {
     // No revoker: this is the system reacting to a replayed token, not a person acting.
     await deps.revokeAllByUser(session.userId);
-    await deps.appendAuditEvent?.({
-      type: 'refresh_reuse_detected',
-      sessionId: session.id,
-      userId: session.userId,
-    });
+    await deps.appendAuditEvent?.({ type: 'refresh_reuse_detected', sessionId: session.id, userId: session.userId });
     throw new RefreshReuseDetectedError();
   }
 
@@ -83,11 +75,7 @@ export async function revokeSession(deps: SessionStoreDeps, sessionId: string, r
     revokedByIp: revoker?.ip,
   };
   await deps.saveSession(updated);
-  await deps.appendAuditEvent?.({
-    type: 'session_revoked',
-    sessionId: session.id,
-    userId: session.userId,
-  });
+  await deps.appendAuditEvent?.({ type: 'session_revoked', sessionId: session.id, userId: session.userId });
 }
 
 export async function revokeAllSessionsForUser(
@@ -106,11 +94,7 @@ export async function revokeOtherSessionsForUser(
   revoker?: Revoker,
 ): Promise<void> {
   await deps.revokeAllByUserExcept(userId, keepSessionId, revoker);
-  await deps.appendAuditEvent?.({
-    type: 'other_sessions_revoked',
-    userId,
-    keepSessionId,
-  });
+  await deps.appendAuditEvent?.({ type: 'other_sessions_revoked', userId, keepSessionId });
 }
 
 export async function revokeAccessToken(

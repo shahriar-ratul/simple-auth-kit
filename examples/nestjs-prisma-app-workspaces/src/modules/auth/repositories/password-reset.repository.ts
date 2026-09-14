@@ -1,7 +1,7 @@
 import { Inject, Injectable } from '@nestjs/common';
-import type { PasswordResetStoreDeps } from '@/core/password-reset.js';
-import { PrismaClient } from '@/database/generated/prisma/client.js';
-import { toId } from '../../../common/helpers/id.helper.js';
+import type { PasswordResetStoreDeps } from '@/core/password-reset';
+import { PrismaClient } from '@/database/generated/prisma/client';
+import { toId } from '../../../common/helpers/id.helper';
 
 @Injectable()
 export class PasswordResetRepository implements PasswordResetStoreDeps {

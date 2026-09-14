@@ -1,7 +1,7 @@
 import { ConflictException, Inject, Injectable, NotFoundException } from '@nestjs/common';
-import { Prisma, PrismaClient } from '@/database/generated/prisma/client.js';
-import { toId, toIdOrNull } from '../../../common/helpers/id.helper.js';
-import { buildPageMeta, normalizeLimit, normalizePage, type Paginated } from '../../../common/helpers/pagination.js';
+import { Prisma, PrismaClient } from '@/database/generated/prisma/client';
+import { toId, toIdOrNull } from '../../../common/helpers/id.helper';
+import { buildPageMeta, normalizeLimit, normalizePage, type Paginated } from '../../../common/helpers/pagination';
 
 /** A `Country` row as `findUnique`/`findMany` return it. */
 export type CountryRow = Prisma.CountryGetPayload<object>;

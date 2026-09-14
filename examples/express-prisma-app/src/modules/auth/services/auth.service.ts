@@ -1,5 +1,5 @@
-import { randomUUID } from "node:crypto";
-import { hashPassword, verifyPassword } from "@/core/crypto.js";
+import { randomUUID } from 'node:crypto';
+import { hashPassword, verifyPassword } from '@/core/crypto';
 import {
   buildAuthorizationUrl,
   APPLE_OIDC_PROVIDER,
@@ -9,12 +9,12 @@ import {
   OAuthProviderDescriptor,
   signAppleClientSecret,
   verifyIdTokenAndExtractProfile,
-} from "@/core/oauth.js";
+} from '@/core/oauth';
 import {
   requestPasswordReset as coreRequestPasswordReset,
   resetPassword as coreResetPassword,
-} from "@/core/password-reset.js";
-import { checkRateLimit, type RateLimitDeps } from "@/core/rate-limit.js";
+} from '@/core/password-reset';
+import { checkRateLimit, type RateLimitDeps } from '@/core/rate-limit';
 import {
   createSession,
   revokeAccessToken,
@@ -22,34 +22,26 @@ import {
   revokeOtherSessionsForUser,
   revokeSession,
   rotateRefreshToken,
-} from "@/core/session-policy.js";
+} from '@/core/session-policy';
 import {
   signAccessToken,
   signRefreshToken,
   signTwoFactorChallengeToken,
   verifyRefreshToken,
   verifyTwoFactorChallengeToken,
-} from "@/core/token-service.js";
-import {
-  buildTotpProvisioningUri,
-  generateBackupCodes,
-  generateTotpSecret,
-  verifyTotpCode,
-} from "@/core/two-factor.js";
-import type { Revoker } from "@/core/types.js";
-import type { AuthConfig } from "../../../common/config/auth.config.js";
-import { HttpError } from "../../../infra/errors/http-error.js";
-import { PrismaClient } from "@/database/generated/prisma/client.js";
-import { KeyProviderService } from "../../../common/config/key-provider.js";
-import { OAuthRepository } from "../repositories/oauth.repository.js";
-import { PasswordResetRepository } from "../repositories/password-reset.repository.js";
-import {
-  RbacRepository,
-  UserSummary,
-} from "../repositories/rbac.repository.js";
-import { SessionRepository } from "../repositories/session.repository.js";
-import { TwoFactorRepository } from "../repositories/two-factor.repository.js";
-import { toId } from "../../../common/helpers/id.helper.js";
+} from '@/core/token-service';
+import { buildTotpProvisioningUri, generateBackupCodes, generateTotpSecret, verifyTotpCode } from '@/core/two-factor';
+import type { Revoker } from '@/core/types';
+import type { AuthConfig } from '../../../common/config/auth.config';
+import { HttpError } from '../../../infra/errors/http-error';
+import { PrismaClient } from '@/database/generated/prisma/client';
+import { KeyProviderService } from '../../../common/config/key-provider';
+import { OAuthRepository } from '../repositories/oauth.repository';
+import { PasswordResetRepository } from '../repositories/password-reset.repository';
+import { RbacRepository, UserSummary } from '../repositories/rbac.repository';
+import { SessionRepository } from '../repositories/session.repository';
+import { TwoFactorRepository } from '../repositories/two-factor.repository';
+import { toId } from '../../../common/helpers/id.helper';
 
 export interface AuthTokens {
   accessToken: string;
@@ -106,7 +98,7 @@ export class AuthService {
     const existing = await this.prisma.user.findUnique({
       where: { email: input.email },
     });
-    if (existing) throw new HttpError(409, "email already registered");
+    if (existing) throw new HttpError(409, 'email already registered');
 
     const passwordHash = await hashPassword(input.password);
     const user = await this.prisma.user.create({
@@ -136,40 +128,23 @@ export class AuthService {
     userAgent?: string;
     ip?: string;
   }): Promise<AuthTokens | TwoFactorChallenge> {
-    const { allowed } = await checkRateLimit(
-      this.rateLimit,
-      "login",
-      input.identifier,
-    );
-    if (!allowed) throw new HttpError(429, "too many login attempts");
+    const { allowed } = await checkRateLimit(this.rateLimit, 'login', input.identifier);
+    if (!allowed) throw new HttpError(429, 'too many login attempts');
 
     const user = await this.prisma.user.findFirst({
       where: {
-        OR: [
-          { email: input.identifier },
-          { username: input.identifier },
-          { phone: input.identifier },
-        ],
+        OR: [{ email: input.identifier }, { username: input.identifier }, { phone: input.identifier }],
       },
     });
-    if (
-      !user ||
-      user.blocked ||
-      !user.isActive ||
-      user.isDeleted ||
-      !user.passwordHash
-    )
-      throw new HttpError(401, "invalid credentials");
+    if (!user || user.blocked || !user.isActive || user.isDeleted || !user.passwordHash)
+      throw new HttpError(401, 'invalid credentials');
 
     const valid = await verifyPassword(user.passwordHash, input.password);
-    if (!valid) throw new HttpError(401, "invalid credentials");
+    if (!valid) throw new HttpError(401, 'invalid credentials');
 
     if (user.twoFactorEnabled) {
       const key = await this.keys.getActiveKey();
-      const { token } = await signTwoFactorChallengeToken(
-        { activeKey: key },
-        user.id.toString(),
-      ); // core-facing: sub must be string
+      const { token } = await signTwoFactorChallengeToken({ activeKey: key }, user.id.toString()); // core-facing: sub must be string
       return { twoFactorRequired: true, challengeToken: token };
     }
 
@@ -186,34 +161,22 @@ export class AuthService {
     userAgent?: string;
     ip?: string;
   }): Promise<AuthTokens> {
-    const { sub } = await verifyTwoFactorChallengeToken(
-      { secret: this.keys.secret },
-      input.challengeToken,
-    );
+    const { sub } = await verifyTwoFactorChallengeToken({ secret: this.keys.secret }, input.challengeToken);
 
     const user = await this.prisma.user.findUnique({
       where: { id: toId(sub) },
     });
-    if (
-      !user ||
-      user.blocked ||
-      !user.isActive ||
-      user.isDeleted ||
-      !user.twoFactorEnabled ||
-      !user.twoFactorSecret
-    )
-      throw new HttpError(401, "invalid credentials");
+    if (!user || user.blocked || !user.isActive || user.isDeleted || !user.twoFactorEnabled || !user.twoFactorSecret)
+      throw new HttpError(401, 'invalid credentials');
 
     const validTotp = verifyTotpCode(user.twoFactorSecret, input.code);
-    const validBackup =
-      !validTotp &&
-      (await this.twoFactor.consumeBackupCode(user.id, input.code));
+    const validBackup = !validTotp && (await this.twoFactor.consumeBackupCode(user.id, input.code));
     if (!validTotp && !validBackup) {
       await this.sessions.appendAuditEvent({
-        type: "two_factor_challenge_failed",
+        type: 'two_factor_challenge_failed',
         userId: user.id.toString(),
       }); // core-facing: string
-      throw new HttpError(401, "invalid two-factor code");
+      throw new HttpError(401, 'invalid two-factor code');
     }
 
     return this.issueSessionTokens(user, {
@@ -222,9 +185,7 @@ export class AuthService {
     });
   }
 
-  async enrollTwoFactor(
-    userId: string,
-  ): Promise<{ secret: string; provisioningUri: string }> {
+  async enrollTwoFactor(userId: string): Promise<{ secret: string; provisioningUri: string }> {
     const idBig = toId(userId);
     const user = await this.getUserOrThrow(userId);
     const secret = generateTotpSecret();
@@ -243,16 +204,11 @@ export class AuthService {
     };
   }
 
-  async confirmTwoFactor(
-    userId: string,
-    code: string,
-  ): Promise<{ backupCodes: string[] }> {
+  async confirmTwoFactor(userId: string, code: string): Promise<{ backupCodes: string[] }> {
     const idBig = toId(userId);
     const user = await this.getUserOrThrow(userId);
-    if (!user.twoFactorSecret)
-      throw new HttpError(400, "call enrollTwoFactor first");
-    if (!verifyTotpCode(user.twoFactorSecret, code))
-      throw new HttpError(401, "invalid two-factor code");
+    if (!user.twoFactorSecret) throw new HttpError(400, 'call enrollTwoFactor first');
+    if (!verifyTotpCode(user.twoFactorSecret, code)) throw new HttpError(401, 'invalid two-factor code');
 
     const backupCodes = generateBackupCodes();
     await this.twoFactor.saveBackupCodes(
@@ -264,7 +220,7 @@ export class AuthService {
       data: { twoFactorEnabled: true },
     });
     await this.sessions.appendAuditEvent({
-      type: "two_factor_enabled",
+      type: 'two_factor_enabled',
       userId,
     });
     return { backupCodes: backupCodes.map((c) => c.code) };
@@ -273,14 +229,11 @@ export class AuthService {
   async disableTwoFactor(userId: string, code: string): Promise<void> {
     const idBig = toId(userId);
     const user = await this.getUserOrThrow(userId);
-    if (!user.twoFactorEnabled || !user.twoFactorSecret)
-      throw new HttpError(400, "two-factor is not enabled");
+    if (!user.twoFactorEnabled || !user.twoFactorSecret) throw new HttpError(400, 'two-factor is not enabled');
 
     const validTotp = verifyTotpCode(user.twoFactorSecret, code);
-    const validBackup =
-      !validTotp && (await this.twoFactor.consumeBackupCode(idBig, code));
-    if (!validTotp && !validBackup)
-      throw new HttpError(401, "invalid two-factor code");
+    const validBackup = !validTotp && (await this.twoFactor.consumeBackupCode(idBig, code));
+    if (!validTotp && !validBackup) throw new HttpError(401, 'invalid two-factor code');
 
     await this.prisma.user.update({
       where: { id: idBig },
@@ -288,7 +241,7 @@ export class AuthService {
     });
     await this.twoFactor.clearBackupCodes(idBig);
     await this.sessions.appendAuditEvent({
-      type: "two_factor_disabled",
+      type: 'two_factor_disabled',
       userId,
     });
   }
@@ -298,27 +251,15 @@ export class AuthService {
     const user = await this.prisma.user.findUnique({ where: { email } });
     if (!user || user.isDeleted) return;
 
-    const { allowed } = await checkRateLimit(
-      this.rateLimit,
-      "password-reset",
-      email,
-    );
+    const { allowed } = await checkRateLimit(this.rateLimit, 'password-reset', email);
     if (!allowed) return;
 
-    const { token } = await coreRequestPasswordReset(
-      this.passwordReset,
-      user.id.toString(),
-    );
-    if (this.config.sendPasswordResetEmail)
-      await this.config.sendPasswordResetEmail(email, token);
+    const { token } = await coreRequestPasswordReset(this.passwordReset, user.id.toString());
+    if (this.config.sendPasswordResetEmail) await this.config.sendPasswordResetEmail(email, token);
   }
 
   async resetPassword(token: string, newPassword: string): Promise<void> {
-    const { userId } = await coreResetPassword(
-      this.passwordReset,
-      token,
-      newPassword,
-    );
+    const { userId } = await coreResetPassword(this.passwordReset, token, newPassword);
     // The old password is no longer trusted, so neither are its sessions. The revoker is the user
     // themselves — they proved control of the account by consuming the reset token.
     await revokeAllSessionsForUser(this.sessions, userId, { userId });
@@ -326,13 +267,11 @@ export class AuthService {
 
   /** Builds the redirect URL for `provider`. `state` is an opaque anti-CSRF nonce the provider echoes back verbatim. */
   async startOAuth(provider: string): Promise<{ url: string }> {
-    const state = Buffer.from(JSON.stringify({ nonce: randomUUID() })).toString(
-      "base64url",
-    );
+    const state = Buffer.from(JSON.stringify({ nonce: randomUUID() })).toString('base64url');
 
-    if (provider === "google") {
+    if (provider === 'google') {
       const creds = this.config.oauthProviders.google;
-      if (!creds) throw new HttpError(400, "google OAuth is not configured");
+      if (!creds) throw new HttpError(400, 'google OAuth is not configured');
       return {
         url: buildAuthorizationUrl(GOOGLE_OIDC_PROVIDER, {
           clientId: creds.clientId,
@@ -341,9 +280,9 @@ export class AuthService {
         }),
       };
     }
-    if (provider === "apple") {
+    if (provider === 'apple') {
       const creds = this.config.oauthProviders.apple;
-      if (!creds) throw new HttpError(400, "apple OAuth is not configured");
+      if (!creds) throw new HttpError(400, 'apple OAuth is not configured');
       return {
         url: buildAuthorizationUrl(APPLE_OIDC_PROVIDER, {
           clientId: creds.clientId,
@@ -355,18 +294,14 @@ export class AuthService {
     throw new HttpError(400, `unknown OAuth provider "${provider}"`);
   }
 
-  async completeOAuthCallback(
-    provider: string,
-    code: string,
-    _state: string,
-  ): Promise<AuthTokens> {
+  async completeOAuthCallback(provider: string, code: string, _state: string): Promise<AuthTokens> {
     let providerDescriptor: OAuthProviderDescriptor;
     let clientId: string;
     let idToken: string;
 
-    if (provider === "google") {
+    if (provider === 'google') {
       const creds = this.config.oauthProviders.google;
-      if (!creds) throw new HttpError(400, "google OAuth is not configured");
+      if (!creds) throw new HttpError(400, 'google OAuth is not configured');
       providerDescriptor = GOOGLE_OIDC_PROVIDER;
       clientId = creds.clientId;
       idToken = (
@@ -377,9 +312,9 @@ export class AuthService {
           code,
         })
       ).idToken;
-    } else if (provider === "apple") {
+    } else if (provider === 'apple') {
       const creds = this.config.oauthProviders.apple;
-      if (!creds) throw new HttpError(400, "apple OAuth is not configured");
+      if (!creds) throw new HttpError(400, 'apple OAuth is not configured');
       providerDescriptor = APPLE_OIDC_PROVIDER;
       clientId = creds.clientId;
       const clientSecret = await signAppleClientSecret({
@@ -410,20 +345,16 @@ export class AuthService {
     });
 
     const user = await this.getUserOrThrow(userId);
-    if (user.blocked || !user.isActive || user.isDeleted)
-      throw new HttpError(401, "account is blocked");
+    if (user.blocked || !user.isActive || user.isDeleted) throw new HttpError(401, 'account is blocked');
     // A user this login just created holds no roles at all; give them the defaults. Guarded on
     // "holds none" rather than "was created", so it can never re-add a role an administrator
     // revoked from someone who has been logging in for months.
-    if (!(await this.rbac.hasAnyRole(user.id)))
-      await this.rbac.assignDefaultRoles(user.id);
+    if (!(await this.rbac.hasAnyRole(user.id))) await this.rbac.assignDefaultRoles(user.id);
     return this.issueSessionTokens(user, { provider });
   }
 
   /** `req.auth` (the JWT claims) never carries 2FA status, so `/auth/me` fetches it fresh — the one bit of the response that isn't just echoing the token. */
-  async getTwoFactorStatus(
-    userId: string,
-  ): Promise<{ twoFactorEnabled: boolean }> {
+  async getTwoFactorStatus(userId: string): Promise<{ twoFactorEnabled: boolean }> {
     const user = await this.getUserOrThrow(userId);
     return { twoFactorEnabled: user.twoFactorEnabled };
   }
@@ -446,7 +377,7 @@ export class AuthService {
         isRevoked: false,
         expiresAt: { gt: new Date() },
       },
-      orderBy: { createdAt: "desc" },
+      orderBy: { createdAt: 'desc' },
     });
     return rows.map((row) => ({
       id: row.id.toString(),
@@ -458,22 +389,15 @@ export class AuthService {
     }));
   }
 
-  async refresh(refreshToken: string): Promise<Omit<AuthTokens, "sessionId">> {
+  async refresh(refreshToken: string): Promise<Omit<AuthTokens, 'sessionId'>> {
     const key = await this.keys.getActiveKey();
-    const presented = await verifyRefreshToken(
-      { secret: this.keys.secret },
-      refreshToken,
-    );
-    const { session, nextJti } = await rotateRefreshToken(
-      this.sessions,
-      presented,
-    );
+    const presented = await verifyRefreshToken({ secret: this.keys.secret }, refreshToken);
+    const { session, nextJti } = await rotateRefreshToken(this.sessions, presented);
 
     const user = await this.prisma.user.findUnique({
       where: { id: toId(session.userId) },
     });
-    if (!user || user.blocked || !user.isActive || user.isDeleted)
-      throw new HttpError(401, "invalid credentials");
+    if (!user || user.blocked || !user.isActive || user.isDeleted) throw new HttpError(401, 'invalid credentials');
 
     // Identity only. Authorization is resolved from the database on every request (the authz middleware),
     // so a token issued before a grant is as authoritative as one issued after it.
@@ -501,28 +425,15 @@ export class AuthService {
     revoker?: Revoker,
   ): Promise<void> {
     await revokeSession(this.sessions, sessionId, revoker);
-    await revokeAccessToken(
-      this.sessions,
-      accessJti,
-      accessRemainingTtlSeconds,
-    );
+    await revokeAccessToken(this.sessions, accessJti, accessRemainingTtlSeconds);
   }
 
   async logoutAll(userId: string, revoker?: Revoker): Promise<void> {
     await revokeAllSessionsForUser(this.sessions, userId, revoker);
   }
 
-  async logoutOthers(
-    userId: string,
-    keepSessionId: string,
-    revoker?: Revoker,
-  ): Promise<void> {
-    await revokeOtherSessionsForUser(
-      this.sessions,
-      userId,
-      keepSessionId,
-      revoker,
-    );
+  async logoutOthers(userId: string, keepSessionId: string, revoker?: Revoker): Promise<void> {
+    await revokeOtherSessionsForUser(this.sessions, userId, keepSessionId, revoker);
   }
 
   async changePassword(
@@ -534,20 +445,11 @@ export class AuthService {
     const user = await this.prisma.user.findUnique({
       where: { id: userIdBig },
     });
-    if (
-      !user ||
-      user.blocked ||
-      !user.isActive ||
-      user.isDeleted ||
-      !user.passwordHash
-    )
-      throw new HttpError(401, "invalid credentials");
+    if (!user || user.blocked || !user.isActive || user.isDeleted || !user.passwordHash)
+      throw new HttpError(401, 'invalid credentials');
 
-    const valid = await verifyPassword(
-      user.passwordHash,
-      input.currentPassword,
-    );
-    if (!valid) throw new HttpError(401, "invalid credentials");
+    const valid = await verifyPassword(user.passwordHash, input.currentPassword);
+    if (!valid) throw new HttpError(401, 'invalid credentials');
 
     const passwordHash = await hashPassword(input.newPassword);
     await this.prisma.user.update({
@@ -597,9 +499,7 @@ export class AuthService {
       photo?: string | null;
     },
   ): Promise<SelfProfile> {
-    return this.toSelfProfile(
-      await this.rbac.updateUser(userId, input, userId),
-    );
+    return this.toSelfProfile(await this.rbac.updateUser(userId, input, userId));
   }
 
   /** Nest's filter turns Prisma's `findUniqueOrThrow` into a 404; without one, this does it by hand. */

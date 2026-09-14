@@ -26,32 +26,27 @@
 //   • and every slug is checked against `PERMISSION_CATALOG` at registration, i.e. at startup, so
 //     even an untyped (plain-JS) caller fails loudly at boot rather than serving a route gated on
 //     a permission nothing can ever grant.
-import { Router } from "express";
-import type { NextFunction, Request, RequestHandler, Response } from "express";
-import { ABILITY_SUBJECT } from "../common/auth/ability/ability.js";
-import {
-  PERMISSION_CATALOG,
-  type PermissionSlug,
-} from "../modules/auth/rbac.defaults.js";
-import "./request-context.js";
+import { Router } from 'express';
+import type { NextFunction, Request, RequestHandler, Response } from 'express';
+import { ABILITY_SUBJECT } from '../common/auth/ability/ability';
+import { PERMISSION_CATALOG, type PermissionSlug } from '../modules/auth/rbac.defaults';
+import './request-context';
 
 /** The subset of Express's routing verbs this library's routes use. */
-export type TieredMethod = "get" | "post" | "put" | "patch" | "delete";
+export type TieredMethod = 'get' | 'post' | 'put' | 'patch' | 'delete';
 
 /**
  * What a route declares about itself. There is deliberately no fourth shape and no default: the
  * union is closed, so adding a route means picking one of these three.
  */
 export type RouteTier =
-  | { kind: "public" }
-  | { kind: "authenticated" }
-  | { kind: "ability"; abilities: PermissionSlug[] };
+  { kind: 'public' } | { kind: 'authenticated' } | { kind: 'ability'; abilities: PermissionSlug[] };
 
 /** Tier 1: reachable with no token at all. Carries no middleware, which is exactly why it has to be said out loud. */
-export const publicRoute = (): RouteTier => ({ kind: "public" });
+export const publicRoute = (): RouteTier => ({ kind: 'public' });
 
 /** Tier 2: any authenticated caller, no permission required. */
-export const authenticated = (): RouteTier => ({ kind: "authenticated" });
+export const authenticated = (): RouteTier => ({ kind: 'authenticated' });
 
 /**
  * Tier 3: `ability("users:block")`. Several slugs may be named, and **all** of them must be held —
@@ -64,11 +59,9 @@ export const authenticated = (): RouteTier => ({ kind: "authenticated" });
  */
 export const ability = (...abilities: PermissionSlug[]): RouteTier => {
   if (!abilities.length)
-    throw new Error(
-      "ability() names no permission — use authenticated() if any logged-in caller may call the route",
-    );
+    throw new Error('ability() names no permission — use authenticated() if any logged-in caller may call the route');
   for (const slug of abilities) assertInCatalog(slug);
-  return { kind: "ability", abilities };
+  return { kind: 'ability', abilities };
 };
 
 /**
@@ -81,17 +74,13 @@ export const ability = (...abilities: PermissionSlug[]): RouteTier => {
  * incapable of disagreeing.
  */
 export function requireAbility(abilities: PermissionSlug[]): RequestHandler {
-  return function abilityMiddleware(
-    req: Request,
-    res: Response,
-    next: NextFunction,
-  ): void {
+  return function abilityMiddleware(req: Request, res: Response, next: NextFunction): void {
     // No ability at all means the authz middleware resolved nothing — fail closed.
     if (!req.ability) {
       res.status(403).json({
         statusCode: 403,
-        code: "FORBIDDEN",
-        message: "no authorization context for this request",
+        code: 'FORBIDDEN',
+        message: 'no authorization context for this request',
       });
       return;
     }
@@ -99,7 +88,7 @@ export function requireAbility(abilities: PermissionSlug[]): RequestHandler {
       if (!req.ability.can(slug, ABILITY_SUBJECT)) {
         res.status(403).json({
           statusCode: 403,
-          code: "FORBIDDEN",
+          code: 'FORBIDDEN',
           message: `missing permission: ${slug}`,
         });
         return;
@@ -116,12 +105,7 @@ export interface TieredRouter {
    * adds a route without one, and the middleware the tier implies is always inserted immediately
    * before `handler` — the two cannot come apart.
    */
-  route(
-    method: TieredMethod,
-    path: string,
-    tier: RouteTier,
-    ...handlers: RequestHandler[]
-  ): void;
+  route(method: TieredMethod, path: string, tier: RouteTier, ...handlers: RequestHandler[]): void;
   /**
    * The composed middleware, for `app.use(...)`. Deliberately typed as `RequestHandler` and not
    * as `Router`, even though that is what it is at runtime: the `.get`/`.post`/… methods are
@@ -149,33 +133,21 @@ export function createTieredRouter(middleware: TierMiddleware): TieredRouter {
   const router = Router();
 
   return {
-    route(
-      method: TieredMethod,
-      path: string,
-      tier: RouteTier,
-      ...handlers: RequestHandler[]
-    ): void {
+    route(method: TieredMethod, path: string, tier: RouteTier, ...handlers: RequestHandler[]): void {
       router[method](path, ...tierMiddleware(tier, middleware), ...handlers);
     },
     handler: router,
   };
 }
 
-function tierMiddleware(
-  tier: RouteTier,
-  middleware: TierMiddleware,
-): RequestHandler[] {
+function tierMiddleware(tier: RouteTier, middleware: TierMiddleware): RequestHandler[] {
   switch (tier.kind) {
-    case "public":
+    case 'public':
       return [];
-    case "authenticated":
+    case 'authenticated':
       return [middleware.authentication, middleware.authorization];
-    case "ability":
-      return [
-        middleware.authentication,
-        middleware.authorization,
-        requireAbility(tier.abilities),
-      ];
+    case 'ability':
+      return [middleware.authentication, middleware.authorization, requireAbility(tier.abilities)];
   }
 }
 

@@ -1,10 +1,10 @@
 import { ConflictException, Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { and, asc, eq, inArray } from 'drizzle-orm';
-import { DRIZZLE_DB, type Database } from '../../../common/config/db.js';
-import { provisionDefaultRoles, WORKSPACE_CREATOR_ROLES } from '../rbac.defaults.js';
-import { RbacRepository } from './rbac.repository.js';
-import { roleMember, roles, users, workspaceMembers, workspaces } from '@/database/schema.js';
-import { toId, toIdOrNull } from '../../../common/helpers/id.helper.js';
+import { DRIZZLE_DB, type Database } from '../../../common/config/db';
+import { provisionDefaultRoles, WORKSPACE_CREATOR_ROLES } from '../rbac.defaults';
+import { RbacRepository } from './rbac.repository';
+import { roleMember, roles, users, workspaceMembers, workspaces } from '@/database/schema';
+import { toId, toIdOrNull } from '../../../common/helpers/id.helper';
 
 export interface WorkspaceSummary {
   id: string;

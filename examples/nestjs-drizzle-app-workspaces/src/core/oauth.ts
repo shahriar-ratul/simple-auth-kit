@@ -2,7 +2,7 @@
 // deviation from the standard flow: its "client secret" is a short-lived signed JWT, not a
 // static string.
 import { createRemoteJWKSet, importPKCS8, jwtVerify, SignJWT } from 'jose';
-import { AuditEvent, OAuthExchangeError, OAuthProfileInvalidError } from './types.js';
+import { AuditEvent, OAuthExchangeError, OAuthProfileInvalidError } from './types';
 
 export interface OAuthProviderDescriptor {
   id: string;
@@ -33,12 +33,7 @@ export const APPLE_OIDC_PROVIDER: OAuthProviderDescriptor = {
 
 export function buildAuthorizationUrl(
   provider: OAuthProviderDescriptor,
-  opts: {
-    clientId: string;
-    redirectUri: string;
-    state: string;
-    scope?: string;
-  },
+  opts: { clientId: string; redirectUri: string; state: string; scope?: string },
 ): string {
   const params = new URLSearchParams({
     client_id: opts.clientId,
@@ -54,12 +49,7 @@ export function buildAuthorizationUrl(
 
 export async function exchangeCodeForTokens(
   provider: OAuthProviderDescriptor,
-  opts: {
-    clientId: string;
-    clientSecret: string;
-    redirectUri: string;
-    code: string;
-  },
+  opts: { clientId: string; clientSecret: string; redirectUri: string; code: string },
 ): Promise<{ idToken: string; accessToken: string }> {
   const body = new URLSearchParams({
     grant_type: 'authorization_code',
@@ -75,10 +65,7 @@ export async function exchangeCodeForTokens(
   });
   if (!response.ok) throw new OAuthExchangeError(`token exchange failed with status ${response.status}`);
 
-  const json = (await response.json()) as {
-    id_token?: string;
-    access_token?: string;
-  };
+  const json = (await response.json()) as { id_token?: string; access_token?: string };
   if (!json.id_token) throw new OAuthExchangeError('provider response missing id_token');
   return { idToken: json.id_token, accessToken: json.access_token ?? '' };
 }
@@ -125,10 +112,7 @@ export async function verifyIdTokenAndExtractProfile(
 
   let payload;
   try {
-    ({ payload } = await jwtVerify(opts.idToken, jwks, {
-      issuer: provider.issuer,
-      audience: opts.clientId,
-    }));
+    ({ payload } = await jwtVerify(opts.idToken, jwks, { issuer: provider.issuer, audience: opts.clientId }));
   } catch {
     throw new OAuthProfileInvalidError();
   }
@@ -178,10 +162,6 @@ export async function completeOAuthLogin(
     providerAccountId: input.profile.providerAccountId,
     email: input.profile.email,
   });
-  await deps.appendAuditEvent?.({
-    type: 'oauth_account_linked',
-    userId,
-    provider: input.provider,
-  });
+  await deps.appendAuditEvent?.({ type: 'oauth_account_linked', userId, provider: input.provider });
   return { userId, isNewUser };
 }

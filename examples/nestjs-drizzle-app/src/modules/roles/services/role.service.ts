@@ -1,5 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { RbacRepository, RoleSummary } from '../../auth/repositories/rbac.repository.js';
+import { RbacRepository, RoleSummary } from '../../auth/repositories/rbac.repository';
 
 /** Thin wrapper over RbacRepository's role-catalog methods — see the note on AdminController for why RbacRepository itself isn't split. */
 @Injectable()

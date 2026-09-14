@@ -1,4 +1,4 @@
-import { randomUUID } from "node:crypto";
+import { randomUUID } from 'node:crypto';
 import {
   AuditEvent,
   RefreshInvalidError,
@@ -6,7 +6,7 @@ import {
   RefreshTokenClaims,
   Revoker,
   SessionRecord,
-} from "./types.js";
+} from './types';
 
 export interface SessionStoreDeps {
   findSession: (sessionId: string) => Promise<SessionRecord | null>;
@@ -22,11 +22,7 @@ export interface SessionStoreDeps {
     provider?: string;
   }) => Promise<SessionRecord>;
   revokeAllByUser: (userId: string, revoker?: Revoker) => Promise<void>;
-  revokeAllByUserExcept: (
-    userId: string,
-    keepSessionId: string,
-    revoker?: Revoker,
-  ) => Promise<void>;
+  revokeAllByUserExcept: (userId: string, keepSessionId: string, revoker?: Revoker) => Promise<void>;
   denylistJti: (jti: string, ttlSeconds: number) => Promise<void>;
   isDenylisted: (jti: string) => Promise<boolean>;
   appendAuditEvent?: (event: AuditEvent) => Promise<void>;
@@ -37,11 +33,7 @@ export async function createSession(
   input: { userId: string; userAgent?: string; ip?: string; provider?: string },
 ): Promise<SessionRecord> {
   const session = await deps.createSession(input);
-  await deps.appendAuditEvent?.({
-    type: "session_created",
-    sessionId: session.id,
-    userId: session.userId,
-  });
+  await deps.appendAuditEvent?.({ type: 'session_created', sessionId: session.id, userId: session.userId });
   return session;
 }
 
@@ -56,19 +48,13 @@ export async function rotateRefreshToken(
   // The session's own absolute lifetime, independent of any token's. Rotation is the only place a
   // session can be extended, so checking it here is what stops an endlessly-rotated refresh token
   // from outliving the session it belongs to.
-  if (new Date(session.expiresAt).getTime() <= Date.now())
-    throw new RefreshInvalidError("session expired");
-  if (session.sessionVersion !== presented.sv)
-    throw new RefreshInvalidError("session version stale");
+  if (new Date(session.expiresAt).getTime() <= Date.now()) throw new RefreshInvalidError('session expired');
+  if (session.sessionVersion !== presented.sv) throw new RefreshInvalidError('session version stale');
 
   if (session.currentRefreshJti !== presented.jti) {
     // No revoker: this is the system reacting to a replayed token, not a person acting.
     await deps.revokeAllByUser(session.userId);
-    await deps.appendAuditEvent?.({
-      type: "refresh_reuse_detected",
-      sessionId: session.id,
-      userId: session.userId,
-    });
+    await deps.appendAuditEvent?.({ type: 'refresh_reuse_detected', sessionId: session.id, userId: session.userId });
     throw new RefreshReuseDetectedError();
   }
 
@@ -78,11 +64,7 @@ export async function rotateRefreshToken(
   return { session: updated, nextJti };
 }
 
-export async function revokeSession(
-  deps: SessionStoreDeps,
-  sessionId: string,
-  revoker?: Revoker,
-): Promise<void> {
+export async function revokeSession(deps: SessionStoreDeps, sessionId: string, revoker?: Revoker): Promise<void> {
   const session = await deps.findSession(sessionId);
   if (!session) return;
   const updated: SessionRecord = {
@@ -93,11 +75,7 @@ export async function revokeSession(
     revokedByIp: revoker?.ip,
   };
   await deps.saveSession(updated);
-  await deps.appendAuditEvent?.({
-    type: "session_revoked",
-    sessionId: session.id,
-    userId: session.userId,
-  });
+  await deps.appendAuditEvent?.({ type: 'session_revoked', sessionId: session.id, userId: session.userId });
 }
 
 export async function revokeAllSessionsForUser(
@@ -106,7 +84,7 @@ export async function revokeAllSessionsForUser(
   revoker?: Revoker,
 ): Promise<void> {
   await deps.revokeAllByUser(userId, revoker);
-  await deps.appendAuditEvent?.({ type: "all_sessions_revoked", userId });
+  await deps.appendAuditEvent?.({ type: 'all_sessions_revoked', userId });
 }
 
 export async function revokeOtherSessionsForUser(
@@ -116,11 +94,7 @@ export async function revokeOtherSessionsForUser(
   revoker?: Revoker,
 ): Promise<void> {
   await deps.revokeAllByUserExcept(userId, keepSessionId, revoker);
-  await deps.appendAuditEvent?.({
-    type: "other_sessions_revoked",
-    userId,
-    keepSessionId,
-  });
+  await deps.appendAuditEvent?.({ type: 'other_sessions_revoked', userId, keepSessionId });
 }
 
 export async function revokeAccessToken(
@@ -133,23 +107,15 @@ export async function revokeAccessToken(
 
 // Block revokes every session immediately, not just future logins; `revoker` is the
 // administrator, so the row says who ended it, not merely that it ended.
-export async function blockUser(
-  deps: SessionStoreDeps,
-  userId: string,
-  revoker?: Revoker,
-): Promise<void> {
+export async function blockUser(deps: SessionStoreDeps, userId: string, revoker?: Revoker): Promise<void> {
   await deps.revokeAllByUser(userId, revoker);
-  await deps.appendAuditEvent?.({ type: "user_blocked", userId });
+  await deps.appendAuditEvent?.({ type: 'user_blocked', userId });
 }
 
 // Same shape as blockUser but a distinct audit trail — deactivation is a routine administrative
 // toggle, not a security action, and the two are tracked independently (see the `isActive` /
 // `blocked` split on `User`). Reactivating, like unblocking, revokes nothing.
-export async function deactivateUser(
-  deps: SessionStoreDeps,
-  userId: string,
-  revoker?: Revoker,
-): Promise<void> {
+export async function deactivateUser(deps: SessionStoreDeps, userId: string, revoker?: Revoker): Promise<void> {
   await deps.revokeAllByUser(userId, revoker);
-  await deps.appendAuditEvent?.({ type: "user_deactivated", userId });
+  await deps.appendAuditEvent?.({ type: 'user_deactivated', userId });
 }

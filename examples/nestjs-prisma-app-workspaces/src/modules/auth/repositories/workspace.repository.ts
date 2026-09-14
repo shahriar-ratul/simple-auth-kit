@@ -1,8 +1,8 @@
 import { ConflictException, Inject, Injectable, NotFoundException } from '@nestjs/common';
-import { PrismaClient } from '@/database/generated/prisma/client.js';
-import { provisionDefaultRoles, WORKSPACE_CREATOR_ROLES } from '../rbac.defaults.js';
-import { RbacRepository } from './rbac.repository.js';
-import { toId } from '../../../common/helpers/id.helper.js';
+import { PrismaClient } from '@/database/generated/prisma/client';
+import { provisionDefaultRoles, WORKSPACE_CREATOR_ROLES } from '../rbac.defaults';
+import { RbacRepository } from './rbac.repository';
+import { toId } from '../../../common/helpers/id.helper';
 
 export interface WorkspaceSummary {
   id: string;

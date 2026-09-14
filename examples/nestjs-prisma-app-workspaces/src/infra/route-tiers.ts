@@ -6,7 +6,7 @@
 // @Authenticated() with no AuthGuard can't masquerade as gated.
 import { RequestMethod, SetMetadata } from '@nestjs/common';
 import { GUARDS_METADATA, METHOD_METADATA, PATH_METADATA } from '@nestjs/common/constants.js';
-import type { PermissionSlug } from '../modules/auth/rbac.defaults.js';
+import type { PermissionSlug } from '../modules/auth/rbac.defaults';
 
 export const ROUTE_TIER_KEY = 'routeTier';
 export const CHECK_ABILITY_KEY = 'checkAbility';
@@ -41,12 +41,13 @@ function applyBoth(...decorators: MethodDecorator[]): MethodDecorator {
 // etc.), and these types only need to carry a class/method identity through reflection — never
 // construct or invoke anything — so `unknown` params would reject every real, differently-typed
 // class assigned to them.
-
+/* eslint-disable @typescript-eslint/no-explicit-any -- see comment above */
 /** A NestJS controller/guard class reference — reflected on via metadata, never constructed here. */
 type Ctor = abstract new (...args: any[]) => object;
 
 /** A route-handler method — reflected on and invoked by Nest's own pipeline, never called directly here. */
 type HandlerFn = (...args: any[]) => unknown;
+/* eslint-enable @typescript-eslint/no-explicit-any */
 
 /** A guard entry in `@UseGuards` may be a class or an already-constructed instance; both reduce to a class. */
 type GuardEntry = Ctor | { constructor: Ctor };

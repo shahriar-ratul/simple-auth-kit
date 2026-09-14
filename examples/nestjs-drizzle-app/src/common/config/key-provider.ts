@@ -2,7 +2,7 @@
 // to your project's actual path alias at install time (see registry.json).
 import { createHash } from 'node:crypto';
 import { Injectable } from '@nestjs/common';
-import type { JwtSigningKey } from '@/core/types.js';
+import type { JwtSigningKey } from '@/core/types';
 
 const ENV_VAR = 'AUTH_JWT_SECRET';
 const MIN_SECRET_BYTES = 32; // 256 bits, HS256's own minimum

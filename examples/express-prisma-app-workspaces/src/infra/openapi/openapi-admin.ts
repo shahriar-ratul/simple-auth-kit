@@ -11,21 +11,13 @@
 // required". A 403 is also the answer when the header names a workspace the caller does not
 // belong to, or none at all — deliberately the same answer, so the status cannot be used to
 // probe which workspaces exist.
-import {
-  errorResponse,
-  missingPermission,
-  requiresPermission,
-  type OpenApiFragment,
-} from "./openapi-fragment.js";
-import {
-  workspaceHeaderParameter,
-  workspaceSpec,
-} from "./openapi-workspace.js";
+import { errorResponse, missingPermission, requiresPermission, type OpenApiFragment } from './openapi-fragment';
+import { workspaceHeaderParameter, workspaceSpec } from './openapi-workspace';
 
 const adminHeaderParameter = {
   ...workspaceHeaderParameter,
   description:
-    "The workspace this request administers. The caller must be a member of it holding the permission the route names.",
+    'The workspace this request administers. The caller must be a member of it holding the permission the route names.',
 };
 
 export const adminSpec: OpenApiFragment = {
@@ -35,382 +27,353 @@ export const adminSpec: OpenApiFragment = {
 
   schemas: {
     PermissionSummary: {
-      type: "object",
+      type: 'object',
       properties: {
-        id: { type: "string" },
+        id: { type: 'string' },
         slug: {
-          type: "string",
+          type: 'string',
           description:
-            "The ability itself: `ability(slug)` on the server, `ability.can(slug, ABILITY_SUBJECT)` in a client.",
-          example: "users:read",
+            'The ability itself: `ability(slug)` on the server, `ability.can(slug, ABILITY_SUBJECT)` in a client.',
+          example: 'users:read',
         },
-        displayName: { type: "string", example: "List users" },
-        description: { type: "string", nullable: true },
+        displayName: { type: 'string', example: 'List users' },
+        description: { type: 'string', nullable: true },
         group: {
-          type: "string",
-          description:
-            "Console grouping — a permission matrix renders one section per group.",
-          example: "Users",
+          type: 'string',
+          description: 'Console grouping — a permission matrix renders one section per group.',
+          example: 'Users',
         },
-        groupOrder: { type: "integer" },
-        order: { type: "integer" },
+        groupOrder: { type: 'integer' },
+        order: { type: 'integer' },
         isActive: {
-          type: "boolean",
+          type: 'boolean',
           description:
-            "false takes the permission out of every ability that would otherwise carry it, without unpicking a single grant.",
+            'false takes the permission out of every ability that would otherwise carry it, without unpicking a single grant.',
         },
       },
     },
     PermissionListResponse: {
-      type: "object",
+      type: 'object',
       properties: {
         permissions: {
-          type: "array",
-          items: { $ref: "#/components/schemas/PermissionSummary" },
+          type: 'array',
+          items: { $ref: '#/components/schemas/PermissionSummary' },
         },
       },
     },
     DefinePermissionRequest: {
-      type: "object",
-      required: ["slug"],
+      type: 'object',
+      required: ['slug'],
       properties: {
-        slug: { type: "string", example: "billing:manage" },
+        slug: { type: 'string', example: 'billing:manage' },
         displayName: {
-          type: "string",
-          description: "Defaults to the slug when creating.",
+          type: 'string',
+          description: 'Defaults to the slug when creating.',
         },
-        description: { type: "string", nullable: true },
+        description: { type: 'string', nullable: true },
         group: {
-          type: "string",
+          type: 'string',
           description: 'Defaults to "Custom" when creating.',
         },
-        groupOrder: { type: "integer" },
-        order: { type: "integer" },
-        isActive: { type: "boolean" },
+        groupOrder: { type: 'integer' },
+        order: { type: 'integer' },
+        isActive: { type: 'boolean' },
       },
     },
     RoleListResponse: {
-      type: "object",
+      type: 'object',
       properties: {
         roles: {
-          type: "array",
-          items: { $ref: "#/components/schemas/RoleSummary" },
+          type: 'array',
+          items: { $ref: '#/components/schemas/RoleSummary' },
         },
       },
     },
     CreateRoleRequest: {
-      type: "object",
-      required: ["slug"],
+      type: 'object',
+      required: ['slug'],
       properties: {
         slug: {
-          type: "string",
-          description:
-            "Stable identifier. Grants and assignments are keyed on it.",
-          example: "billing-manager",
+          type: 'string',
+          description: 'Stable identifier. Grants and assignments are keyed on it.',
+          example: 'billing-manager',
         },
         displayName: {
-          type: "string",
-          description: "Human label for the console. Defaults to the slug.",
-          example: "Billing manager",
+          type: 'string',
+          description: 'Human label for the console. Defaults to the slug.',
+          example: 'Billing manager',
         },
-        description: { type: "string", nullable: true },
+        description: { type: 'string', nullable: true },
       },
     },
     AttachPermissionRequest: {
-      type: "object",
-      required: ["permission"],
+      type: 'object',
+      required: ['permission'],
       properties: {
-        permission: { type: "string", example: "billing:manage" },
+        permission: { type: 'string', example: 'billing:manage' },
       },
     },
     AssignRoleRequest: {
-      type: "object",
-      required: ["role"],
+      type: 'object',
+      required: ['role'],
       properties: {
         role: {
-          type: "string",
-          description: "Role slug",
-          example: "billing-manager",
+          type: 'string',
+          description: 'Role slug',
+          example: 'billing-manager',
         },
       },
     },
     GrantPermissionRequest: {
-      type: "object",
-      required: ["permission"],
+      type: 'object',
+      required: ['permission'],
       properties: {
-        permission: { type: "string", example: "billing:manage" },
+        permission: { type: 'string', example: 'billing:manage' },
       },
     },
     RoleSummary: {
-      type: "object",
-      required: ["id", "slug", "displayName", "isDefault", "isActive"],
+      type: 'object',
+      required: ['id', 'slug', 'displayName', 'isDefault', 'isActive'],
       properties: {
-        id: { type: "string" },
-        slug: { type: "string", example: "billing-manager" },
-        displayName: { type: "string", example: "Billing manager" },
+        id: { type: 'string' },
+        slug: { type: 'string', example: 'billing-manager' },
+        displayName: { type: 'string', example: 'Billing manager' },
         isDefault: {
-          type: "boolean",
+          type: 'boolean',
           description:
-            "Given to every new principal. The signup/membership default is this row, not a name spelled in code.",
+            'Given to every new principal. The signup/membership default is this row, not a name spelled in code.',
         },
         isActive: {
-          type: "boolean",
-          description:
-            "false suspends the role without deleting it; every assignment pointing at it survives.",
+          type: 'boolean',
+          description: 'false suspends the role without deleting it; every assignment pointing at it survives.',
         },
       },
     },
     MemberSummary: {
-      type: "object",
+      type: 'object',
       required: [
-        "memberId",
-        "userId",
-        "uuid",
-        "email",
-        "blocked",
-        "isActive",
-        "twoFactorEnabled",
-        "roles",
-        "createdAt",
-        "updatedAt",
+        'memberId',
+        'userId',
+        'uuid',
+        'email',
+        'blocked',
+        'isActive',
+        'twoFactorEnabled',
+        'roles',
+        'createdAt',
+        'updatedAt',
       ],
       properties: {
-        memberId: { type: "string" },
-        userId: { type: "string" },
-        uuid: { type: "string" },
-        email: { type: "string" },
+        memberId: { type: 'string' },
+        userId: { type: 'string' },
+        uuid: { type: 'string' },
+        email: { type: 'string' },
         firstName: {
-          type: "string",
+          type: 'string',
           nullable: true,
-          description: "Unique across the deployment.",
+          description: 'Unique across the deployment.',
         },
         lastName: {
-          type: "string",
+          type: 'string',
           nullable: true,
-          description: "Unique across the deployment.",
+          description: 'Unique across the deployment.',
         },
-        displayName: { type: "string", nullable: true },
+        displayName: { type: 'string', nullable: true },
         phone: {
-          type: "string",
+          type: 'string',
           nullable: true,
-          description: "Unique across the deployment.",
+          description: 'Unique across the deployment.',
         },
         username: {
-          type: "string",
+          type: 'string',
           nullable: true,
-          description: "Unique across the deployment.",
+          description: 'Unique across the deployment.',
         },
-        photo: { type: "string", nullable: true },
+        photo: { type: 'string', nullable: true },
         lastLogin: {
-          type: "string",
-          format: "date-time",
+          type: 'string',
+          format: 'date-time',
           nullable: true,
-          description:
-            "Set on every successful signup/login/OAuth callback, never on a token refresh.",
+          description: 'Set on every successful signup/login/OAuth callback, never on a token refresh.',
         },
         blocked: {
-          type: "boolean",
-          description:
-            "Security/moderation block — distinct from isActive, see the model note.",
+          type: 'boolean',
+          description: 'Security/moderation block — distinct from isActive, see the model note.',
         },
         isActive: {
-          type: "boolean",
-          description:
-            "Routine administrative on/off toggle — distinct from blocked, see the model note.",
+          type: 'boolean',
+          description: 'Routine administrative on/off toggle — distinct from blocked, see the model note.',
         },
-        twoFactorEnabled: { type: "boolean" },
+        twoFactorEnabled: { type: 'boolean' },
         roles: {
-          type: "array",
-          items: { type: "string" },
+          type: 'array',
+          items: { type: 'string' },
           description: "This member's roles in this workspace",
         },
         createdBy: {
-          type: "string",
+          type: 'string',
           nullable: true,
-          description:
-            "User id of whoever created this account, if it wasn't a self-signup.",
+          description: "User id of whoever created this account, if it wasn't a self-signup.",
         },
         updatedBy: {
-          type: "string",
+          type: 'string',
           nullable: true,
           description: "User id of whoever last edited this account's profile.",
         },
         createdAt: {
-          type: "string",
-          format: "date-time",
-          description: "When this membership was created.",
+          type: 'string',
+          format: 'date-time',
+          description: 'When this membership was created.',
         },
         updatedAt: {
-          type: "string",
-          format: "date-time",
-          description: "When the underlying user account was last edited.",
+          type: 'string',
+          format: 'date-time',
+          description: 'When the underlying user account was last edited.',
         },
       },
     },
     CreateUserRequest: {
-      type: "object",
-      required: ["email", "password"],
+      type: 'object',
+      required: ['email', 'password'],
       properties: {
-        email: { type: "string", example: "alice@example.com" },
+        email: { type: 'string', example: 'alice@example.com' },
         password: {
-          type: "string",
-          description:
-            "Set directly — there is no invitation email, the account is usable immediately.",
+          type: 'string',
+          description: 'Set directly — there is no invitation email, the account is usable immediately.',
         },
         firstName: {
-          type: "string",
-          description: "Unique across the deployment.",
+          type: 'string',
+          description: 'Unique across the deployment.',
         },
         lastName: {
-          type: "string",
-          description: "Unique across the deployment.",
+          type: 'string',
+          description: 'Unique across the deployment.',
         },
-        displayName: { type: "string" },
-        phone: { type: "string", description: "Unique across the deployment." },
+        displayName: { type: 'string' },
+        phone: { type: 'string', description: 'Unique across the deployment.' },
         username: {
-          type: "string",
-          description: "Unique across the deployment.",
+          type: 'string',
+          description: 'Unique across the deployment.',
         },
         roles: {
-          type: "array",
-          items: { type: "string" },
+          type: 'array',
+          items: { type: 'string' },
           description:
-            "Role slugs to assign. Defaults to whichever roles are flagged isDefault, same as a self-signup.",
+            'Role slugs to assign. Defaults to whichever roles are flagged isDefault, same as a self-signup.',
         },
       },
     },
     UpdateUserRequest: {
-      type: "object",
+      type: 'object',
       properties: {
         firstName: {
-          type: "string",
+          type: 'string',
           nullable: true,
-          description: "Unique across the deployment.",
+          description: 'Unique across the deployment.',
         },
         lastName: {
-          type: "string",
+          type: 'string',
           nullable: true,
-          description: "Unique across the deployment.",
+          description: 'Unique across the deployment.',
         },
-        displayName: { type: "string", nullable: true },
+        displayName: { type: 'string', nullable: true },
         phone: {
-          type: "string",
+          type: 'string',
           nullable: true,
-          description: "Unique across the deployment.",
+          description: 'Unique across the deployment.',
         },
         username: {
-          type: "string",
+          type: 'string',
           nullable: true,
-          description: "Unique across the deployment.",
+          description: 'Unique across the deployment.',
         },
-        photo: { type: "string", nullable: true },
+        photo: { type: 'string', nullable: true },
       },
     },
     UpdateRoleRequest: {
-      type: "object",
+      type: 'object',
       properties: {
-        name: { type: "string" },
-        displayName: { type: "string" },
-        description: { type: "string", nullable: true },
+        name: { type: 'string' },
+        displayName: { type: 'string' },
+        description: { type: 'string', nullable: true },
         isActive: {
-          type: "boolean",
-          description:
-            "false suspends the role without deleting it — it stops granting immediately.",
+          type: 'boolean',
+          description: 'false suspends the role without deleting it — it stops granting immediately.',
         },
       },
     },
     DeleteReasonRequest: {
-      type: "object",
+      type: 'object',
       properties: {
         reason: {
-          type: "string",
-          description:
-            "Free-text note, for whoever reviews the deletion later.",
+          type: 'string',
+          description: 'Free-text note, for whoever reviews the deletion later.',
         },
       },
     },
     PageMeta: {
-      type: "object",
-      required: [
-        "page",
-        "limit",
-        "total",
-        "pageCount",
-        "hasPreviousPage",
-        "hasNextPage",
-      ],
+      type: 'object',
+      required: ['page', 'limit', 'total', 'pageCount', 'hasPreviousPage', 'hasNextPage'],
       properties: {
-        page: { type: "integer", description: "1-indexed" },
-        limit: { type: "integer" },
-        total: { type: "integer" },
-        pageCount: { type: "integer" },
-        hasPreviousPage: { type: "boolean" },
-        hasNextPage: { type: "boolean" },
+        page: { type: 'integer', description: '1-indexed' },
+        limit: { type: 'integer' },
+        total: { type: 'integer' },
+        pageCount: { type: 'integer' },
+        hasPreviousPage: { type: 'boolean' },
+        hasNextPage: { type: 'boolean' },
       },
     },
     UserListResponse: {
-      type: "object",
-      required: ["items", "meta"],
+      type: 'object',
+      required: ['items', 'meta'],
       properties: {
         items: {
-          type: "array",
-          items: { $ref: "#/components/schemas/MemberSummary" },
+          type: 'array',
+          items: { $ref: '#/components/schemas/MemberSummary' },
         },
-        meta: { $ref: "#/components/schemas/PageMeta" },
+        meta: { $ref: '#/components/schemas/PageMeta' },
       },
     },
     AuditLogEntry: {
-      type: "object",
-      required: [
-        "id",
-        "workspaceId",
-        "userId",
-        "name",
-        "action",
-        "info",
-        "remarks",
-        "createdAt",
-        "updatedAt",
-      ],
+      type: 'object',
+      required: ['id', 'workspaceId', 'userId', 'name', 'action', 'info', 'remarks', 'createdAt', 'updatedAt'],
       properties: {
-        id: { type: "string" },
+        id: { type: 'string' },
         workspaceId: {
-          type: "string",
+          type: 'string',
           nullable: true,
-          description:
-            "Null for events that happen outside any workspace (login, password reset, ...)",
+          description: 'Null for events that happen outside any workspace (login, password reset, ...)',
         },
         userId: {
-          type: "string",
+          type: 'string',
           nullable: true,
-          description:
-            "Who the event is about; null when it is not attributable to one user",
+          description: 'Who the event is about; null when it is not attributable to one user',
         },
         name: {
-          type: "string",
-          description: "Human-readable label for `action`",
-          example: "Role assigned",
+          type: 'string',
+          description: 'Human-readable label for `action`',
+          example: 'Role assigned',
         },
         action: {
-          type: "string",
-          description: "AuditEvent discriminant",
-          example: "role_assigned",
+          type: 'string',
+          description: 'AuditEvent discriminant',
+          example: 'role_assigned',
         },
-        info: { type: "object", description: "The rest of the event's fields" },
-        remarks: { type: "string", nullable: true },
-        createdAt: { type: "string", format: "date-time" },
-        updatedAt: { type: "string", format: "date-time" },
+        info: { type: 'object', description: "The rest of the event's fields" },
+        remarks: { type: 'string', nullable: true },
+        createdAt: { type: 'string', format: 'date-time' },
+        updatedAt: { type: 'string', format: 'date-time' },
       },
     },
     AuditLogListResponse: {
-      type: "object",
-      required: ["items", "meta"],
+      type: 'object',
+      required: ['items', 'meta'],
       properties: {
         items: {
-          type: "array",
-          items: { $ref: "#/components/schemas/AuditLogEntry" },
+          type: 'array',
+          items: { $ref: '#/components/schemas/AuditLogEntry' },
         },
-        meta: { $ref: "#/components/schemas/PageMeta" },
+        meta: { $ref: '#/components/schemas/PageMeta' },
       },
     },
 
@@ -418,797 +381,747 @@ export const adminSpec: OpenApiFragment = {
   },
 
   paths: {
-    "/admin/users": {
+    '/admin/users': {
       get: {
-        tags: ["auth"],
-        summary: "[admin] List the members of this workspace",
-        description: requiresPermission("users:read"),
+        tags: ['auth'],
+        summary: '[admin] List the members of this workspace',
+        description: requiresPermission('users:read'),
         security: [{ bearerAuth: [] }],
         parameters: [
           adminHeaderParameter,
           {
-            name: "search",
-            in: "query",
+            name: 'search',
+            in: 'query',
             required: false,
-            schema: { type: "string" },
-            description: "Email substring match",
+            schema: { type: 'string' },
+            description: 'Email substring match',
           },
           {
-            name: "page",
-            in: "query",
+            name: 'page',
+            in: 'query',
             required: false,
-            schema: { type: "integer" },
-            description: "1-indexed. Defaults to 1.",
+            schema: { type: 'integer' },
+            description: '1-indexed. Defaults to 1.',
           },
           {
-            name: "limit",
-            in: "query",
+            name: 'limit',
+            in: 'query',
             required: false,
-            schema: { type: "integer" },
-            description: "Defaults to 25, capped at 100.",
+            schema: { type: 'integer' },
+            description: 'Defaults to 25, capped at 100.',
           },
         ],
         responses: {
-          "200": {
-            description: "OK",
+          '200': {
+            description: 'OK',
             content: {
-              "application/json": {
-                schema: { $ref: "#/components/schemas/UserListResponse" },
+              'application/json': {
+                schema: { $ref: '#/components/schemas/UserListResponse' },
               },
             },
           },
-          "401": errorResponse("Missing or invalid access token"),
-          "403": missingPermission(
-            "users:read",
-            "the request named no workspace you belong to",
-          ),
+          '401': errorResponse('Missing or invalid access token'),
+          '403': missingPermission('users:read', 'the request named no workspace you belong to'),
         },
       },
       post: {
-        tags: ["auth"],
-        summary: "[admin] Create a user and add them to this workspace",
+        tags: ['auth'],
+        summary: '[admin] Create a user and add them to this workspace',
         description:
-          requiresPermission("users:manage") +
-          " No invitation email — the account is usable immediately with the password given here.",
+          requiresPermission('users:manage') +
+          ' No invitation email — the account is usable immediately with the password given here.',
         security: [{ bearerAuth: [] }],
         parameters: [adminHeaderParameter],
         requestBody: {
           required: true,
           content: {
-            "application/json": {
-              schema: { $ref: "#/components/schemas/CreateUserRequest" },
+            'application/json': {
+              schema: { $ref: '#/components/schemas/CreateUserRequest' },
             },
           },
         },
         responses: {
-          "201": {
-            description: "Created",
+          '201': {
+            description: 'Created',
             content: {
-              "application/json": {
-                schema: { $ref: "#/components/schemas/MemberSummary" },
+              'application/json': {
+                schema: { $ref: '#/components/schemas/MemberSummary' },
               },
             },
           },
-          "400": errorResponse("Missing required field"),
-          "401": errorResponse("Missing or invalid access token"),
-          "403": missingPermission(
-            "users:manage",
-            "the request named no workspace you belong to",
-          ),
-          "409": errorResponse("Email already registered"),
+          '400': errorResponse('Missing required field'),
+          '401': errorResponse('Missing or invalid access token'),
+          '403': missingPermission('users:manage', 'the request named no workspace you belong to'),
+          '409': errorResponse('Email already registered'),
         },
       },
     },
-    "/admin/users/{userId}": {
+    '/admin/users/{userId}': {
       get: {
-        tags: ["auth"],
+        tags: ['auth'],
         summary: "[admin] Fetch a single member's profile",
-        description: requiresPermission("users:read"),
+        description: requiresPermission('users:read'),
         security: [{ bearerAuth: [] }],
         parameters: [
           adminHeaderParameter,
           {
-            name: "userId",
-            in: "path",
+            name: 'userId',
+            in: 'path',
             required: true,
-            schema: { type: "string" },
+            schema: { type: 'string' },
           },
         ],
         responses: {
-          "200": {
-            description: "OK",
+          '200': {
+            description: 'OK',
             content: {
-              "application/json": {
-                schema: { $ref: "#/components/schemas/MemberSummary" },
+              'application/json': {
+                schema: { $ref: '#/components/schemas/MemberSummary' },
               },
             },
           },
-          "401": errorResponse("Missing or invalid access token"),
-          "403": missingPermission(
-            "users:read",
-            "the request named no workspace you belong to",
-          ),
-          "404": errorResponse("The user is not a member of this workspace"),
+          '401': errorResponse('Missing or invalid access token'),
+          '403': missingPermission('users:read', 'the request named no workspace you belong to'),
+          '404': errorResponse('The user is not a member of this workspace'),
         },
       },
       patch: {
-        tags: ["auth"],
+        tags: ['auth'],
         summary: "[admin] Edit a member's profile",
         description:
-          requiresPermission("users:manage") +
-          " Profile fields only — email is the login identifier and is not editable here.",
+          requiresPermission('users:manage') +
+          ' Profile fields only — email is the login identifier and is not editable here.',
         security: [{ bearerAuth: [] }],
         parameters: [
           adminHeaderParameter,
           {
-            name: "userId",
-            in: "path",
+            name: 'userId',
+            in: 'path',
             required: true,
-            schema: { type: "string" },
+            schema: { type: 'string' },
           },
         ],
         requestBody: {
           required: true,
           content: {
-            "application/json": {
-              schema: { $ref: "#/components/schemas/UpdateUserRequest" },
+            'application/json': {
+              schema: { $ref: '#/components/schemas/UpdateUserRequest' },
             },
           },
         },
         responses: {
-          "200": {
-            description: "OK",
+          '200': {
+            description: 'OK',
             content: {
-              "application/json": {
-                schema: { $ref: "#/components/schemas/MemberSummary" },
+              'application/json': {
+                schema: { $ref: '#/components/schemas/MemberSummary' },
               },
             },
           },
-          "401": errorResponse("Missing or invalid access token"),
-          "403": missingPermission(
-            "users:manage",
-            "the request named no workspace you belong to",
-          ),
-          "404": errorResponse("The user is not a member of this workspace"),
+          '401': errorResponse('Missing or invalid access token'),
+          '403': missingPermission('users:manage', 'the request named no workspace you belong to'),
+          '404': errorResponse('The user is not a member of this workspace'),
         },
       },
       delete: {
-        tags: ["auth"],
+        tags: ['auth'],
         summary: "[admin] Delete a member's account",
         description:
-          requiresPermission("users:manage") +
-          " Soft-delete: the row survives for audit purposes, stops appearing in listings, and can no longer authenticate." +
-          " This disables the account across every workspace it belongs to, not just this one — the same reach `block` already has.",
+          requiresPermission('users:manage') +
+          ' Soft-delete: the row survives for audit purposes, stops appearing in listings, and can no longer authenticate.' +
+          ' This disables the account across every workspace it belongs to, not just this one — the same reach `block` already has.',
         security: [{ bearerAuth: [] }],
         parameters: [
           adminHeaderParameter,
           {
-            name: "userId",
-            in: "path",
+            name: 'userId',
+            in: 'path',
             required: true,
-            schema: { type: "string" },
+            schema: { type: 'string' },
           },
         ],
         requestBody: {
           required: false,
           content: {
-            "application/json": {
-              schema: { $ref: "#/components/schemas/DeleteReasonRequest" },
+            'application/json': {
+              schema: { $ref: '#/components/schemas/DeleteReasonRequest' },
             },
           },
         },
         responses: {
-          "200": {
-            description: "OK",
+          '200': {
+            description: 'OK',
             content: {
-              "application/json": {
-                schema: { $ref: "#/components/schemas/OkResponse" },
+              'application/json': {
+                schema: { $ref: '#/components/schemas/OkResponse' },
               },
             },
           },
-          "401": errorResponse("Missing or invalid access token"),
-          "403": missingPermission(
-            "users:manage",
-            "cannot delete your own account",
-            "the request named no workspace you belong to",
+          '401': errorResponse('Missing or invalid access token'),
+          '403': missingPermission(
+            'users:manage',
+            'cannot delete your own account',
+            'the request named no workspace you belong to',
           ),
-          "404": errorResponse("The user is not a member of this workspace"),
+          '404': errorResponse('The user is not a member of this workspace'),
         },
       },
     },
-    "/audit-log": {
+    '/audit-log': {
       get: {
-        tags: ["auth"],
-        summary:
-          "[admin] List this workspace's audit log entries, newest first",
-        description: requiresPermission("audit-log:read"),
+        tags: ['auth'],
+        summary: "[admin] List this workspace's audit log entries, newest first",
+        description: requiresPermission('audit-log:read'),
         security: [{ bearerAuth: [] }],
         parameters: [
           adminHeaderParameter,
           {
-            name: "userId",
-            in: "query",
+            name: 'userId',
+            in: 'query',
             required: false,
-            schema: { type: "string" },
+            schema: { type: 'string' },
           },
           {
-            name: "action",
-            in: "query",
+            name: 'action',
+            in: 'query',
             required: false,
-            schema: { type: "string" },
+            schema: { type: 'string' },
             description: "AuditEvent discriminant, e.g. 'role_assigned'",
           },
           {
-            name: "since",
-            in: "query",
+            name: 'since',
+            in: 'query',
             required: false,
-            schema: { type: "string", format: "date-time" },
+            schema: { type: 'string', format: 'date-time' },
           },
           {
-            name: "until",
-            in: "query",
+            name: 'until',
+            in: 'query',
             required: false,
-            schema: { type: "string", format: "date-time" },
+            schema: { type: 'string', format: 'date-time' },
           },
           {
-            name: "page",
-            in: "query",
+            name: 'page',
+            in: 'query',
             required: false,
-            schema: { type: "integer" },
-            description: "1-indexed. Defaults to 1.",
+            schema: { type: 'integer' },
+            description: '1-indexed. Defaults to 1.',
           },
           {
-            name: "limit",
-            in: "query",
+            name: 'limit',
+            in: 'query',
             required: false,
-            schema: { type: "integer" },
-            description: "Defaults to 25, capped at 100.",
+            schema: { type: 'integer' },
+            description: 'Defaults to 25, capped at 100.',
           },
         ],
         responses: {
-          "200": {
-            description: "OK",
+          '200': {
+            description: 'OK',
             content: {
-              "application/json": {
-                schema: { $ref: "#/components/schemas/AuditLogListResponse" },
+              'application/json': {
+                schema: { $ref: '#/components/schemas/AuditLogListResponse' },
               },
             },
           },
-          "401": errorResponse("Missing or invalid access token"),
-          "403": missingPermission(
-            "audit-log:read",
-            "the request named no workspace you belong to",
-          ),
+          '401': errorResponse('Missing or invalid access token'),
+          '403': missingPermission('audit-log:read', 'the request named no workspace you belong to'),
         },
       },
     },
-    "/permissions": {
+    '/permissions': {
       get: {
-        tags: ["auth"],
-        summary: "[admin] List the permission catalog",
+        tags: ['auth'],
+        summary: '[admin] List the permission catalog',
         description:
-          requiresPermission("permissions:read") +
-          " Grouped and ordered for a permission matrix. This is the whole vocabulary of the deployment — there is nothing about authorization outside these rows.",
+          requiresPermission('permissions:read') +
+          ' Grouped and ordered for a permission matrix. This is the whole vocabulary of the deployment — there is nothing about authorization outside these rows.',
         security: [{ bearerAuth: [] }],
         responses: {
-          "200": {
-            description: "OK",
+          '200': {
+            description: 'OK',
             content: {
-              "application/json": {
-                schema: { $ref: "#/components/schemas/PermissionListResponse" },
+              'application/json': {
+                schema: { $ref: '#/components/schemas/PermissionListResponse' },
               },
             },
           },
-          "401": errorResponse("Missing or invalid access token"),
-          "403": missingPermission("permissions:read"),
+          '401': errorResponse('Missing or invalid access token'),
+          '403': missingPermission('permissions:read'),
         },
       },
       post: {
-        tags: ["auth"],
-        summary: "[admin] Define or edit a permission",
+        tags: ['auth'],
+        summary: '[admin] Define or edit a permission',
         description:
-          requiresPermission("permissions:define") +
-          " Upserted on `slug`, which is the stable identifier grants and revocations use — renaming the display name never breaks a grant." +
-          " `isActive: false` takes the permission out of every ability that carries it, in one write, effective on the next request.",
+          requiresPermission('permissions:define') +
+          ' Upserted on `slug`, which is the stable identifier grants and revocations use — renaming the display name never breaks a grant.' +
+          ' `isActive: false` takes the permission out of every ability that carries it, in one write, effective on the next request.',
         security: [{ bearerAuth: [] }],
         requestBody: {
           required: true,
           content: {
-            "application/json": {
-              schema: { $ref: "#/components/schemas/DefinePermissionRequest" },
+            'application/json': {
+              schema: { $ref: '#/components/schemas/DefinePermissionRequest' },
             },
           },
         },
         responses: {
-          "201": {
-            description: "Created",
+          '201': {
+            description: 'Created',
             content: {
-              "application/json": {
-                schema: { $ref: "#/components/schemas/PermissionSummary" },
+              'application/json': {
+                schema: { $ref: '#/components/schemas/PermissionSummary' },
               },
             },
           },
-          "401": errorResponse("Missing or invalid access token"),
-          "403": missingPermission("permissions:define"),
+          '401': errorResponse('Missing or invalid access token'),
+          '403': missingPermission('permissions:define'),
         },
       },
     },
-    "/roles": {
+    '/roles': {
       get: {
-        tags: ["auth"],
-        summary: "[admin] List the roles this deployment defines",
-        description: requiresPermission("roles:manage"),
+        tags: ['auth'],
+        summary: '[admin] List the roles this deployment defines',
+        description: requiresPermission('roles:manage'),
         security: [{ bearerAuth: [] }],
         responses: {
-          "200": {
-            description: "OK",
+          '200': {
+            description: 'OK',
             content: {
-              "application/json": {
-                schema: { $ref: "#/components/schemas/RoleListResponse" },
+              'application/json': {
+                schema: { $ref: '#/components/schemas/RoleListResponse' },
               },
             },
           },
-          "401": errorResponse("Missing or invalid access token"),
-          "403": missingPermission("roles:manage"),
+          '401': errorResponse('Missing or invalid access token'),
+          '403': missingPermission('roles:manage'),
         },
       },
       post: {
-        tags: ["auth"],
-        summary: "[admin] Create a role in this workspace",
-        description: requiresPermission("roles:manage"),
+        tags: ['auth'],
+        summary: '[admin] Create a role in this workspace',
+        description: requiresPermission('roles:manage'),
         security: [{ bearerAuth: [] }],
         parameters: [adminHeaderParameter],
         requestBody: {
           required: true,
           content: {
-            "application/json": {
-              schema: { $ref: "#/components/schemas/CreateRoleRequest" },
+            'application/json': {
+              schema: { $ref: '#/components/schemas/CreateRoleRequest' },
             },
           },
         },
         responses: {
-          "201": {
-            description: "Created",
+          '201': {
+            description: 'Created',
             content: {
-              "application/json": {
-                schema: { $ref: "#/components/schemas/RoleSummary" },
+              'application/json': {
+                schema: { $ref: '#/components/schemas/RoleSummary' },
               },
             },
           },
-          "401": errorResponse("Missing or invalid access token"),
-          "403": missingPermission(
-            "roles:manage",
-            "the request named no workspace you belong to",
-          ),
+          '401': errorResponse('Missing or invalid access token'),
+          '403': missingPermission('roles:manage', 'the request named no workspace you belong to'),
         },
       },
     },
-    "/roles/{roleId}": {
+    '/roles/{roleId}': {
       patch: {
-        tags: ["auth"],
+        tags: ['auth'],
         summary: "[admin] Edit one of this workspace's roles",
-        description: requiresPermission("roles:manage"),
+        description: requiresPermission('roles:manage'),
         security: [{ bearerAuth: [] }],
         parameters: [
           adminHeaderParameter,
           {
-            name: "roleId",
-            in: "path",
+            name: 'roleId',
+            in: 'path',
             required: true,
-            schema: { type: "string" },
+            schema: { type: 'string' },
           },
         ],
         requestBody: {
           required: true,
           content: {
-            "application/json": {
-              schema: { $ref: "#/components/schemas/UpdateRoleRequest" },
+            'application/json': {
+              schema: { $ref: '#/components/schemas/UpdateRoleRequest' },
             },
           },
         },
         responses: {
-          "200": {
-            description: "OK",
+          '200': {
+            description: 'OK',
             content: {
-              "application/json": {
-                schema: { $ref: "#/components/schemas/RoleSummary" },
+              'application/json': {
+                schema: { $ref: '#/components/schemas/RoleSummary' },
               },
             },
           },
-          "401": errorResponse("Missing or invalid access token"),
-          "403": missingPermission(
-            "roles:manage",
-            "the request named no workspace you belong to",
-          ),
-          "404": errorResponse("Role not found in this workspace"),
+          '401': errorResponse('Missing or invalid access token'),
+          '403': missingPermission('roles:manage', 'the request named no workspace you belong to'),
+          '404': errorResponse('Role not found in this workspace'),
         },
       },
       delete: {
-        tags: ["auth"],
+        tags: ['auth'],
         summary: "[admin] Delete one of this workspace's roles",
         description:
-          requiresPermission("roles:manage") +
-          " Soft-delete: existing assignments are left in place rather than cascade-deleted, and the role simply stops being resolved.",
+          requiresPermission('roles:manage') +
+          ' Soft-delete: existing assignments are left in place rather than cascade-deleted, and the role simply stops being resolved.',
         security: [{ bearerAuth: [] }],
         parameters: [
           adminHeaderParameter,
           {
-            name: "roleId",
-            in: "path",
+            name: 'roleId',
+            in: 'path',
             required: true,
-            schema: { type: "string" },
+            schema: { type: 'string' },
           },
         ],
         requestBody: {
           required: false,
           content: {
-            "application/json": {
-              schema: { $ref: "#/components/schemas/DeleteReasonRequest" },
+            'application/json': {
+              schema: { $ref: '#/components/schemas/DeleteReasonRequest' },
             },
           },
         },
         responses: {
-          "200": {
-            description: "OK",
+          '200': {
+            description: 'OK',
             content: {
-              "application/json": {
-                schema: { $ref: "#/components/schemas/OkResponse" },
+              'application/json': {
+                schema: { $ref: '#/components/schemas/OkResponse' },
               },
             },
           },
-          "401": errorResponse("Missing or invalid access token"),
-          "403": missingPermission(
-            "roles:manage",
-            "the request named no workspace you belong to",
-          ),
-          "404": errorResponse("Role not found in this workspace"),
+          '401': errorResponse('Missing or invalid access token'),
+          '403': missingPermission('roles:manage', 'the request named no workspace you belong to'),
+          '404': errorResponse('Role not found in this workspace'),
         },
       },
     },
-    "/roles/{roleId}/permissions": {
+    '/roles/{roleId}/permissions': {
       post: {
-        tags: ["auth"],
+        tags: ['auth'],
         summary: "[admin] Attach a permission to one of this workspace's roles",
-        description: requiresPermission("roles:manage"),
+        description: requiresPermission('roles:manage'),
         security: [{ bearerAuth: [] }],
         parameters: [
           adminHeaderParameter,
           {
-            name: "roleId",
-            in: "path",
+            name: 'roleId',
+            in: 'path',
             required: true,
-            schema: { type: "string" },
+            schema: { type: 'string' },
           },
         ],
         requestBody: {
           required: true,
           content: {
-            "application/json": {
-              schema: { $ref: "#/components/schemas/AttachPermissionRequest" },
+            'application/json': {
+              schema: { $ref: '#/components/schemas/AttachPermissionRequest' },
             },
           },
         },
         responses: {
-          "201": {
-            description: "Created",
+          '201': {
+            description: 'Created',
             content: {
-              "application/json": {
-                schema: { $ref: "#/components/schemas/OkResponse" },
+              'application/json': {
+                schema: { $ref: '#/components/schemas/OkResponse' },
               },
             },
           },
-          "401": errorResponse("Missing or invalid access token"),
-          "403": missingPermission(
-            "roles:manage",
-            "the request named no workspace you belong to",
-          ),
-          "404": errorResponse("Role not found in this workspace"),
+          '401': errorResponse('Missing or invalid access token'),
+          '403': missingPermission('roles:manage', 'the request named no workspace you belong to'),
+          '404': errorResponse('Role not found in this workspace'),
         },
       },
     },
-    "/admin/users/{userId}/roles": {
+    '/admin/users/{userId}/roles': {
       post: {
-        tags: ["auth"],
-        summary: "[admin] Assign a role to a member of this workspace",
-        description: requiresPermission("roles:assign"),
+        tags: ['auth'],
+        summary: '[admin] Assign a role to a member of this workspace',
+        description: requiresPermission('roles:assign'),
         security: [{ bearerAuth: [] }],
         parameters: [
           adminHeaderParameter,
           {
-            name: "userId",
-            in: "path",
+            name: 'userId',
+            in: 'path',
             required: true,
-            schema: { type: "string" },
+            schema: { type: 'string' },
           },
         ],
         requestBody: {
           required: true,
           content: {
-            "application/json": {
-              schema: { $ref: "#/components/schemas/AssignRoleRequest" },
+            'application/json': {
+              schema: { $ref: '#/components/schemas/AssignRoleRequest' },
             },
           },
         },
         responses: {
-          "201": {
-            description: "Created",
+          '201': {
+            description: 'Created',
             content: {
-              "application/json": {
-                schema: { $ref: "#/components/schemas/OkResponse" },
+              'application/json': {
+                schema: { $ref: '#/components/schemas/OkResponse' },
               },
             },
           },
-          "401": errorResponse("Missing or invalid access token"),
-          "403": missingPermission(
-            "roles:assign",
-            "the request named no workspace you belong to",
-          ),
-          "404": errorResponse(
-            "Role not defined in this workspace, or the user is not a member of it",
-          ),
+          '401': errorResponse('Missing or invalid access token'),
+          '403': missingPermission('roles:assign', 'the request named no workspace you belong to'),
+          '404': errorResponse('Role not defined in this workspace, or the user is not a member of it'),
         },
       },
     },
-    "/admin/users/{userId}/roles/{roleSlug}/revoke": {
+    '/admin/users/{userId}/roles/{roleSlug}/revoke': {
       post: {
-        tags: ["auth"],
-        summary: "[admin] Revoke a role from a member of this workspace",
-        description: requiresPermission("roles:assign"),
+        tags: ['auth'],
+        summary: '[admin] Revoke a role from a member of this workspace',
+        description: requiresPermission('roles:assign'),
         security: [{ bearerAuth: [] }],
         parameters: [
           adminHeaderParameter,
           {
-            name: "userId",
-            in: "path",
+            name: 'userId',
+            in: 'path',
             required: true,
-            schema: { type: "string" },
+            schema: { type: 'string' },
           },
           {
-            name: "roleSlug",
-            in: "path",
+            name: 'roleSlug',
+            in: 'path',
             required: true,
-            schema: { type: "string" },
+            schema: { type: 'string' },
           },
         ],
         responses: {
-          "201": {
-            description: "Created",
+          '201': {
+            description: 'Created',
             content: {
-              "application/json": {
-                schema: { $ref: "#/components/schemas/OkResponse" },
+              'application/json': {
+                schema: { $ref: '#/components/schemas/OkResponse' },
               },
             },
           },
-          "401": errorResponse("Missing or invalid access token"),
-          "403": missingPermission(
-            "roles:assign",
-            "cannot change your own roles",
-            "the request named no workspace you belong to",
+          '401': errorResponse('Missing or invalid access token'),
+          '403': missingPermission(
+            'roles:assign',
+            'cannot change your own roles',
+            'the request named no workspace you belong to',
           ),
-          "404": errorResponse("The user is not a member of this workspace"),
+          '404': errorResponse('The user is not a member of this workspace'),
         },
       },
     },
-    "/admin/users/{userId}/permissions": {
+    '/admin/users/{userId}/permissions': {
       post: {
-        tags: ["auth"],
-        summary:
-          "[admin] Grant a permission directly to a member, bypassing roles",
-        description:
-          requiresPermission("permissions:grant") +
-          " The grant is scoped to this workspace.",
+        tags: ['auth'],
+        summary: '[admin] Grant a permission directly to a member, bypassing roles',
+        description: requiresPermission('permissions:grant') + ' The grant is scoped to this workspace.',
         security: [{ bearerAuth: [] }],
         parameters: [
           adminHeaderParameter,
           {
-            name: "userId",
-            in: "path",
+            name: 'userId',
+            in: 'path',
             required: true,
-            schema: { type: "string" },
+            schema: { type: 'string' },
           },
         ],
         requestBody: {
           required: true,
           content: {
-            "application/json": {
-              schema: { $ref: "#/components/schemas/GrantPermissionRequest" },
+            'application/json': {
+              schema: { $ref: '#/components/schemas/GrantPermissionRequest' },
             },
           },
         },
         responses: {
-          "201": {
-            description: "Created",
+          '201': {
+            description: 'Created',
             content: {
-              "application/json": {
-                schema: { $ref: "#/components/schemas/OkResponse" },
+              'application/json': {
+                schema: { $ref: '#/components/schemas/OkResponse' },
               },
             },
           },
-          "401": errorResponse("Missing or invalid access token"),
-          "403": missingPermission(
-            "permissions:grant",
-            "the request named no workspace you belong to",
-          ),
-          "404": errorResponse("The user is not a member of this workspace"),
+          '401': errorResponse('Missing or invalid access token'),
+          '403': missingPermission('permissions:grant', 'the request named no workspace you belong to'),
+          '404': errorResponse('The user is not a member of this workspace'),
         },
       },
     },
-    "/admin/users/{userId}/permissions/{permissionSlug}/revoke": {
+    '/admin/users/{userId}/permissions/{permissionSlug}/revoke': {
       post: {
-        tags: ["auth"],
-        summary: "[admin] Revoke a direct permission grant from a member",
-        description: requiresPermission("permissions:grant"),
+        tags: ['auth'],
+        summary: '[admin] Revoke a direct permission grant from a member',
+        description: requiresPermission('permissions:grant'),
         security: [{ bearerAuth: [] }],
         parameters: [
           adminHeaderParameter,
           {
-            name: "userId",
-            in: "path",
+            name: 'userId',
+            in: 'path',
             required: true,
-            schema: { type: "string" },
+            schema: { type: 'string' },
           },
           {
-            name: "permissionSlug",
-            in: "path",
+            name: 'permissionSlug',
+            in: 'path',
             required: true,
-            schema: { type: "string" },
+            schema: { type: 'string' },
           },
         ],
         responses: {
-          "201": {
-            description: "Created",
+          '201': {
+            description: 'Created',
             content: {
-              "application/json": {
-                schema: { $ref: "#/components/schemas/OkResponse" },
+              'application/json': {
+                schema: { $ref: '#/components/schemas/OkResponse' },
               },
             },
           },
-          "401": errorResponse("Missing or invalid access token"),
-          "403": missingPermission(
-            "permissions:grant",
-            "the request named no workspace you belong to",
-          ),
-          "404": errorResponse("The user is not a member of this workspace"),
+          '401': errorResponse('Missing or invalid access token'),
+          '403': missingPermission('permissions:grant', 'the request named no workspace you belong to'),
+          '404': errorResponse('The user is not a member of this workspace'),
         },
       },
     },
-    "/admin/users/{userId}/block": {
+    '/admin/users/{userId}/block': {
       post: {
-        tags: ["auth"],
-        summary:
-          "[admin] Block a member, revoking all their sessions immediately",
+        tags: ['auth'],
+        summary: '[admin] Block a member, revoking all their sessions immediately',
         description:
-          requiresPermission("users:block") +
-          " Blocking disables the whole account, so it is only allowed against a member of the workspace you administer.",
+          requiresPermission('users:block') +
+          ' Blocking disables the whole account, so it is only allowed against a member of the workspace you administer.',
         security: [{ bearerAuth: [] }],
         parameters: [
           adminHeaderParameter,
           {
-            name: "userId",
-            in: "path",
+            name: 'userId',
+            in: 'path',
             required: true,
-            schema: { type: "string" },
+            schema: { type: 'string' },
           },
         ],
         responses: {
-          "201": {
-            description: "Created",
+          '201': {
+            description: 'Created',
             content: {
-              "application/json": {
-                schema: { $ref: "#/components/schemas/OkResponse" },
+              'application/json': {
+                schema: { $ref: '#/components/schemas/OkResponse' },
               },
             },
           },
-          "401": errorResponse("Missing or invalid access token"),
-          "403": missingPermission(
-            "users:block",
-            "cannot block your own account",
-            "the request named no workspace you belong to",
+          '401': errorResponse('Missing or invalid access token'),
+          '403': missingPermission(
+            'users:block',
+            'cannot block your own account',
+            'the request named no workspace you belong to',
           ),
-          "404": errorResponse("The user is not a member of this workspace"),
+          '404': errorResponse('The user is not a member of this workspace'),
         },
       },
     },
-    "/admin/users/{userId}/unblock": {
+    '/admin/users/{userId}/unblock': {
       post: {
-        tags: ["auth"],
-        summary: "[admin] Unblock a member",
-        description: requiresPermission("users:block"),
+        tags: ['auth'],
+        summary: '[admin] Unblock a member',
+        description: requiresPermission('users:block'),
         security: [{ bearerAuth: [] }],
         parameters: [
           adminHeaderParameter,
           {
-            name: "userId",
-            in: "path",
+            name: 'userId',
+            in: 'path',
             required: true,
-            schema: { type: "string" },
+            schema: { type: 'string' },
           },
         ],
         responses: {
-          "201": {
-            description: "Created",
+          '201': {
+            description: 'Created',
             content: {
-              "application/json": {
-                schema: { $ref: "#/components/schemas/OkResponse" },
+              'application/json': {
+                schema: { $ref: '#/components/schemas/OkResponse' },
               },
             },
           },
-          "401": errorResponse("Missing or invalid access token"),
-          "403": missingPermission(
-            "users:block",
-            "the request named no workspace you belong to",
-          ),
-          "404": errorResponse("The user is not a member of this workspace"),
+          '401': errorResponse('Missing or invalid access token'),
+          '403': missingPermission('users:block', 'the request named no workspace you belong to'),
+          '404': errorResponse('The user is not a member of this workspace'),
         },
       },
     },
-    "/admin/users/{userId}/deactivate": {
+    '/admin/users/{userId}/deactivate': {
       post: {
-        tags: ["auth"],
-        summary:
-          "[admin] Deactivate a member, revoking all their sessions immediately",
+        tags: ['auth'],
+        summary: '[admin] Deactivate a member, revoking all their sessions immediately',
         description:
-          requiresPermission("users:block") +
-          " Distinct from block/unblock — a routine administrative toggle, not a security action. Both independently deny login.",
+          requiresPermission('users:block') +
+          ' Distinct from block/unblock — a routine administrative toggle, not a security action. Both independently deny login.',
         security: [{ bearerAuth: [] }],
         parameters: [
           adminHeaderParameter,
           {
-            name: "userId",
-            in: "path",
+            name: 'userId',
+            in: 'path',
             required: true,
-            schema: { type: "string" },
+            schema: { type: 'string' },
           },
         ],
         responses: {
-          "201": {
-            description: "Created",
+          '201': {
+            description: 'Created',
             content: {
-              "application/json": {
-                schema: { $ref: "#/components/schemas/OkResponse" },
+              'application/json': {
+                schema: { $ref: '#/components/schemas/OkResponse' },
               },
             },
           },
-          "401": errorResponse("Missing or invalid access token"),
-          "403": missingPermission(
-            "users:block",
-            "cannot deactivate your own account",
-            "the request named no workspace you belong to",
+          '401': errorResponse('Missing or invalid access token'),
+          '403': missingPermission(
+            'users:block',
+            'cannot deactivate your own account',
+            'the request named no workspace you belong to',
           ),
-          "404": errorResponse("The user is not a member of this workspace"),
+          '404': errorResponse('The user is not a member of this workspace'),
         },
       },
     },
-    "/admin/users/{userId}/activate": {
+    '/admin/users/{userId}/activate': {
       post: {
-        tags: ["auth"],
-        summary: "[admin] Reactivate a member",
-        description: requiresPermission("users:block"),
+        tags: ['auth'],
+        summary: '[admin] Reactivate a member',
+        description: requiresPermission('users:block'),
         security: [{ bearerAuth: [] }],
         parameters: [
           adminHeaderParameter,
           {
-            name: "userId",
-            in: "path",
+            name: 'userId',
+            in: 'path',
             required: true,
-            schema: { type: "string" },
+            schema: { type: 'string' },
           },
         ],
         responses: {
-          "201": {
-            description: "Created",
+          '201': {
+            description: 'Created',
             content: {
-              "application/json": {
-                schema: { $ref: "#/components/schemas/OkResponse" },
+              'application/json': {
+                schema: { $ref: '#/components/schemas/OkResponse' },
               },
             },
           },
-          "401": errorResponse("Missing or invalid access token"),
-          "403": missingPermission(
-            "users:block",
-            "the request named no workspace you belong to",
-          ),
-          "404": errorResponse("The user is not a member of this workspace"),
+          '401': errorResponse('Missing or invalid access token'),
+          '403': missingPermission('users:block', 'the request named no workspace you belong to'),
+          '404': errorResponse('The user is not a member of this workspace'),
         },
       },
     },

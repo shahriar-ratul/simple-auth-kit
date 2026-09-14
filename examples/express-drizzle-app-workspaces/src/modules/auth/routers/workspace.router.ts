@@ -1,23 +1,18 @@
-import { Router } from "express";
-import type { NextFunction, Request, RequestHandler, Response } from "express";
-import { HttpError } from "../../../infra/errors/http-error.js";
-import { RbacRepository } from "../repositories/rbac.repository.js";
-import {
-  ability,
-  authenticated,
-  createTieredRouter,
-} from "../../../infra/route-tiers.js";
-import { WorkspaceRepository } from "../repositories/workspace.repository.js";
-import "../../../infra/request-context.js";
+import { Router } from 'express';
+import type { NextFunction, Request, RequestHandler, Response } from 'express';
+import { HttpError } from '../../../infra/errors/http-error';
+import { RbacRepository } from '../repositories/rbac.repository';
+import { ability, authenticated, createTieredRouter } from '../../../infra/route-tiers';
+import { WorkspaceRepository } from '../repositories/workspace.repository';
+import '../../../infra/request-context';
 
 function requireString(value: unknown, field: string): string {
-  if (typeof value !== "string" || value.length === 0)
-    throw new HttpError(400, `${field} is required`);
+  if (typeof value !== 'string' || value.length === 0) throw new HttpError(400, `${field} is required`);
   return value;
 }
 
 function requireStringArray(value: unknown, field: string): string[] {
-  if (!Array.isArray(value) || value.some((v) => typeof v !== "string"))
+  if (!Array.isArray(value) || value.some((v) => typeof v !== 'string'))
     throw new HttpError(400, `${field} must be an array of strings`);
   return value as string[];
 }
@@ -57,11 +52,8 @@ export interface WorkspaceRouterDeps {
  *
  * Replaces the reference combo's `WorkspaceController`.
  */
-export function createWorkspaceRouter(
-  deps: WorkspaceRouterDeps,
-): RequestHandler {
-  const { workspaces, rbac, authentication, authorization, workspaceScope } =
-    deps;
+export function createWorkspaceRouter(deps: WorkspaceRouterDeps): RequestHandler {
+  const { workspaces, rbac, authentication, authorization, workspaceScope } = deps;
 
   const scoped = createTieredRouter({
     authentication,
@@ -69,77 +61,44 @@ export function createWorkspaceRouter(
   });
   const unscoped = createTieredRouter({ authentication, authorization });
 
-  unscoped.route(
-    "post",
-    "/",
-    authenticated(),
-    async (req: Request, res: Response, next: NextFunction) => {
-      try {
-        const body = req.body as Record<string, unknown>;
-        res
-          .status(201)
-          .json(
-            await workspaces.create(
-              req.auth!.sub,
-              requireString(body.name, "name"),
-            ),
-          );
-      } catch (err) {
-        next(err);
-      }
-    },
-  );
+  unscoped.route('post', '/', authenticated(), async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const body = req.body as Record<string, unknown>;
+      res.status(201).json(await workspaces.create(req.auth!.sub, requireString(body.name, 'name')));
+    } catch (err) {
+      next(err);
+    }
+  });
 
-  unscoped.route(
-    "get",
-    "/",
-    authenticated(),
-    async (req: Request, res: Response, next: NextFunction) => {
-      try {
-        res.status(200).json(await workspaces.listForUser(req.auth!.sub));
-      } catch (err) {
-        next(err);
-      }
-    },
-  );
+  unscoped.route('get', '/', authenticated(), async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      res.status(200).json(await workspaces.listForUser(req.auth!.sub));
+    } catch (err) {
+      next(err);
+    }
+  });
+
+  scoped.route('get', '/members', authenticated(), async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      res.status(200).json(await workspaces.listMembers(req.authz!.workspaceId));
+    } catch (err) {
+      next(err);
+    }
+  });
 
   scoped.route(
-    "get",
-    "/members",
-    authenticated(),
-    async (req: Request, res: Response, next: NextFunction) => {
-      try {
-        res
-          .status(200)
-          .json(await workspaces.listMembers(req.authz!.workspaceId));
-      } catch (err) {
-        next(err);
-      }
-    },
-  );
-
-  scoped.route(
-    "post",
-    "/members",
-    ability("members:manage"),
+    'post',
+    '/members',
+    ability('members:manage'),
     async (req: Request, res: Response, next: NextFunction) => {
       try {
         const body = req.body as Record<string, unknown>;
         // No `roles` in the body means "whatever this workspace flags as the default role" — the
         // default lives in a row, not in this line.
-        const roles =
-          body.roles === undefined
-            ? undefined
-            : requireStringArray(body.roles, "roles");
+        const roles = body.roles === undefined ? undefined : requireStringArray(body.roles, 'roles');
         res
           .status(201)
-          .json(
-            await workspaces.addMember(
-              req.authz!.workspaceId,
-              requireString(body.email, "email"),
-              roles,
-            ),
-          );
+          .json(await workspaces.addMember(req.authz!.workspaceId, requireString(body.email, 'email'), roles));
       } catch (err) {
         next(err);
       }
@@ -147,24 +106,17 @@ export function createWorkspaceRouter(
   );
 
   scoped.route(
-    "put",
-    "/members/:memberId/roles",
-    ability("roles:assign"),
+    'put',
+    '/members/:memberId/roles',
+    ability('roles:assign'),
     async (req: Request, res: Response, next: NextFunction) => {
       try {
-        const memberId = requireString(req.params.memberId, "memberId");
-        if (memberId === req.authz!.memberId)
-          throw new HttpError(403, "cannot change your own roles");
+        const memberId = requireString(req.params.memberId, 'memberId');
+        if (memberId === req.authz!.memberId) throw new HttpError(403, 'cannot change your own roles');
         const body = req.body as Record<string, unknown>;
         res
           .status(200)
-          .json(
-            await rbac.setMemberRoles(
-              req.authz!.workspaceId,
-              memberId,
-              requireStringArray(body.roles, "roles"),
-            ),
-          );
+          .json(await rbac.setMemberRoles(req.authz!.workspaceId, memberId, requireStringArray(body.roles, 'roles')));
       } catch (err) {
         next(err);
       }
@@ -172,17 +124,14 @@ export function createWorkspaceRouter(
   );
 
   scoped.route(
-    "delete",
-    "/members/:memberId",
-    ability("members:manage"),
+    'delete',
+    '/members/:memberId',
+    ability('members:manage'),
     async (req: Request, res: Response, next: NextFunction) => {
       try {
-        const memberId = requireString(req.params.memberId, "memberId");
+        const memberId = requireString(req.params.memberId, 'memberId');
         if (memberId === req.authz!.memberId)
-          throw new HttpError(
-            403,
-            "cannot remove yourself from a workspace you administer",
-          );
+          throw new HttpError(403, 'cannot remove yourself from a workspace you administer');
         await workspaces.removeMember(req.authz!.workspaceId, memberId);
         res.status(200).json({ ok: true });
       } catch (err) {

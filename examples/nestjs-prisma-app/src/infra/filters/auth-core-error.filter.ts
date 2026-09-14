@@ -1,5 +1,5 @@
 import { ArgumentsHost, Catch, ExceptionFilter, HttpException, HttpStatus } from '@nestjs/common';
-import { AuthCoreError } from '@/core/types.js';
+import { AuthCoreError } from '@/core/types';
 
 /**
  * Every error response carries `success: false` alongside whatever produced it — `AuthCoreError`

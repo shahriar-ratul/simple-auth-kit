@@ -1,10 +1,10 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { and, count, desc, eq, gte, lte, type SQL } from 'drizzle-orm';
-import type { AuditEvent } from '@/core/types.js';
-import { DRIZZLE_DB, type Database } from '../../../common/config/db.js';
-import { buildPageMeta, normalizeLimit, normalizePage, type Paginated } from '../../../common/helpers/pagination.js';
-import { auditLogs } from '@/database/schema.js';
-import { toIdOrNull, toIdOrUndefined } from '../../../common/helpers/id.helper.js';
+import type { AuditEvent } from '@/core/types';
+import { DRIZZLE_DB, type Database } from '../../../common/config/db';
+import { buildPageMeta, normalizeLimit, normalizePage, type Paginated } from '../../../common/helpers/pagination';
+import { auditLogs } from '@/database/schema';
+import { toIdOrNull, toIdOrUndefined } from '../../../common/helpers/id.helper';
 
 export interface AuditLogEntry {
   id: string;
@@ -58,7 +58,7 @@ export class AuditLogRepository {
       action: event.type,
       name: humanizeAction(event.type),
       userId: 'userId' in event ? toIdOrNull(event.userId) : null,
-      info: event,
+      info: event as unknown as Record<string, unknown>,
       remarks: opts.remarks ?? null,
     });
   }
