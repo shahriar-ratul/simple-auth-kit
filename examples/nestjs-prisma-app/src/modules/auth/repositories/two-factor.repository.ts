@@ -1,6 +1,6 @@
-import { Inject, Injectable } from "@nestjs/common";
-import { verifyBackupCode } from "@/core/two-factor.js";
-import { PrismaClient } from "@/database/generated/prisma/client.js";
+import { Inject, Injectable } from '@nestjs/common';
+import { verifyBackupCode } from '@/core/two-factor.js';
+import { PrismaClient } from '@/database/generated/prisma/client.js';
 
 // Takes bigint directly, not string: every caller already has the user row's id in hand from
 // its own Prisma lookup, so there's nothing to parse here.

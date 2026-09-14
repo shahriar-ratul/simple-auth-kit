@@ -1,7 +1,7 @@
-import type { PermissionCacheStore } from "../auth/cache/permission-cache.js";
-import type { RateLimitDeps } from "@/core/rate-limit.js";
+import type { PermissionCacheStore } from '../auth/cache/permission-cache.js';
+import type { RateLimitDeps } from '@/core/rate-limit.js';
 
-export const AUTH_CONFIG = Symbol("AUTH_CONFIG");
+export const AUTH_CONFIG = Symbol('AUTH_CONFIG');
 
 export interface GoogleOAuthCredentials {
   clientId: string;
@@ -55,9 +55,9 @@ export interface AuthConfig {
 // Exported by name so `@SkipThrottle` call sites can name every default bucket —
 // `@SkipThrottle()` bare only skips a throttler literally named "default", which none of these is.
 export const defaultThrottleBuckets: ThrottleBucket[] = [
-  { name: "short", ttl: 1_000, limit: 100 },
-  { name: "medium", ttl: 10_000, limit: 200 },
-  { name: "long", ttl: 60_000, limit: 400 },
+  { name: 'short', ttl: 1_000, limit: 100 },
+  { name: 'medium', ttl: 10_000, limit: 200 },
+  { name: 'long', ttl: 60_000, limit: 400 },
 ];
 
 export const defaultAuthConfig: AuthConfig = {
@@ -66,6 +66,6 @@ export const defaultAuthConfig: AuthConfig = {
   throttle: defaultThrottleBuckets,
   refreshTokenTtlSeconds: 60 * 60 * 24 * 30,
   sessionTtlSeconds: 60 * 60 * 24 * 30,
-  twoFactorIssuer: "simple-auth-kit",
+  twoFactorIssuer: 'simple-auth-kit',
   oauthProviders: {},
 };

@@ -21,9 +21,9 @@
 //
 // Callers: `src/seed.ts` (`npm run seed`, the only bootstrap in this variant) and
 // `variants/base/test/variant-hooks.ts`.
-import { inArray } from "drizzle-orm";
-import type { Database } from "../../common/config/db.js";
-import { permissionRole, permissions, roles } from "@/database/schema.js";
+import { inArray } from 'drizzle-orm';
+import type { Database } from '../../common/config/db.js';
+import { permissionRole, permissions, roles } from '@/database/schema.js';
 
 /** The display metadata a seeded permission carries. `group`/`order` exist so an admin console can render a stable matrix. */
 export interface PermissionSeed {
@@ -44,63 +44,62 @@ export interface PermissionSeed {
  * evaluate.
  */
 export const PERMISSION_CATALOG = {
-  "users:read": {
-    displayName: "List users",
-    description: "GET /admin/users",
-    group: "Users",
+  'users:read': {
+    displayName: 'List users',
+    description: 'GET /admin/users',
+    group: 'Users',
     order: 1,
   },
-  "users:block": {
-    displayName: "Block and unblock users",
-    description: "POST /admin/users/:userId/block, .../unblock",
-    group: "Users",
+  'users:block': {
+    displayName: 'Block and unblock users',
+    description: 'POST /admin/users/:userId/block, .../unblock',
+    group: 'Users',
     order: 2,
   },
-  "users:manage": {
-    displayName: "Edit and delete users",
+  'users:manage': {
+    displayName: 'Edit and delete users',
     description:
       "Edit a user's profile or delete their account — PATCH /admin/users/:userId, DELETE /admin/users/:userId",
-    group: "Users",
+    group: 'Users',
     order: 3,
   },
-  "roles:manage": {
-    displayName: "Define roles",
+  'roles:manage': {
+    displayName: 'Define roles',
     description:
-      "Create, edit, or delete roles and say what they carry — POST/PATCH/DELETE /roles(/:roleId), POST /roles/:roleId/permissions",
-    group: "Roles",
+      'Create, edit, or delete roles and say what they carry — POST/PATCH/DELETE /roles(/:roleId), POST /roles/:roleId/permissions',
+    group: 'Roles',
     order: 1,
   },
-  "roles:assign": {
-    displayName: "Assign roles",
-    description:
-      "Assign and revoke a user's roles — POST /admin/users/:userId/roles, .../roles/:roleSlug/revoke",
-    group: "Roles",
+  'roles:assign': {
+    displayName: 'Assign roles',
+    description: "Assign and revoke a user's roles — POST /admin/users/:userId/roles, .../roles/:roleSlug/revoke",
+    group: 'Roles',
     order: 2,
   },
-  "permissions:read": {
-    displayName: "Read the permission catalog",
-    description: "GET /permissions",
-    group: "Permissions",
+  'permissions:read': {
+    displayName: 'Read the permission catalog',
+    description: 'GET /permissions',
+    group: 'Permissions',
     order: 1,
   },
-  "permissions:define": {
-    displayName: "Define permissions",
+  'permissions:define': {
+    displayName: 'Define permissions',
     description:
-      "Create a permission, rename it, or deactivate it — POST /permissions. The authority that defines all the others.",
-    group: "Permissions",
+      'Create a permission, rename it, or deactivate it — POST /permissions. The authority that defines all the others.',
+    group: 'Permissions',
     order: 2,
   },
-  "permissions:grant": {
-    displayName: "Grant permissions directly",
+  'permissions:grant': {
+    displayName: 'Grant permissions directly',
     description:
-      "Grant and revoke a permission straight to a user, bypassing roles — POST /admin/users/:userId/permissions, .../permissions/:slug/revoke",
-    group: "Permissions",
+      'Grant and revoke a permission straight to a user, bypassing roles — POST /admin/users/:userId/permissions, .../permissions/:slug/revoke',
+    group: 'Permissions',
     order: 3,
   },
-  "audit-log:read": {
-    displayName: "Read the audit log",
-    description: "GET /audit-log",
-    group: "Audit",
+  'audit-log:read': {
+    displayName: 'Read the audit log',
+    description: 'GET /audit-log',
+    group: 'Audit',
     order: 1,
   },
 } as const satisfies Record<string, PermissionSeed>;
@@ -114,9 +113,7 @@ export const PERMISSION_CATALOG = {
  */
 export type PermissionSlug = keyof typeof PERMISSION_CATALOG;
 
-export const PERMISSION_SLUGS = Object.keys(
-  PERMISSION_CATALOG,
-) as PermissionSlug[];
+export const PERMISSION_SLUGS = Object.keys(PERMISSION_CATALOG) as PermissionSlug[];
 
 /** Groups, in the order an admin console should render them. Derived from the catalog so it cannot drift from it. */
 export const PERMISSION_GROUP_ORDER: string[] = [
@@ -146,25 +143,25 @@ export interface RoleSeed {
  */
 export const DEFAULT_ROLES: readonly RoleSeed[] = [
   {
-    slug: "admin",
-    displayName: "Administrator",
-    description: "Carries every permission in the catalog.",
+    slug: 'admin',
+    displayName: 'Administrator',
+    description: 'Carries every permission in the catalog.',
     isDefault: false,
     order: 0,
     permissions: PERMISSION_SLUGS,
   },
   {
-    slug: "superadmin",
-    displayName: "Super Administrator",
-    description: "Carries every permission in the catalog.",
+    slug: 'superadmin',
+    displayName: 'Super Administrator',
+    description: 'Carries every permission in the catalog.',
     isDefault: false,
     order: 1,
     permissions: PERMISSION_SLUGS,
   },
   {
-    slug: "member",
-    displayName: "Member",
-    description: "The signup default. Carries no administrative permission.",
+    slug: 'member',
+    displayName: 'Member',
+    description: 'The signup default. Carries no administrative permission.',
     isDefault: true,
     order: 2,
     permissions: [],
@@ -172,10 +169,10 @@ export const DEFAULT_ROLES: readonly RoleSeed[] = [
 ];
 
 /** Role slugs given to the seeded admin. `member` is included so the admin is also an ordinary user. */
-export const SEED_ADMIN_ROLES: string[] = ["admin", "member"];
+export const SEED_ADMIN_ROLES: string[] = ['admin', 'member'];
 
 /** Role slugs given to the seeded super_admin. `member` is included so they're also an ordinary user. */
-export const SEED_SUPERADMIN_ROLES: string[] = ["superadmin", "member"];
+export const SEED_SUPERADMIN_ROLES: string[] = ['superadmin', 'member'];
 
 /**
  * Anything that can write the catalog tables. Drizzle has no client class to name (see `db.ts`),
@@ -183,7 +180,7 @@ export const SEED_SUPERADMIN_ROLES: string[] = ["superadmin", "member"];
  * transaction handle exposes the same `insert`/`select` builders as the database handle, so a
  * caller inside `db.transaction(...)` can pass `tx` straight through.
  */
-export type RbacWriter = Pick<Database, "insert" | "select">;
+export type RbacWriter = Pick<Database, 'insert' | 'select'>;
 
 /**
  * Writes the starting catalog and roles above into `db`, which may be a transaction client — so a
@@ -206,9 +203,7 @@ export async function provisionDefaultRoles(db: RbacWriter): Promise<void> {
         displayName: PERMISSION_CATALOG[slug].displayName,
         description: PERMISSION_CATALOG[slug].description,
         group: PERMISSION_CATALOG[slug].group,
-        groupOrder: PERMISSION_GROUP_ORDER.indexOf(
-          PERMISSION_CATALOG[slug].group,
-        ),
+        groupOrder: PERMISSION_GROUP_ORDER.indexOf(PERMISSION_CATALOG[slug].group),
         order: PERMISSION_CATALOG[slug].order,
       })),
     )

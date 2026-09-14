@@ -1,8 +1,5 @@
-import { Inject, Injectable } from "@nestjs/common";
-import {
-  RbacRepository,
-  RoleSummary,
-} from "../../auth/repositories/rbac.repository.js";
+import { Inject, Injectable } from '@nestjs/common';
+import { RbacRepository, RoleSummary } from '../../auth/repositories/rbac.repository.js';
 
 /** Thin wrapper over RbacRepository's role-catalog methods — see the note on AdminController for why RbacRepository itself isn't split. */
 @Injectable()
@@ -41,26 +38,15 @@ export class RoleService {
     return this.rbac.updateRole(roleId, input, actorUserId);
   }
 
-  async deleteRole(
-    roleId: string,
-    actorUserId: string | null,
-    reason?: string,
-  ): Promise<void> {
+  async deleteRole(roleId: string, actorUserId: string | null, reason?: string): Promise<void> {
     await this.rbac.deleteRole(roleId, actorUserId, reason);
   }
 
-  async attachPermissionToRole(
-    roleId: string,
-    permissionSlug: string,
-    actorUserId: string | null,
-  ): Promise<void> {
+  async attachPermissionToRole(roleId: string, permissionSlug: string, actorUserId: string | null): Promise<void> {
     await this.rbac.attachPermissionToRole(roleId, permissionSlug, actorUserId);
   }
 
-  async detachPermissionFromRole(
-    roleId: string,
-    permissionSlug: string,
-  ): Promise<void> {
+  async detachPermissionFromRole(roleId: string, permissionSlug: string): Promise<void> {
     await this.rbac.detachPermissionFromRole(roleId, permissionSlug);
   }
 }

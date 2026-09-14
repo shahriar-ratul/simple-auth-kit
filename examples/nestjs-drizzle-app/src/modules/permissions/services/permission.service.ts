@@ -1,9 +1,5 @@
-import { Inject, Injectable } from "@nestjs/common";
-import {
-  PermissionInput,
-  PermissionSummary,
-  RbacRepository,
-} from "../../auth/repositories/rbac.repository.js";
+import { Inject, Injectable } from '@nestjs/common';
+import { PermissionInput, PermissionSummary, RbacRepository } from '../../auth/repositories/rbac.repository.js';
 
 /** Thin wrapper over RbacRepository's permission-catalog methods — see the note on AdminController for why RbacRepository itself isn't split. */
 @Injectable()
@@ -14,10 +10,7 @@ export class PermissionService {
     return { permissions: await this.rbac.listPermissions() };
   }
 
-  async definePermission(
-    input: PermissionInput,
-    actorUserId: string | null,
-  ): Promise<PermissionSummary> {
+  async definePermission(input: PermissionInput, actorUserId: string | null): Promise<PermissionSummary> {
     return this.rbac.upsertPermission(input, actorUserId);
   }
 }

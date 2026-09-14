@@ -6,23 +6,17 @@
 // A permission slug is CASL's *action*; the subject is always a constant empty string. That
 // keeps the model flat — no subject taxonomy, no (action, subject) pairing to get wrong, no
 // conditions.
-import {
-  AbilityBuilder,
-  createMongoAbility,
-  type MongoAbility,
-} from "@casl/ability";
+import { AbilityBuilder, createMongoAbility, type MongoAbility } from '@casl/ability';
 
 // Constant rather than a repeated string literal — `can("users:read", "")` in one place and
 // `can("users:read", "all")` in another would silently never match.
-export const ABILITY_SUBJECT = "";
+export const ABILITY_SUBJECT = '';
 
 export type AppAbility = MongoAbility<[string, typeof ABILITY_SUBJECT]>;
 
 // An empty list builds an ability with no rules, which denies everything — the fail-closed
 // answer whether permissions failed to resolve or the user genuinely has none.
-export function defineAbilitiesFor(
-  permissions: readonly string[] = [],
-): AppAbility {
+export function defineAbilitiesFor(permissions: readonly string[] = []): AppAbility {
   const { can, build } = new AbilityBuilder<AppAbility>(createMongoAbility);
   for (const permission of permissions) can(permission, ABILITY_SUBJECT);
   return build();

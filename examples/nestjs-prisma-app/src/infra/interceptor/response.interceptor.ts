@@ -1,11 +1,6 @@
-import {
-  CallHandler,
-  ExecutionContext,
-  Injectable,
-  NestInterceptor,
-} from "@nestjs/common";
-import { Observable, map } from "rxjs";
-import type { Request, Response } from "express";
+import { CallHandler, ExecutionContext, Injectable, NestInterceptor } from '@nestjs/common';
+import { Observable, map } from 'rxjs';
+import type { Request, Response } from 'express';
 
 /**
  * Every successful response is wrapped the same way: the real HTTP status alongside the payload,
@@ -21,26 +16,23 @@ export interface Envelope<T> {
 
 function deriveMessage(method: string): string {
   switch (method) {
-    case "GET":
-      return "Fetched successfully";
-    case "POST":
-      return "Created successfully";
-    case "PATCH":
-    case "PUT":
-      return "Updated successfully";
-    case "DELETE":
-      return "Deleted successfully";
+    case 'GET':
+      return 'Fetched successfully';
+    case 'POST':
+      return 'Created successfully';
+    case 'PATCH':
+    case 'PUT':
+      return 'Updated successfully';
+    case 'DELETE':
+      return 'Deleted successfully';
     default:
-      return "Request successful";
+      return 'Request successful';
   }
 }
 
 @Injectable()
 export class ResponseInterceptor<T> implements NestInterceptor<T, Envelope<T>> {
-  intercept(
-    context: ExecutionContext,
-    next: CallHandler<T>,
-  ): Observable<Envelope<T>> {
+  intercept(context: ExecutionContext, next: CallHandler<T>): Observable<Envelope<T>> {
     const http = context.switchToHttp();
     const req = http.getRequest<Request>();
     const res = http.getResponse<Response>();

@@ -6,11 +6,11 @@
 //                 in the same guard that resolves them.
 //
 // Importing this module for its side effect installs the Express `Request` augmentation.
-import type { AccessTokenClaims } from "@/core/types.js";
-import type { AppAbility } from "../common/auth/ability/ability.js";
-import type { AuthzContext } from "../common/auth/guards/authz.guard.js";
+import type { AccessTokenClaims } from '@/core/types.js';
+import type { AppAbility } from '../common/auth/ability/ability.js';
+import type { AuthzContext } from '../common/auth/guards/authz.guard.js';
 
-declare module "express" {
+declare module 'express' {
   interface Request {
     auth?: AccessTokenClaims;
     authz?: AuthzContext;

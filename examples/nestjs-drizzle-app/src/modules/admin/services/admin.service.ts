@@ -1,20 +1,20 @@
-import { Inject, Injectable } from "@nestjs/common";
-import { eq } from "drizzle-orm";
-import { hashPassword } from "@/core/crypto.js";
-import { blockUser, deactivateUser } from "@/core/session-policy.js";
-import type { Revoker } from "@/core/types.js";
-import { DRIZZLE_DB, type Database } from "../../../common/config/db.js";
-import { AuditLogRepository } from "../../audit-log/repositories/audit-log.repository.js";
+import { Inject, Injectable } from '@nestjs/common';
+import { eq } from 'drizzle-orm';
+import { hashPassword } from '@/core/crypto.js';
+import { blockUser, deactivateUser } from '@/core/session-policy.js';
+import type { Revoker } from '@/core/types.js';
+import { DRIZZLE_DB, type Database } from '../../../common/config/db.js';
+import { AuditLogRepository } from '../../audit-log/repositories/audit-log.repository.js';
 import {
   RbacRepository,
   toUserSummary,
   UserListFilter,
   UserListResult,
   UserSummary,
-} from "../../auth/repositories/rbac.repository.js";
-import { SessionRepository } from "../../auth/repositories/session.repository.js";
-import { users } from "@/database/schema.js";
-import { toId, toIdOrNull } from "../../../common/helpers/id.helper.js";
+} from '../../auth/repositories/rbac.repository.js';
+import { SessionRepository } from '../../auth/repositories/session.repository.js';
+import { users } from '@/database/schema.js';
+import { toId, toIdOrNull } from '../../../common/helpers/id.helper.js';
 
 /**
  * User management, block/unblock/deactivate/activate, and user-scoped role/permission
@@ -78,18 +78,14 @@ export class AdminService {
     return this.rbac.updateUser(userId, input, actorUserId);
   }
 
-  async deleteUser(
-    userId: string,
-    actorUserId: string | null,
-    reason?: string,
-  ): Promise<void> {
+  async deleteUser(userId: string, actorUserId: string | null, reason?: string): Promise<void> {
     await this.rbac.deleteUser(userId, actorUserId, reason);
   }
 
   async assignRole(userId: string, roleSlug: string): Promise<void> {
     await this.rbac.assignRoleToUser(userId, roleSlug);
     await this.auditLog.append({
-      type: "role_assigned",
+      type: 'role_assigned',
       userId,
       role: roleSlug,
     });
@@ -98,32 +94,25 @@ export class AdminService {
   async revokeRole(userId: string, roleSlug: string): Promise<void> {
     await this.rbac.revokeRoleFromUser(userId, roleSlug);
     await this.auditLog.append({
-      type: "role_revoked",
+      type: 'role_revoked',
       userId,
       role: roleSlug,
     });
   }
 
-  async grantPermission(
-    userId: string,
-    permissionSlug: string,
-    actorUserId: string | null,
-  ): Promise<void> {
+  async grantPermission(userId: string, permissionSlug: string, actorUserId: string | null): Promise<void> {
     await this.rbac.grantPermissionToUser(userId, permissionSlug, actorUserId);
     await this.auditLog.append({
-      type: "permission_granted",
+      type: 'permission_granted',
       userId,
       permission: permissionSlug,
     });
   }
 
-  async revokePermission(
-    userId: string,
-    permissionSlug: string,
-  ): Promise<void> {
+  async revokePermission(userId: string, permissionSlug: string): Promise<void> {
     await this.rbac.revokePermissionFromUser(userId, permissionSlug);
     await this.auditLog.append({
-      type: "permission_revoked",
+      type: 'permission_revoked',
       userId,
       permission: permissionSlug,
     });

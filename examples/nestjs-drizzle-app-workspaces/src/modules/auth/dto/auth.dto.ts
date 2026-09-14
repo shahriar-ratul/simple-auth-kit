@@ -11,45 +11,45 @@
 //
 // Identity/session-scoped DTOs only — everything about *administered principals* (users, roles,
 // permissions, audit log) lives in that feature module's own dto file instead.
-import { ApiProperty } from "@nestjs/swagger";
+import { ApiProperty } from '@nestjs/swagger';
 
 export class SignupDto {
-  @ApiProperty({ type: String, example: "alice@example.com" })
+  @ApiProperty({ type: String, example: 'alice@example.com' })
   email!: string;
 
-  @ApiProperty({ type: String, example: "correct-horse-battery-staple" })
+  @ApiProperty({ type: String, example: 'correct-horse-battery-staple' })
   password!: string;
 
   @ApiProperty({
     type: String,
     required: false,
-    description: "Unique across the deployment.",
-    example: "Alice",
+    description: 'Unique across the deployment.',
+    example: 'Alice',
   })
   firstName?: string;
 
   @ApiProperty({
     type: String,
     required: false,
-    description: "Unique across the deployment.",
-    example: "Nguyen",
+    description: 'Unique across the deployment.',
+    example: 'Nguyen',
   })
   lastName?: string;
 
-  @ApiProperty({ type: String, required: false, example: "Alice Nguyen" })
+  @ApiProperty({ type: String, required: false, example: 'Alice Nguyen' })
   displayName?: string;
 
   @ApiProperty({
     type: String,
     required: false,
-    description: "Unique across the deployment.",
+    description: 'Unique across the deployment.',
   })
   phone?: string;
 
   @ApiProperty({
     type: String,
     required: false,
-    description: "Unique across the deployment.",
+    description: 'Unique across the deployment.',
   })
   username?: string;
 }
@@ -57,27 +57,26 @@ export class SignupDto {
 export class LoginDto {
   @ApiProperty({
     type: String,
-    description: "Email, username, or phone — whichever the account has set.",
-    example: "alice@example.com",
+    description: 'Email, username, or phone — whichever the account has set.',
+    example: 'alice@example.com',
   })
   identifier!: string;
 
-  @ApiProperty({ type: String, example: "correct-horse-battery-staple" })
+  @ApiProperty({ type: String, example: 'correct-horse-battery-staple' })
   password!: string;
 }
 
 export class LoginTwoFactorDto {
   @ApiProperty({
     type: String,
-    description:
-      "Returned by POST /auth/login when the account has 2FA enabled",
+    description: 'Returned by POST /auth/login when the account has 2FA enabled',
   })
   challengeToken!: string;
 
   @ApiProperty({
     type: String,
-    description: "6-digit TOTP code, or an unused backup code",
-    example: "123456",
+    description: '6-digit TOTP code, or an unused backup code',
+    example: '123456',
   })
   code!: string;
 }
@@ -88,7 +87,7 @@ export class RefreshDto {
 }
 
 export class TwoFactorCodeDto {
-  @ApiProperty({ type: String, example: "123456" })
+  @ApiProperty({ type: String, example: '123456' })
   code!: string;
 }
 
@@ -100,7 +99,7 @@ export class ForgotPasswordDto {
 export class ResetPasswordDto {
   @ApiProperty({
     type: String,
-    description: "Raw token from the sendPasswordResetEmail hook",
+    description: 'Raw token from the sendPasswordResetEmail hook',
   })
   token!: string;
 
@@ -111,8 +110,7 @@ export class ResetPasswordDto {
 export class ChangePasswordDto {
   @ApiProperty({
     type: String,
-    description:
-      "The caller's current password, re-checked server-side before anything changes.",
+    description: "The caller's current password, re-checked server-side before anything changes.",
   })
   currentPassword!: string;
 
@@ -126,7 +124,7 @@ export class UpdateUserDto {
     type: String,
     required: false,
     nullable: true,
-    description: "Unique across the deployment.",
+    description: 'Unique across the deployment.',
   })
   firstName?: string | null;
 
@@ -134,7 +132,7 @@ export class UpdateUserDto {
     type: String,
     required: false,
     nullable: true,
-    description: "Unique across the deployment.",
+    description: 'Unique across the deployment.',
   })
   lastName?: string | null;
 
@@ -145,7 +143,7 @@ export class UpdateUserDto {
     type: String,
     required: false,
     nullable: true,
-    description: "Unique across the deployment.",
+    description: 'Unique across the deployment.',
   })
   phone?: string | null;
 
@@ -153,7 +151,7 @@ export class UpdateUserDto {
     type: String,
     required: false,
     nullable: true,
-    description: "Unique across the deployment.",
+    description: 'Unique across the deployment.',
   })
   username?: string | null;
 
@@ -191,7 +189,7 @@ export class TwoFactorChallengeDto {
 }
 
 export class CurrentUserDto {
-  @ApiProperty({ type: String, description: "User id" })
+  @ApiProperty({ type: String, description: 'User id' })
   sub!: string;
 
   @ApiProperty({ type: String })
@@ -204,8 +202,8 @@ export class CurrentUserDto {
     type: [String],
     description:
       "Permission slugs. `defineAbilitiesFor(permissions)` from src/ability.ts rebuilds, in the client, the very ability the server's own guard just answered with — " +
-      "so the console holds no second copy of the rules and cannot offer an action the API will refuse.",
-    example: ["users:read", "audit-log:read"],
+      'so the console holds no second copy of the rules and cannot offer an action the API will refuse.',
+    example: ['users:read', 'audit-log:read'],
   })
   permissions!: string[];
 
@@ -233,8 +231,7 @@ export class CurrentUserDto {
   @ApiProperty({
     type: String,
     nullable: true,
-    description:
-      "A data URI or an externally-hosted URL — stored as-is, never processed server-side.",
+    description: 'A data URI or an externally-hosted URL — stored as-is, never processed server-side.',
   })
   photo!: string | null;
 }
@@ -265,12 +262,11 @@ export class SelfProfileDto {
   @ApiProperty({
     type: String,
     nullable: true,
-    description:
-      "A data URI or an externally-hosted URL — stored as-is, never processed server-side.",
+    description: 'A data URI or an externally-hosted URL — stored as-is, never processed server-side.',
   })
   photo!: string | null;
 
-  @ApiProperty({ type: String, format: "date-time" })
+  @ApiProperty({ type: String, format: 'date-time' })
   createdAt!: string;
 }
 
@@ -284,17 +280,15 @@ export class SessionSummaryDto {
 
   @ApiProperty({
     type: String,
-    description:
-      "Absolute cut-off, fixed when the session was created. Refreshing does not extend it.",
+    description: 'Absolute cut-off, fixed when the session was created. Refreshing does not extend it.',
   })
   expiresAt!: string;
 
   @ApiProperty({
     type: String,
     required: false,
-    description:
-      "The OAuth provider this login came through; absent for a password login.",
-    example: "google",
+    description: 'The OAuth provider this login came through; absent for a password login.',
+    example: 'google',
   })
   provider?: string;
 
@@ -306,12 +300,12 @@ export class SessionSummaryDto {
 }
 
 export class EnrollTwoFactorResponseDto {
-  @ApiProperty({ type: String, description: "Base32 TOTP secret" })
+  @ApiProperty({ type: String, description: 'Base32 TOTP secret' })
   secret!: string;
 
   @ApiProperty({
     type: String,
-    description: "otpauth:// provisioning URI, render as a QR code",
+    description: 'otpauth:// provisioning URI, render as a QR code',
   })
   provisioningUri!: string;
 }
@@ -319,7 +313,7 @@ export class EnrollTwoFactorResponseDto {
 export class ConfirmTwoFactorResponseDto {
   @ApiProperty({
     type: [String],
-    description: "One-time recovery codes — shown once",
+    description: 'One-time recovery codes — shown once',
   })
   backupCodes!: string[];
 }
@@ -327,8 +321,7 @@ export class ConfirmTwoFactorResponseDto {
 export class OAuthStartResponseDto {
   @ApiProperty({
     type: String,
-    description:
-      "Redirect the user/webview to this URL to start the OAuth flow",
+    description: 'Redirect the user/webview to this URL to start the OAuth flow',
   })
   url!: string;
 }

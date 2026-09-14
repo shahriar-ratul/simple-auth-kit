@@ -2,27 +2,27 @@
 // dto/auth.dto.ts: the controller keeps its `Record<string, unknown>` + `requireString()`
 // validation. Every `@ApiProperty` passes an explicit `type` because this repo runs via `tsx`
 // (esbuild), which doesn't reliably emit decorator type metadata for reflection.
-import { ApiProperty } from "@nestjs/swagger";
-import { PageMetaDto } from "../../../common/dto/shared.dto.js";
+import { ApiProperty } from '@nestjs/swagger';
+import { PageMetaDto } from '../../../common/dto/shared.dto.js';
 
 export class CreateLanguageDto {
   @ApiProperty({
     type: String,
-    description: "Stable identifier, unique across the deployment.",
-    example: "en",
+    description: 'Stable identifier, unique across the deployment.',
+    example: 'en',
   })
   code!: string;
 
-  @ApiProperty({ type: String, example: "English" })
+  @ApiProperty({ type: String, example: 'English' })
   name!: string;
 
-  @ApiProperty({ type: String, example: "English" })
+  @ApiProperty({ type: String, example: 'English' })
   nativeName!: string;
 
   @ApiProperty({
     type: String,
     required: false,
-    enum: ["ltr", "rtl"],
+    enum: ['ltr', 'rtl'],
     description: 'Defaults to "ltr" when creating.',
   })
   direction?: string;
@@ -44,7 +44,7 @@ export class UpdateLanguageDto {
   @ApiProperty({ type: String, required: false })
   nativeName?: string;
 
-  @ApiProperty({ type: String, required: false, enum: ["ltr", "rtl"] })
+  @ApiProperty({ type: String, required: false, enum: ['ltr', 'rtl'] })
   direction?: string;
 
   @ApiProperty({ type: Boolean, required: false })
@@ -71,7 +71,7 @@ export class LanguageSummaryDto {
   @ApiProperty({ type: String })
   nativeName!: string;
 
-  @ApiProperty({ type: String, enum: ["ltr", "rtl"] })
+  @ApiProperty({ type: String, enum: ['ltr', 'rtl'] })
   direction!: string;
 
   @ApiProperty({

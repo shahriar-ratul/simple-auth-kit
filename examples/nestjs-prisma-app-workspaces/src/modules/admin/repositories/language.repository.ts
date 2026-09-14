@@ -1,17 +1,7 @@
-import {
-  ConflictException,
-  Inject,
-  Injectable,
-  NotFoundException,
-} from "@nestjs/common";
-import { Prisma, PrismaClient } from "@/database/generated/prisma/client.js";
-import { toId, toIdOrNull } from "../../../common/helpers/id.helper.js";
-import {
-  buildPageMeta,
-  normalizeLimit,
-  normalizePage,
-  type Paginated,
-} from "../../../common/helpers/pagination.js";
+import { ConflictException, Inject, Injectable, NotFoundException } from '@nestjs/common';
+import { Prisma, PrismaClient } from '@/database/generated/prisma/client.js';
+import { toId, toIdOrNull } from '../../../common/helpers/id.helper.js';
+import { buildPageMeta, normalizeLimit, normalizePage, type Paginated } from '../../../common/helpers/pagination.js';
 
 /** A `Language` row as `findUnique`/`findMany` return it. */
 export type LanguageRow = Prisma.LanguageGetPayload<object>;
@@ -75,10 +65,7 @@ export class LanguageRepository {
   constructor(@Inject(PrismaClient) private readonly prisma: PrismaClient) {}
 
   /** Newest-first, page-paginated; `search` matches name/code/nativeName. Returns raw rows — shaping is the caller's job. */
-  async list(
-    workspaceId: string,
-    filter: LanguageListFilter = {},
-  ): Promise<LanguageListResult> {
+  async list(workspaceId: string, filter: LanguageListFilter = {}): Promise<LanguageListResult> {
     const page = normalizePage(filter.page);
     const limit = normalizeLimit(filter.limit);
     const where: Prisma.LanguageWhereInput = {
@@ -87,9 +74,9 @@ export class LanguageRepository {
       isActive: filter.activeOnly ? true : undefined,
       OR: filter.search
         ? [
-            { name: { contains: filter.search, mode: "insensitive" } },
-            { code: { contains: filter.search, mode: "insensitive" } },
-            { nativeName: { contains: filter.search, mode: "insensitive" } },
+            { name: { contains: filter.search, mode: 'insensitive' } },
+            { code: { contains: filter.search, mode: 'insensitive' } },
+            { nativeName: { contains: filter.search, mode: 'insensitive' } },
           ]
         : undefined,
     };
@@ -97,7 +84,7 @@ export class LanguageRepository {
     const [rows, total] = await this.prisma.$transaction([
       this.prisma.language.findMany({
         where,
-        orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+        orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
         take: limit,
         skip: (page - 1) * limit,
       }),
@@ -122,19 +109,12 @@ export class LanguageRepository {
     return toLanguageSummary(row);
   }
 
-  async create(
-    workspaceId: string,
-    input: LanguageInput,
-    actorUserId: string | null,
-  ): Promise<LanguageSummary> {
+  async create(workspaceId: string, input: LanguageInput, actorUserId: string | null): Promise<LanguageSummary> {
     const workspaceIdBig = toId(workspaceId);
     const existing = await this.prisma.language.findFirst({
       where: { workspaceId: workspaceIdBig, code: input.code },
     });
-    if (existing)
-      throw new ConflictException(
-        "a language with this code already exists in this workspace",
-      );
+    if (existing) throw new ConflictException('a language with this code already exists in this workspace');
 
     const row = await this.prisma.language.create({
       data: {
@@ -163,8 +143,7 @@ export class LanguageRepository {
       },
       select: { id: true },
     });
-    if (!existing)
-      throw new NotFoundException(`language "${languageId}" not found`);
+    if (!existing) throw new NotFoundException(`language "${languageId}" not found`);
 
     if (input.code !== undefined) {
       const clash = await this.prisma.language.findFirst({
@@ -174,10 +153,7 @@ export class LanguageRepository {
           code: input.code,
         },
       });
-      if (clash)
-        throw new ConflictException(
-          "a language with this code already exists in this workspace",
-        );
+      if (clash) throw new ConflictException('a language with this code already exists in this workspace');
     }
 
     const row = await this.prisma.language.update({
@@ -188,12 +164,7 @@ export class LanguageRepository {
   }
 
   // Soft-delete, matching every other table's isDeleted/deletedAt/deletedBy/deletedReason pattern.
-  async delete(
-    workspaceId: string,
-    languageId: string,
-    actorUserId: string | null,
-    reason?: string,
-  ): Promise<void> {
+  async delete(workspaceId: string, languageId: string, actorUserId: string | null, reason?: string): Promise<void> {
     const workspaceIdBig = toId(workspaceId);
     const languageIdBig = toId(languageId);
     const existing = await this.prisma.language.findUnique({
@@ -204,8 +175,7 @@ export class LanguageRepository {
       },
       select: { id: true },
     });
-    if (!existing)
-      throw new NotFoundException(`language "${languageId}" not found`);
+    if (!existing) throw new NotFoundException(`language "${languageId}" not found`);
     await this.prisma.language.update({
       where: { id: languageIdBig },
       data: {
@@ -233,8 +203,7 @@ export class LanguageRepository {
       },
       select: { id: true },
     });
-    if (!existing)
-      throw new NotFoundException(`language "${languageId}" not found`);
+    if (!existing) throw new NotFoundException(`language "${languageId}" not found`);
     await this.prisma.language.update({
       where: { id: languageIdBig },
       data: { isActive, updatedBy: toIdOrNull(actorUserId) },

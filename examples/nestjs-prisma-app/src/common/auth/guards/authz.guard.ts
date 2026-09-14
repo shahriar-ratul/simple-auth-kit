@@ -1,12 +1,7 @@
-import {
-  CanActivate,
-  ExecutionContext,
-  Inject,
-  Injectable,
-} from "@nestjs/common";
-import { defineAbilitiesFor } from "../ability/ability.js";
-import { PermissionCache } from "../cache/permission-cache.js";
-import { RbacRepository } from "../../../modules/auth/repositories/rbac.repository.js";
+import { CanActivate, ExecutionContext, Inject, Injectable } from '@nestjs/common';
+import { defineAbilitiesFor } from '../ability/ability.js';
+import { PermissionCache } from '../cache/permission-cache.js';
+import { RbacRepository } from '../../../modules/auth/repositories/rbac.repository.js';
 
 // Roles and permissions are global to this deployment — one set per user, resolved from the
 // database on the request that uses them. The access token carries identity only.
@@ -31,9 +26,10 @@ export class AuthzGuard implements CanActivate {
     const req = context.switchToHttp().getRequest();
     if (req.auth) {
       const userId = req.auth.sub as string;
-      req.authz = (await this.cache.resolve<AuthzContext>(userId, () =>
-        this.rbac.resolveAuthzContext(userId),
-      )) ?? { roles: [], permissions: [] };
+      req.authz = (await this.cache.resolve<AuthzContext>(userId, () => this.rbac.resolveAuthzContext(userId))) ?? {
+        roles: [],
+        permissions: [],
+      };
       req.ability = defineAbilitiesFor(req.authz.permissions);
     }
     return true;

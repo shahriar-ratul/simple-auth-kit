@@ -1,11 +1,5 @@
-import {
-  ArgumentsHost,
-  Catch,
-  ExceptionFilter,
-  HttpException,
-  HttpStatus,
-} from "@nestjs/common";
-import { AuthCoreError } from "@/core/types.js";
+import { ArgumentsHost, Catch, ExceptionFilter, HttpException, HttpStatus } from '@nestjs/common';
+import { AuthCoreError } from '@/core/types.js';
 
 /**
  * Every error response carries `success: false` alongside whatever produced it — `AuthCoreError`
@@ -32,13 +26,8 @@ export class AuthCoreErrorFilter implements ExceptionFilter {
     if (exception instanceof HttpException) {
       const status = exception.getStatus();
       const body = exception.getResponse();
-      const shaped =
-        typeof body === "string"
-          ? { message: body }
-          : (body as Record<string, unknown>);
-      res
-        .status(status)
-        .json({ success: false, statusCode: status, ...shaped });
+      const shaped = typeof body === 'string' ? { message: body } : (body as Record<string, unknown>);
+      res.status(status).json({ success: false, statusCode: status, ...shaped });
       return;
     }
 
@@ -46,7 +35,7 @@ export class AuthCoreErrorFilter implements ExceptionFilter {
     res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({
       success: false,
       statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
-      message: "internal server error",
+      message: 'internal server error',
     });
   }
 }

@@ -1,5 +1,5 @@
-import { ApiProperty } from "@nestjs/swagger";
-import { PageMetaDto } from "../../../common/dto/shared.dto.js";
+import { ApiProperty } from '@nestjs/swagger';
+import { PageMetaDto } from '../../../common/dto/shared.dto.js';
 
 export class AuditLogEntryDto {
   @ApiProperty({ type: String })
@@ -10,15 +10,15 @@ export class AuditLogEntryDto {
 
   @ApiProperty({
     type: String,
-    description: "Human-readable label for `action`",
-    example: "Role assigned",
+    description: 'Human-readable label for `action`',
+    example: 'Role assigned',
   })
   name!: string;
 
   @ApiProperty({
     type: String,
-    description: "AuditEvent discriminant",
-    example: "role_assigned",
+    description: 'AuditEvent discriminant',
+    example: 'role_assigned',
   })
   action!: string;
 
@@ -28,7 +28,7 @@ export class AuditLogEntryDto {
   })
   info!: unknown;
 
-  @ApiProperty({ type: String, nullable: true, description: "Free-text note" })
+  @ApiProperty({ type: String, nullable: true, description: 'Free-text note' })
   remarks!: string | null;
 
   @ApiProperty({ type: String })

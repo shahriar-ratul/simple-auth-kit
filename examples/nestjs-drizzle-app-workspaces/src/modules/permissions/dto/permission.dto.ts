@@ -1,6 +1,6 @@
 // Swagger-only DTOs — see the note atop auth.dto.ts. Permission-catalog-scoped only;
 // user-scoped direct grants (`POST /admin/users/:userId/permissions`) live in admin.dto.ts instead.
-import { ApiProperty } from "@nestjs/swagger";
+import { ApiProperty } from '@nestjs/swagger';
 
 /** One `Permission` row — the catalog as the admin endpoints return it. */
 export class PermissionSummaryDto {
@@ -10,12 +10,12 @@ export class PermissionSummaryDto {
   @ApiProperty({
     type: String,
     description:
-      "The ability itself: `@CheckAbility(slug)` on the server, `ability.can(slug, ABILITY_SUBJECT)` in a client.",
-    example: "users:read",
+      'The ability itself: `@CheckAbility(slug)` on the server, `ability.can(slug, ABILITY_SUBJECT)` in a client.',
+    example: 'users:read',
   })
   slug!: string;
 
-  @ApiProperty({ type: String, example: "List users" })
+  @ApiProperty({ type: String, example: 'List users' })
   displayName!: string;
 
   @ApiProperty({ type: String, nullable: true })
@@ -23,9 +23,8 @@ export class PermissionSummaryDto {
 
   @ApiProperty({
     type: String,
-    description:
-      "Console grouping — a permission matrix renders one section per group.",
-    example: "Users",
+    description: 'Console grouping — a permission matrix renders one section per group.',
+    example: 'Users',
   })
   group!: string;
 
@@ -38,7 +37,7 @@ export class PermissionSummaryDto {
   @ApiProperty({
     type: Boolean,
     description:
-      "false takes the permission out of every ability that would otherwise carry it, without unpicking a single grant.",
+      'false takes the permission out of every ability that would otherwise carry it, without unpicking a single grant.',
   })
   isActive!: boolean;
 }
@@ -49,13 +48,13 @@ export class PermissionListResponseDto {
 }
 
 export class DefinePermissionDto {
-  @ApiProperty({ type: String, example: "billing:manage" })
+  @ApiProperty({ type: String, example: 'billing:manage' })
   slug!: string;
 
   @ApiProperty({
     type: String,
     required: false,
-    description: "Defaults to the slug when creating.",
+    description: 'Defaults to the slug when creating.',
   })
   displayName?: string;
 
@@ -78,8 +77,7 @@ export class DefinePermissionDto {
   @ApiProperty({
     type: Boolean,
     required: false,
-    description:
-      "Set false to switch the capability off deployment-wide, effective on the next request.",
+    description: 'Set false to switch the capability off deployment-wide, effective on the next request.',
   })
   isActive?: boolean;
 }

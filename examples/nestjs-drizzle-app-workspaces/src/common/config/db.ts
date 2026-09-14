@@ -4,9 +4,9 @@
 // constructor in this combo uses `@Inject(DRIZZLE_DB)` — matching the reference's explicit-token
 // style, which is required (not just stylistic) for DI to keep working under esbuild-based
 // tooling like tsx that skips `emitDecoratorMetadata`'s runtime type reflection.
-import type { NodePgDatabase } from "drizzle-orm/node-postgres";
-import type * as schema from "@/database/schema.js";
+import type { NodePgDatabase } from 'drizzle-orm/node-postgres';
+import type * as schema from '@/database/schema.js';
 
-export const DRIZZLE_DB = Symbol("DRIZZLE_DB");
+export const DRIZZLE_DB = Symbol('DRIZZLE_DB');
 
 export type Database = NodePgDatabase<typeof schema>;

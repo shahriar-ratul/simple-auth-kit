@@ -2,8 +2,8 @@
 // assignment — the ones that describe *administered principals* rather than the caller's own
 // identity. Kept apart from auth.dto.ts for that reason; role/permission-catalog DTOs live in
 // their own modules (roles/dto/role.dto.ts, permissions/dto/permission.dto.ts) instead.
-import { ApiProperty } from "@nestjs/swagger";
-import { PageMetaDto } from "../../../common/dto/shared.dto.js";
+import { ApiProperty } from '@nestjs/swagger';
+import { PageMetaDto } from '../../../common/dto/shared.dto.js';
 
 export class UserSummaryDto {
   @ApiProperty({ type: String })
@@ -18,14 +18,14 @@ export class UserSummaryDto {
   @ApiProperty({
     type: String,
     nullable: true,
-    description: "Unique across the deployment.",
+    description: 'Unique across the deployment.',
   })
   firstName!: string | null;
 
   @ApiProperty({
     type: String,
     nullable: true,
-    description: "Unique across the deployment.",
+    description: 'Unique across the deployment.',
   })
   lastName!: string | null;
 
@@ -35,14 +35,14 @@ export class UserSummaryDto {
   @ApiProperty({
     type: String,
     nullable: true,
-    description: "Unique across the deployment.",
+    description: 'Unique across the deployment.',
   })
   phone!: string | null;
 
   @ApiProperty({
     type: String,
     nullable: true,
-    description: "Unique across the deployment.",
+    description: 'Unique across the deployment.',
   })
   username!: string | null;
 
@@ -52,7 +52,7 @@ export class UserSummaryDto {
   @ApiProperty({
     type: String,
     nullable: true,
-    description: "Date of birth, ISO 8601.",
+    description: 'Date of birth, ISO 8601.',
   })
   dob!: string | null;
 
@@ -68,22 +68,19 @@ export class UserSummaryDto {
   @ApiProperty({
     type: String,
     nullable: true,
-    description:
-      "ISO 8601. Set on every successful signup/login/OAuth callback, never on a token refresh.",
+    description: 'ISO 8601. Set on every successful signup/login/OAuth callback, never on a token refresh.',
   })
   lastLogin!: string | null;
 
   @ApiProperty({
     type: Boolean,
-    description:
-      "Security/moderation block — distinct from isActive, see the model note.",
+    description: 'Security/moderation block — distinct from isActive, see the model note.',
   })
   blocked!: boolean;
 
   @ApiProperty({
     type: Boolean,
-    description:
-      "Routine administrative on/off toggle — distinct from blocked, see the model note.",
+    description: 'Routine administrative on/off toggle — distinct from blocked, see the model note.',
   })
   isActive!: boolean;
 
@@ -96,8 +93,7 @@ export class UserSummaryDto {
   @ApiProperty({
     type: String,
     nullable: true,
-    description:
-      "User id of whoever created this account, if it wasn't a self-signup.",
+    description: "User id of whoever created this account, if it wasn't a self-signup.",
   })
   createdBy!: string | null;
 
@@ -124,27 +120,26 @@ export class UserListResponseDto {
 }
 
 export class CreateUserDto {
-  @ApiProperty({ type: String, example: "alice@example.com" })
+  @ApiProperty({ type: String, example: 'alice@example.com' })
   email!: string;
 
   @ApiProperty({
     type: String,
-    description:
-      "Set directly — there is no invitation email, the account is usable immediately.",
+    description: 'Set directly — there is no invitation email, the account is usable immediately.',
   })
   password!: string;
 
   @ApiProperty({
     type: String,
     required: false,
-    description: "Unique across the deployment.",
+    description: 'Unique across the deployment.',
   })
   firstName?: string;
 
   @ApiProperty({
     type: String,
     required: false,
-    description: "Unique across the deployment.",
+    description: 'Unique across the deployment.',
   })
   lastName?: string;
 
@@ -154,21 +149,21 @@ export class CreateUserDto {
   @ApiProperty({
     type: String,
     required: false,
-    description: "Unique across the deployment.",
+    description: 'Unique across the deployment.',
   })
   phone?: string;
 
   @ApiProperty({
     type: String,
     required: false,
-    description: "Unique across the deployment.",
+    description: 'Unique across the deployment.',
   })
   username?: string;
 
   @ApiProperty({
     type: String,
     required: false,
-    description: "Date of birth, ISO date (yyyy-mm-dd).",
+    description: 'Date of birth, ISO date (yyyy-mm-dd).',
   })
   dob?: string;
 
@@ -178,23 +173,21 @@ export class CreateUserDto {
   @ApiProperty({
     type: String,
     required: false,
-    description: "ISO date (yyyy-mm-dd). Defaults to today.",
+    description: 'ISO date (yyyy-mm-dd). Defaults to today.',
   })
   joinedDate?: string;
 
   @ApiProperty({
     type: Boolean,
     required: false,
-    description:
-      "Defaults to true — false creates the account already deactivated.",
+    description: 'Defaults to true — false creates the account already deactivated.',
   })
   isActive?: boolean;
 
   @ApiProperty({
     type: [String],
     required: false,
-    description:
-      "Role slugs to assign. Defaults to whichever roles are flagged isDefault, same as a self-signup.",
+    description: 'Role slugs to assign. Defaults to whichever roles are flagged isDefault, same as a self-signup.',
   })
   roles?: string[];
 }
@@ -205,7 +198,7 @@ export class UpdateUserDto {
     type: String,
     required: false,
     nullable: true,
-    description: "Unique across the deployment.",
+    description: 'Unique across the deployment.',
   })
   firstName?: string | null;
 
@@ -213,7 +206,7 @@ export class UpdateUserDto {
     type: String,
     required: false,
     nullable: true,
-    description: "Unique across the deployment.",
+    description: 'Unique across the deployment.',
   })
   lastName?: string | null;
 
@@ -224,7 +217,7 @@ export class UpdateUserDto {
     type: String,
     required: false,
     nullable: true,
-    description: "Unique across the deployment.",
+    description: 'Unique across the deployment.',
   })
   phone?: string | null;
 
@@ -232,7 +225,7 @@ export class UpdateUserDto {
     type: String,
     required: false,
     nullable: true,
-    description: "Unique across the deployment.",
+    description: 'Unique across the deployment.',
   })
   username?: string | null;
 
@@ -243,7 +236,7 @@ export class UpdateUserDto {
     type: String,
     required: false,
     nullable: true,
-    description: "Date of birth, ISO date (yyyy-mm-dd).",
+    description: 'Date of birth, ISO date (yyyy-mm-dd).',
   })
   dob?: string | null;
 
@@ -253,8 +246,7 @@ export class UpdateUserDto {
   @ApiProperty({
     type: String,
     required: false,
-    description:
-      "ISO date (yyyy-mm-dd). Not nullable — omit to leave unchanged.",
+    description: 'ISO date (yyyy-mm-dd). Not nullable — omit to leave unchanged.',
   })
   joinedDate?: string;
 }
@@ -262,13 +254,13 @@ export class UpdateUserDto {
 export class AssignRoleDto {
   @ApiProperty({
     type: String,
-    description: "Role slug",
-    example: "billing-manager",
+    description: 'Role slug',
+    example: 'billing-manager',
   })
   role!: string;
 }
 
 export class GrantPermissionDto {
-  @ApiProperty({ type: String, example: "billing:manage" })
+  @ApiProperty({ type: String, example: 'billing:manage' })
   permission!: string;
 }

@@ -1,17 +1,17 @@
 // Swagger-only DTOs for the workspace module. Same documentation-only role as auth.dto.ts —
 // see the note at the top of that file.
-import { ApiProperty } from "@nestjs/swagger";
+import { ApiProperty } from '@nestjs/swagger';
 
 export class CreateWorkspaceDto {
-  @ApiProperty({ type: String, example: "Acme Inc" })
+  @ApiProperty({ type: String, example: 'Acme Inc' })
   name!: string;
 }
 
 export class AddMemberDto {
   @ApiProperty({
     type: String,
-    description: "Email of an existing user",
-    example: "bob@example.com",
+    description: 'Email of an existing user',
+    example: 'bob@example.com',
   })
   email!: string;
 
@@ -19,7 +19,7 @@ export class AddMemberDto {
     type: [String],
     required: false,
     description: 'Defaults to ["member"]',
-    example: ["member"],
+    example: ['member'],
   })
   roles?: string[];
 }
@@ -28,7 +28,7 @@ export class SetMemberRolesDto {
   @ApiProperty({
     type: [String],
     description: "Replaces the member's whole role set",
-    example: ["admin", "member"],
+    example: ['admin', 'member'],
   })
   roles!: string[];
 }

@@ -1,5 +1,5 @@
-import { SignJWT, jwtVerify } from "jose";
-import { randomUUID } from "node:crypto";
+import { SignJWT, jwtVerify } from 'jose';
+import { randomUUID } from 'node:crypto';
 import {
   AccessTokenClaims,
   AccessTokenInput,
@@ -8,12 +8,12 @@ import {
   RefreshInvalidError,
   RefreshTokenClaims,
   TwoFactorChallengeInvalidError,
-} from "./types.js";
+} from './types.js';
 
 const ACCESS_TOKEN_TTL_SECONDS_DEFAULT = 900; // 15 min
 const REFRESH_TOKEN_TTL_SECONDS_DEFAULT = 60 * 60 * 24 * 30; // 30 days
 const TWO_FACTOR_CHALLENGE_TTL_SECONDS_DEFAULT = 5 * 60; // 5 min
-const TWO_FACTOR_CHALLENGE_PURPOSE = "2fa-challenge";
+const TWO_FACTOR_CHALLENGE_PURPOSE = '2fa-challenge';
 
 export interface SignDeps {
   activeKey: JwtSigningKey;
@@ -41,11 +41,9 @@ export async function signAccessToken(
     // Omitted, not emptied, when the caller passes neither: a token that resolves authorization
     // server-side must carry no authorization claim at all, so there is nothing to read off it.
     ...(claims.roles !== undefined ? { roles: claims.roles } : {}),
-    ...(claims.permissions !== undefined
-      ? { permissions: claims.permissions }
-      : {}),
+    ...(claims.permissions !== undefined ? { permissions: claims.permissions } : {}),
   })
-    .setProtectedHeader({ alg: "HS256", kid: deps.activeKey.kid })
+    .setProtectedHeader({ alg: 'HS256', kid: deps.activeKey.kid })
     .setSubject(claims.sub)
     .setJti(jti)
     .setIssuedAt(now)
@@ -54,23 +52,19 @@ export async function signAccessToken(
   return { token, jti, expiresAt: new Date((now + ttl) * 1000) };
 }
 
-export async function verifyAccessToken(
-  deps: VerifyAccessTokenDeps,
-  token: string,
-): Promise<AccessTokenClaims> {
+export async function verifyAccessToken(deps: VerifyAccessTokenDeps, token: string): Promise<AccessTokenClaims> {
   let payload;
   try {
     ({ payload } = await jwtVerify(token, deps.secret, {
-      algorithms: ["HS256"],
+      algorithms: ['HS256'],
     }));
   } catch {
     throw new AccessTokenInvalidError();
   }
 
   const jti = payload.jti;
-  if (!jti) throw new AccessTokenInvalidError("missing jti");
-  if (await deps.isDenylisted(jti))
-    throw new AccessTokenInvalidError("token revoked");
+  if (!jti) throw new AccessTokenInvalidError('missing jti');
+  if (await deps.isDenylisted(jti)) throw new AccessTokenInvalidError('token revoked');
 
   return {
     sub: payload.sub as string,
@@ -83,7 +77,7 @@ export async function verifyAccessToken(
 
 export async function signRefreshToken(
   deps: SignDeps,
-  claims: Omit<RefreshTokenClaims, "jti">,
+  claims: Omit<RefreshTokenClaims, 'jti'>,
   opts: { ttlSeconds?: number; jti?: string } = {},
 ): Promise<{ token: string; jti: string }> {
   const jti = opts.jti ?? randomUUID();
@@ -93,7 +87,7 @@ export async function signRefreshToken(
     sessionId: claims.sessionId,
     sv: claims.sv,
   })
-    .setProtectedHeader({ alg: "HS256", kid: deps.activeKey.kid })
+    .setProtectedHeader({ alg: 'HS256', kid: deps.activeKey.kid })
     .setSubject(claims.sub)
     .setJti(jti)
     .setIssuedAt(now)
@@ -113,7 +107,7 @@ export async function signTwoFactorChallengeToken(
   const ttl = opts.ttlSeconds ?? TWO_FACTOR_CHALLENGE_TTL_SECONDS_DEFAULT;
   const now = Math.floor(Date.now() / 1000);
   const token = await new SignJWT({ purpose: TWO_FACTOR_CHALLENGE_PURPOSE })
-    .setProtectedHeader({ alg: "HS256", kid: deps.activeKey.kid })
+    .setProtectedHeader({ alg: 'HS256', kid: deps.activeKey.kid })
     .setSubject(sub)
     .setJti(jti)
     .setIssuedAt(now)
@@ -129,33 +123,29 @@ export async function verifyTwoFactorChallengeToken(
   let payload;
   try {
     ({ payload } = await jwtVerify(token, deps.secret, {
-      algorithms: ["HS256"],
+      algorithms: ['HS256'],
     }));
   } catch {
     throw new TwoFactorChallengeInvalidError();
   }
 
   if (payload.purpose !== TWO_FACTOR_CHALLENGE_PURPOSE || !payload.sub)
-    throw new TwoFactorChallengeInvalidError("malformed claims");
+    throw new TwoFactorChallengeInvalidError('malformed claims');
   return { sub: payload.sub };
 }
 
-export async function verifyRefreshToken(
-  deps: VerifyRefreshTokenDeps,
-  token: string,
-): Promise<RefreshTokenClaims> {
+export async function verifyRefreshToken(deps: VerifyRefreshTokenDeps, token: string): Promise<RefreshTokenClaims> {
   let payload;
   try {
     ({ payload } = await jwtVerify(token, deps.secret, {
-      algorithms: ["HS256"],
+      algorithms: ['HS256'],
     }));
   } catch {
     throw new RefreshInvalidError();
   }
 
   const jti = payload.jti;
-  if (!jti || payload.sv === undefined || !payload.sessionId)
-    throw new RefreshInvalidError("malformed claims");
+  if (!jti || payload.sv === undefined || !payload.sessionId) throw new RefreshInvalidError('malformed claims');
 
   return {
     sub: payload.sub as string,

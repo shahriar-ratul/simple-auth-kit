@@ -13,26 +13,15 @@ import {
   Query,
   Req,
   UseGuards,
-} from "@nestjs/common";
-import {
-  ApiBearerAuth,
-  ApiBody,
-  ApiOperation,
-  ApiParam,
-  ApiQuery,
-  ApiResponse,
-  ApiTags,
-} from "@nestjs/swagger";
-import type { Request } from "express";
-import { AbilityGuard } from "../../../common/auth/ability/ability.guard.js";
-import { AdminService } from "../services/admin.service.js";
-import { AuthGuard } from "../../../common/auth/guards/auth.guard.js";
-import { AuthzGuard } from "../../../common/auth/guards/authz.guard.js";
-import { CheckAbility } from "../../../infra/route-tiers.js";
-import {
-  DeleteReasonDto,
-  OkResponseDto,
-} from "../../../common/dto/shared.dto.js";
+} from '@nestjs/common';
+import { ApiBearerAuth, ApiBody, ApiOperation, ApiParam, ApiQuery, ApiResponse, ApiTags } from '@nestjs/swagger';
+import type { Request } from 'express';
+import { AbilityGuard } from '../../../common/auth/ability/ability.guard.js';
+import { AdminService } from '../services/admin.service.js';
+import { AuthGuard } from '../../../common/auth/guards/auth.guard.js';
+import { AuthzGuard } from '../../../common/auth/guards/authz.guard.js';
+import { CheckAbility } from '../../../infra/route-tiers.js';
+import { DeleteReasonDto, OkResponseDto } from '../../../common/dto/shared.dto.js';
 import {
   AssignRoleDto,
   CreateUserDto,
@@ -40,37 +29,29 @@ import {
   UpdateUserDto,
   UserListResponseDto,
   UserSummaryDto,
-} from "../dto/admin.dto.js";
-import {
-  CountryListResponseDto,
-  CountrySummaryDto,
-  CreateCountryDto,
-  UpdateCountryDto,
-} from "../dto/country.dto.js";
+} from '../dto/admin.dto.js';
+import { CountryListResponseDto, CountrySummaryDto, CreateCountryDto, UpdateCountryDto } from '../dto/country.dto.js';
 import {
   CreateCustomerDto,
   CustomerListResponseDto,
   CustomerSummaryDto,
   UpdateCustomerDto,
-} from "../dto/customer.dto.js";
+} from '../dto/customer.dto.js';
 import {
   CreateLanguageDto,
   LanguageListResponseDto,
   LanguageSummaryDto,
   UpdateLanguageDto,
-} from "../dto/language.dto.js";
+} from '../dto/language.dto.js';
 
 function requireString(value: unknown, field: string): string {
-  if (typeof value !== "string" || value.length === 0)
-    throw new BadRequestException(`${field} is required`);
+  if (typeof value !== 'string' || value.length === 0) throw new BadRequestException(`${field} is required`);
   return value;
 }
 
-const optionalString = (value: unknown): string | undefined =>
-  typeof value === "string" ? value : undefined;
+const optionalString = (value: unknown): string | undefined => (typeof value === 'string' ? value : undefined);
 
-const optionalBoolean = (value: unknown): boolean | undefined =>
-  typeof value === "boolean" ? value : undefined;
+const optionalBoolean = (value: unknown): boolean | undefined => (typeof value === 'boolean' ? value : undefined);
 
 // Administration of the whole deployment: user management, block/unblock/deactivate/activate,
 // and user-scoped role/permission assignment — plus countries/languages/customers (unrelated to
@@ -80,37 +61,33 @@ const optionalBoolean = (value: unknown): boolean | undefined =>
 // never a role name — a role called "admin" that carries no permissions gets the same 403 as
 // holding no role at all. Run `npm run seed` first to provision the catalog and the roles that
 // carry it.
-@ApiTags("admin")
-@Controller("v1/admin")
+@ApiTags('admin')
+@Controller('v1/admin')
 @ApiBearerAuth()
 @UseGuards(AuthGuard, AuthzGuard, AbilityGuard)
 export class AdminController {
   constructor(@Inject(AdminService) private readonly admin: AdminService) {}
 
-  @Get("users")
-  @CheckAbility("users:read")
-  @ApiOperation({ summary: "[admin] List users" })
+  @Get('users')
+  @CheckAbility('users:read')
+  @ApiOperation({ summary: '[admin] List users' })
   @ApiQuery({
-    name: "search",
+    name: 'search',
     required: false,
-    description: "Email substring match",
+    description: 'Email substring match',
   })
   @ApiQuery({
-    name: "page",
+    name: 'page',
     required: false,
-    description: "1-indexed. Defaults to 1.",
+    description: '1-indexed. Defaults to 1.',
   })
   @ApiQuery({
-    name: "limit",
+    name: 'limit',
     required: false,
-    description: "Defaults to 25, capped at 100.",
+    description: 'Defaults to 25, capped at 100.',
   })
   @ApiResponse({ status: 200, type: UserListResponseDto })
-  async listUsers(
-    @Query("search") search?: string,
-    @Query("page") page?: string,
-    @Query("limit") limit?: string,
-  ) {
+  async listUsers(@Query('search') search?: string, @Query('page') page?: string, @Query('limit') limit?: string) {
     return this.admin.listUsers({
       search,
       page: page ? Number(page) : undefined,
@@ -118,20 +95,19 @@ export class AdminController {
     });
   }
 
-  @Post("users")
-  @CheckAbility("users:manage")
+  @Post('users')
+  @CheckAbility('users:manage')
   @ApiOperation({
-    summary: "[admin] Create a user directly",
-    description:
-      "No invitation email — the account is usable immediately with the password given here.",
+    summary: '[admin] Create a user directly',
+    description: 'No invitation email — the account is usable immediately with the password given here.',
   })
   @ApiBody({ type: CreateUserDto })
   @ApiResponse({ status: 201, type: UserSummaryDto })
   async createUser(@Body() body: Record<string, unknown>, @Req() req: Request) {
     return this.admin.createUser(
       {
-        email: requireString(body.email, "email"),
-        password: requireString(body.password, "password"),
+        email: requireString(body.email, 'email'),
+        password: requireString(body.password, 'password'),
         firstName: optionalString(body.firstName),
         lastName: optionalString(body.lastName),
         displayName: optionalString(body.displayName),
@@ -141,50 +117,40 @@ export class AdminController {
         dob: optionalString(body.dob),
         gender: optionalString(body.gender),
         joinedDate: optionalString(body.joinedDate),
-        isActive:
-          typeof body.isActive === "boolean" ? body.isActive : undefined,
+        isActive: typeof body.isActive === 'boolean' ? body.isActive : undefined,
         roles: Array.isArray(body.roles)
-          ? body.roles.filter(
-              (role): role is string => typeof role === "string",
-            )
+          ? body.roles.filter((role): role is string => typeof role === 'string')
           : undefined,
       },
       req.auth!.sub,
     );
   }
 
-  @Get("users/:userId")
-  @CheckAbility("users:read")
-  @ApiOperation({ summary: "[admin] Fetch a single user" })
-  @ApiParam({ name: "userId" })
+  @Get('users/:userId')
+  @CheckAbility('users:read')
+  @ApiOperation({ summary: '[admin] Fetch a single user' })
+  @ApiParam({ name: 'userId' })
   @ApiResponse({ status: 200, type: UserSummaryDto })
-  async getUser(@Param("userId") userId: string) {
+  async getUser(@Param('userId') userId: string) {
     return this.admin.getUser(userId);
   }
 
-  @Patch("users/:userId")
-  @CheckAbility("users:manage")
+  @Patch('users/:userId')
+  @CheckAbility('users:manage')
   @ApiOperation({
     summary: "[admin] Edit a user's profile",
-    description:
-      "Profile fields only — email is the login identifier and is not editable here.",
+    description: 'Profile fields only — email is the login identifier and is not editable here.',
   })
-  @ApiParam({ name: "userId" })
+  @ApiParam({ name: 'userId' })
   @ApiBody({ type: UpdateUserDto })
   @ApiResponse({ status: 200, type: UserSummaryDto })
-  async updateUser(
-    @Param("userId") userId: string,
-    @Body() body: Record<string, unknown>,
-    @Req() req: Request,
-  ) {
+  async updateUser(@Param('userId') userId: string, @Body() body: Record<string, unknown>, @Req() req: Request) {
     return this.admin.updateUser(
       userId,
       {
-        firstName:
-          body.firstName === null ? null : optionalString(body.firstName),
+        firstName: body.firstName === null ? null : optionalString(body.firstName),
         lastName: body.lastName === null ? null : optionalString(body.lastName),
-        displayName:
-          body.displayName === null ? null : optionalString(body.displayName),
+        displayName: body.displayName === null ? null : optionalString(body.displayName),
         phone: body.phone === null ? null : optionalString(body.phone),
         username: body.username === null ? null : optionalString(body.username),
         photo: body.photo === null ? null : optionalString(body.photo),
@@ -196,164 +162,117 @@ export class AdminController {
     );
   }
 
-  @Delete("users/:userId")
-  @CheckAbility("users:manage")
+  @Delete('users/:userId')
+  @CheckAbility('users:manage')
   @ApiOperation({
-    summary: "[admin] Delete a user",
+    summary: '[admin] Delete a user',
     description:
-      "Soft-delete: the row survives for audit purposes, stops appearing in listings, and can no longer authenticate.",
+      'Soft-delete: the row survives for audit purposes, stops appearing in listings, and can no longer authenticate.',
   })
-  @ApiParam({ name: "userId" })
+  @ApiParam({ name: 'userId' })
   @ApiBody({ type: DeleteReasonDto, required: false })
   @ApiResponse({ status: 200, type: OkResponseDto })
-  async deleteUser(
-    @Param("userId") userId: string,
-    @Body() body: Record<string, unknown>,
-    @Req() req: Request,
-  ) {
-    if (userId === req.auth!.sub)
-      throw new ForbiddenException("cannot delete your own account");
-    await this.admin.deleteUser(
-      userId,
-      req.auth!.sub,
-      optionalString(body?.reason),
-    );
+  async deleteUser(@Param('userId') userId: string, @Body() body: Record<string, unknown>, @Req() req: Request) {
+    if (userId === req.auth!.sub) throw new ForbiddenException('cannot delete your own account');
+    await this.admin.deleteUser(userId, req.auth!.sub, optionalString(body?.reason));
     return { ok: true };
   }
 
-  @Post("users/:userId/roles")
-  @CheckAbility("roles:assign")
-  @ApiOperation({ summary: "[admin] Assign a role to a user" })
-  @ApiParam({ name: "userId" })
+  @Post('users/:userId/roles')
+  @CheckAbility('roles:assign')
+  @ApiOperation({ summary: '[admin] Assign a role to a user' })
+  @ApiParam({ name: 'userId' })
   @ApiBody({ type: AssignRoleDto })
   @ApiResponse({ status: 201, type: OkResponseDto })
-  async assignRole(
-    @Param("userId") userId: string,
-    @Body() body: Record<string, unknown>,
-  ) {
-    await this.admin.assignRole(userId, requireString(body.role, "role"));
+  async assignRole(@Param('userId') userId: string, @Body() body: Record<string, unknown>) {
+    await this.admin.assignRole(userId, requireString(body.role, 'role'));
     return { ok: true };
   }
 
-  @Post("users/:userId/roles/:roleSlug/revoke")
-  @CheckAbility("roles:assign")
-  @ApiOperation({ summary: "[admin] Revoke a role from a user" })
-  @ApiParam({ name: "userId" })
-  @ApiParam({ name: "roleSlug" })
+  @Post('users/:userId/roles/:roleSlug/revoke')
+  @CheckAbility('roles:assign')
+  @ApiOperation({ summary: '[admin] Revoke a role from a user' })
+  @ApiParam({ name: 'userId' })
+  @ApiParam({ name: 'roleSlug' })
   @ApiResponse({ status: 201, type: OkResponseDto })
-  async revokeRole(
-    @Param("userId") userId: string,
-    @Param("roleSlug") roleSlug: string,
-    @Req() req: Request,
-  ) {
+  async revokeRole(@Param('userId') userId: string, @Param('roleSlug') roleSlug: string, @Req() req: Request) {
     // Revoking your own `admin` would strip the very permission that let you call this,
     // with no route back in. Assigning to yourself is fine — it can't lock anyone out.
-    if (userId === req.auth!.sub)
-      throw new ForbiddenException("cannot change your own roles");
+    if (userId === req.auth!.sub) throw new ForbiddenException('cannot change your own roles');
     await this.admin.revokeRole(userId, roleSlug);
     return { ok: true };
   }
 
-  @Post("users/:userId/permissions")
-  @CheckAbility("permissions:grant")
+  @Post('users/:userId/permissions')
+  @CheckAbility('permissions:grant')
   @ApiOperation({
-    summary: "[admin] Grant a permission directly to a user, bypassing roles",
+    summary: '[admin] Grant a permission directly to a user, bypassing roles',
   })
-  @ApiParam({ name: "userId" })
+  @ApiParam({ name: 'userId' })
   @ApiBody({ type: GrantPermissionDto })
   @ApiResponse({ status: 201, type: OkResponseDto })
-  async grantPermission(
-    @Param("userId") userId: string,
-    @Body() body: Record<string, unknown>,
-    @Req() req: Request,
-  ) {
-    await this.admin.grantPermission(
-      userId,
-      requireString(body.permission, "permission"),
-      req.auth!.sub,
-    );
+  async grantPermission(@Param('userId') userId: string, @Body() body: Record<string, unknown>, @Req() req: Request) {
+    await this.admin.grantPermission(userId, requireString(body.permission, 'permission'), req.auth!.sub);
     return { ok: true };
   }
 
-  @Post("users/:userId/permissions/:permissionSlug/revoke")
-  @CheckAbility("permissions:grant")
+  @Post('users/:userId/permissions/:permissionSlug/revoke')
+  @CheckAbility('permissions:grant')
   @ApiOperation({
-    summary: "[admin] Revoke a direct permission grant from a user",
+    summary: '[admin] Revoke a direct permission grant from a user',
   })
-  @ApiParam({ name: "userId" })
-  @ApiParam({ name: "permissionSlug" })
+  @ApiParam({ name: 'userId' })
+  @ApiParam({ name: 'permissionSlug' })
   @ApiResponse({ status: 201, type: OkResponseDto })
-  async revokePermission(
-    @Param("userId") userId: string,
-    @Param("permissionSlug") permissionSlug: string,
-  ) {
+  async revokePermission(@Param('userId') userId: string, @Param('permissionSlug') permissionSlug: string) {
     await this.admin.revokePermission(userId, permissionSlug);
     return { ok: true };
   }
 
-  @Post("users/:userId/block")
-  @CheckAbility("users:block")
+  @Post('users/:userId/block')
+  @CheckAbility('users:block')
   @ApiOperation({
-    summary: "[admin] Block a user, revoking all their sessions immediately",
+    summary: '[admin] Block a user, revoking all their sessions immediately',
   })
-  @ApiParam({ name: "userId" })
+  @ApiParam({ name: 'userId' })
   @ApiResponse({ status: 201, type: OkResponseDto })
-  async block(
-    @Param("userId") userId: string,
-    @Req() req: Request,
-    @Ip() ip: string,
-  ) {
-    if (userId === req.auth!.sub)
-      throw new ForbiddenException("cannot block your own account");
+  async block(@Param('userId') userId: string, @Req() req: Request, @Ip() ip: string) {
+    if (userId === req.auth!.sub) throw new ForbiddenException('cannot block your own account');
     await this.admin.block(userId, { userId: req.auth!.sub, ip });
     return { ok: true };
   }
 
-  @Post("users/:userId/unblock")
-  @CheckAbility("users:block")
-  @ApiOperation({ summary: "[admin] Unblock a user" })
-  @ApiParam({ name: "userId" })
+  @Post('users/:userId/unblock')
+  @CheckAbility('users:block')
+  @ApiOperation({ summary: '[admin] Unblock a user' })
+  @ApiParam({ name: 'userId' })
   @ApiResponse({ status: 201, type: OkResponseDto })
-  async unblock(
-    @Param("userId") userId: string,
-    @Req() req: Request,
-    @Ip() ip: string,
-  ) {
+  async unblock(@Param('userId') userId: string, @Req() req: Request, @Ip() ip: string) {
     await this.admin.unblock(userId, { userId: req.auth!.sub, ip });
     return { ok: true };
   }
 
-  @Post("users/:userId/deactivate")
-  @CheckAbility("users:block")
+  @Post('users/:userId/deactivate')
+  @CheckAbility('users:block')
   @ApiOperation({
-    summary:
-      "[admin] Deactivate a user, revoking all their sessions immediately",
+    summary: '[admin] Deactivate a user, revoking all their sessions immediately',
     description:
-      "Distinct from block/unblock — a routine administrative toggle, not a security action. Both independently deny login.",
+      'Distinct from block/unblock — a routine administrative toggle, not a security action. Both independently deny login.',
   })
-  @ApiParam({ name: "userId" })
+  @ApiParam({ name: 'userId' })
   @ApiResponse({ status: 201, type: OkResponseDto })
-  async deactivate(
-    @Param("userId") userId: string,
-    @Req() req: Request,
-    @Ip() ip: string,
-  ) {
-    if (userId === req.auth!.sub)
-      throw new ForbiddenException("cannot deactivate your own account");
+  async deactivate(@Param('userId') userId: string, @Req() req: Request, @Ip() ip: string) {
+    if (userId === req.auth!.sub) throw new ForbiddenException('cannot deactivate your own account');
     await this.admin.deactivate(userId, { userId: req.auth!.sub, ip });
     return { ok: true };
   }
 
-  @Post("users/:userId/activate")
-  @CheckAbility("users:block")
-  @ApiOperation({ summary: "[admin] Reactivate a user" })
-  @ApiParam({ name: "userId" })
+  @Post('users/:userId/activate')
+  @CheckAbility('users:block')
+  @ApiOperation({ summary: '[admin] Reactivate a user' })
+  @ApiParam({ name: 'userId' })
   @ApiResponse({ status: 201, type: OkResponseDto })
-  async activate(
-    @Param("userId") userId: string,
-    @Req() req: Request,
-    @Ip() ip: string,
-  ) {
+  async activate(@Param('userId') userId: string, @Req() req: Request, @Ip() ip: string) {
     await this.admin.activate(userId, { userId: req.auth!.sub, ip });
     return { ok: true };
   }
@@ -362,64 +281,60 @@ export class AdminController {
   // Unrelated to RBAC — reference data an admin maintains. Kept in AdminController rather than a
   // dedicated module, out of scope for this pass (see the note on the "admin" domain split).
 
-  @Get("countries")
-  @CheckAbility("countries:read")
-  @ApiOperation({ summary: "[admin] List countries" })
+  @Get('countries')
+  @CheckAbility('countries:read')
+  @ApiOperation({ summary: '[admin] List countries' })
   @ApiQuery({
-    name: "search",
+    name: 'search',
     required: false,
-    description: "Matches name/code/isoCode",
+    description: 'Matches name/code/isoCode',
   })
   @ApiQuery({
-    name: "page",
+    name: 'page',
     required: false,
-    description: "1-indexed. Defaults to 1.",
+    description: '1-indexed. Defaults to 1.',
   })
   @ApiQuery({
-    name: "limit",
+    name: 'limit',
     required: false,
-    description: "Defaults to 25, capped at 100.",
+    description: 'Defaults to 25, capped at 100.',
   })
   @ApiQuery({
-    name: "activeOnly",
+    name: 'activeOnly',
     required: false,
     type: Boolean,
-    description:
-      "Pass true for a picker/dropdown — false or omitted returns everything, active or not.",
+    description: 'Pass true for a picker/dropdown — false or omitted returns everything, active or not.',
   })
   @ApiResponse({ status: 200, type: CountryListResponseDto })
   async listCountries(
-    @Query("search") search?: string,
-    @Query("page") page?: string,
-    @Query("limit") limit?: string,
-    @Query("activeOnly") activeOnly?: string,
+    @Query('search') search?: string,
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
+    @Query('activeOnly') activeOnly?: string,
   ) {
     return this.admin.listCountries({
       search,
       page: page ? Number(page) : undefined,
       limit: limit ? Number(limit) : undefined,
-      activeOnly: activeOnly === "true",
+      activeOnly: activeOnly === 'true',
     });
   }
 
-  @Post("countries")
-  @CheckAbility("countries:manage")
-  @ApiOperation({ summary: "[admin] Create a country" })
+  @Post('countries')
+  @CheckAbility('countries:manage')
+  @ApiOperation({ summary: '[admin] Create a country' })
   @ApiBody({ type: CreateCountryDto })
   @ApiResponse({ status: 201, type: CountrySummaryDto })
-  async createCountry(
-    @Body() body: Record<string, unknown>,
-    @Req() req: Request,
-  ) {
+  async createCountry(@Body() body: Record<string, unknown>, @Req() req: Request) {
     return this.admin.createCountry(
       {
-        code: requireString(body.code, "code"),
-        name: requireString(body.name, "name"),
-        emoji: requireString(body.emoji, "emoji"),
-        phoneCode: requireString(body.phoneCode, "phoneCode"),
-        currency: requireString(body.currency, "currency"),
-        currencyName: requireString(body.currencyName, "currencyName"),
-        isoCode: requireString(body.isoCode, "isoCode"),
+        code: requireString(body.code, 'code'),
+        name: requireString(body.name, 'name'),
+        emoji: requireString(body.emoji, 'emoji'),
+        phoneCode: requireString(body.phoneCode, 'phoneCode'),
+        currency: requireString(body.currency, 'currency'),
+        currencyName: requireString(body.currencyName, 'currencyName'),
+        isoCode: requireString(body.isoCode, 'isoCode'),
         flag: optionalString(body.flag),
         isActive: optionalBoolean(body.isActive),
       },
@@ -427,23 +342,23 @@ export class AdminController {
     );
   }
 
-  @Get("countries/:countryId")
-  @CheckAbility("countries:read")
-  @ApiOperation({ summary: "[admin] Fetch a single country" })
-  @ApiParam({ name: "countryId" })
+  @Get('countries/:countryId')
+  @CheckAbility('countries:read')
+  @ApiOperation({ summary: '[admin] Fetch a single country' })
+  @ApiParam({ name: 'countryId' })
   @ApiResponse({ status: 200, type: CountrySummaryDto })
-  async getCountry(@Param("countryId") countryId: string) {
+  async getCountry(@Param('countryId') countryId: string) {
     return this.admin.getCountry(countryId);
   }
 
-  @Patch("countries/:countryId")
-  @CheckAbility("countries:manage")
-  @ApiOperation({ summary: "[admin] Edit a country" })
-  @ApiParam({ name: "countryId" })
+  @Patch('countries/:countryId')
+  @CheckAbility('countries:manage')
+  @ApiOperation({ summary: '[admin] Edit a country' })
+  @ApiParam({ name: 'countryId' })
   @ApiBody({ type: UpdateCountryDto })
   @ApiResponse({ status: 200, type: CountrySummaryDto })
   async updateCountry(
-    @Param("countryId") countryId: string,
+    @Param('countryId') countryId: string,
     @Body() body: Record<string, unknown>,
     @Req() req: Request,
   ) {
@@ -464,111 +379,96 @@ export class AdminController {
     );
   }
 
-  @Delete("countries/:countryId")
-  @CheckAbility("countries:manage")
+  @Delete('countries/:countryId')
+  @CheckAbility('countries:manage')
   @ApiOperation({
-    summary: "[admin] Delete a country",
-    description:
-      "Soft-delete: the row survives for audit purposes and stops appearing in listings.",
+    summary: '[admin] Delete a country',
+    description: 'Soft-delete: the row survives for audit purposes and stops appearing in listings.',
   })
-  @ApiParam({ name: "countryId" })
+  @ApiParam({ name: 'countryId' })
   @ApiBody({ type: DeleteReasonDto, required: false })
   @ApiResponse({ status: 200, type: OkResponseDto })
   async deleteCountry(
-    @Param("countryId") countryId: string,
+    @Param('countryId') countryId: string,
     @Body() body: Record<string, unknown>,
     @Req() req: Request,
   ) {
-    await this.admin.deleteCountry(
-      countryId,
-      req.auth!.sub,
-      optionalString(body?.reason),
-    );
+    await this.admin.deleteCountry(countryId, req.auth!.sub, optionalString(body?.reason));
     return { ok: true };
   }
 
-  @Post("countries/:countryId/activate")
-  @CheckAbility("countries:status")
-  @ApiOperation({ summary: "[admin] Reactivate a country" })
-  @ApiParam({ name: "countryId" })
+  @Post('countries/:countryId/activate')
+  @CheckAbility('countries:status')
+  @ApiOperation({ summary: '[admin] Reactivate a country' })
+  @ApiParam({ name: 'countryId' })
   @ApiResponse({ status: 201, type: OkResponseDto })
-  async activateCountry(
-    @Param("countryId") countryId: string,
-    @Req() req: Request,
-  ) {
+  async activateCountry(@Param('countryId') countryId: string, @Req() req: Request) {
     await this.admin.activateCountry(countryId, req.auth!.sub);
     return { ok: true };
   }
 
-  @Post("countries/:countryId/deactivate")
-  @CheckAbility("countries:status")
-  @ApiOperation({ summary: "[admin] Deactivate a country" })
-  @ApiParam({ name: "countryId" })
+  @Post('countries/:countryId/deactivate')
+  @CheckAbility('countries:status')
+  @ApiOperation({ summary: '[admin] Deactivate a country' })
+  @ApiParam({ name: 'countryId' })
   @ApiResponse({ status: 201, type: OkResponseDto })
-  async deactivateCountry(
-    @Param("countryId") countryId: string,
-    @Req() req: Request,
-  ) {
+  async deactivateCountry(@Param('countryId') countryId: string, @Req() req: Request) {
     await this.admin.deactivateCountry(countryId, req.auth!.sub);
     return { ok: true };
   }
 
   // ---- languages ----
 
-  @Get("languages")
-  @CheckAbility("languages:read")
-  @ApiOperation({ summary: "[admin] List languages" })
+  @Get('languages')
+  @CheckAbility('languages:read')
+  @ApiOperation({ summary: '[admin] List languages' })
   @ApiQuery({
-    name: "search",
+    name: 'search',
     required: false,
-    description: "Matches name/code/nativeName",
+    description: 'Matches name/code/nativeName',
   })
   @ApiQuery({
-    name: "page",
+    name: 'page',
     required: false,
-    description: "1-indexed. Defaults to 1.",
+    description: '1-indexed. Defaults to 1.',
   })
   @ApiQuery({
-    name: "limit",
+    name: 'limit',
     required: false,
-    description: "Defaults to 25, capped at 100.",
+    description: 'Defaults to 25, capped at 100.',
   })
   @ApiQuery({
-    name: "activeOnly",
+    name: 'activeOnly',
     required: false,
     type: Boolean,
-    description:
-      "Pass true for a picker/dropdown — false or omitted returns everything, active or not.",
+    description: 'Pass true for a picker/dropdown — false or omitted returns everything, active or not.',
   })
   @ApiResponse({ status: 200, type: LanguageListResponseDto })
   async listLanguages(
-    @Query("search") search?: string,
-    @Query("page") page?: string,
-    @Query("limit") limit?: string,
-    @Query("activeOnly") activeOnly?: string,
+    @Query('search') search?: string,
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
+    @Query('activeOnly') activeOnly?: string,
   ) {
     return this.admin.listLanguages({
       search,
       page: page ? Number(page) : undefined,
       limit: limit ? Number(limit) : undefined,
-      activeOnly: activeOnly === "true",
+      activeOnly: activeOnly === 'true',
     });
   }
 
-  @Post("languages")
-  @CheckAbility("languages:manage")
-  @ApiOperation({ summary: "[admin] Create a language" })
+  @Post('languages')
+  @CheckAbility('languages:manage')
+  @ApiOperation({ summary: '[admin] Create a language' })
   @ApiBody({ type: CreateLanguageDto })
   @ApiResponse({ status: 201, type: LanguageSummaryDto })
-  async createLanguage(
-    @Body() body: Record<string, unknown>,
-    @Req() req: Request,
-  ) {
+  async createLanguage(@Body() body: Record<string, unknown>, @Req() req: Request) {
     return this.admin.createLanguage(
       {
-        code: requireString(body.code, "code"),
-        name: requireString(body.name, "name"),
-        nativeName: requireString(body.nativeName, "nativeName"),
+        code: requireString(body.code, 'code'),
+        name: requireString(body.name, 'name'),
+        nativeName: requireString(body.nativeName, 'nativeName'),
         direction: optionalString(body.direction),
         isDefault: optionalBoolean(body.isDefault),
         isActive: optionalBoolean(body.isActive),
@@ -577,23 +477,23 @@ export class AdminController {
     );
   }
 
-  @Get("languages/:languageId")
-  @CheckAbility("languages:read")
-  @ApiOperation({ summary: "[admin] Fetch a single language" })
-  @ApiParam({ name: "languageId" })
+  @Get('languages/:languageId')
+  @CheckAbility('languages:read')
+  @ApiOperation({ summary: '[admin] Fetch a single language' })
+  @ApiParam({ name: 'languageId' })
   @ApiResponse({ status: 200, type: LanguageSummaryDto })
-  async getLanguage(@Param("languageId") languageId: string) {
+  async getLanguage(@Param('languageId') languageId: string) {
     return this.admin.getLanguage(languageId);
   }
 
-  @Patch("languages/:languageId")
-  @CheckAbility("languages:manage")
-  @ApiOperation({ summary: "[admin] Edit a language" })
-  @ApiParam({ name: "languageId" })
+  @Patch('languages/:languageId')
+  @CheckAbility('languages:manage')
+  @ApiOperation({ summary: '[admin] Edit a language' })
+  @ApiParam({ name: 'languageId' })
   @ApiBody({ type: UpdateLanguageDto })
   @ApiResponse({ status: 200, type: LanguageSummaryDto })
   async updateLanguage(
-    @Param("languageId") languageId: string,
+    @Param('languageId') languageId: string,
     @Body() body: Record<string, unknown>,
     @Req() req: Request,
   ) {
@@ -611,51 +511,40 @@ export class AdminController {
     );
   }
 
-  @Delete("languages/:languageId")
-  @CheckAbility("languages:manage")
+  @Delete('languages/:languageId')
+  @CheckAbility('languages:manage')
   @ApiOperation({
-    summary: "[admin] Delete a language",
-    description:
-      "Soft-delete: the row survives for audit purposes and stops appearing in listings.",
+    summary: '[admin] Delete a language',
+    description: 'Soft-delete: the row survives for audit purposes and stops appearing in listings.',
   })
-  @ApiParam({ name: "languageId" })
+  @ApiParam({ name: 'languageId' })
   @ApiBody({ type: DeleteReasonDto, required: false })
   @ApiResponse({ status: 200, type: OkResponseDto })
   async deleteLanguage(
-    @Param("languageId") languageId: string,
+    @Param('languageId') languageId: string,
     @Body() body: Record<string, unknown>,
     @Req() req: Request,
   ) {
-    await this.admin.deleteLanguage(
-      languageId,
-      req.auth!.sub,
-      optionalString(body?.reason),
-    );
+    await this.admin.deleteLanguage(languageId, req.auth!.sub, optionalString(body?.reason));
     return { ok: true };
   }
 
-  @Post("languages/:languageId/activate")
-  @CheckAbility("languages:status")
-  @ApiOperation({ summary: "[admin] Reactivate a language" })
-  @ApiParam({ name: "languageId" })
+  @Post('languages/:languageId/activate')
+  @CheckAbility('languages:status')
+  @ApiOperation({ summary: '[admin] Reactivate a language' })
+  @ApiParam({ name: 'languageId' })
   @ApiResponse({ status: 201, type: OkResponseDto })
-  async activateLanguage(
-    @Param("languageId") languageId: string,
-    @Req() req: Request,
-  ) {
+  async activateLanguage(@Param('languageId') languageId: string, @Req() req: Request) {
     await this.admin.activateLanguage(languageId, req.auth!.sub);
     return { ok: true };
   }
 
-  @Post("languages/:languageId/deactivate")
-  @CheckAbility("languages:status")
-  @ApiOperation({ summary: "[admin] Deactivate a language" })
-  @ApiParam({ name: "languageId" })
+  @Post('languages/:languageId/deactivate')
+  @CheckAbility('languages:status')
+  @ApiOperation({ summary: '[admin] Deactivate a language' })
+  @ApiParam({ name: 'languageId' })
   @ApiResponse({ status: 201, type: OkResponseDto })
-  async deactivateLanguage(
-    @Param("languageId") languageId: string,
-    @Req() req: Request,
-  ) {
+  async deactivateLanguage(@Param('languageId') languageId: string, @Req() req: Request) {
     await this.admin.deactivateLanguage(languageId, req.auth!.sub);
     return { ok: true };
   }
@@ -663,58 +552,54 @@ export class AdminController {
   // ---- customers ----
   // End-users managed by admins — no login capability, not related to the RBAC User model above.
 
-  @Get("customers")
-  @CheckAbility("customers:read")
-  @ApiOperation({ summary: "[admin] List customers" })
+  @Get('customers')
+  @CheckAbility('customers:read')
+  @ApiOperation({ summary: '[admin] List customers' })
   @ApiQuery({
-    name: "search",
+    name: 'search',
     required: false,
-    description: "Matches name/email/username/phone",
+    description: 'Matches name/email/username/phone',
   })
   @ApiQuery({
-    name: "page",
+    name: 'page',
     required: false,
-    description: "1-indexed. Defaults to 1.",
+    description: '1-indexed. Defaults to 1.',
   })
   @ApiQuery({
-    name: "limit",
+    name: 'limit',
     required: false,
-    description: "Defaults to 25, capped at 100.",
+    description: 'Defaults to 25, capped at 100.',
   })
   @ApiQuery({
-    name: "activeOnly",
+    name: 'activeOnly',
     required: false,
     type: Boolean,
-    description:
-      "Pass true for a picker/dropdown — false or omitted returns everything, active or not.",
+    description: 'Pass true for a picker/dropdown — false or omitted returns everything, active or not.',
   })
   @ApiResponse({ status: 200, type: CustomerListResponseDto })
   async listCustomers(
-    @Query("search") search?: string,
-    @Query("page") page?: string,
-    @Query("limit") limit?: string,
-    @Query("activeOnly") activeOnly?: string,
+    @Query('search') search?: string,
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
+    @Query('activeOnly') activeOnly?: string,
   ) {
     return this.admin.listCustomers({
       search,
       page: page ? Number(page) : undefined,
       limit: limit ? Number(limit) : undefined,
-      activeOnly: activeOnly === "true",
+      activeOnly: activeOnly === 'true',
     });
   }
 
-  @Post("customers")
-  @CheckAbility("customers:manage")
-  @ApiOperation({ summary: "[admin] Create a customer" })
+  @Post('customers')
+  @CheckAbility('customers:manage')
+  @ApiOperation({ summary: '[admin] Create a customer' })
   @ApiBody({ type: CreateCustomerDto })
   @ApiResponse({ status: 201, type: CustomerSummaryDto })
-  async createCustomer(
-    @Body() body: Record<string, unknown>,
-    @Req() req: Request,
-  ) {
+  async createCustomer(@Body() body: Record<string, unknown>, @Req() req: Request) {
     return this.admin.createCustomer(
       {
-        email: requireString(body.email, "email"),
+        email: requireString(body.email, 'email'),
         firstName: optionalString(body.firstName),
         lastName: optionalString(body.lastName),
         username: optionalString(body.username),
@@ -731,23 +616,23 @@ export class AdminController {
     );
   }
 
-  @Get("customers/:customerId")
-  @CheckAbility("customers:read")
-  @ApiOperation({ summary: "[admin] Fetch a single customer" })
-  @ApiParam({ name: "customerId" })
+  @Get('customers/:customerId')
+  @CheckAbility('customers:read')
+  @ApiOperation({ summary: '[admin] Fetch a single customer' })
+  @ApiParam({ name: 'customerId' })
   @ApiResponse({ status: 200, type: CustomerSummaryDto })
-  async getCustomer(@Param("customerId") customerId: string) {
+  async getCustomer(@Param('customerId') customerId: string) {
     return this.admin.getCustomer(customerId);
   }
 
-  @Patch("customers/:customerId")
-  @CheckAbility("customers:manage")
-  @ApiOperation({ summary: "[admin] Edit a customer" })
-  @ApiParam({ name: "customerId" })
+  @Patch('customers/:customerId')
+  @CheckAbility('customers:manage')
+  @ApiOperation({ summary: '[admin] Edit a customer' })
+  @ApiParam({ name: 'customerId' })
   @ApiBody({ type: UpdateCustomerDto })
   @ApiResponse({ status: 200, type: CustomerSummaryDto })
   async updateCustomer(
-    @Param("customerId") customerId: string,
+    @Param('customerId') customerId: string,
     @Body() body: Record<string, unknown>,
     @Req() req: Request,
   ) {
@@ -755,8 +640,7 @@ export class AdminController {
       customerId,
       {
         email: optionalString(body.email),
-        firstName:
-          body.firstName === null ? null : optionalString(body.firstName),
+        firstName: body.firstName === null ? null : optionalString(body.firstName),
         lastName: body.lastName === null ? null : optionalString(body.lastName),
         username: body.username === null ? null : optionalString(body.username),
         phone: body.phone === null ? null : optionalString(body.phone),
@@ -772,51 +656,40 @@ export class AdminController {
     );
   }
 
-  @Delete("customers/:customerId")
-  @CheckAbility("customers:manage")
+  @Delete('customers/:customerId')
+  @CheckAbility('customers:manage')
   @ApiOperation({
-    summary: "[admin] Delete a customer",
-    description:
-      "Soft-delete: the row survives for audit purposes and stops appearing in listings.",
+    summary: '[admin] Delete a customer',
+    description: 'Soft-delete: the row survives for audit purposes and stops appearing in listings.',
   })
-  @ApiParam({ name: "customerId" })
+  @ApiParam({ name: 'customerId' })
   @ApiBody({ type: DeleteReasonDto, required: false })
   @ApiResponse({ status: 200, type: OkResponseDto })
   async deleteCustomer(
-    @Param("customerId") customerId: string,
+    @Param('customerId') customerId: string,
     @Body() body: Record<string, unknown>,
     @Req() req: Request,
   ) {
-    await this.admin.deleteCustomer(
-      customerId,
-      req.auth!.sub,
-      optionalString(body?.reason),
-    );
+    await this.admin.deleteCustomer(customerId, req.auth!.sub, optionalString(body?.reason));
     return { ok: true };
   }
 
-  @Post("customers/:customerId/activate")
-  @CheckAbility("customers:status")
-  @ApiOperation({ summary: "[admin] Reactivate a customer" })
-  @ApiParam({ name: "customerId" })
+  @Post('customers/:customerId/activate')
+  @CheckAbility('customers:status')
+  @ApiOperation({ summary: '[admin] Reactivate a customer' })
+  @ApiParam({ name: 'customerId' })
   @ApiResponse({ status: 201, type: OkResponseDto })
-  async activateCustomer(
-    @Param("customerId") customerId: string,
-    @Req() req: Request,
-  ) {
+  async activateCustomer(@Param('customerId') customerId: string, @Req() req: Request) {
     await this.admin.activateCustomer(customerId, req.auth!.sub);
     return { ok: true };
   }
 
-  @Post("customers/:customerId/deactivate")
-  @CheckAbility("customers:status")
-  @ApiOperation({ summary: "[admin] Deactivate a customer" })
-  @ApiParam({ name: "customerId" })
+  @Post('customers/:customerId/deactivate')
+  @CheckAbility('customers:status')
+  @ApiOperation({ summary: '[admin] Deactivate a customer' })
+  @ApiParam({ name: 'customerId' })
   @ApiResponse({ status: 201, type: OkResponseDto })
-  async deactivateCustomer(
-    @Param("customerId") customerId: string,
-    @Req() req: Request,
-  ) {
+  async deactivateCustomer(@Param('customerId') customerId: string, @Req() req: Request) {
     await this.admin.deactivateCustomer(customerId, req.auth!.sub);
     return { ok: true };
   }

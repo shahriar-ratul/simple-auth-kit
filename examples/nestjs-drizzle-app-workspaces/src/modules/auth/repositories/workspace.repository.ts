@@ -1,24 +1,10 @@
-import {
-  ConflictException,
-  Inject,
-  Injectable,
-  NotFoundException,
-} from "@nestjs/common";
-import { and, asc, eq, inArray } from "drizzle-orm";
-import { DRIZZLE_DB, type Database } from "../../../common/config/db.js";
-import {
-  provisionDefaultRoles,
-  WORKSPACE_CREATOR_ROLES,
-} from "../rbac.defaults.js";
-import { RbacRepository } from "./rbac.repository.js";
-import {
-  roleMember,
-  roles,
-  users,
-  workspaceMembers,
-  workspaces,
-} from "@/database/schema.js";
-import { toId, toIdOrNull } from "../../../common/helpers/id.helper.js";
+import { ConflictException, Inject, Injectable, NotFoundException } from '@nestjs/common';
+import { and, asc, eq, inArray } from 'drizzle-orm';
+import { DRIZZLE_DB, type Database } from '../../../common/config/db.js';
+import { provisionDefaultRoles, WORKSPACE_CREATOR_ROLES } from '../rbac.defaults.js';
+import { RbacRepository } from './rbac.repository.js';
+import { roleMember, roles, users, workspaceMembers, workspaces } from '@/database/schema.js';
+import { toId, toIdOrNull } from '../../../common/helpers/id.helper.js';
 
 export interface WorkspaceSummary {
   id: string;
@@ -66,12 +52,7 @@ export class WorkspaceRepository {
       const creatorRoles = await tx
         .select({ id: roles.id })
         .from(roles)
-        .where(
-          and(
-            eq(roles.workspaceId, created.id),
-            inArray(roles.slug, WORKSPACE_CREATOR_ROLES),
-          ),
-        );
+        .where(and(eq(roles.workspaceId, created.id), inArray(roles.slug, WORKSPACE_CREATOR_ROLES)));
       const [member] = await tx
         .insert(workspaceMembers)
         .values({ workspaceId: created.id, userId: userIdBig })
@@ -104,19 +85,11 @@ export class WorkspaceRepository {
         createdAt: workspaces.createdAt,
       })
       .from(workspaceMembers)
-      .innerJoin(
-        workspaces,
-        and(
-          eq(workspaces.id, workspaceMembers.workspaceId),
-          eq(workspaces.isDeleted, false),
-        ),
-      )
+      .innerJoin(workspaces, and(eq(workspaces.id, workspaceMembers.workspaceId), eq(workspaces.isDeleted, false)))
       .where(eq(workspaceMembers.userId, toId(userId)))
       .orderBy(asc(workspaceMembers.createdAt));
 
-    const rolesByMember = await this.rolesByMember(
-      memberships.map((m) => m.memberId),
-    );
+    const rolesByMember = await this.rolesByMember(memberships.map((m) => m.memberId));
     return memberships.map((m) => ({
       id: m.id.toString(),
       name: m.name,
@@ -134,10 +107,7 @@ export class WorkspaceRepository {
         email: users.email,
       })
       .from(workspaceMembers)
-      .innerJoin(
-        users,
-        and(eq(users.id, workspaceMembers.userId), eq(users.isDeleted, false)),
-      )
+      .innerJoin(users, and(eq(users.id, workspaceMembers.userId), eq(users.isDeleted, false)))
       .where(eq(workspaceMembers.workspaceId, toId(workspaceId)))
       .orderBy(asc(workspaceMembers.createdAt));
 
@@ -166,23 +136,11 @@ export class WorkspaceRepository {
       .from(roles)
       .where(
         roleSlugs
-          ? and(
-              eq(roles.workspaceId, workspaceIdBig),
-              inArray(roles.slug, roleSlugs),
-            )
-          : and(
-              eq(roles.workspaceId, workspaceIdBig),
-              eq(roles.isDefault, true),
-              eq(roles.isActive, true),
-            ),
+          ? and(eq(roles.workspaceId, workspaceIdBig), inArray(roles.slug, roleSlugs))
+          : and(eq(roles.workspaceId, workspaceIdBig), eq(roles.isDefault, true), eq(roles.isActive, true)),
       );
-    const unknown = (roleSlugs ?? []).filter(
-      (slug) => !granted.some((role) => role.slug === slug),
-    );
-    if (unknown.length)
-      throw new NotFoundException(
-        `role(s) not defined in this workspace: ${unknown.join(", ")}`,
-      );
+    const unknown = (roleSlugs ?? []).filter((slug) => !granted.some((role) => role.slug === slug));
+    if (unknown.length) throw new NotFoundException(`role(s) not defined in this workspace: ${unknown.join(', ')}`);
     return granted;
   }
 
@@ -191,31 +149,21 @@ export class WorkspaceRepository {
    * consuming app's job. With no roles named, the new membership gets whichever of this
    * workspace's roles are flagged `isDefault`, not a slug spelled in code.
    */
-  async addMember(
-    workspaceId: string,
-    email: string,
-    roleSlugs?: string[],
-  ): Promise<MembershipSummary> {
+  async addMember(workspaceId: string, email: string, roleSlugs?: string[]): Promise<MembershipSummary> {
     const workspaceIdBig = toId(workspaceId);
     const [user] = await this.db
       .select({ id: users.id, email: users.email })
       .from(users)
       .where(eq(users.email, email))
       .limit(1);
-    if (!user) throw new NotFoundException("no user with that email");
+    if (!user) throw new NotFoundException('no user with that email');
 
     const [existing] = await this.db
       .select({ id: workspaceMembers.id })
       .from(workspaceMembers)
-      .where(
-        and(
-          eq(workspaceMembers.userId, user.id),
-          eq(workspaceMembers.workspaceId, workspaceIdBig),
-        ),
-      )
+      .where(and(eq(workspaceMembers.userId, user.id), eq(workspaceMembers.workspaceId, workspaceIdBig)))
       .limit(1);
-    if (existing)
-      throw new ConflictException("already a member of this workspace");
+    if (existing) throw new ConflictException('already a member of this workspace');
 
     const granted = await this.resolveMemberRoles(workspaceIdBig, roleSlugs);
 
@@ -225,11 +173,7 @@ export class WorkspaceRepository {
         .values({ workspaceId: workspaceIdBig, userId: user.id })
         .returning();
       if (granted.length)
-        await tx
-          .insert(roleMember)
-          .values(
-            granted.map((role) => ({ memberId: created.id, roleId: role.id })),
-          );
+        await tx.insert(roleMember).values(granted.map((role) => ({ memberId: created.id, roleId: role.id })));
       return created;
     });
 
@@ -262,12 +206,8 @@ export class WorkspaceRepository {
     actorUserId: string | null,
   ): Promise<MembershipSummary> {
     const workspaceIdBig = toId(workspaceId);
-    const [existing] = await this.db
-      .select({ id: users.id })
-      .from(users)
-      .where(eq(users.email, input.email))
-      .limit(1);
-    if (existing) throw new ConflictException("email already registered");
+    const [existing] = await this.db.select({ id: users.id }).from(users).where(eq(users.email, input.email)).limit(1);
+    if (existing) throw new ConflictException('email already registered');
 
     const granted = await this.resolveMemberRoles(workspaceIdBig, input.roles);
     const [user] = await this.db
@@ -290,11 +230,7 @@ export class WorkspaceRepository {
         .values({ workspaceId: workspaceIdBig, userId: user.id })
         .returning();
       if (granted.length)
-        await tx
-          .insert(roleMember)
-          .values(
-            granted.map((role) => ({ memberId: created.id, roleId: role.id })),
-          );
+        await tx.insert(roleMember).values(granted.map((role) => ({ memberId: created.id, roleId: role.id })));
       return created;
     });
 
@@ -320,23 +256,19 @@ export class WorkspaceRepository {
       .where(eq(workspaceMembers.id, memberIdBig))
       .limit(1);
     if (!member || member.workspaceId !== workspaceIdBig)
-      throw new NotFoundException("member not found in this workspace");
+      throw new NotFoundException('member not found in this workspace');
 
     // Role assignments and direct grants belong to the membership, so they go with it — that is
     // the point of hanging them off the member row. `onDelete: "cascade"` on both join tables is
     // what makes that a database guarantee rather than two deletes someone has to remember.
-    await this.db
-      .delete(workspaceMembers)
-      .where(eq(workspaceMembers.id, memberIdBig));
+    await this.db.delete(workspaceMembers).where(eq(workspaceMembers.id, memberIdBig));
     // A removed member must lose access on their very next request, so their entry has to become
     // unreachable — the resolution that replaces it returns "not a member", which is never cached.
     await this.rbac.invalidateMember(member.userId.toString(), workspaceId);
   }
 
   /** One read for a page's role assignments rather than one per membership. */
-  private async rolesByMember(
-    memberIds: bigint[],
-  ): Promise<Map<string, string[]>> {
+  private async rolesByMember(memberIds: bigint[]): Promise<Map<string, string[]>> {
     if (!memberIds.length) return new Map();
     const rows = await this.db
       .select({ memberId: roleMember.memberId, slug: roles.slug })

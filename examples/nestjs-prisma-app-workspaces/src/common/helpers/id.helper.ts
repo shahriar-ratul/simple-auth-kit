@@ -11,16 +11,12 @@ export function toId(value: string | number | bigint): bigint {
   }
 }
 
-export function toIdOrUndefined(
-  value: string | number | bigint | null | undefined,
-): bigint | undefined {
-  if (value === null || value === undefined || value === "") return undefined;
+export function toIdOrUndefined(value: string | number | bigint | null | undefined): bigint | undefined {
+  if (value === null || value === undefined || value === '') return undefined;
   return toId(value);
 }
 
-export function toIdOrNull(
-  value: string | number | bigint | null | undefined,
-): bigint | null {
-  if (value === null || value === undefined || value === "") return null;
+export function toIdOrNull(value: string | number | bigint | null | undefined): bigint | null {
+  if (value === null || value === undefined || value === '') return null;
   return toId(value);
 }
