@@ -1,6 +1,7 @@
 // Shared scaffolding for prove-cycle.ts, plus the contract each variant's
 // `variant-hooks.ts` implements. Everything here is variant-agnostic: it talks to the running
 // app over HTTP only, so it compiles against either variant's generated Prisma client.
+import { createHmac, randomUUID } from "node:crypto";
 
 export const BASE_PORT = 4010;
 
@@ -219,6 +220,63 @@ export function adminRouteProbes(args: {
 export function decodeJwtPayload(token: string): Record<string, unknown> {
   return JSON.parse(
     Buffer.from(token.split(".")[1], "base64url").toString("utf8"),
+  );
+}
+
+/**
+ * Signs a minimal HS256 JWT under an arbitrary secret, built by hand rather than through
+ * whatever library the app itself signs with (jose or @nestjs/jwt, depending on the combo) — the
+ * point is to prove the server actually verifies the signature against its own configured
+ * secret, not just that its own signer round-trips.
+ */
+export function forgeHs256Jwt(
+  payload: Record<string, unknown>,
+  secret: string,
+): string {
+  const header = Buffer.from(
+    JSON.stringify({ alg: "HS256", typ: "JWT" }),
+  ).toString("base64url");
+  const body = Buffer.from(JSON.stringify(payload)).toString("base64url");
+  const signature = createHmac("sha256", secret)
+    .update(`${header}.${body}`)
+    .digest("base64url");
+  return `${header}.${body}.${signature}`;
+}
+
+/** A same-shaped access-token payload under a wrong secret — the caller supplies `sub`/`sessionId`. */
+export function forgeAccessToken(
+  claims: { sub: string; sessionId: string },
+  secret = "wrong-secret-entirely-different-from-the-real-one",
+): string {
+  const now = Math.floor(Date.now() / 1000);
+  return forgeHs256Jwt(
+    {
+      sub: claims.sub,
+      sessionId: claims.sessionId,
+      jti: randomUUID(),
+      iat: now,
+      exp: now + 900,
+    },
+    secret,
+  );
+}
+
+/** A same-shaped refresh-token payload under a wrong secret — the caller supplies `sub`/`sessionId`/`sv`. */
+export function forgeRefreshToken(
+  claims: { sub: string; sessionId: string; sv: number },
+  secret = "wrong-secret-entirely-different-from-the-real-one",
+): string {
+  const now = Math.floor(Date.now() / 1000);
+  return forgeHs256Jwt(
+    {
+      sub: claims.sub,
+      sessionId: claims.sessionId,
+      sv: claims.sv,
+      jti: randomUUID(),
+      iat: now,
+      exp: now + 60 * 60 * 24 * 30,
+    },
+    secret,
   );
 }
 

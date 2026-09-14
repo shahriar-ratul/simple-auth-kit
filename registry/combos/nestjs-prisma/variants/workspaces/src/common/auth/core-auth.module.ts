@@ -1,5 +1,6 @@
 import { PrismaPg } from "@prisma/adapter-pg";
 import { DynamicModule, Global, Module } from "@nestjs/common";
+import { JwtModule } from "@nestjs/jwt";
 import { AbilityGuard } from "./ability/ability.guard";
 import { AdminController } from "../../modules/admin/controllers/admin.controller";
 import { AuditLogController } from "../../modules/audit-log/controllers/audit-log.controller";
@@ -12,7 +13,8 @@ import { AuthController } from "../../modules/auth/controllers/auth.controller";
 import { AuthGuard } from "./guards/auth.guard";
 import { AuthzGuard, WorkspaceGuard } from "./guards/authz.guard";
 import { PrismaClient } from "@/database/generated/prisma/client";
-import { KeyProviderService } from "../config/key-provider";
+import { loadJwtSecret } from "../config/key-provider";
+import { AuthTokenService } from "./token.service";
 import {
   InMemoryPermissionCacheStore,
   PERMISSION_CACHE_STORE,
@@ -86,7 +88,16 @@ export class CoreAuthModule {
     return {
       module: CoreAuthModule,
       global: true,
-      imports: [AuditLogModule],
+      imports: [
+        AuditLogModule,
+        JwtModule.registerAsync({
+          useFactory: () => ({
+            secret: loadJwtSecret(),
+            signOptions: { algorithm: "HS256" },
+            verifyOptions: { algorithms: ["HS256"] },
+          }),
+        }),
+      ],
       providers: [
         { provide: AUTH_CONFIG, useValue: resolved },
         { provide: PrismaClient, useValue: new PrismaClient({ adapter }) },
@@ -97,7 +108,7 @@ export class CoreAuthModule {
             config.permissionCacheStore ?? new InMemoryPermissionCacheStore(),
         },
         PermissionCache,
-        KeyProviderService,
+        AuthTokenService,
         {
           provide: RATE_LIMIT_STORE,
           useValue: config.rateLimitStore ?? new InMemoryRateLimitStore(),
@@ -113,7 +124,7 @@ export class CoreAuthModule {
       exports: [
         AUTH_CONFIG,
         PrismaClient,
-        KeyProviderService,
+        AuthTokenService,
         PERMISSION_CACHE_STORE,
         PermissionCache,
         RATE_LIMIT_STORE,

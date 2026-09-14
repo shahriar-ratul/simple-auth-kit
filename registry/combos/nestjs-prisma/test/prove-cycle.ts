@@ -23,6 +23,8 @@ import {
   BASE_PORT,
   CallOptions,
   decodeJwtPayload,
+  forgeAccessToken,
+  forgeRefreshToken,
   ProofContext,
   RouteProbe,
 } from "./harness.js";
@@ -172,6 +174,37 @@ async function main() {
       Object.keys(claimsA).sort().join(",") === "exp,iat,jti,sessionId,sub",
       `the access token carries exactly the expected claims — identity and session only (got ${Object.keys(claimsA).sort().join(",")})`,
     );
+
+    // Same-shaped tokens, signed under a secret the server never configured — proves the server
+    // actually verifies the signature against its own AUTH_JWT_SECRET rather than trusting
+    // whatever a caller presents. (This combo signs/verifies through @nestjs/jwt rather than
+    // core's own jose-based token-service.ts, so core's own "rejects a token verified against a
+    // different secret" unit tests no longer exercise this combo's actual signing path — this is
+    // that coverage's replacement here.)
+    const forgedAccess = forgeAccessToken({
+      sub: claimsA.sub as string,
+      sessionId: claimsA.sessionId as string,
+    });
+    const forgedAccessCall = await call("GET", "/auth/me", {
+      token: forgedAccess,
+    });
+    assert(
+      forgedAccessCall.status === 401,
+      `an access token signed under a different secret is rejected (got ${forgedAccessCall.status})`,
+    );
+    const forgedRefresh = forgeRefreshToken({
+      sub: claimsA.sub as string,
+      sessionId: tokensA.sessionId,
+      sv: 0,
+    });
+    const forgedRefreshCall = await call("POST", "/auth/refresh", {
+      body: { refreshToken: forgedRefresh },
+    });
+    assert(
+      forgedRefreshCall.status === 401,
+      `a refresh token signed under a different secret is rejected (got ${forgedRefreshCall.status})`,
+    );
+
     assert(
       claimsA.sub ===
         (await call("GET", "/auth/me", { token: tokensA.accessToken })).body

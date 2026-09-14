@@ -35,13 +35,6 @@ import {
   rotateRefreshToken,
 } from "@/lib/auth/core/session-policy";
 import {
-  signAccessToken,
-  signRefreshToken,
-  signTwoFactorChallengeToken,
-  verifyRefreshToken,
-  verifyTwoFactorChallengeToken,
-} from "@/lib/auth/core/token-service";
-import {
   buildTotpProvisioningUri,
   generateBackupCodes,
   generateTotpSecret,
@@ -49,7 +42,7 @@ import {
 } from "@/lib/auth/core/two-factor";
 import { AUTH_CONFIG, AuthConfig } from "../../../common/config/auth.config";
 import { DRIZZLE_DB, type Database } from "../../../common/config/db";
-import { KeyProviderService } from "../../../common/config/key-provider";
+import { AuthTokenService } from "../../../common/auth/token.service";
 import { OAuthRepository } from "../repositories/oauth.repository";
 import { PasswordResetRepository } from "../repositories/password-reset.repository";
 import { RATE_LIMIT_STORE } from "../../../common/auth/cache/rate-limit.store";
@@ -95,7 +88,7 @@ export class AuthService {
   constructor(
     @Inject(DRIZZLE_DB) private readonly db: Database,
     @Inject(SessionRepository) private readonly sessions: SessionRepository,
-    @Inject(KeyProviderService) private readonly keys: KeyProviderService,
+    @Inject(AuthTokenService) private readonly tokens: AuthTokenService,
     @Inject(RATE_LIMIT_STORE) private readonly rateLimit: RateLimitDeps,
     @Inject(RbacRepository) private readonly rbac: RbacRepository,
     @Inject(TwoFactorRepository)
@@ -189,9 +182,7 @@ export class AuthService {
     if (!valid) throw new UnauthorizedException("invalid credentials");
 
     if (user.twoFactorEnabled) {
-      const key = await this.keys.getActiveKey();
-      const { token } = await signTwoFactorChallengeToken(
-        { activeKey: key },
+      const { token } = await this.tokens.signTwoFactorChallengeToken(
         user.id.toString(),
       ); // core-facing: sub must be string
       return { twoFactorRequired: true, challengeToken: token };
@@ -210,8 +201,7 @@ export class AuthService {
     userAgent?: string;
     ip?: string;
   }): Promise<AuthTokens> {
-    const { sub } = await verifyTwoFactorChallengeToken(
-      { secret: this.keys.secret },
+    const { sub } = await this.tokens.verifyTwoFactorChallengeToken(
       input.challengeToken,
     );
 
@@ -501,11 +491,7 @@ export class AuthService {
   }
 
   async refresh(refreshToken: string): Promise<Omit<AuthTokens, "sessionId">> {
-    const key = await this.keys.getActiveKey();
-    const presented = await verifyRefreshToken(
-      { secret: this.keys.secret },
-      refreshToken,
-    );
+    const presented = await this.tokens.verifyRefreshToken(refreshToken);
     const { session, nextJti } = await rotateRefreshToken(
       this.sessions,
       presented,
@@ -521,13 +507,11 @@ export class AuthService {
 
     // Identity only. Authorization is resolved from the database on every request (AuthzGuard),
     // so a token issued before a grant is as authoritative as one issued after it.
-    const access = await signAccessToken(
-      { activeKey: key },
+    const access = await this.tokens.signAccessToken(
       { sub: user.id.toString(), sessionId: session.id },
       { ttlSeconds: this.config.accessTokenTtlSeconds },
     );
-    const refresh = await signRefreshToken(
-      { activeKey: key },
+    const refresh = await this.tokens.signRefreshToken(
       {
         sub: user.id.toString(),
         sessionId: session.id,
@@ -671,15 +655,12 @@ export class AuthService {
       userId: user.id.toString(),
       ...meta,
     });
-    const key = await this.keys.getActiveKey();
 
-    const access = await signAccessToken(
-      { activeKey: key },
+    const access = await this.tokens.signAccessToken(
       { sub: user.id.toString(), sessionId: session.id },
       { ttlSeconds: this.config.accessTokenTtlSeconds },
     );
-    const refresh = await signRefreshToken(
-      { activeKey: key },
+    const refresh = await this.tokens.signRefreshToken(
       {
         sub: user.id.toString(),
         sessionId: session.id,
