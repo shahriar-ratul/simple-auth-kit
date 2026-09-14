@@ -25,12 +25,16 @@ export const NEVER_COPY = new Set([
 
 // For "scaffold" installs (admin/mobile apps materialized as whole standalone projects, not
 // merged into an existing one): package.json/tsconfig.json are real, consumer-facing content
-// here, not the registry's own dev wiring, so they're copied like any other file.
+// here, not the registry's own dev wiring, so they're copied like any other file. Unlike
+// NEVER_COPY, "test" is deliberately absent: a combo's shared/root/test/ (e2e smoke test scaffold
+// consumer-facing content, not the registry's own dev/prove-cycle harness, which lives at the
+// combo/variant root, never inside shared/root/) must actually reach the consumer. Confirmed no
+// registry source tree copied under this set has an unrelated "test" directory that this would
+// newly expose.
 export const SCAFFOLD_NEVER_COPY = new Set([
   "node_modules",
   "dist",
   "generated",
-  "test",
   "scripts",
   ".variant",
   ".env",

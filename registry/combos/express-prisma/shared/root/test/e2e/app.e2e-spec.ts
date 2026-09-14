@@ -1,6 +1,6 @@
 import 'dotenv/config';
 import request from 'supertest';
-import { createAuthApp } from '../src/modules/auth/create-auth-app';
+import { createAuthApp } from '../../src/modules/auth/create-auth-app';
 
 // One real smoke test against the registry's own shipped wiring — not a copy of prove-cycle's
 // job (that stays the actual behavioral gate, ~145-191 assertions against a materialized combo).

@@ -3,10 +3,10 @@ import { INestApplication } from '@nestjs/common';
 import { APP_FILTER, APP_INTERCEPTOR } from '@nestjs/core';
 import { Test, TestingModule } from '@nestjs/testing';
 import request from 'supertest';
-import { AuthCoreErrorFilter } from '../src/infra/filters/auth-core-error.filter';
-import { AuthModule } from '../src/modules/auth/auth.module';
-import { CoreAuthModule } from '../src/common/auth/core-auth.module';
-import { ResponseInterceptor } from '../src/infra/interceptor/response.interceptor';
+import { AuthCoreErrorFilter } from '../../src/infra/filters/auth-core-error.filter';
+import { AuthModule } from '../../src/modules/auth/auth.module';
+import { CoreAuthModule } from '../../src/common/auth/core-auth.module';
+import { ResponseInterceptor } from '../../src/infra/interceptor/response.interceptor';
 
 // One real smoke test against the registry's own shipped wiring — not a copy of prove-cycle's
 // job (that stays the actual behavioral gate, ~145-191 assertions against a materialized combo).
