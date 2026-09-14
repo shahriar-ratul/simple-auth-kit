@@ -40,7 +40,7 @@ const bySources = await Promise.all(
       REPO_ROOT,
       "registry/combos",
       combo,
-      "shared/src/ability/ability.ts",
+      "shared/src/common/auth/ability/ability.ts",
     );
     const source = await readFile(path, "utf8");
     return [combo, exportedSymbols(source)];
