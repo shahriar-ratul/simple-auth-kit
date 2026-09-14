@@ -1,16 +1,16 @@
 import { Module } from '@nestjs/common';
-import { AuditLogGateway } from './gateways/audit-log.gateway';
-import { AuditLogModule } from '../audit-log/audit-log.module';
-import { AuthController } from './controllers/auth.controller';
-import { AuthService } from './services/auth.service';
-import { OAuthRepository } from './repositories/oauth.repository';
-import { PasswordResetRepository } from './repositories/password-reset.repository';
-import { TwoFactorRepository } from './repositories/two-factor.repository';
+import { AuditLogGateway } from '@/modules/auth/gateways/audit-log.gateway';
+import { AuditLogModule } from '@/modules/audit-log/audit-log.module';
+import { AuthController } from '@/modules/auth/controllers/auth.controller';
+import { AuthService } from '@/modules/auth/services/auth.service';
+import { OAuthRepository } from '@/modules/auth/repositories/oauth.repository';
+import { PasswordResetRepository } from '@/modules/auth/repositories/password-reset.repository';
+import { TwoFactorRepository } from '@/modules/auth/repositories/two-factor.repository';
 
 // Plain module — no forRoot(), not global. Identity/session endpoints only; admin/roles/
 // permissions/audit-log now live in their own modules. Relies on CoreAuthModule already being
 // imported (it's @Global()) elsewhere in the app for RbacRepository/SessionRepository/
-// PrismaClient/the guards/AUTH_CONFIG — SessionRepository is promoted there too (AuthGuard
+// PrismaService/the guards/AUTH_CONFIG — SessionRepository is promoted there too (AuthGuard
 // depends on it), so it isn't redeclared here. Imports AuditLogModule for AuditLogRepository,
 // which AuditLogGateway listens on to broadcast over the websocket.
 @Module({

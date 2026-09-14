@@ -2,7 +2,7 @@ import { eq } from 'drizzle-orm';
 import type { NodePgDatabase } from 'drizzle-orm/node-postgres';
 import type { PasswordResetStoreDeps } from '@/core/password-reset';
 import * as schema from '@/database/schema';
-import { toId } from '../../../common/helpers/id.helper';
+import { toId } from '@/common/helpers/id.helper';
 
 /**
  * Plain class, no decorators — Drizzle-specific implementation of `PasswordResetStoreDeps`

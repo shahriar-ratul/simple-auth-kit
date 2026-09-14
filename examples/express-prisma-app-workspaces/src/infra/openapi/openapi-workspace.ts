@@ -1,8 +1,13 @@
 // The workspace-membership half of the OpenAPI document. Mirrors the reference combo's
 // `dto/workspace.dto.ts`; merged into the administration fragment by openapi-admin.ts, which is
 // what openapi-spec.ts assembles into the document.
-import { errorResponse, missingPermission, requiresPermission, type OpenApiFragment } from './openapi-fragment';
-import { WORKSPACE_HEADER } from '../../common/auth/middleware/authz.middleware';
+import {
+  errorResponse,
+  missingPermission,
+  requiresPermission,
+  type OpenApiFragment,
+} from '@/infra/openapi/openapi-fragment';
+import { WORKSPACE_HEADER } from '@/common/auth/middleware/authz.middleware';
 
 /** Every route that acts *inside* a workspace names it with this header, never a path segment. */
 export const workspaceHeaderParameter = {

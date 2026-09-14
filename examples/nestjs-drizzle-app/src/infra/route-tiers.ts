@@ -19,7 +19,7 @@
 // declaring nothing at all, and would otherwise be an open route that looks closed in the source.
 import { RequestMethod, SetMetadata } from '@nestjs/common';
 import { GUARDS_METADATA, METHOD_METADATA, PATH_METADATA } from '@nestjs/common/constants.js';
-import type { PermissionSlug } from '../modules/auth/rbac.defaults';
+import type { PermissionSlug } from '@/modules/auth/rbac.defaults';
 
 export const ROUTE_TIER_KEY = 'routeTier';
 export const CHECK_ABILITY_KEY = 'checkAbility';

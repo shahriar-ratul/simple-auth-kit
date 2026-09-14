@@ -2,19 +2,19 @@ import { Inject, Injectable } from '@nestjs/common';
 import { eq } from 'drizzle-orm';
 import { blockUser, deactivateUser } from '@/core/session-policy';
 import type { Revoker } from '@/core/types';
-import { DRIZZLE_DB, type Database } from '../../../common/config/db';
-import type { AuthzContext } from '../../../common/auth/guards/authz.guard';
-import { AuditLogRepository } from '../../audit-log/repositories/audit-log.repository';
+import { DRIZZLE_DB, type Database } from '@/common/config/db';
+import type { AuthzContext } from '@/common/auth/guards/authz.guard';
+import { AuditLogRepository } from '@/modules/audit-log/repositories/audit-log.repository';
 import {
   MemberListFilter,
   MemberListResult,
   MemberSummary,
   RbacRepository,
   toMemberSummary,
-} from '../../auth/repositories/rbac.repository';
-import { SessionRepository } from '../../auth/repositories/session.repository';
+} from '@/modules/auth/repositories/rbac.repository';
+import { SessionRepository } from '@/modules/auth/repositories/session.repository';
 import { users } from '@/database/schema';
-import { toId, toIdOrNull } from '../../../common/helpers/id.helper';
+import { toId, toIdOrNull } from '@/common/helpers/id.helper';
 
 /**
  * Member management, block/unblock/deactivate/activate, and member-scoped role/permission

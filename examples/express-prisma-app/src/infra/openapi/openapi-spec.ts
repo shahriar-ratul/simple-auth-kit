@@ -11,8 +11,8 @@
 // Typed loosely as `Record<string, unknown>` — this is a giant JSON literal handed to
 // swagger-ui-express, not a data structure this codebase manipulates, so fighting for a
 // precise OpenAPI TS type isn't worth it.
-import { adminSpec } from './openapi-admin';
-import { errorResponse } from './openapi-fragment';
+import { adminSpec } from '@/infra/openapi/openapi-admin';
+import { errorResponse } from '@/infra/openapi/openapi-fragment';
 
 export const openApiSpec: Record<string, unknown> = {
   openapi: '3.0.3',

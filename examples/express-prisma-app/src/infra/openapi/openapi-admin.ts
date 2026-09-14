@@ -9,7 +9,12 @@
 // bypass, which is why the 403s say which permission was missing rather than "admin role
 // required": holding a role called "admin" that carries nothing gets the same answer as holding
 // no role at all.
-import { errorResponse, missingPermission, requiresPermission, type OpenApiFragment } from './openapi-fragment';
+import {
+  errorResponse,
+  missingPermission,
+  requiresPermission,
+  type OpenApiFragment,
+} from '@/infra/openapi/openapi-fragment';
 
 export const adminSpec: OpenApiFragment = {
   tags: [],

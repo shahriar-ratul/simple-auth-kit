@@ -1,11 +1,11 @@
 import { BadRequestException, Inject, Injectable } from '@nestjs/common';
 import type { OAuthStoreDeps } from '@/core/oauth';
-import { PrismaClient } from '@/database/generated/prisma/client';
-import { toId } from '../../../common/helpers/id.helper';
+import { PrismaService } from '@/modules/prisma/prisma.service';
+import { toId } from '@/common/helpers/id.helper';
 
 @Injectable()
 export class OAuthRepository implements OAuthStoreDeps {
-  constructor(@Inject(PrismaClient) private readonly prisma: PrismaClient) {}
+  constructor(@Inject(PrismaService) private readonly prisma: PrismaService) {}
 
   async findAccountByProvider(provider: string, providerAccountId: string): Promise<{ userId: string } | null> {
     const row = await this.prisma.oAuthAccount.findUnique({

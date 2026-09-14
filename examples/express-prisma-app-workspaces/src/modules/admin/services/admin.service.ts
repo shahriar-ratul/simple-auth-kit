@@ -2,18 +2,18 @@ import { hashPassword } from '@/core/crypto';
 import { blockUser, deactivateUser } from '@/core/session-policy';
 import type { Revoker } from '@/core/types';
 import { PrismaClient } from '@/database/generated/prisma/client';
-import type { AuthzContext } from '../../../common/auth/middleware/authz.middleware';
-import { AuditLogRepository } from '../../audit-log/repositories/audit-log.repository';
+import type { AuthzContext } from '@/common/auth/middleware/authz.middleware';
+import { AuditLogRepository } from '@/modules/audit-log/repositories/audit-log.repository';
 import {
   MemberListFilter,
   MemberListResult,
   MemberSummary,
   RbacRepository,
   toMemberSummary,
-} from '../../auth/repositories/rbac.repository';
-import { SessionRepository } from '../../auth/repositories/session.repository';
-import { WorkspaceRepository } from '../../auth/repositories/workspace.repository';
-import { toId, toIdOrNull } from '../../../common/helpers/id.helper';
+} from '@/modules/auth/repositories/rbac.repository';
+import { SessionRepository } from '@/modules/auth/repositories/session.repository';
+import { WorkspaceRepository } from '@/modules/auth/repositories/workspace.repository';
+import { toId, toIdOrNull } from '@/common/helpers/id.helper';
 
 /**
  * Member management, block/unblock/deactivate/activate, and member-scoped role/permission

@@ -1,26 +1,29 @@
-import { PrismaPg } from '@prisma/adapter-pg';
 import { DynamicModule, Global, Module } from '@nestjs/common';
 import { JwtModule } from '@nestjs/jwt';
-import { AbilityGuard } from './ability/ability.guard';
-import { AdminController } from '../../modules/admin/controllers/admin.controller';
-import { AuditLogController } from '../../modules/audit-log/controllers/audit-log.controller';
-import { AUTH_CONFIG, AuthConfig, defaultAuthConfig } from '../config/auth.config';
-import { AuthController } from '../../modules/auth/controllers/auth.controller';
-import { AuthGuard } from './guards/auth.guard';
-import { AuthzGuard, WorkspaceGuard } from './guards/authz.guard';
-import { PrismaClient } from '@/database/generated/prisma/client';
-import { loadJwtSecret } from '../config/key-provider';
-import { AuthTokenService } from './token.service';
-import { InMemoryPermissionCacheStore, PERMISSION_CACHE_STORE, PermissionCache } from './cache/permission-cache';
-import { InMemoryRateLimitStore, RATE_LIMIT_STORE } from './cache/rate-limit.store';
-import { PermissionController } from '../../modules/permissions/controllers/permission.controller';
-import { RbacRepository } from '../../modules/auth/repositories/rbac.repository';
-import { RoleController } from '../../modules/roles/controllers/role.controller';
-import { WorkspaceController } from '../../modules/auth/controllers/workspace.controller';
-import { WorkspaceRepository } from '../../modules/auth/repositories/workspace.repository';
-import { AuditLogModule } from '../../modules/audit-log/audit-log.module';
-import { SessionRepository } from '../../modules/auth/repositories/session.repository';
-import { assertEveryRouteDeclaresATier } from '../../infra/route-tiers';
+import { AbilityGuard } from '@/common/auth/ability/ability.guard';
+import { AdminController } from '@/modules/admin/controllers/admin.controller';
+import { AuditLogController } from '@/modules/audit-log/controllers/audit-log.controller';
+import { AUTH_CONFIG, AuthConfig, defaultAuthConfig } from '@/common/config/auth.config';
+import { AuthController } from '@/modules/auth/controllers/auth.controller';
+import { AuthGuard } from '@/common/auth/guards/auth.guard';
+import { AuthzGuard, WorkspaceGuard } from '@/common/auth/guards/authz.guard';
+import { loadJwtSecret } from '@/common/config/key-provider';
+import { PrismaModule } from '@/modules/prisma/prisma.module';
+import { AuthTokenService } from '@/common/auth/token.service';
+import {
+  InMemoryPermissionCacheStore,
+  PERMISSION_CACHE_STORE,
+  PermissionCache,
+} from '@/common/auth/cache/permission-cache';
+import { InMemoryRateLimitStore, RATE_LIMIT_STORE } from '@/common/auth/cache/rate-limit.store';
+import { PermissionController } from '@/modules/permissions/controllers/permission.controller';
+import { RbacRepository } from '@/modules/auth/repositories/rbac.repository';
+import { RoleController } from '@/modules/roles/controllers/role.controller';
+import { WorkspaceController } from '@/modules/auth/controllers/workspace.controller';
+import { WorkspaceRepository } from '@/modules/auth/repositories/workspace.repository';
+import { AuditLogModule } from '@/modules/audit-log/audit-log.module';
+import { SessionRepository } from '@/modules/auth/repositories/session.repository';
+import { assertEveryRouteDeclaresATier } from '@/infra/route-tiers';
 
 // Every controller this combo ships, across every feature module — the one array the boot-time
 // tier check walks. Built here (rather than each feature module registering itself) so there's
@@ -61,9 +64,6 @@ export class CoreAuthModule {
     });
 
     const resolved: AuthConfig = { ...defaultAuthConfig, ...config };
-    const adapter = new PrismaPg({
-      connectionString: process.env['DATABASE_URL'],
-    });
 
     if (!config.permissionCacheStore || !config.rateLimitStore) {
       console.warn(
@@ -79,6 +79,7 @@ export class CoreAuthModule {
       global: true,
       imports: [
         AuditLogModule,
+        PrismaModule,
         JwtModule.registerAsync({
           useFactory: () => ({
             secret: loadJwtSecret(),
@@ -89,7 +90,6 @@ export class CoreAuthModule {
       ],
       providers: [
         { provide: AUTH_CONFIG, useValue: resolved },
-        { provide: PrismaClient, useValue: new PrismaClient({ adapter }) },
         // Swap for a Redis-backed store by passing `permissionCacheStore` to forRoot.
         {
           provide: PERMISSION_CACHE_STORE,
@@ -111,7 +111,6 @@ export class CoreAuthModule {
       ],
       exports: [
         AUTH_CONFIG,
-        PrismaClient,
         AuthTokenService,
         PERMISSION_CACHE_STORE,
         PermissionCache,

@@ -35,7 +35,7 @@
 // reads this cache — so blocking a user or revoking a session cannot be defeated by a warm entry.
 // Negative results are not cached either: "not a member of this workspace" is re-read every time,
 // so being added to a workspace is effective immediately rather than after a TTL.
-import type { AuthConfig } from '../../config/auth.config';
+import type { AuthConfig } from '@/common/config/auth.config';
 
 /** Every key this library writes starts here, so a shared Redis can be separated by prefix. */
 export const CACHE_NAMESPACE = 'simpleauthkit:authz';

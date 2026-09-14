@@ -11,8 +11,13 @@
 // required". A 403 is also the answer when the header names a workspace the caller does not
 // belong to, or none at all — deliberately the same answer, so the status cannot be used to
 // probe which workspaces exist.
-import { errorResponse, missingPermission, requiresPermission, type OpenApiFragment } from './openapi-fragment';
-import { workspaceHeaderParameter, workspaceSpec } from './openapi-workspace';
+import {
+  errorResponse,
+  missingPermission,
+  requiresPermission,
+  type OpenApiFragment,
+} from '@/infra/openapi/openapi-fragment';
+import { workspaceHeaderParameter, workspaceSpec } from '@/infra/openapi/openapi-workspace';
 
 const adminHeaderParameter = {
   ...workspaceHeaderParameter,

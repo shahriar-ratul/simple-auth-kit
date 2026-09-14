@@ -1,9 +1,9 @@
 import { and, eq } from 'drizzle-orm';
 import type { NodePgDatabase } from 'drizzle-orm/node-postgres';
 import type { OAuthStoreDeps } from '@/core/oauth';
-import { HttpError } from '../../../infra/errors/http-error';
+import { HttpError } from '@/infra/errors/http-error';
 import * as schema from '@/database/schema';
-import { toId } from '../../../common/helpers/id.helper';
+import { toId } from '@/common/helpers/id.helper';
 
 /**
  * Plain class, no decorators — Drizzle-specific implementation of `OAuthStoreDeps`

@@ -1,10 +1,11 @@
 import { Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { resolvePermissions } from '@/core/rbac';
-import { Prisma, PrismaClient } from '@/database/generated/prisma/client';
-import type { AuthzContext } from '../../../common/auth/guards/authz.guard';
-import { PermissionCache } from '../../../common/auth/cache/permission-cache';
-import { toId, toIdOrNull } from '../../../common/helpers/id.helper';
-import { buildPageMeta, normalizeLimit, normalizePage, type Paginated } from '../../../common/helpers/pagination';
+import { Prisma } from '@/database/generated/prisma/client';
+import { PrismaService } from '@/modules/prisma/prisma.service';
+import type { AuthzContext } from '@/common/auth/guards/authz.guard';
+import { PermissionCache } from '@/common/auth/cache/permission-cache';
+import { toId, toIdOrNull } from '@/common/helpers/id.helper';
+import { buildPageMeta, normalizeLimit, normalizePage, type Paginated } from '@/common/helpers/pagination';
 
 const MEMBER_INCLUDE = {
   user: true,
@@ -144,7 +145,7 @@ export const memberCacheKey = (userId: string, workspaceId: string) => `${userId
 @Injectable()
 export class RbacRepository {
   constructor(
-    @Inject(PrismaClient) private readonly prisma: PrismaClient,
+    @Inject(PrismaService) private readonly prisma: PrismaService,
     @Inject(PermissionCache) private readonly cache: PermissionCache,
   ) {}
 

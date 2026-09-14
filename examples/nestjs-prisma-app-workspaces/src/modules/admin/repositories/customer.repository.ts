@@ -1,7 +1,8 @@
 import { ConflictException, Inject, Injectable, NotFoundException } from '@nestjs/common';
-import { Prisma, PrismaClient } from '@/database/generated/prisma/client';
-import { toId, toIdOrNull } from '../../../common/helpers/id.helper';
-import { buildPageMeta, normalizeLimit, normalizePage, type Paginated } from '../../../common/helpers/pagination';
+import { Prisma } from '@/database/generated/prisma/client';
+import { PrismaService } from '@/modules/prisma/prisma.service';
+import { toId, toIdOrNull } from '@/common/helpers/id.helper';
+import { buildPageMeta, normalizeLimit, normalizePage, type Paginated } from '@/common/helpers/pagination';
 
 /** A `Customer` row as `findUnique`/`findMany` return it. */
 export type CustomerRow = Prisma.CustomerGetPayload<object>;
@@ -96,7 +97,7 @@ function toPrismaInput(input: Partial<CustomerInput>): Omit<Partial<CustomerInpu
 // never authenticates or holds a role.
 @Injectable()
 export class CustomerRepository {
-  constructor(@Inject(PrismaClient) private readonly prisma: PrismaClient) {}
+  constructor(@Inject(PrismaService) private readonly prisma: PrismaService) {}
 
   /** Newest-first, page-paginated; `search` matches name/email/username/phone. Returns raw rows — shaping is the caller's job. */
   async list(workspaceId: string, filter: CustomerListFilter = {}): Promise<CustomerListResult> {

@@ -1,10 +1,10 @@
 import { Module } from '@nestjs/common';
-import { AuthController } from './controllers/auth.controller';
-import { AuthService } from './services/auth.service';
-import { OAuthRepository } from './repositories/oauth.repository';
-import { PasswordResetRepository } from './repositories/password-reset.repository';
-import { TwoFactorRepository } from './repositories/two-factor.repository';
-import { WorkspaceController } from './controllers/workspace.controller';
+import { AuthController } from '@/modules/auth/controllers/auth.controller';
+import { AuthService } from '@/modules/auth/services/auth.service';
+import { OAuthRepository } from '@/modules/auth/repositories/oauth.repository';
+import { PasswordResetRepository } from '@/modules/auth/repositories/password-reset.repository';
+import { TwoFactorRepository } from '@/modules/auth/repositories/two-factor.repository';
+import { WorkspaceController } from '@/modules/auth/controllers/workspace.controller';
 
 // Plain module — no forRoot(), not global. Identity/session endpoints (AuthController) plus
 // workspace membership itself (WorkspaceController — creating/listing workspaces and managing
@@ -12,7 +12,7 @@ import { WorkspaceController } from './controllers/workspace.controller';
 // so it stays alongside identity rather than moving into AdminModule). Admin/roles/permissions/
 // audit-log now live in their own modules. Relies on CoreAuthModule already being imported
 // (it's @Global()) elsewhere in the app for RbacRepository/WorkspaceRepository/SessionRepository/
-// PrismaClient/the guards/AUTH_CONFIG — SessionRepository is promoted there too (AuthGuard
+// PrismaService/the guards/AUTH_CONFIG — SessionRepository is promoted there too (AuthGuard
 // depends on it), so it isn't redeclared here and this module needs no AuditLogModule import.
 @Module({
   controllers: [AuthController, WorkspaceController],

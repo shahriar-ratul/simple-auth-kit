@@ -1,4 +1,4 @@
-import { RbacRepository, RoleSummary } from '../../auth/repositories/rbac.repository';
+import { RbacRepository, RoleSummary } from '@/modules/auth/repositories/rbac.repository';
 
 /** Thin wrapper over RbacRepository's role-catalog methods — see the note on AdminService for why RbacRepository itself isn't split. */
 export class RoleService {

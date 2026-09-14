@@ -14,7 +14,7 @@
 // happen on `AuthGuard`, which never reads this cache. Negative results aren't cached either —
 // "not a member of this workspace" is re-read every time.
 import { Inject, Injectable } from '@nestjs/common';
-import { AUTH_CONFIG, AuthConfig } from '../../config/auth.config';
+import { AUTH_CONFIG, AuthConfig } from '@/common/config/auth.config';
 
 /** DI token for the store. Provide your own to `AuthModule.forRoot({ permissionCacheStore })`. */
 export const PERMISSION_CACHE_STORE = Symbol('PERMISSION_CACHE_STORE');

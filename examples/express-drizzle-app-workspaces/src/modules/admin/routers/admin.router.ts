@@ -1,10 +1,10 @@
 import type { NextFunction, Request, RequestHandler, Response } from 'express';
 import { hashPassword } from '@/core/crypto';
-import { AdminService } from '../services/admin.service';
-import { HttpError } from '../../../infra/errors/http-error';
-import { ability, createTieredRouter } from '../../../infra/route-tiers';
-import { WorkspaceRepository } from '../../auth/repositories/workspace.repository';
-import '../../../infra/request-context';
+import { AdminService } from '@/modules/admin/services/admin.service';
+import { HttpError } from '@/infra/errors/http-error';
+import { ability, createTieredRouter } from '@/infra/route-tiers';
+import { WorkspaceRepository } from '@/modules/auth/repositories/workspace.repository';
+import '@/infra/request-context';
 
 function requireString(value: unknown, field: string): string {
   if (typeof value !== 'string' || value.length === 0) throw new HttpError(400, `${field} is required`);

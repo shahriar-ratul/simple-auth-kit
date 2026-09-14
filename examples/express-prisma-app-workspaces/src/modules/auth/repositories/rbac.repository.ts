@@ -1,10 +1,10 @@
 import { resolvePermissions } from '@/core/rbac';
 import { Prisma, PrismaClient } from '@/database/generated/prisma/client';
-import type { AuthzContext } from '../../../common/auth/middleware/authz.middleware';
-import { HttpError } from '../../../infra/errors/http-error';
-import { buildPageMeta, normalizeLimit, normalizePage, type Paginated } from '../../../common/helpers/pagination';
-import { PermissionCache } from '../../../common/auth/cache/permission-cache';
-import { toId, toIdOrNull } from '../../../common/helpers/id.helper';
+import type { AuthzContext } from '@/common/auth/middleware/authz.middleware';
+import { HttpError } from '@/infra/errors/http-error';
+import { buildPageMeta, normalizeLimit, normalizePage, type Paginated } from '@/common/helpers/pagination';
+import { PermissionCache } from '@/common/auth/cache/permission-cache';
+import { toId, toIdOrNull } from '@/common/helpers/id.helper';
 
 export interface MemberSummary {
   memberId: string;

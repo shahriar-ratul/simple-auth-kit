@@ -1,7 +1,7 @@
 import { CanActivate, ExecutionContext, ForbiddenException, Inject, Injectable } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
-import { ABILITY_SUBJECT } from './ability';
-import { CHECK_ABILITY_KEY } from '../../../infra/route-tiers';
+import { ABILITY_SUBJECT } from '@/common/auth/ability/ability';
+import { CHECK_ABILITY_KEY } from '@/infra/route-tiers';
 
 /**
  * The authorization boundary for tier-3 routes. This is the *only* thing standing between a

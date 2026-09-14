@@ -1,8 +1,8 @@
 import type { NextFunction, Request, RequestHandler, Response } from 'express';
-import { HttpError } from '../../../infra/errors/http-error';
-import { ability, createTieredRouter } from '../../../infra/route-tiers';
-import { RolesService } from '../services/roles.service';
-import '../../../infra/request-context';
+import { HttpError } from '@/infra/errors/http-error';
+import { ability, createTieredRouter } from '@/infra/route-tiers';
+import { RolesService } from '@/modules/roles/services/roles.service';
+import '@/infra/request-context';
 
 function requireString(value: unknown, field: string): string {
   if (typeof value !== 'string' || value.length === 0) throw new HttpError(400, `${field} is required`);

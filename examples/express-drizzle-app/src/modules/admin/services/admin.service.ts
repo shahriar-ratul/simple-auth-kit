@@ -2,17 +2,17 @@ import { eq } from 'drizzle-orm';
 import { hashPassword } from '@/core/crypto';
 import { blockUser, deactivateUser } from '@/core/session-policy';
 import type { Revoker } from '@/core/types';
-import type { Database } from '../../../common/config/db';
+import type { Database } from '@/common/config/db';
 import {
   RbacRepository,
   toUserSummary,
   UserListFilter,
   UserListResult,
   UserSummary,
-} from '../../auth/repositories/rbac.repository';
-import { SessionRepository } from '../../auth/repositories/session.repository';
+} from '@/modules/auth/repositories/rbac.repository';
+import { SessionRepository } from '@/modules/auth/repositories/session.repository';
 import { users } from '@/database/schema';
-import { toId, toIdOrNull } from '../../../common/helpers/id.helper';
+import { toId, toIdOrNull } from '@/common/helpers/id.helper';
 
 /**
  * User management, block/unblock/deactivate/activate, and user-scoped role/permission

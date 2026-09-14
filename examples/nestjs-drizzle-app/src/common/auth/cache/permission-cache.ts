@@ -36,7 +36,7 @@
 // Negative results are not cached either: "not a member of this workspace" is re-read every time,
 // so being added to a workspace is effective immediately rather than after a TTL.
 import { Inject, Injectable } from '@nestjs/common';
-import { AUTH_CONFIG, AuthConfig } from '../../config/auth.config';
+import { AUTH_CONFIG, AuthConfig } from '@/common/config/auth.config';
 
 /** DI token for the store. Provide your own to `AuthModule.forRoot({ permissionCacheStore })`. */
 export const PERMISSION_CACHE_STORE = Symbol('PERMISSION_CACHE_STORE');

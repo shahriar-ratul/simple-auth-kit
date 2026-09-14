@@ -28,9 +28,9 @@
 //     a permission nothing can ever grant.
 import { Router } from 'express';
 import type { NextFunction, Request, RequestHandler, Response } from 'express';
-import { ABILITY_SUBJECT } from '../common/auth/ability/ability';
-import { PERMISSION_CATALOG, type PermissionSlug } from '../modules/auth/rbac.defaults';
-import './request-context';
+import { ABILITY_SUBJECT } from '@/common/auth/ability/ability';
+import { PERMISSION_CATALOG, type PermissionSlug } from '@/modules/auth/rbac.defaults';
+import '@/infra/request-context';
 
 /** The subset of Express's routing verbs this library's routes use. */
 export type TieredMethod = 'get' | 'post' | 'put' | 'patch' | 'delete';

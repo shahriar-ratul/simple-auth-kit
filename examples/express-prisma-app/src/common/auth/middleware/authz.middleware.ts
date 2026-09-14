@@ -1,8 +1,8 @@
 import type { NextFunction, Request, RequestHandler, Response } from 'express';
-import { defineAbilitiesFor } from '../ability/ability';
-import type { PermissionCache } from '../cache/permission-cache';
-import type { RbacRepository } from '../../../modules/auth/repositories/rbac.repository';
-import '../../../infra/request-context';
+import { defineAbilitiesFor } from '@/common/auth/ability/ability';
+import type { PermissionCache } from '@/common/auth/cache/permission-cache';
+import type { RbacRepository } from '@/modules/auth/repositories/rbac.repository';
+import '@/infra/request-context';
 
 /**
  * Roles and permissions are global to this deployment: a user has one set, and it applies

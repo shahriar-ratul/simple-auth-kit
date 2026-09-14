@@ -2,40 +2,40 @@ import { Inject, Injectable } from '@nestjs/common';
 import { hashPassword } from '@/core/crypto';
 import { blockUser, deactivateUser } from '@/core/session-policy';
 import type { Revoker } from '@/core/types';
-import { PrismaClient } from '@/database/generated/prisma/client';
-import type { AuthzContext } from '../../../common/auth/guards/authz.guard';
-import { AuditLogRepository } from '../../audit-log/repositories/audit-log.repository';
+import { PrismaService } from '@/modules/prisma/prisma.service';
+import type { AuthzContext } from '@/common/auth/guards/authz.guard';
+import { AuditLogRepository } from '@/modules/audit-log/repositories/audit-log.repository';
 import {
   CountryInput,
   CountryListFilter,
   CountryListResult,
   CountryRepository,
   CountrySummary,
-} from '../repositories/country.repository';
+} from '@/modules/admin/repositories/country.repository';
 import {
   CustomerInput,
   CustomerListFilter,
   CustomerListResult,
   CustomerRepository,
   CustomerSummary,
-} from '../repositories/customer.repository';
+} from '@/modules/admin/repositories/customer.repository';
 import {
   LanguageInput,
   LanguageListFilter,
   LanguageListResult,
   LanguageRepository,
   LanguageSummary,
-} from '../repositories/language.repository';
+} from '@/modules/admin/repositories/language.repository';
 import {
   MemberListFilter,
   MemberListResult,
   MemberSummary,
   RbacRepository,
   toMemberSummary,
-} from '../../auth/repositories/rbac.repository';
-import { SessionRepository } from '../../auth/repositories/session.repository';
-import { WorkspaceRepository } from '../../auth/repositories/workspace.repository';
-import { toId, toIdOrNull } from '../../../common/helpers/id.helper';
+} from '@/modules/auth/repositories/rbac.repository';
+import { SessionRepository } from '@/modules/auth/repositories/session.repository';
+import { WorkspaceRepository } from '@/modules/auth/repositories/workspace.repository';
+import { toId, toIdOrNull } from '@/common/helpers/id.helper';
 
 /**
  * Member management, block/unblock/deactivate/activate, member-scoped role/permission
@@ -48,7 +48,7 @@ import { toId, toIdOrNull } from '../../../common/helpers/id.helper';
 @Injectable()
 export class AdminService {
   constructor(
-    @Inject(PrismaClient) private readonly prisma: PrismaClient,
+    @Inject(PrismaService) private readonly prisma: PrismaService,
     @Inject(SessionRepository) private readonly sessions: SessionRepository,
     @Inject(AuditLogRepository) private readonly auditLog: AuditLogRepository,
     @Inject(RbacRepository) private readonly rbac: RbacRepository,

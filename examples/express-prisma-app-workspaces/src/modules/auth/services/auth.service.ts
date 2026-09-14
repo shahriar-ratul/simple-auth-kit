@@ -32,15 +32,15 @@ import {
 } from '@/core/token-service';
 import { buildTotpProvisioningUri, generateBackupCodes, generateTotpSecret, verifyTotpCode } from '@/core/two-factor';
 import type { Revoker } from '@/core/types';
-import type { AuthConfig } from '../../../common/config/auth.config';
-import { HttpError } from '../../../infra/errors/http-error';
+import type { AuthConfig } from '@/common/config/auth.config';
+import { HttpError } from '@/infra/errors/http-error';
 import { PrismaClient } from '@/database/generated/prisma/client';
-import { KeyProviderService } from '../../../common/config/key-provider';
-import { OAuthRepository } from '../repositories/oauth.repository';
-import { PasswordResetRepository } from '../repositories/password-reset.repository';
-import { SessionRepository } from '../repositories/session.repository';
-import { TwoFactorRepository } from '../repositories/two-factor.repository';
-import { toId } from '../../../common/helpers/id.helper';
+import { KeyProviderService } from '@/common/config/key-provider';
+import { OAuthRepository } from '@/modules/auth/repositories/oauth.repository';
+import { PasswordResetRepository } from '@/modules/auth/repositories/password-reset.repository';
+import { SessionRepository } from '@/modules/auth/repositories/session.repository';
+import { TwoFactorRepository } from '@/modules/auth/repositories/two-factor.repository';
+import { toId } from '@/common/helpers/id.helper';
 
 export interface AuthTokens {
   accessToken: string;

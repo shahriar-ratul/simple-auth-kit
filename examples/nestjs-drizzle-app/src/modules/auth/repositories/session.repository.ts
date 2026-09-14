@@ -3,11 +3,11 @@ import { Inject, Injectable } from '@nestjs/common';
 import { and, eq, isNull, ne, sql } from 'drizzle-orm';
 import type { SessionStoreDeps } from '@/core/session-policy';
 import type { AuditEvent, Revoker, SessionRecord } from '@/core/types';
-import { AuditLogRepository } from '../../audit-log/repositories/audit-log.repository';
-import { AUTH_CONFIG, AuthConfig } from '../../../common/config/auth.config';
-import { DRIZZLE_DB, type Database } from '../../../common/config/db';
+import { AuditLogRepository } from '@/modules/audit-log/repositories/audit-log.repository';
+import { AUTH_CONFIG, AuthConfig } from '@/common/config/auth.config';
+import { DRIZZLE_DB, type Database } from '@/common/config/db';
 import { denylistedAccessTokens, sessions } from '@/database/schema';
-import { toId, toIdOrNull } from '../../../common/helpers/id.helper';
+import { toId, toIdOrNull } from '@/common/helpers/id.helper';
 
 function toSessionRecord(row: typeof sessions.$inferSelect): SessionRecord {
   return {

@@ -19,8 +19,8 @@
 // the `Express` namespace, see @types/express-serve-static-core) rather than the reference's
 // `declare module "express"`.
 import type { AccessTokenClaims } from '@/core/types';
-import type { AppAbility } from '../common/auth/ability/ability';
-import type { AuthzContext } from '../common/auth/middleware/authz.middleware';
+import type { AppAbility } from '@/common/auth/ability/ability';
+import type { AuthzContext } from '@/common/auth/middleware/authz.middleware';
 
 declare global {
   // Express's own declaration-merging style for augmenting its Request type requires a

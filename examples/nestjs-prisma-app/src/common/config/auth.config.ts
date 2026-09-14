@@ -1,4 +1,4 @@
-import type { PermissionCacheStore } from '../auth/cache/permission-cache';
+import type { PermissionCacheStore } from '@/common/auth/cache/permission-cache';
 import type { RateLimitDeps } from '@/core/rate-limit';
 
 export const AUTH_CONFIG = Symbol('AUTH_CONFIG');

@@ -1,12 +1,12 @@
 import { Inject, Injectable } from '@nestjs/common';
-import type { AuthzContext } from '../../../common/auth/guards/authz.guard';
-import type { Paginated } from '../../../common/helpers/pagination';
+import type { AuthzContext } from '@/common/auth/guards/authz.guard';
+import type { Paginated } from '@/common/helpers/pagination';
 import {
   AuditLogEntry,
   AuditLogListFilter,
   AuditLogRepository,
   toAuditLogEntry,
-} from '../repositories/audit-log.repository';
+} from '@/modules/audit-log/repositories/audit-log.repository';
 
 @Injectable()
 export class AuditLogService {

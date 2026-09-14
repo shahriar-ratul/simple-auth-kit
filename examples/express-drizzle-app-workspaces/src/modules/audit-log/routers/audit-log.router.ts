@@ -1,7 +1,7 @@
 import type { NextFunction, Request, RequestHandler, Response } from 'express';
-import { ability, createTieredRouter } from '../../../infra/route-tiers';
-import { AuditLogService } from '../services/audit-log.service';
-import '../../../infra/request-context';
+import { ability, createTieredRouter } from '@/infra/route-tiers';
+import { AuditLogService } from '@/modules/audit-log/services/audit-log.service';
+import '@/infra/request-context';
 
 export interface AuditLogRouterDeps {
   auditLog: AuditLogService;

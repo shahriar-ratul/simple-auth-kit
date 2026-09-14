@@ -1,9 +1,9 @@
 import { Inject } from '@nestjs/common';
 import { OnGatewayConnection, WebSocketGateway, WebSocketServer } from '@nestjs/websockets';
 import type { Server, Socket } from 'socket.io';
-import { AuditLogEntry, AuditLogRepository } from '../../audit-log/repositories/audit-log.repository';
-import { AuthTokenService } from '../../../common/auth/token.service';
-import { SessionRepository } from '../repositories/session.repository';
+import { AuditLogEntry, AuditLogRepository } from '@/modules/audit-log/repositories/audit-log.repository';
+import { AuthTokenService } from '@/common/auth/token.service';
+import { SessionRepository } from '@/modules/auth/repositories/session.repository';
 
 // socket.io clients disagree on where a bearer token travels: `auth.token` (the socket.io-native
 // slot), an Authorization header, or a `token` query param. Accept all three, first present wins.

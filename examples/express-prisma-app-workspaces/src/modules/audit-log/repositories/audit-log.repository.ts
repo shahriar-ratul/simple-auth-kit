@@ -1,7 +1,7 @@
 import type { AuditEvent } from '@/core/types';
 import { Prisma, PrismaClient } from '@/database/generated/prisma/client';
-import { buildPageMeta, normalizeLimit, normalizePage, type Paginated } from '../../../common/helpers/pagination';
-import { toIdOrNull, toIdOrUndefined } from '../../../common/helpers/id.helper';
+import { buildPageMeta, normalizeLimit, normalizePage, type Paginated } from '@/common/helpers/pagination';
+import { toIdOrNull, toIdOrUndefined } from '@/common/helpers/id.helper';
 
 export interface AuditLogEntry {
   id: string;

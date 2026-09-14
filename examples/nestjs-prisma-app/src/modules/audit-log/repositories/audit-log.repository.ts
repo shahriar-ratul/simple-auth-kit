@@ -1,8 +1,9 @@
 import { Inject, Injectable } from '@nestjs/common';
 import type { AuditEvent } from '@/core/types';
-import { Prisma, PrismaClient } from '@/database/generated/prisma/client';
-import { toIdOrNull, toIdOrUndefined } from '../../../common/helpers/id.helper';
-import { buildPageMeta, normalizeLimit, normalizePage, type Paginated } from '../../../common/helpers/pagination';
+import { Prisma } from '@/database/generated/prisma/client';
+import { PrismaService } from '@/modules/prisma/prisma.service';
+import { toIdOrNull, toIdOrUndefined } from '@/common/helpers/id.helper';
+import { buildPageMeta, normalizeLimit, normalizePage, type Paginated } from '@/common/helpers/pagination';
 
 export interface AuditLogEntry {
   id: string;
@@ -56,7 +57,7 @@ export class AuditLogRepository {
   // gateway here would close a dependency cycle.
   private readonly listeners = new Set<AuditLogListener>();
 
-  constructor(@Inject(PrismaClient) private readonly prisma: PrismaClient) {}
+  constructor(@Inject(PrismaService) private readonly prisma: PrismaService) {}
 
   /** Fires after every successful write, with the same wire shape the REST list endpoint returns. */
   onAppend(listener: AuditLogListener): void {
