@@ -1,6 +1,6 @@
 import "dotenv/config";
-import { createAuthApp } from "../src/create-auth-app.js";
-import { InMemoryPermissionCacheStore } from "../src/cache/permission-cache.js";
+import { createAuthApp } from "../src/modules/auth/create-auth-app.js";
+import { InMemoryPermissionCacheStore } from "../src/common/auth/cache/permission-cache.js";
 
 // No mailer is wired up for the proof, so this stands in for one — prove-cycle.ts reads the
 // raw token back out of here the same way a test inbox would, to exercise the reset flow.

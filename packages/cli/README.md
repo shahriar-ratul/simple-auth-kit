@@ -44,8 +44,10 @@ review `package.json` first.
 
 Add `--workspaces` to any of these for the workspaces variant.
 
-**`api`** — merged into `src/lib/auth` of an existing project (the Prisma/Drizzle config +
-schema land at the project root instead — see below):
+**`api`** — merged into `src` of an existing project by default (configurable via
+`--path`/`--alias`; the Prisma/Drizzle config + `database/` land at the project root
+regardless — see below):
+
 ```bash
 npx @simple-auth-kit/cli add nestjs-prisma --into .
 npx @simple-auth-kit/cli add nestjs-drizzle --into .
@@ -55,6 +57,7 @@ npx @simple-auth-kit/cli add express-drizzle --into .
 
 **`admin`** — a whole new standalone app, scaffolded at the target (refuses a non-empty target
 unless `--force`):
+
 ```bash
 npx @simple-auth-kit/cli add admin-nextjs --into ./admin
 npx @simple-auth-kit/cli add admin-react --into ./admin
@@ -62,6 +65,7 @@ npx @simple-auth-kit/cli add admin-react --into ./admin
 
 **`mobile`** — a whole new standalone app, scaffolded at the target (same non-empty-target
 rule):
+
 ```bash
 npx @simple-auth-kit/cli add mobile-expo --into ./mobile
 npx @simple-auth-kit/cli add mobile-bare-rn --into ./mobile
@@ -69,17 +73,19 @@ npx @simple-auth-kit/cli add mobile-bare-rn --into ./mobile
 
 ## Your own database models are safe
 
-The Prisma combos install `prisma.config.ts` + `prisma/` at your project root, using Prisma's
+The Prisma combos install `prisma.config.ts` + `database/` at your project root, using Prisma's
 own multi-file schema support: the CLI's own models live in
-`prisma/schema/simple-auth-kit.prisma`, and Prisma automatically merges every other `.prisma`
+`database/schema/simple-auth-kit.prisma`, and Prisma automatically merges every other `.prisma`
 file you add alongside it. Add your own models in a sibling file (e.g.
-`prisma/schema/app.prisma`) — the CLI only ever tracks its own file by exact name, so `update`
-never touches yours, `--force` included.
+`database/schema/app.prisma`) — the CLI only ever tracks its own file by exact name, so `update`
+never touches yours, `--force` included. `database/` also holds `migrations/`, `seed.ts`, and
+the generated Prisma client (`database/generated/prisma/`), all reachable from your own source
+via the `"@/database/*": ["./database/*"]` tsconfig alias the CLI asks you to add.
 
 The Drizzle combos work the same way at a smaller scale: `drizzle.config.ts`'s `schema` field
-is `[schema.ts, *.schema.ts]` — add your own tables in a sibling `*.schema.ts` file (e.g.
-`billing.schema.ts`, next to the CLI-managed `schema.ts`) and `drizzle-kit` picks it up
-automatically, with no edits to `drizzle.config.ts` itself.
+is `[schema.ts, *.schema.ts]`, both under `database/` — add your own tables in a sibling
+`*.schema.ts` file (e.g. `billing.schema.ts`, next to the CLI-managed `database/schema.ts`) and
+`drizzle-kit` picks it up automatically, with no edits to `drizzle.config.ts` itself.
 
 ## Clone the source
 

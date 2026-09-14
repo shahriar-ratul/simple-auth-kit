@@ -6,7 +6,7 @@
   "type": "module",
   "scripts": {
     "start": "tsx src/main.ts",
-    "seed": "tsx src/lib/auth/seed.ts"
+    "seed": "tsx database/seed.ts"
   },
   "dependencies": {
     "@casl/ability": "^7.0.1",
@@ -14,7 +14,7 @@
     "drizzle-kit": "^0.31.10",
     "drizzle-orm": "^0.45.2",
     "express": "^5.2.1",
-    "jose": "^6.2.8",
+    "jose": "^6.2.12",
     "pg": "^8.23.0",
     "swagger-ui-express": "^5.0.1"
   },

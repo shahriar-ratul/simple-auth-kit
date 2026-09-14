@@ -33,31 +33,31 @@ the published form above. Prefer not to link? The unlinked form works identicall
 
 ## Commands
 
-| Command | What it does |
-|---|---|
-| *(no command)* | In a real terminal: the guided picker — pick kind(s) (api/admin/mobile), a framework per kind, then base or workspaces. Outside a TTY: prints the full command/combo reference instead (same as `--help`). |
-| `init` | Same guided picker as above, but first writes `.simple-auth-kit.json` in the target (`path`, `alias`, `ignore`) so later installs remember it. `--config-only` writes that file and stops, without installing anything. |
-| `add <combo>` | Skip the picker — install one named product directly (see modes below). |
-| `add` (no combo) | Same guided picker as bare invocation — this is the form `--kind`/`--framework` drive non-interactively. |
-| `update [--check]` | Re-installs whatever combo+variant `auth.lock.json` already records — no need to name the combo again. `--check` reports what would change without writing anything (merge-mode combos only). |
-| `diff` | Shows the actual content diff (unified diff format) for every tracked file that differs from the current registry — whether that's an upstream change or your own edit. Read-only. Merge-mode (api) combos only. |
+| Command            | What it does                                                                                                                                                                                                            |
+| ------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| _(no command)_     | In a real terminal: the guided picker — pick kind(s) (api/admin/mobile), a framework per kind, then base or workspaces. Outside a TTY: prints the full command/combo reference instead (same as `--help`).              |
+| `init`             | Same guided picker as above, but first writes `.simple-auth-kit.json` in the target (`path`, `alias`, `ignore`) so later installs remember it. `--config-only` writes that file and stops, without installing anything. |
+| `add <combo>`      | Skip the picker — install one named product directly (see modes below).                                                                                                                                                 |
+| `add` (no combo)   | Same guided picker as bare invocation — this is the form `--kind`/`--framework` drive non-interactively.                                                                                                                |
+| `update [--check]` | Re-installs whatever combo+variant `auth.lock.json` already records — no need to name the combo again. `--check` reports what would change without writing anything (merge-mode combos only).                           |
+| `diff`             | Shows the actual content diff (unified diff format) for every tracked file that differs from the current registry — whether that's an upstream change or your own edit. Read-only. Merge-mode (api) combos only.        |
 
 ## Flags
 
-| Flag | Meaning |
-|---|---|
-| `--workspaces` | Install the workspaces variant (default is base). `--variant <base\|workspaces>` is the explicit form. |
-| `--into <path>` | Target project root (defaults to cwd). |
-| `--path <dir>` | Where the api fragment lands inside the target (default `src/lib/auth`). |
-| `--alias <alias>` | Import alias rewritten into the copied sources (default `@/lib/auth`). |
-| `--name <appName>` | Scaffold installs: templates `package.json` name/description, and drives `mobile-bare-rn`'s native identity renaming. Falls back to the target directory's basename. |
-| `--kind api,admin,mobile` | Multi-kind flow: which kinds to generate (comma list). |
-| `--framework <name>,...` | Multi-kind flow: framework per kind, positionally matched to `--kind`. |
-| `--force` | Overwrite files the consumer has locally modified (normally they're skipped and reported). In a TTY, without `--force`, a locally-modified file triggers a per-file "overwrite?" prompt instead of a silent skip. |
-| `--check` | `update` only: report what would change without writing anything. |
-| `--skip-install` | Don't run the package manager after copying files — the default is to install for you (see below). |
-| `--pm <npm\|pnpm\|yarn\|bun>` | Which package manager to install with — default: detected from a lockfile in the target directory, or prompted for in a TTY when neither says anything (npm otherwise). |
-| `--config-only` | `init` only: just write `.simple-auth-kit.json` and stop, no install. |
+| Flag                          | Meaning                                                                                                                                                                                                           |
+| ----------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `--workspaces`                | Install the workspaces variant (default is base). `--variant <base\|workspaces>` is the explicit form.                                                                                                            |
+| `--into <path>`               | Target project root (defaults to cwd).                                                                                                                                                                            |
+| `--path <dir>`                | Where the api fragment lands inside the target (default `src`).                                                                                                                                                   |
+| `--alias <alias>`             | Import alias rewritten into the copied sources (default `@`).                                                                                                                                                     |
+| `--name <appName>`            | Scaffold installs: templates `package.json` name/description, and drives `mobile-bare-rn`'s native identity renaming. Falls back to the target directory's basename.                                              |
+| `--kind api,admin,mobile`     | Multi-kind flow: which kinds to generate (comma list).                                                                                                                                                            |
+| `--framework <name>,...`      | Multi-kind flow: framework per kind, positionally matched to `--kind`.                                                                                                                                            |
+| `--force`                     | Overwrite files the consumer has locally modified (normally they're skipped and reported). In a TTY, without `--force`, a locally-modified file triggers a per-file "overwrite?" prompt instead of a silent skip. |
+| `--check`                     | `update` only: report what would change without writing anything.                                                                                                                                                 |
+| `--skip-install`              | Don't run the package manager after copying files — the default is to install for you (see below).                                                                                                                |
+| `--pm <npm\|pnpm\|yarn\|bun>` | Which package manager to install with — default: detected from a lockfile in the target directory, or prompted for in a TTY when neither says anything (npm otherwise).                                           |
+| `--config-only`               | `init` only: just write `.simple-auth-kit.json` and stop, no install.                                                                                                                                             |
 
 ## Dependencies are installed for you
 
@@ -128,7 +128,8 @@ with a plain `npm install`, no manual dependency resolution needed.
 cd packages/cli && npx tsx simple-auth-kit.ts add <combo> [--workspaces] --force --into ../../examples/<app>
 ```
 
-`--force` is fine there — the examples hold no hand edits inside the managed `src/lib/auth/`
-directory. Read the CLI's own `skipped`/`keptModified` output: anything listed is a real
+`--force` is fine there — the examples hold no hand edits inside the managed `common/`, `core/`,
+`infra/`, and `modules/` directories under `src/` (or `database/` at the project root). Read the
+CLI's own `skipped`/`keptModified` output: anything listed is a real
 hand-edit the force-copy preserved and worth reviewing. New backend dependencies must be added
 to the example's own `package.json` — the CLI copies source, not deps.

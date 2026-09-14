@@ -5,10 +5,10 @@ dependency.
 
 Every combo ships in **two variants**, chosen by the consumer at `simple-auth-kit add` time:
 
-| Variant | CLI | What it is |
-|---|---|---|
-| `base` | `simple-auth-kit add <combo>` (default) | Roles and permissions are global to the deployment. Real join tables (`RoleUser`, `PermissionRole`, `PermissionUser`); direct grants attach to the user. |
-| `workspaces` | `simple-auth-kit add <combo> --workspaces` | A user belongs to any number of workspaces and holds different roles in each. `Workspace` + `WorkspaceMember`; `Role` unique per `[workspaceId, slug]`; membership-scoped join tables (`RoleMember`, `PermissionMember`); direct grants attach to the *membership*. Workspace-scoped requests carry `X-Workspace-Id`. |
+| Variant      | CLI                                        | What it is                                                                                                                                                                                                                                                                                                            |
+| ------------ | ------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `base`       | `simple-auth-kit add <combo>` (default)    | Roles and permissions are global to the deployment. Real join tables (`RoleUser`, `PermissionRole`, `PermissionUser`); direct grants attach to the user.                                                                                                                                                              |
+| `workspaces` | `simple-auth-kit add <combo> --workspaces` | A user belongs to any number of workspaces and holds different roles in each. `Workspace` + `WorkspaceMember`; `Role` unique per `[workspaceId, slug]`; membership-scoped join tables (`RoleMember`, `PermissionMember`); direct grants attach to the _membership_. Workspace-scoped requests carry `X-Workspace-Id`. |
 
 The emitted project contains exactly one variant. A consumer cannot tell the other exists.
 
@@ -17,7 +17,7 @@ The emitted project contains exactly one variant. A consumer cannot tell the oth
 Every combo also has a `kind` (`api`, `admin`, or `mobile`, in `packages/cli/registry.json` — absent means
 `api`, since every combo predating that field is one) and an `installMode` (`merge` or
 `scaffold`). This file is entirely about **`kind: "api"`** combos — `registry/combos/*`, `merge`
-mode, a source fragment the CLI composes into an *existing* project's `src/lib/auth`. Everything
+mode, a source fragment the CLI composes into an _existing_ project's `src/lib/auth`. Everything
 here (the byte-identical rule, the two-variant model, `shared/`+`variants/*`, the seeder,
 enforcement) is specific to that shape.
 
@@ -48,13 +48,14 @@ registry/
     │   └── seed.mjs           runs a variant's seeder against this combo's dev database
     ├── shared/                ← COPIED FOR BOTH VARIANTS
     │   ├── .gitignore
-    │   ├── prisma.config.ts   (Prisma combos only)
+    │   ├── prisma.config.ts   (Prisma combos only) / drizzle.config.ts (Drizzle combos only)
     │   └── src/**
     ├── variants/
     │   ├── base/              ← COPIED FOR `add <combo>`
     │   │   ├── .env.example
-    │   │   ├── prisma/schema.prisma
-    │   │   ├── prisma/migrations/**
+    │   │   ├── database/schema/**  (Prisma: .prisma files) or database/schema.ts (Drizzle)
+    │   │   ├── database/migrations/**
+    │   │   ├── database/seed.ts
     │   │   ├── src/**
     │   │   └── test/variant-hooks.ts
     │   └── workspaces/        ← COPIED FOR `add <combo> --workspaces`
@@ -75,22 +76,78 @@ Composition is `shared/` copied first, then `variants/<variant>/` copied over th
 CLI (`packages/cli/lib/copy.ts`) and `scripts/materialize.mjs` do exactly this, so what the combo
 typechecks and proves is what the CLI emits.
 
+### Inside `src/`: `common/`, `infra/`, `modules/`
+
+Every combo's `src/` (shared + variant, overlaid) groups into three top-level folders, plus
+whatever `registry/core/*` is mounted as (always `core/`, at the project root the CLI installs
+into — see below for why nothing here is also named `core/`):
+
+- **`common/`** — cross-cutting auth infrastructure used by every feature module: `common/auth/`
+  (the ability model, permission cache, rate-limit store, the plain authentication guard/middleware,
+  and each variant's own authorization guard/middleware), `common/config/` (generic — `auth.config`,
+  `key-provider`, and for Drizzle combos the DB connection factory — not auth-namespaced, since a
+  consumer might reasonably add unrelated config here too), `common/helpers/`.
+- **`infra/`** — framework-wide, non-auth-specific plumbing: the response envelope/interceptor,
+  the error/exception filter, `request-context`, `route-tiers`, the hand-authored or
+  decorator-derived OpenAPI wiring. Named `infra/`, deliberately **not** `core/` — the CLI always
+  copies `registry/core/*` (the framework-free pure logic layer: crypto, oauth, session-policy,
+  token-service, rbac union, …) to `<installDir>/core` regardless of `--path`, so a same-named
+  grouping inside the combo's own source would collide with it in a real install.
+- **`modules/`** — one subfolder per feature module, each with its own routes/controllers, DTOs,
+  services, and repositories: `modules/auth/` (identity/session: signup, login, refresh, 2FA,
+  password reset, `/api/v1/auth/me`, self-profile update — plus, on the workspaces variant,
+  workspace membership itself), `modules/admin/` (user CRUD, block/unblock/deactivate/activate,
+  the user-scoped role/permission _assignment_ endpoints, and — nestjs-prisma only — the
+  countries/languages/customers content domains), `modules/roles/` (role catalog CRUD),
+  `modules/permissions/` (permission catalog CRUD), `modules/audit-log/` (audit log listing).
+  Each controller/router declares its own route as `v1/<module-name>` — `v1/admin`, `v1/roles`,
+  `v1/permissions`, `v1/audit-log` — since that part of the path is intrinsic to the route. `api`
+  is a separate, deployment-level concern layered on top (`app.setGlobalPrefix("api", {...})` in
+  a NestJS consumer's own `main.ts`, or baked into `createAuthApp()`'s router mounts for the
+  Express combos), giving the full `/api/v1/<module-name>` path a client actually calls — see
+  `docs/backend-api.md`.
+
+**`RbacRepository` is not split** across `modules/roles/`/`modules/permissions/` even though
+their controllers live in separate modules — it is the one class every request's authorization
+resolution goes through (`resolveAuthzContext`, cache invalidation, default-role assignment at
+signup), and physically fragmenting it was judged too high a correctness risk for the
+organizational benefit. Every module that needs it (via the NestJS combos' `CoreAuthModule`, or a
+constructor/factory argument in the Express combos) shares the same instance.
+
+**NestJS combos only**: `common/auth/core-auth.module.ts` is a `@Global()` module centralizing
+`AUTH_CONFIG`, the DB client, `KeyProviderService`, `PermissionCache`, the rate-limit store,
+`RbacRepository`, and the three guards — exported so every feature module can inject them without
+redeclaring providers. Its `forRoot(config)` is the _only_ remaining dynamic-module config surface;
+everything that used to ship inside the old monolithic `AuthModule.forRoot()` — the global
+exception filter, the response-envelope interceptor, `ThrottlerModule` + its guard — is now
+assembled by the consumer in their own `app.module.ts` (see
+`examples/nestjs-prisma-app/src/app.module.ts`). `modules/auth/auth.module.ts` itself is a plain,
+non-global `@Module` with no `forRoot()` — "just a simple module," not the app's integration
+surface. **Express combos** have no DI container forcing this kind of ambient registration in the
+first place — `createAuthApp()` stays the single, linear wiring function it always was; only the
+router/module split applies there.
+
 ### Which files ended up where, in the reference combo
 
 `shared/src`: the identity/session/2FA machinery and everything both variants use unchanged —
-`auth.config.ts`, `auth.controller.ts`, `auth.guard.ts`, `ability.ts`, `ability.guard.ts`,
-`route-tiers.ts`, `permission-cache.ts`, `request-context.ts`, `response.interceptor.ts`,
-`pagination.ts`, `id.helper.ts`, `key-provider.ts`, `rate-limit.store.ts`,
-`auth-core-error.filter.ts`, the `session/two-factor/password-reset/oauth` repositories,
-`dto/auth.dto.ts`.
+`common/config/auth.config.ts`, `modules/auth/controllers/auth.controller.ts`,
+`common/auth/guards/auth.guard.ts`, `common/auth/ability/{ability.ts,ability.guard.ts}`,
+`infra/route-tiers.ts`, `common/auth/cache/permission-cache.ts`, `infra/request-context.ts`,
+`infra/interceptor/response.interceptor.ts`, `common/helpers/{pagination.ts,id.helper.ts}`,
+`common/config/key-provider.ts`, `common/auth/cache/rate-limit.store.ts`,
+`infra/filters/auth-core-error.filter.ts`, the `session/two-factor/password-reset/oauth`
+repositories (`modules/auth/repositories/`), `modules/auth/dto/auth.dto.ts`.
 
 `variants/<variant>/src`: everything whose implementation depends on how authorization is
-scoped — `auth.module.ts`, `auth.service.ts`, `admin.controller.ts`, `authz.guard.ts`,
-`rbac.repository.ts`, `rbac.defaults.ts`, `audit-log.repository.ts`, `seed.ts`,
-`dto/admin.dto.ts`, and the content-domain repositories
-(`country/language/customer.repository.ts`, this combo only). Plus, in `base` only,
-`audit-log.gateway.ts` (the socket.io feed) and `docs.ts`; in `workspaces` only,
-`workspace.controller.ts`, `workspace.repository.ts`, `dto/workspace.dto.ts`.
+scoped — `modules/auth/auth.module.ts`, `modules/auth/services/auth.service.ts`,
+`modules/admin/controllers/admin.controller.ts`, `common/auth/guards/authz.guard.ts`,
+`modules/auth/repositories/rbac.repository.ts`, `modules/auth/rbac.defaults.ts`,
+`modules/audit-log/repositories/audit-log.repository.ts`, `database/seed.ts`,
+`modules/admin/dto/admin.dto.ts`, and the content-domain repositories
+(`modules/admin/repositories/{country,language,customer}.repository.ts`, this combo only). Plus,
+in `base` only, `modules/auth/gateways/audit-log.gateway.ts` (the socket.io feed) and
+`infra/openapi/docs.ts`; in `workspaces` only, `modules/auth/controllers/workspace.controller.ts`,
+`modules/auth/repositories/workspace.repository.ts`, `modules/auth/dto/workspace.dto.ts`.
 
 `rbac.defaults.ts` is per variant rather than shared because the catalogs differ by one slug
 (`members:manage` exists only where there are members to manage), and a file must not branch on
@@ -103,11 +160,11 @@ variant exists" rule the byte-identical test enforces everywhere else.
 
 ### The seam that keeps the shared half shared
 
-Authentication and authorization are separate request-scoped objects (`shared/src/request-context.ts`):
+Authentication and authorization are separate request-scoped objects (`shared/src/infra/request-context.ts`):
 
 - `req.auth` — the verified access-token claims. Set by the shared `AuthGuard`. Identity only —
   **nothing about authorization is ever in the token.**
-- `req.authz` — the roles and permissions that apply to *this request*, resolved from the
+- `req.authz` — the roles and permissions that apply to _this request_, resolved from the
   database. Set by `AuthzGuard`, which is the one guard each variant writes for itself:
   - `base` resolves the caller's global roles/permissions on the `userId`.
   - `workspaces` reads the `X-Workspace-Id` header, resolves the membership on the
@@ -226,16 +283,16 @@ reads it rather than keeping a copy:
 - **`PermissionSlug`** = `keyof typeof PERMISSION_CATALOG`, and `@CheckAbility` takes **that
   type, not `string`**. A route cannot demand a slug the catalog does not define, so "this
   route requires something nothing can ever grant" is a compile error rather than a 403 nobody
-  can explain. Deployments may mint new slugs at runtime (`POST /auth/admin/permissions`
+  can explain. Deployments may mint new slugs at runtime (`POST /permissions`
   accepts any string), but those cannot gate a route this library ships.
 - **`DEFAULT_ROLES`** — `admin` carries the whole catalog, `member` carries nothing.
 - **`provisionDefaultRoles(db[, workspaceId])`** — writes catalog + default roles into a
   database. `db` is typed structurally so it accepts either the client or a transaction
   client. Every insert is `ON CONFLICT DO NOTHING` on the natural unique key, so it is
-  idempotent *and* safe to run concurrently, and nothing is ever deleted.
+  idempotent _and_ safe to run concurrently, and nothing is ever deleted.
 
 Its callers: `src/seed.ts` (both variants), `src/workspace.repository.ts` (workspaces only), and
-the variant hooks in `test/`. The seeder is a *caller* of this definition, not its owner —
+the variant hooks in `test/`. The seeder is a _caller_ of this definition, not its owner —
 which is what makes it impossible for what gets seeded and what the routes demand to drift.
 
 Resolution at request time (`AuthzGuard` → `PermissionCache` → `RbacRepository`) unions role
@@ -246,7 +303,7 @@ absent from it, is a 403.
 ### Ungated on purpose
 
 Three workspace routes are deliberately not gated, and the catalog mints no slugs for them.
-`POST /workspaces` and `GET /workspaces` act *outside* every workspace — any authenticated user
+`POST /workspaces` and `GET /workspaces` act _outside_ every workspace — any authenticated user
 may create one or list their own, and gating them on a permission granted inside some other
 workspace would mean your first workspace could only be created by someone who already had one.
 `GET /workspaces/members` is gated on membership itself, which the guard chain has already
@@ -259,7 +316,7 @@ In the workspaces variant `Role` is unique per workspace, so **a newly created w
 with no `Role`/`PermissionRole` rows in that workspace those are two names with nothing behind
 them, resolving to zero permissions. The moment routes enforce permissions, the creator is
 locked out of the workspace they just made — permanently, since every route that could fix it
-is one of the gated ones. The seeder does not help: it only provisions the workspace *it*
+is one of the gated ones. The seeder does not help: it only provisions the workspace _it_
 creates.
 
 `WorkspaceRepository.create` therefore calls `provisionDefaultRoles(tx, workspace.id)` **inside
@@ -278,7 +335,7 @@ without an administrator are refused.
 
 The base variant has no equivalent trap: roles are global, so the seeder is the only bootstrap
 and the only failure mode is "run the seeder", already spelled out in the CLI's postInstall
-notes (*"Nothing is authorized until it has run at least once"*).
+notes (_"Nothing is authorized until it has run at least once"_).
 
 ## Adding a combo (or migrating one)
 

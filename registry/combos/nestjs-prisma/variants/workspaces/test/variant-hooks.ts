@@ -4,8 +4,8 @@
 // workspace grants nothing in another.
 import "dotenv/config";
 import { PrismaPg } from "@prisma/adapter-pg";
-import { PrismaClient } from "../generated/prisma/client.js";
-import { POLICY_VERSION_KEY } from "../src/cache/permission-cache.js";
+import { PrismaClient } from "@/database/generated/prisma/client.js";
+import { POLICY_VERSION_KEY } from "../src/common/auth/cache/permission-cache.js";
 import { permissionCacheStore } from "./bootstrap.js";
 import {
   renewingToken,
@@ -108,7 +108,7 @@ export const hooks: VariantHooks = {
     );
 
     // --- a non-member cannot even see a workspace exists ---
-    const outsider = await ctx.call("GET", "/auth/admin/users", {
+    const outsider = await ctx.call("GET", "/admin/users", {
       token: alpha.token,
       workspaceId: beta.workspace.id,
     });
@@ -117,7 +117,7 @@ export const hooks: VariantHooks = {
       `an admin of one workspace is refused in a workspace they are not a member of (got ${outsider.status})`,
     );
 
-    const bogus = await ctx.call("GET", "/auth/admin/users", {
+    const bogus = await ctx.call("GET", "/admin/users", {
       token: alpha.token,
       workspaceId: "00000000-0000-0000-0000-000000000000",
     });
@@ -126,7 +126,7 @@ export const hooks: VariantHooks = {
       `an unknown workspace id is refused the same way as someone else's (got ${bogus.status})`,
     );
 
-    const noHeader = await ctx.call("GET", "/auth/admin/users", {
+    const noHeader = await ctx.call("GET", "/admin/users", {
       token: alpha.token,
     });
     ctx.assert(
@@ -172,7 +172,7 @@ export const hooks: VariantHooks = {
       "…and only the roles granted by workspace B's membership apply there",
     );
 
-    const adminAttemptInBeta = await ctx.call("GET", "/auth/admin/users", {
+    const adminAttemptInBeta = await ctx.call("GET", "/admin/users", {
       token: alpha.token,
       workspaceId: beta.workspace.id,
     });
@@ -182,12 +182,12 @@ export const hooks: VariantHooks = {
     );
 
     // --- roles are per workspace: the same role name can mean different things ---
-    const roleInBeta = await ctx.call("POST", "/auth/admin/roles", {
+    const roleInBeta = await ctx.call("POST", "/roles", {
       token: beta.token,
       workspaceId: beta.workspace.id,
       body: { slug: "shared-name" },
     });
-    const roleInAlpha = await ctx.call("POST", "/auth/admin/roles", {
+    const roleInAlpha = await ctx.call("POST", "/roles", {
       token: alpha.token,
       workspaceId: alpha.workspace.id,
       body: { slug: "shared-name" },
@@ -199,14 +199,14 @@ export const hooks: VariantHooks = {
 
     await ctx.call(
       "POST",
-      `/auth/admin/roles/${(roleInBeta.body as { id: string }).id}/permissions`,
+      `/roles/${(roleInBeta.body as { id: string }).id}/permissions`,
       {
         token: beta.token,
         workspaceId: beta.workspace.id,
         body: { permission: "beta:only" },
       },
     );
-    await ctx.call("POST", `/auth/admin/users/${alpha.userId}/roles`, {
+    await ctx.call("POST", `/admin/users/${alpha.userId}/roles`, {
       token: beta.token,
       workspaceId: beta.workspace.id,
       body: { role: "shared-name" },
@@ -232,7 +232,7 @@ export const hooks: VariantHooks = {
     // --- direct grants attach to the membership, not the user ---
     const directGrant = await ctx.call(
       "POST",
-      `/auth/admin/users/${alpha.userId}/permissions`,
+      `/admin/users/${alpha.userId}/permissions`,
       {
         token: beta.token,
         workspaceId: beta.workspace.id,
@@ -263,7 +263,7 @@ export const hooks: VariantHooks = {
     // --- an admin cannot act on a user who is not in their workspace ---
     const crossBlock = await ctx.call(
       "POST",
-      `/auth/admin/users/${beta.userId}/block`,
+      `/admin/users/${beta.userId}/block`,
       { token: alpha.token, workspaceId: alpha.workspace.id },
     );
     ctx.assert(
@@ -272,7 +272,7 @@ export const hooks: VariantHooks = {
     );
 
     // --- audit log is scoped too ---
-    const betaAudit = await ctx.call("GET", "/auth/admin/audit-log", {
+    const betaAudit = await ctx.call("GET", "/audit-log", {
       token: beta.token,
       workspaceId: beta.workspace.id,
     });
@@ -355,7 +355,7 @@ export const hooks: VariantHooks = {
     // --- revocation is immediate here: the context is resolved per request, not per token ---
     const immediate = await ctx.call(
       "POST",
-      `/auth/admin/users/${beta.userId}/permissions`,
+      `/admin/users/${beta.userId}/permissions`,
       {
         token: beta.token,
         workspaceId: beta.workspace.id,
@@ -376,7 +376,7 @@ export const hooks: VariantHooks = {
     );
     await ctx.call(
       "POST",
-      `/auth/admin/users/${beta.userId}/permissions/${encodeURIComponent("probe:immediate")}/revoke`,
+      `/admin/users/${beta.userId}/permissions/${encodeURIComponent("probe:immediate")}/revoke`,
       {
         token: beta.token,
         workspaceId: beta.workspace.id,
@@ -433,15 +433,15 @@ async function proveNewWorkspaceIsProvisioned(
   const memberId = (added.body as { memberId: string }).memberId;
 
   ctx.assert(
-    ok(await ctx.call("GET", "/auth/admin/users", as)),
+    ok(await ctx.call("GET", "/admin/users", as)),
     "users:read — the creator can list the members",
   );
   ctx.assert(
-    ok(await ctx.call("GET", "/auth/admin/audit-log", as)),
+    ok(await ctx.call("GET", "/audit-log", as)),
     "audit-log:read — the creator can read the audit log",
   );
 
-  const role = await ctx.call("POST", "/auth/admin/roles", {
+  const role = await ctx.call("POST", "/roles", {
     ...as,
     body: { slug: "fresh-role" },
   });
@@ -451,7 +451,7 @@ async function proveNewWorkspaceIsProvisioned(
   );
   const attach = await ctx.call(
     "POST",
-    `/auth/admin/roles/${(role.body as { id: string }).id}/permissions`,
+    `/roles/${(role.body as { id: string }).id}/permissions`,
     { ...as, body: { permission: "fresh:probe" } },
   );
   ctx.assert(
@@ -461,7 +461,7 @@ async function proveNewWorkspaceIsProvisioned(
 
   ctx.assert(
     ok(
-      await ctx.call("POST", `/auth/admin/users/${guestId}/roles`, {
+      await ctx.call("POST", `/admin/users/${guestId}/roles`, {
         ...as,
         body: { role: "fresh-role" },
       }),
@@ -472,7 +472,7 @@ async function proveNewWorkspaceIsProvisioned(
     ok(
       await ctx.call(
         "POST",
-        `/auth/admin/users/${guestId}/roles/fresh-role/revoke`,
+        `/admin/users/${guestId}/roles/fresh-role/revoke`,
         as,
       ),
     ),
@@ -481,7 +481,7 @@ async function proveNewWorkspaceIsProvisioned(
 
   ctx.assert(
     ok(
-      await ctx.call("POST", `/auth/admin/users/${guestId}/permissions`, {
+      await ctx.call("POST", `/admin/users/${guestId}/permissions`, {
         ...as,
         body: { permission: "fresh:direct" },
       }),
@@ -492,7 +492,7 @@ async function proveNewWorkspaceIsProvisioned(
     ok(
       await ctx.call(
         "POST",
-        `/auth/admin/users/${guestId}/permissions/${encodeURIComponent("fresh:direct")}/revoke`,
+        `/admin/users/${guestId}/permissions/${encodeURIComponent("fresh:direct")}/revoke`,
         as,
       ),
     ),
@@ -500,11 +500,11 @@ async function proveNewWorkspaceIsProvisioned(
   );
 
   ctx.assert(
-    ok(await ctx.call("POST", `/auth/admin/users/${guestId}/block`, as)),
+    ok(await ctx.call("POST", `/admin/users/${guestId}/block`, as)),
     "users:block — block a member",
   );
   ctx.assert(
-    ok(await ctx.call("POST", `/auth/admin/users/${guestId}/unblock`, as)),
+    ok(await ctx.call("POST", `/admin/users/${guestId}/unblock`, as)),
     "users:block — unblock a member",
   );
 
@@ -524,7 +524,7 @@ async function proveNewWorkspaceIsProvisioned(
 
   // A second workspace's "admin" is a different row that happens to share a name.
   const other = await newAdminWithWorkspace(ctx, "fresh-other");
-  const trespass = await ctx.call("GET", "/auth/admin/users", {
+  const trespass = await ctx.call("GET", "/admin/users", {
     token: creator.token,
     workspaceId: other.workspace.id,
   });
@@ -551,7 +551,7 @@ async function proveWorkspaceHeaderCannotBeSkipped(
   ];
 
   for (const [label, headers] of cases) {
-    const admin = await ctx.call("GET", "/auth/admin/users", {
+    const admin = await ctx.call("GET", "/admin/users", {
       token: member.token,
       headers,
     });
@@ -573,11 +573,11 @@ async function proveWorkspaceHeaderCannotBeSkipped(
   // An id that exists but isn't yours and one that exists nowhere must answer identically, body
   // included, or the 403 becomes a workspace oracle.
   const stranger = await newAdminWithWorkspace(ctx, "stranger");
-  const notYours = await ctx.call("GET", "/auth/admin/users", {
+  const notYours = await ctx.call("GET", "/admin/users", {
     token: member.token,
     workspaceId: stranger.workspace.id,
   });
-  const notReal = await ctx.call("GET", "/auth/admin/users", {
+  const notReal = await ctx.call("GET", "/admin/users", {
     token: member.token,
     workspaceId: "00000000-0000-0000-0000-000000000000",
   });
@@ -651,7 +651,7 @@ async function proveTheCacheIsScopedAndReal(
 
   // A grant inside beta must invalidate beta's entry and leave alpha's alone — the cache
   // subject is the (user, workspace) pair.
-  await ctx.call("POST", `/auth/admin/users/${beta.userId}/permissions`, {
+  await ctx.call("POST", `/admin/users/${beta.userId}/permissions`, {
     token: beta.token,
     workspaceId: beta.workspace.id,
     body: { permission: "probe:cache" },
@@ -676,7 +676,7 @@ async function proveTheCacheIsScopedAndReal(
   );
   await ctx.call(
     "POST",
-    `/auth/admin/users/${beta.userId}/permissions/${encodeURIComponent("probe:cache")}/revoke`,
+    `/admin/users/${beta.userId}/permissions/${encodeURIComponent("probe:cache")}/revoke`,
     {
       token: beta.token,
       workspaceId: beta.workspace.id,
@@ -698,7 +698,7 @@ async function proveARawDatabaseEditChangesEnforcement(
   ctx: ProofContext,
   beta: { token: string; workspace: Workspace },
 ): Promise<void> {
-  const opened = await ctx.call("GET", "/auth/admin/audit-log", {
+  const opened = await ctx.call("GET", "/audit-log", {
     token: beta.token,
     workspaceId: beta.workspace.id,
   });
@@ -712,7 +712,7 @@ async function proveARawDatabaseEditChangesEnforcement(
     data: { isActive: false },
   });
   await permissionCacheStore.bump(POLICY_VERSION_KEY);
-  const denied = await ctx.call("GET", "/auth/admin/audit-log", {
+  const denied = await ctx.call("GET", "/audit-log", {
     token: beta.token,
     workspaceId: beta.workspace.id,
   });
@@ -726,7 +726,7 @@ async function proveARawDatabaseEditChangesEnforcement(
     data: { isActive: true },
   });
   await permissionCacheStore.bump(POLICY_VERSION_KEY);
-  const restored = await ctx.call("GET", "/auth/admin/audit-log", {
+  const restored = await ctx.call("GET", "/audit-log", {
     token: beta.token,
     workspaceId: beta.workspace.id,
   });

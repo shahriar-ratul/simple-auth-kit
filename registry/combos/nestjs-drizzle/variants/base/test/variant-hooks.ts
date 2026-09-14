@@ -7,15 +7,15 @@ import "dotenv/config";
 import { eq, inArray } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/node-postgres";
 import { Pool } from "pg";
-import type { Database } from "../src/config/db.js";
-import { toId } from "../src/helpers/id.helper.js";
-import { POLICY_VERSION_KEY } from "../src/cache/permission-cache.js";
+import type { Database } from "../src/common/config/db.js";
+import { toId } from "../src/common/helpers/id.helper.js";
+import { POLICY_VERSION_KEY } from "../src/common/auth/cache/permission-cache.js";
 import {
   provisionDefaultRoles,
   SEED_ADMIN_ROLES,
-} from "../src/rbac.defaults.js";
-import * as schema from "../src/schema.js";
-import { permissions, roleUser, roles } from "../src/schema.js";
+} from "../src/modules/auth/rbac.defaults.js";
+import * as schema from "@/database/schema.js";
+import { permissions, roleUser, roles } from "@/database/schema.js";
 import { permissionCacheStore } from "./bootstrap.js";
 import {
   renewingToken,
@@ -102,7 +102,7 @@ export const hooks: VariantHooks = {
     ctx: ProofContext,
     admin: AdminSession,
   ): Promise<void> {
-    const listed = await ctx.call("GET", "/auth/admin/users", {
+    const listed = await ctx.call("GET", "/admin/users", {
       token: await admin.freshToken(),
     });
     ctx.assert(
@@ -146,7 +146,7 @@ export const hooks: VariantHooks = {
       await ctx.call("GET", "/auth/me", { token: tokens.accessToken })
     ).body.sub as string;
 
-    const beforeGrant = await ctx.call("GET", "/auth/admin/users", {
+    const beforeGrant = await ctx.call("GET", "/admin/users", {
       token: tokens.accessToken,
     });
     ctx.assert(
@@ -156,7 +156,7 @@ export const hooks: VariantHooks = {
 
     const granted = await ctx.call(
       "POST",
-      `/auth/admin/users/${userId}/permissions`,
+      `/admin/users/${userId}/permissions`,
       { token: await admin.freshToken(), body: { permission: "users:read" } },
     );
     ctx.assert(
@@ -164,7 +164,7 @@ export const hooks: VariantHooks = {
       `admin can grant a permission directly (got ${granted.status})`,
     );
 
-    const afterGrant = await ctx.call("GET", "/auth/admin/users", {
+    const afterGrant = await ctx.call("GET", "/admin/users", {
       token: tokens.accessToken,
     });
     ctx.assert(
@@ -174,7 +174,7 @@ export const hooks: VariantHooks = {
 
     const revoked = await ctx.call(
       "POST",
-      `/auth/admin/users/${userId}/permissions/${encodeURIComponent("users:read")}/revoke`,
+      `/admin/users/${userId}/permissions/${encodeURIComponent("users:read")}/revoke`,
       {
         token: await admin.freshToken(),
       },
@@ -184,7 +184,7 @@ export const hooks: VariantHooks = {
       `admin can revoke the direct grant (got ${revoked.status})`,
     );
 
-    const afterRevoke = await ctx.call("GET", "/auth/admin/users", {
+    const afterRevoke = await ctx.call("GET", "/admin/users", {
       token: tokens.accessToken,
     });
     ctx.assert(
@@ -221,7 +221,7 @@ async function proveTheCacheIsReal(
   const userId = (await ctx.call("GET", "/auth/me", { token })).body
     .sub as string;
   const beforeGrant = { ...permissionCacheStore.stats };
-  await ctx.call("POST", `/auth/admin/users/${userId}/permissions`, {
+  await ctx.call("POST", `/admin/users/${userId}/permissions`, {
     token: await admin.freshToken(),
     body: { permission: "probe:cache" },
   });
@@ -236,7 +236,7 @@ async function proveTheCacheIsReal(
   );
   await ctx.call(
     "POST",
-    `/auth/admin/users/${userId}/permissions/${encodeURIComponent("probe:cache")}/revoke`,
+    `/admin/users/${userId}/permissions/${encodeURIComponent("probe:cache")}/revoke`,
     { token: await admin.freshToken() },
   );
 }
@@ -255,13 +255,13 @@ async function proveARawDatabaseEditChangesEnforcement(
   const userId = (
     await ctx.call("GET", "/auth/me", { token: tokens.accessToken })
   ).body.sub as string;
-  await ctx.call("POST", `/auth/admin/users/${userId}/permissions`, {
+  await ctx.call("POST", `/admin/users/${userId}/permissions`, {
     token: await admin.freshToken(),
     body: { permission: "audit-log:read" },
   });
   ctx.assert(
     (
-      await ctx.call("GET", "/auth/admin/audit-log", {
+      await ctx.call("GET", "/audit-log", {
         token: tokens.accessToken,
       })
     ).status === 200,
@@ -282,7 +282,7 @@ async function proveARawDatabaseEditChangesEnforcement(
   };
 
   await setActive(false);
-  const denied = await ctx.call("GET", "/auth/admin/audit-log", {
+  const denied = await ctx.call("GET", "/audit-log", {
     token: tokens.accessToken,
   });
   ctx.assert(
@@ -291,7 +291,7 @@ async function proveARawDatabaseEditChangesEnforcement(
   );
 
   await setActive(true);
-  const restored = await ctx.call("GET", "/auth/admin/audit-log", {
+  const restored = await ctx.call("GET", "/audit-log", {
     token: tokens.accessToken,
   });
   ctx.assert(

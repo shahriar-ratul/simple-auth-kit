@@ -3,16 +3,16 @@
 Start here after cloning. Each doc is self-contained; together they cover what this repo is,
 how to run it, and how to work on it.
 
-| Doc | Read it when |
-|---|---|
-| [getting-started.md](getting-started.md) | You just cloned and want everything running (docker or manual) and a login that works. |
-| [architecture.md](architecture.md) | You want the mental model: registry → CLI → consumer, the three kinds (api/admin/mobile), variants, and why it's shaped this way. |
-| [cli.md](cli.md) | You're using or changing the `simple-auth-kit` CLI: commands, flags, merge vs. scaffold installs, the lockfile, multi-kind generation. |
-| [backend-api.md](backend-api.md) | You're calling or extending the backend: every endpoint, the response envelope, pagination, permission slugs, the realtime feed — and which combos have which features. |
-| [admin-console.md](admin-console.md) | You're working on any of the 4 admin consoles: auth-guard models, page inventory, UI patterns, env vars. |
-| [development.md](development.md) | You're changing code: the combo dev loop, regenerating examples, the auth-client rebuild gotcha, the add-a-domain recipe. |
-| [clone-apps.md](clone-apps.md) | You want just one app's source — `degit` commands per backend/console/mobile app, no full clone. |
-| [dev-portal.md](dev-portal.md) | You want the dev portal's live status board, ER diagram, and schema-drift check explained. |
+| Doc                                      | Read it when                                                                                                                                                            |
+| ---------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| [getting-started.md](getting-started.md) | You just cloned and want everything running (docker or manual) and a login that works.                                                                                  |
+| [architecture.md](architecture.md)       | You want the mental model: registry → CLI → consumer, the three kinds (api/admin/mobile), variants, and why it's shaped this way.                                       |
+| [cli.md](cli.md)                         | You're using or changing the `simple-auth-kit` CLI: commands, flags, merge vs. scaffold installs, the lockfile, multi-kind generation.                                  |
+| [backend-api.md](backend-api.md)         | You're calling or extending the backend: every endpoint, the response envelope, pagination, permission slugs, the realtime feed — and which combos have which features. |
+| [admin-console.md](admin-console.md)     | You're working on any of the 4 admin consoles: auth-guard models, page inventory, UI patterns, env vars.                                                                |
+| [development.md](development.md)         | You're changing code: the combo dev loop, regenerating examples, the auth-client rebuild gotcha, the add-a-domain recipe.                                               |
+| [clone-apps.md](clone-apps.md)           | You want just one app's source — `degit` commands per backend/console/mobile app, no full clone.                                                                        |
+| [dev-portal.md](dev-portal.md)           | You want the dev portal's live status board, ER diagram, and schema-drift check explained.                                                                              |
 
 Three other places hold context these docs deliberately don't duplicate:
 
@@ -32,7 +32,7 @@ copies it into a consumer's repo. Nothing is installed as an npm dependency. The
 kinds of installable product:
 
 - **`api`** — 4 backend combos (`nestjs-prisma`, `nestjs-drizzle`, `express-prisma`,
-  `express-drizzle`), merged into an existing project's `src/lib/auth`.
+  `express-drizzle`), merged into an existing project's `src` (configurable).
 - **`admin`** — 2 admin console apps (`admin-nextjs`, `admin-react`), scaffolded as whole
   standalone apps.
 - **`mobile`** — 2 mobile apps (`mobile-expo`, `mobile-bare-rn`), also scaffolded.

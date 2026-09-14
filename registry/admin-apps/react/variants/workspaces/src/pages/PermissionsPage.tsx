@@ -1,4 +1,10 @@
-import { type FormEvent, useCallback, useEffect, useMemo, useState } from "react";
+import {
+  type FormEvent,
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
 import type { PermissionSummary } from "@simple-auth-kit/auth-client";
 import { AuthApiError } from "@simple-auth-kit/auth-client";
 import { observer } from "mobx-react-lite";
@@ -12,10 +18,23 @@ import { cn } from "@/lib/cn";
 import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 
 interface PermissionGroup {
   group: string;
@@ -36,7 +55,8 @@ export const PermissionsPage = observer(function PermissionsPage() {
   const [editing, setEditing] = useState<PermissionSummary | null>(null);
   const [creating, setCreating] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
-  const [pendingPermission, setPendingPermission] = useState<PermissionSummary | null>(null);
+  const [pendingPermission, setPendingPermission] =
+    useState<PermissionSummary | null>(null);
   const [pendingBusy, setPendingBusy] = useState(false);
 
   const load = useCallback(async () => {
@@ -45,13 +65,17 @@ export const PermissionsPage = observer(function PermissionsPage() {
     try {
       setPermissions(await authClient.listPermissions());
     } catch (err) {
-      setError(err instanceof AuthApiError ? err.message : "Couldn't load permissions. Check that the backend is running, then try again.");
+      setError(
+        err instanceof AuthApiError
+          ? err.message
+          : "Couldn't load permissions. Check that the backend is running, then try again.",
+      );
     } finally {
       setLoading(false);
     }
   }, []);
 
-  // The catalog itself is global, but on this backend variant every `/auth/admin/*` route — this
+  // The catalog itself is global, but on this backend variant every gated admin/roles/permissions/audit-log route — this
   // one included — sits behind the workspace guard, so a switch has to re-send the header.
   useEffect(() => {
     void load();
@@ -78,7 +102,9 @@ export const PermissionsPage = observer(function PermissionsPage() {
   function handleUpserted(permission: PermissionSummary, message: string) {
     setPermissions((prev) => {
       const exists = prev.some((p) => p.id === permission.id);
-      return exists ? prev.map((p) => (p.id === permission.id ? permission : p)) : [...prev, permission];
+      return exists
+        ? prev.map((p) => (p.id === permission.id ? permission : p))
+        : [...prev, permission];
     });
     setNotice(message);
     setEditing(null);
@@ -94,13 +120,26 @@ export const PermissionsPage = observer(function PermissionsPage() {
     if (!pendingPermission) return;
     setPendingBusy(true);
     try {
-      const updated = await authClient.definePermission({ slug: pendingPermission.slug, isActive: !pendingPermission.isActive });
-      setPermissions((prev) => prev.map((p) => (p.id === updated.id ? updated : p)));
-      setNotice(pendingPermission.isActive ? "Permission deactivated." : "Permission activated.");
+      const updated = await authClient.definePermission({
+        slug: pendingPermission.slug,
+        isActive: !pendingPermission.isActive,
+      });
+      setPermissions((prev) =>
+        prev.map((p) => (p.id === updated.id ? updated : p)),
+      );
+      setNotice(
+        pendingPermission.isActive
+          ? "Permission deactivated."
+          : "Permission activated.",
+      );
       setConfirmOpen(false);
       setPendingPermission(null);
     } catch (err) {
-      setError(err instanceof AuthApiError ? err.message : "Couldn't change this permission's status. Try again.");
+      setError(
+        err instanceof AuthApiError
+          ? err.message
+          : "Couldn't change this permission's status. Try again.",
+      );
     } finally {
       setPendingBusy(false);
     }
@@ -111,9 +150,13 @@ export const PermissionsPage = observer(function PermissionsPage() {
       <div className="flex items-start justify-between gap-4">
         <div>
           <h1 className="text-2xl font-semibold">Permissions</h1>
-          <p className="text-sm text-muted-foreground">The catalog of capabilities roles and direct grants can carry.</p>
+          <p className="text-sm text-muted-foreground">
+            The catalog of capabilities roles and direct grants can carry.
+          </p>
         </div>
-        {canDefine ? <Button onClick={() => setCreating(true)}>New permission</Button> : null}
+        {canDefine ? (
+          <Button onClick={() => setCreating(true)}>New permission</Button>
+        ) : null}
       </div>
 
       <AlertModal
@@ -130,17 +173,25 @@ export const PermissionsPage = observer(function PermissionsPage() {
 
       <Card>
         <CardContent className="pt-6">
-          {error ? <p className="mb-4 text-sm text-destructive">{error}</p> : null}
-          {notice ? <p className="mb-4 text-sm text-emerald-600">{notice}</p> : null}
+          {error ? (
+            <p className="mb-4 text-sm text-destructive">{error}</p>
+          ) : null}
+          {notice ? (
+            <p className="mb-4 text-sm text-emerald-600">{notice}</p>
+          ) : null}
           {loading ? (
             <p className="text-sm text-muted-foreground">Loading…</p>
           ) : permissions.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No permissions defined yet.</p>
+            <p className="text-sm text-muted-foreground">
+              No permissions defined yet.
+            </p>
           ) : (
             <div className="flex flex-col gap-6">
               {groups.map((group) => (
                 <div key={group.group}>
-                  <h2 className="mb-2 text-sm font-semibold text-muted-foreground">{group.group}</h2>
+                  <h2 className="mb-2 text-sm font-semibold text-muted-foreground">
+                    {group.group}
+                  </h2>
                   <Table>
                     <TableHeader>
                       <TableRow>
@@ -156,25 +207,53 @@ export const PermissionsPage = observer(function PermissionsPage() {
                           <TableCell className="font-medium">
                             {permission.displayName}
                             {permission.description ? (
-                              <p className="text-xs font-normal text-muted-foreground">{permission.description}</p>
+                              <p className="text-xs font-normal text-muted-foreground">
+                                {permission.description}
+                              </p>
                             ) : null}
                           </TableCell>
-                          <TableCell className="text-muted-foreground">{permission.slug}</TableCell>
+                          <TableCell className="text-muted-foreground">
+                            {permission.slug}
+                          </TableCell>
                           <TableCell>
-                            <Badge variant={permission.isActive ? "success" : "secondary"}>{permission.isActive ? "Active" : "Inactive"}</Badge>
+                            <Badge
+                              variant={
+                                permission.isActive ? "success" : "secondary"
+                              }
+                            >
+                              {permission.isActive ? "Active" : "Inactive"}
+                            </Badge>
                           </TableCell>
                           <TableCell className="text-right">
                             <div className="flex justify-end gap-2">
-                              <Link to={`/permissions/${permission.id}`} className={cn(buttonVariants({ size: "sm", variant: "outline" }))}>
+                              <Link
+                                to={`/permissions/${permission.id}`}
+                                className={cn(
+                                  buttonVariants({
+                                    size: "sm",
+                                    variant: "outline",
+                                  }),
+                                )}
+                              >
                                 <EyeIcon />
                                 View
                               </Link>
                               {canDefine ? (
                                 <>
-                                  <Button size="sm" variant="outline" onClick={() => setEditing(permission)}>
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => setEditing(permission)}
+                                  >
                                     Edit
                                   </Button>
-                                  <Button size="icon" variant="outline" onClick={() => openStatusConfirm(permission)}>
+                                  <Button
+                                    size="icon"
+                                    variant="outline"
+                                    onClick={() =>
+                                      openStatusConfirm(permission)
+                                    }
+                                  >
                                     <PowerIcon />
                                   </Button>
                                 </>
@@ -253,9 +332,16 @@ function DefinePermissionDialog({
         description: description.trim() === "" ? null : description,
         group: group.trim() === "" ? undefined : group,
       });
-      onSaved(saved, `Permission "${saved.slug}" ${permission ? "updated" : "created"}.`);
+      onSaved(
+        saved,
+        `Permission "${saved.slug}" ${permission ? "updated" : "created"}.`,
+      );
     } catch (err) {
-      setError(err instanceof AuthApiError ? err.message : "Couldn't save this permission. Try again.");
+      setError(
+        err instanceof AuthApiError
+          ? err.message
+          : "Couldn't save this permission. Try again.",
+      );
     } finally {
       setSubmitting(false);
     }
@@ -265,7 +351,9 @@ function DefinePermissionDialog({
     <Dialog open={open} onOpenChange={(next) => !next && handleClose()}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>{permission ? "Edit permission" : "New permission"}</DialogTitle>
+          <DialogTitle>
+            {permission ? "Edit permission" : "New permission"}
+          </DialogTitle>
           <DialogDescription>
             {permission
               ? "Slug is the stable identifier grants and roles are keyed on — it can't change."
@@ -295,16 +383,30 @@ function DefinePermissionDialog({
           </div>
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="permission-group">Group</Label>
-            <Input id="permission-group" value={group} onChange={(e) => setGroup(e.target.value)} placeholder='Defaults to "Custom"' />
+            <Input
+              id="permission-group"
+              value={group}
+              onChange={(e) => setGroup(e.target.value)}
+              placeholder='Defaults to "Custom"'
+            />
           </div>
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="permission-description">Description</Label>
-            <Input id="permission-description" value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Optional" />
+            <Input
+              id="permission-description"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder="Optional"
+            />
           </div>
           {error ? <p className="text-sm text-destructive">{error}</p> : null}
           <div className="flex gap-2">
             <Button type="submit" disabled={submitting}>
-              {submitting ? "Saving…" : permission ? "Save changes" : "Create permission"}
+              {submitting
+                ? "Saving…"
+                : permission
+                  ? "Save changes"
+                  : "Create permission"}
             </Button>
             <Button type="button" variant="outline" onClick={handleClose}>
               Cancel

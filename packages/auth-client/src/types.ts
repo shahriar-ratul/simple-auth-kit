@@ -161,7 +161,7 @@ export interface PermissionListResult {
   permissions: PermissionSummary[];
 }
 
-/** Profile fields a `PATCH /auth/admin/users/:userId` accepts. Email is the login identifier and is not editable here. */
+/** Profile fields a `PATCH /api/v1/admin/users/:userId` accepts. Email is the login identifier and is not editable here. */
 export interface UpdateUserInput {
   firstName?: string | null;
   lastName?: string | null;
@@ -189,7 +189,7 @@ export interface SelfProfile {
   createdAt: string;
 }
 
-/** `POST /auth/admin/users` — no invitation email, the account is usable immediately. */
+/** `POST /api/v1/admin/users` — no invitation email, the account is usable immediately. */
 export interface CreateUserInput {
   email: string;
   password: string;
@@ -245,7 +245,7 @@ export interface DeploymentUserSummary {
   updatedAt: string;
 }
 
-/** `GET /auth/admin/users` on the workspaces variant: the principal is a membership of one workspace. Same "every safe column" policy as `DeploymentUserSummary`. */
+/** `GET /api/v1/admin/users` on the workspaces variant: the principal is a membership of one workspace. Same "every safe column" policy as `DeploymentUserSummary`. */
 export interface WorkspaceUserSummary {
   /** WorkspaceMember id — the handle for member-scoped operations on /workspaces/members/*. */
   memberId: string;
@@ -277,7 +277,7 @@ export interface WorkspaceUserSummary {
 /**
  * The two backend variants name the listed principal differently, and a consumer compiled
  * against one of them narrows to that arm. `userIdOf()` covers the common case — the id the
- * `/auth/admin/users/:userId/*` routes take, which is the User id on both variants.
+ * `/api/v1/admin/users/:userId/*` routes take, which is the User id on both variants.
  */
 export type UserSummary = DeploymentUserSummary | WorkspaceUserSummary;
 
@@ -338,7 +338,8 @@ export interface WorkspaceScope {
  * workspace lives* with the app — a Zustand store, a route param, AsyncStorage — the same way
  * `TokenStorage` keeps token persistence out of this package.
  */
-export type WorkspaceIdResolver = () => string | null | undefined | Promise<string | null | undefined>;
+export type WorkspaceIdResolver = () =>
+  string | null | undefined | Promise<string | null | undefined>;
 
 /** Injected per platform — the only thing that differs between the 4 apps. */
 export interface TokenStorage {

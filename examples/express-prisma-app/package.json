@@ -6,16 +6,16 @@
   "type": "module",
   "scripts": {
     "start": "tsx src/main.ts",
-    "seed": "tsx src/lib/auth/seed.ts"
+    "seed": "tsx database/seed.ts"
   },
   "dependencies": {
     "@casl/ability": "^7.0.1",
-    "@prisma/adapter-pg": "^7.9.1",
-    "@prisma/client": "^7.9.1",
+    "@prisma/adapter-pg": "^7.10.0",
+    "@prisma/client": "^7.10.0",
     "argon2": "^0.45.1",
     "express": "^5.2.1",
-    "jose": "^6.2.8",
-    "prisma": "^7.9.1",
+    "jose": "^6.2.12",
+    "prisma": "^7.10.0",
     "swagger-ui-express": "^5.0.1"
   },
   "devDependencies": {

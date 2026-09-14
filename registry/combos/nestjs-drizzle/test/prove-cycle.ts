@@ -11,8 +11,11 @@ import "dotenv/config";
 import { randomUUID } from "node:crypto";
 import { Get } from "@nestjs/common";
 import { generateTotpCode } from "@/lib/auth/core/two-factor.js";
-import { ABILITY_SUBJECT, defineAbilitiesFor } from "../src/ability/ability.js";
-import { AuthController } from "../src/controllers/auth.controller.js";
+import {
+  ABILITY_SUBJECT,
+  defineAbilitiesFor,
+} from "../src/common/auth/ability/ability.js";
+import { AuthController } from "../src/modules/auth/controllers/auth.controller.js";
 import { bootstrap, capturedResetTokens } from "./bootstrap.js";
 import {
   adminRouteProbes,
@@ -25,7 +28,7 @@ import {
 } from "./harness.js";
 import { hooks } from "./variant-hooks.js";
 
-const BASE = `http://localhost:${BASE_PORT}`;
+const BASE = `http://localhost:${BASE_PORT}/api/v1`;
 
 let failures = 0;
 function assert(condition: boolean, message: string) {
@@ -131,7 +134,7 @@ async function main() {
     "adding a route that declares no @Public/@Authenticated/@CheckAbility makes the app refuse to boot",
   );
   assert(
-    bootMessage.includes("GET /auth/__tier-proof") &&
+    bootMessage.includes("GET /v1/auth/__tier-proof") &&
       bootMessage.includes("AuthController.untieredProofRoute"),
     `…and the error names the offending route (got: ${bootMessage.split("\n")[0]})`,
   );
@@ -434,7 +437,7 @@ async function main() {
     console.log("6a. a non-admin cannot block anyone");
     const forbiddenBlock = await call(
       "POST",
-      `/auth/admin/users/${victimId}/block`,
+      `/admin/users/${victimId}/block`,
       { token: victimTokens.accessToken, workspaceId: admin.workspaceId },
     );
     assert(
@@ -443,11 +446,10 @@ async function main() {
     );
 
     console.log("6b. an admin cannot block themselves");
-    const selfBlock = await call(
-      "POST",
-      `/auth/admin/users/${adminUserId}/block`,
-      { token: await admin.freshToken(), workspaceId: admin.workspaceId },
-    );
+    const selfBlock = await call("POST", `/admin/users/${adminUserId}/block`, {
+      token: await admin.freshToken(),
+      workspaceId: admin.workspaceId,
+    });
     assert(
       selfBlock.status === 403,
       `admin self-block rejected (got ${selfBlock.status})`,
@@ -458,14 +460,14 @@ async function main() {
     // there is no way back in afterwards, so the route refuses it the same way self-block does.
     const selfRevoke = await call(
       "POST",
-      `/auth/admin/users/${adminUserId}/roles/admin/revoke`,
+      `/admin/users/${adminUserId}/roles/admin/revoke`,
       { token: await admin.freshToken(), workspaceId: admin.workspaceId },
     );
     assert(
       selfRevoke.status === 403,
       `admin self-role-revoke rejected (got ${selfRevoke.status})`,
     );
-    const stillAdmin = await call("GET", "/auth/admin/users", {
+    const stillAdmin = await call("GET", "/admin/users", {
       token: await admin.freshToken(),
       workspaceId: admin.workspaceId,
     });
@@ -475,7 +477,7 @@ async function main() {
     );
 
     console.log("6c. admin blocks the victim");
-    const block = await call("POST", `/auth/admin/users/${victimId}/block`, {
+    const block = await call("POST", `/admin/users/${victimId}/block`, {
       token: await admin.freshToken(),
       workspaceId: admin.workspaceId,
     });
@@ -504,11 +506,10 @@ async function main() {
     );
 
     console.log("7b. unblock restores access");
-    const unblock = await call(
-      "POST",
-      `/auth/admin/users/${victimId}/unblock`,
-      { token: await admin.freshToken(), workspaceId: admin.workspaceId },
-    );
+    const unblock = await call("POST", `/admin/users/${victimId}/unblock`, {
+      token: await admin.freshToken(),
+      workspaceId: admin.workspaceId,
+    });
     assert(
       unblock.status === 200 || unblock.status === 201,
       `unblock succeeds (got ${unblock.status})`,
@@ -527,7 +528,7 @@ async function main() {
     );
     const deactivate = await call(
       "POST",
-      `/auth/admin/users/${victimId}/deactivate`,
+      `/admin/users/${victimId}/deactivate`,
       { token: await admin.freshToken(), workspaceId: admin.workspaceId },
     );
     assert(
@@ -543,7 +544,7 @@ async function main() {
       `deactivated (but not blocked) user cannot log in either (got ${victimLoginAfterDeactivate.status})`,
     );
 
-    const usersAfterDeactivate = await call("GET", "/auth/admin/users", {
+    const usersAfterDeactivate = await call("GET", "/admin/users", {
       token: await admin.freshToken(),
       workspaceId: admin.workspaceId,
     });
@@ -566,11 +567,10 @@ async function main() {
       "…while blocked stays false — deactivating never sets it, they are independent flags",
     );
 
-    const reactivate = await call(
-      "POST",
-      `/auth/admin/users/${victimId}/activate`,
-      { token: await admin.freshToken(), workspaceId: admin.workspaceId },
-    );
+    const reactivate = await call("POST", `/admin/users/${victimId}/activate`, {
+      token: await admin.freshToken(),
+      workspaceId: admin.workspaceId,
+    });
     assert(
       reactivate.status === 200 || reactivate.status === 201,
       `activate succeeds (got ${reactivate.status})`,
@@ -730,7 +730,7 @@ async function main() {
     ).body.sub as string;
     await hooks.admitUser(ctx, admin, { userId: rbacUserId, email: rbacEmail });
 
-    const createRole = await call("POST", "/auth/admin/roles", {
+    const createRole = await call("POST", "/roles", {
       token: await admin.freshToken(),
       workspaceId: admin.workspaceId,
       body: { slug: ROLE_SLUG, displayName: "Billing manager" },
@@ -751,7 +751,7 @@ async function main() {
 
     const attachPermission = await call(
       "POST",
-      `/auth/admin/roles/${role.id}/permissions`,
+      `/roles/${role.id}/permissions`,
       {
         token: await admin.freshToken(),
         workspaceId: admin.workspaceId,
@@ -763,15 +763,11 @@ async function main() {
       `admin can attach a permission to a role (got ${attachPermission.status})`,
     );
 
-    const assignRole = await call(
-      "POST",
-      `/auth/admin/users/${rbacUserId}/roles`,
-      {
-        token: await admin.freshToken(),
-        workspaceId: admin.workspaceId,
-        body: { role: ROLE_SLUG },
-      },
-    );
+    const assignRole = await call("POST", `/admin/users/${rbacUserId}/roles`, {
+      token: await admin.freshToken(),
+      workspaceId: admin.workspaceId,
+      body: { role: ROLE_SLUG },
+    });
     assert(
       assignRole.status === 200 || assignRole.status === 201,
       `admin can assign a role to a user (got ${assignRole.status})`,
@@ -779,7 +775,7 @@ async function main() {
 
     const rbacDirect = await call(
       "POST",
-      `/auth/admin/users/${rbacUserId}/permissions`,
+      `/admin/users/${rbacUserId}/permissions`,
       {
         token: await admin.freshToken(),
         workspaceId: admin.workspaceId,
@@ -815,7 +811,7 @@ async function main() {
     );
     const auditList = await call(
       "GET",
-      `/auth/admin/audit-log?userId=${rbacUserId}&action=role_assigned`,
+      `/audit-log?userId=${rbacUserId}&action=role_assigned`,
       {
         token: await admin.freshToken(),
         workspaceId: admin.workspaceId,
@@ -841,7 +837,7 @@ async function main() {
       "audit entries carry a human-readable name alongside the action",
     );
 
-    const auditForbidden = await call("GET", "/auth/admin/audit-log", {
+    const auditForbidden = await call("GET", "/audit-log", {
       token: rbacTokens.accessToken,
       workspaceId: admin.workspaceId,
     });
@@ -863,7 +859,7 @@ async function main() {
       email: crudUserEmail,
     });
 
-    const getUser = await call("GET", `/auth/admin/users/${crudUserId}`, {
+    const getUser = await call("GET", `/admin/users/${crudUserId}`, {
       token: await admin.freshToken(),
       workspaceId: admin.workspaceId,
     });
@@ -876,7 +872,7 @@ async function main() {
       "…and it's the right one",
     );
 
-    const updateUser = await call("PATCH", `/auth/admin/users/${crudUserId}`, {
+    const updateUser = await call("PATCH", `/admin/users/${crudUserId}`, {
       token: await admin.freshToken(),
       workspaceId: admin.workspaceId,
       body: { displayName: "CRUD Test User" },
@@ -892,7 +888,7 @@ async function main() {
     );
 
     const crudRoleSlug = `crud-role-${RUN_ID}`;
-    const createCrudRole = await call("POST", "/auth/admin/roles", {
+    const createCrudRole = await call("POST", "/roles", {
       token: await admin.freshToken(),
       workspaceId: admin.workspaceId,
       body: { slug: crudRoleSlug },
@@ -903,7 +899,7 @@ async function main() {
     );
     const crudRoleId = (createCrudRole.body as { id: string }).id;
 
-    const updateRole = await call("PATCH", `/auth/admin/roles/${crudRoleId}`, {
+    const updateRole = await call("PATCH", `/roles/${crudRoleId}`, {
       token: await admin.freshToken(),
       workspaceId: admin.workspaceId,
       body: { displayName: "CRUD Test Role" },
@@ -920,7 +916,7 @@ async function main() {
 
     const assignCrudRole = await call(
       "POST",
-      `/auth/admin/users/${crudUserId}/roles`,
+      `/admin/users/${crudUserId}/roles`,
       {
         token: await admin.freshToken(),
         workspaceId: admin.workspaceId,
@@ -932,7 +928,7 @@ async function main() {
       `the disposable role can be assigned before it's deleted (got ${assignCrudRole.status})`,
     );
 
-    const deleteRole = await call("DELETE", `/auth/admin/roles/${crudRoleId}`, {
+    const deleteRole = await call("DELETE", `/roles/${crudRoleId}`, {
       token: await admin.freshToken(),
       workspaceId: admin.workspaceId,
       body: { reason: "prove-cycle cleanup" },
@@ -942,7 +938,7 @@ async function main() {
       `admin can delete a role (got ${deleteRole.status})`,
     );
 
-    const rolesAfterDelete = await call("GET", "/auth/admin/roles", {
+    const rolesAfterDelete = await call("GET", "/roles", {
       token: await admin.freshToken(),
       workspaceId: admin.workspaceId,
     });
@@ -962,7 +958,7 @@ async function main() {
       "…and a member who held it no longer resolves it, with no re-login",
     );
 
-    const deleteUser = await call("DELETE", `/auth/admin/users/${crudUserId}`, {
+    const deleteUser = await call("DELETE", `/admin/users/${crudUserId}`, {
       token: await admin.freshToken(),
       workspaceId: admin.workspaceId,
     });
@@ -971,7 +967,7 @@ async function main() {
       `admin can delete a user (got ${deleteUser.status})`,
     );
 
-    const usersAfterDelete = await call("GET", "/auth/admin/users", {
+    const usersAfterDelete = await call("GET", "/admin/users", {
       token: await admin.freshToken(),
       workspaceId: admin.workspaceId,
     });
@@ -982,11 +978,10 @@ async function main() {
       "a deleted user no longer appears in the user list",
     );
 
-    const getDeletedUser = await call(
-      "GET",
-      `/auth/admin/users/${crudUserId}`,
-      { token: await admin.freshToken(), workspaceId: admin.workspaceId },
-    );
+    const getDeletedUser = await call("GET", `/admin/users/${crudUserId}`, {
+      token: await admin.freshToken(),
+      workspaceId: admin.workspaceId,
+    });
     assert(
       getDeletedUser.status === 404,
       `…and fetching them directly by id now 404s (got ${getDeletedUser.status})`,
@@ -1002,7 +997,7 @@ async function main() {
 
     const selfDeleteAttempt = await call(
       "DELETE",
-      `/auth/admin/users/${(await call("GET", "/auth/me", { token: await admin.freshToken() })).body.sub}`,
+      `/admin/users/${(await call("GET", "/auth/me", { token: await admin.freshToken() })).body.sub}`,
       {
         token: await admin.freshToken(),
         workspaceId: admin.workspaceId,
@@ -1028,15 +1023,11 @@ async function main() {
 
     const identUsername = `ident-user-${RUN_ID}`;
     const identPhone = `+1-555-${RUN_ID}`;
-    const setIdentFields = await call(
-      "PATCH",
-      `/auth/admin/users/${identUserId}`,
-      {
-        token: await admin.freshToken(),
-        workspaceId: admin.workspaceId,
-        body: { username: identUsername, phone: identPhone },
-      },
-    );
+    const setIdentFields = await call("PATCH", `/admin/users/${identUserId}`, {
+      token: await admin.freshToken(),
+      workspaceId: admin.workspaceId,
+      body: { username: identUsername, phone: identPhone },
+    });
     assert(
       setIdentFields.status === 200,
       `admin can set a user's username and phone (got ${setIdentFields.status})`,
@@ -1205,7 +1196,7 @@ async function main() {
       "11e. admin creates a user directly — no signup, usable immediately",
     );
     const createdEmail = uniqueEmail("admin-created");
-    const createUser = await call("POST", "/auth/admin/users", {
+    const createUser = await call("POST", "/admin/users", {
       token: await admin.freshToken(),
       workspaceId: admin.workspaceId,
       body: {
@@ -1241,7 +1232,7 @@ async function main() {
       `the account is usable immediately, no separate activation step (got ${createdUserCanLogin.status})`,
     );
 
-    const duplicateCreate = await call("POST", "/auth/admin/users", {
+    const duplicateCreate = await call("POST", "/admin/users", {
       token: await admin.freshToken(),
       workspaceId: admin.workspaceId,
       body: { email: createdEmail, password: "another-pw-12345" },
@@ -1251,7 +1242,7 @@ async function main() {
       `creating a second account with the same email is rejected (got ${duplicateCreate.status})`,
     );
 
-    const createWithRole = await call("POST", "/auth/admin/users", {
+    const createWithRole = await call("POST", "/admin/users", {
       token: await admin.freshToken(),
       workspaceId: admin.workspaceId,
       body: {
@@ -1279,12 +1270,12 @@ async function main() {
     const NO_PERMS_ROLE = `probe-no-perms-${RUN_ID}`;
     const ASSIGNABLE_ROLE = `probe-assignable-${RUN_ID}`;
 
-    const noPermsRole = await call("POST", "/auth/admin/roles", {
+    const noPermsRole = await call("POST", "/roles", {
       token: await admin.freshToken(),
       workspaceId: admin.workspaceId,
       body: { slug: NO_PERMS_ROLE },
     });
-    const assignableRole = await call("POST", "/auth/admin/roles", {
+    const assignableRole = await call("POST", "/roles", {
       token: await admin.freshToken(),
       workspaceId: admin.workspaceId,
       body: { slug: ASSIGNABLE_ROLE },
@@ -1346,13 +1337,13 @@ async function main() {
         await call("GET", "/auth/me", { token: tokens.accessToken })
       ).body.sub as string;
       await hooks.admitUser(ctx, admin, { userId, email });
-      await call("POST", `/auth/admin/users/${userId}/roles`, {
+      await call("POST", `/admin/users/${userId}/roles`, {
         token: await admin.freshToken(),
         workspaceId: admin.workspaceId,
         body: { role: NO_PERMS_ROLE },
       });
       for (const permission of grants) {
-        await call("POST", `/auth/admin/users/${userId}/permissions`, {
+        await call("POST", `/admin/users/${userId}/permissions`, {
           token: await admin.freshToken(),
           workspaceId: admin.workspaceId,
           body: { permission },
@@ -1415,7 +1406,7 @@ async function main() {
       "12c. revoking a permission takes it away again — on the same token, with no re-login",
     );
     const revokee = await probeUser("probe-revokee", ["users:read"]);
-    const beforeRevoke = await call("GET", "/auth/admin/users", {
+    const beforeRevoke = await call("GET", "/admin/users", {
       token: revokee.token,
       workspaceId: admin.workspaceId,
     });
@@ -1426,7 +1417,7 @@ async function main() {
 
     const revoked = await call(
       "POST",
-      `/auth/admin/users/${revokee.userId}/permissions/${encodeURIComponent("users:read")}/revoke`,
+      `/admin/users/${revokee.userId}/permissions/${encodeURIComponent("users:read")}/revoke`,
       {
         token: await admin.freshToken(),
         workspaceId: admin.workspaceId,
@@ -1437,7 +1428,7 @@ async function main() {
       `admin can revoke a direct grant (got ${revoked.status})`,
     );
 
-    const afterRevokeCall = await call("GET", "/auth/admin/users", {
+    const afterRevokeCall = await call("GET", "/admin/users", {
       token: revokee.token,
       workspaceId: admin.workspaceId,
     });
@@ -1508,7 +1499,7 @@ async function main() {
     // carried it, without unpicking a single grant. Written here through the admin API — each
     // variant's hooks prove the same thing again with a raw database write, to rule out the API
     // doing anything in memory.
-    const deactivated = await call("POST", "/auth/admin/permissions", {
+    const deactivated = await call("POST", "/permissions", {
       token: await admin.freshToken(),
       workspaceId: admin.workspaceId,
       body: { slug: "users:read", isActive: false },
@@ -1518,7 +1509,7 @@ async function main() {
       `an admin can deactivate a permission (got ${deactivated.status})`,
     );
 
-    const listAfterDeactivate = await call("GET", "/auth/admin/permissions", {
+    const listAfterDeactivate = await call("GET", "/permissions", {
       token: await admin.freshToken(),
       workspaceId: admin.workspaceId,
     });
@@ -1530,7 +1521,7 @@ async function main() {
       "the catalog reports it as inactive",
     );
 
-    const deniedByEdit = await call("GET", "/auth/admin/users", {
+    const deniedByEdit = await call("GET", "/admin/users", {
       token: singleGrantUser!.token,
       workspaceId: admin.workspaceId,
     });
@@ -1539,7 +1530,7 @@ async function main() {
       `the route it opened is now refused for a user whose grant is untouched (got ${deniedByEdit.status})`,
     );
 
-    const adminDeniedToo = await call("GET", "/auth/admin/users", {
+    const adminDeniedToo = await call("GET", "/admin/users", {
       token: await admin.freshToken(),
       workspaceId: admin.workspaceId,
     });
@@ -1548,7 +1539,7 @@ async function main() {
       `…including for the administrator, whose role still carries it (got ${adminDeniedToo.status})`,
     );
 
-    const reactivated = await call("POST", "/auth/admin/permissions", {
+    const reactivated = await call("POST", "/permissions", {
       token: await admin.freshToken(),
       workspaceId: admin.workspaceId,
       body: { slug: "users:read", isActive: true },
@@ -1557,7 +1548,7 @@ async function main() {
       succeeded(reactivated.status),
       `an admin can reactivate it (got ${reactivated.status})`,
     );
-    const restored = await call("GET", "/auth/admin/users", {
+    const restored = await call("GET", "/admin/users", {
       token: singleGrantUser!.token,
       workspaceId: admin.workspaceId,
     });

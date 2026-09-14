@@ -31,7 +31,7 @@ does not run it for you. It's idempotent; run it any time, per backend you inten
 
 ```bash
 docker exec -e SEED_ADMIN_EMAIL=admin@example.com -e SEED_ADMIN_PASSWORD='Admin12345!' \
-  simple-auth-kit-nestjs-prisma-app-1 sh -c 'node_modules/.bin/tsx src/lib/auth/seed.ts'
+  simple-auth-kit-nestjs-prisma-app-1 sh -c 'node_modules/.bin/tsx database/seed.ts'
 ```
 
 That provisions the permission catalog, the default `admin`/`member` roles, and an initial
@@ -69,7 +69,7 @@ pnpm install
 cd examples/nestjs-prisma-app
 npm install                       # plain npm on purpose — examples model a real consumer, outside the pnpm workspace
 npx prisma generate && npx prisma migrate deploy
-SEED_ADMIN_EMAIL=admin@example.com SEED_ADMIN_PASSWORD='Admin12345!' npx tsx src/lib/auth/seed.ts
+SEED_ADMIN_EMAIL=admin@example.com SEED_ADMIN_PASSWORD='Admin12345!' npx tsx database/seed.ts
 npm run start                     # -> http://localhost:3001, Swagger at /docs, Scalar at /reference
 ```
 

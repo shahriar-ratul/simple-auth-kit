@@ -3,4 +3,4 @@ dist/
 *.tsbuildinfo
 coverage/
 .env
-generated/
+database/generated/

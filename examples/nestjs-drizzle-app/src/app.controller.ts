@@ -1,5 +1,5 @@
 import { Controller, Get } from "@nestjs/common";
-import { Public } from "./lib/auth/route-tiers.js";
+import { Public } from "./infra/route-tiers.js";
 import { AppService } from "./app.service.js";
 
 @Controller()

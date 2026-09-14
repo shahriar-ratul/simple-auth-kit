@@ -1,7 +1,10 @@
 import { useCallback, useEffect, useState } from "react";
 import { observer } from "mobx-react-lite";
 import { useParams } from "react-router-dom";
-import { AuthApiError, type PermissionSummary } from "@simple-auth-kit/auth-client";
+import {
+  AuthApiError,
+  type PermissionSummary,
+} from "@simple-auth-kit/auth-client";
 import { toast } from "sonner";
 import { PERMISSIONS, useAbility } from "@/lib/ability";
 import { authClient } from "@/lib/auth-client";
@@ -9,7 +12,13 @@ import { useWorkspaceStore } from "@/stores/store-context";
 import { Breadcrumb } from "@/components/breadcrumb";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 
 function apiErrorMessage(err: unknown, fallback: string): string {
   return err instanceof AuthApiError ? err.message : fallback;
@@ -49,7 +58,7 @@ export const PermissionDetailPage = observer(function PermissionDetailPage() {
   }, [id]);
 
   // Keyed on the active workspace, same as `PermissionsPage`: the catalog itself is global, but
-  // every `/auth/admin/*` route on this variant sits behind the workspace guard, so a switch has
+  // every gated admin/roles/permissions/audit-log route on this variant sits behind the workspace guard, so a switch has
   // to re-send the header.
   useEffect(() => {
     void load();
@@ -59,11 +68,23 @@ export const PermissionDetailPage = observer(function PermissionDetailPage() {
     if (!permission) return;
     setStatusPending(true);
     try {
-      const updated = await authClient.definePermission({ slug: permission.slug, isActive: !permission.isActive });
+      const updated = await authClient.definePermission({
+        slug: permission.slug,
+        isActive: !permission.isActive,
+      });
       setPermission(updated);
-      toast.success(permission.isActive ? "Permission deactivated." : "Permission activated.");
+      toast.success(
+        permission.isActive
+          ? "Permission deactivated."
+          : "Permission activated.",
+      );
     } catch (err) {
-      toast.error(apiErrorMessage(err, "Couldn't change this permission's status. Try again."));
+      toast.error(
+        apiErrorMessage(
+          err,
+          "Couldn't change this permission's status. Try again.",
+        ),
+      );
     } finally {
       setStatusPending(false);
     }
@@ -73,9 +94,19 @@ export const PermissionDetailPage = observer(function PermissionDetailPage() {
 
   return (
     <div className="flex flex-col gap-4">
-      <Breadcrumb items={[{ title: "Permissions", href: "/permissions" }, { title: permission?.displayName ?? "Details", href: `/permissions/${id}` }]} />
+      <Breadcrumb
+        items={[
+          { title: "Permissions", href: "/permissions" },
+          {
+            title: permission?.displayName ?? "Details",
+            href: `/permissions/${id}`,
+          },
+        ]}
+      />
 
-      {loading && !permission && <p className="text-sm text-muted-foreground">Loading…</p>}
+      {loading && !permission && (
+        <p className="text-sm text-muted-foreground">Loading…</p>
+      )}
 
       {permission && (
         <>
@@ -88,7 +119,11 @@ export const PermissionDetailPage = observer(function PermissionDetailPage() {
                 </CardDescription>
               </div>
               <div className="flex items-center gap-1.5">
-                <Badge variant={permission.isActive ? "success" : "destructive"}>{permission.isActive ? "Active" : "Inactive"}</Badge>
+                <Badge
+                  variant={permission.isActive ? "success" : "destructive"}
+                >
+                  {permission.isActive ? "Active" : "Inactive"}
+                </Badge>
               </div>
             </CardHeader>
             <CardContent className="flex flex-col gap-4">
@@ -109,7 +144,11 @@ export const PermissionDetailPage = observer(function PermissionDetailPage() {
               <Button
                 variant={permission.isActive ? "destructive" : "outline"}
                 disabled={!canDefine || statusPending}
-                title={canDefine ? undefined : `You need the "${PERMISSIONS.permissionsDefine}" permission to do this.`}
+                title={
+                  canDefine
+                    ? undefined
+                    : `You need the "${PERMISSIONS.permissionsDefine}" permission to do this.`
+                }
                 onClick={() => void toggleActive()}
               >
                 {permission.isActive ? "Deactivate" : "Activate"}

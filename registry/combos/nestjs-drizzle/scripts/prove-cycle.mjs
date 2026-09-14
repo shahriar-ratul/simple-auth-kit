@@ -12,7 +12,13 @@
 //
 // Usage: node scripts/prove-cycle.mjs [variant ...]   (default: every variant)
 import { execFileSync } from "node:child_process";
-import { baseDatabaseUrl, databaseUrlFor, ensureDatabase, materialize, VARIANTS } from "./materialize.mjs";
+import {
+  baseDatabaseUrl,
+  databaseUrlFor,
+  ensureDatabase,
+  materialize,
+  VARIANTS,
+} from "./materialize.mjs";
 
 const requested = process.argv.slice(2).filter((a) => !a.startsWith("--"));
 const variants = requested.length ? requested : VARIANTS;
@@ -21,9 +27,19 @@ for (const variant of variants) {
   console.log(`\n=== prove-cycle: ${variant} ===\n`);
   const dest = await materialize(variant);
   await ensureDatabase(databaseUrlFor(variant, await baseDatabaseUrl()));
-  execFileSync("npx", ["drizzle-kit", "migrate"], { cwd: dest, stdio: "inherit" });
+  execFileSync("npx", ["drizzle-kit", "migrate"], {
+    cwd: dest,
+    stdio: "inherit",
+  });
   // The consumer-facing seeder, run exactly as a consumer runs it. Idempotent, so a database that
   // has already been seeded is unaffected.
-  execFileSync("npx", ["tsx", "src/seed.ts"], { cwd: dest, stdio: "inherit" });
-  execFileSync("npx", ["tsx", "test/prove-cycle.ts"], { cwd: dest, stdio: "inherit", env: { ...process.env, AUTH_VARIANT: variant } });
+  execFileSync("npx", ["tsx", "database/seed.ts"], {
+    cwd: dest,
+    stdio: "inherit",
+  });
+  execFileSync("npx", ["tsx", "test/prove-cycle.ts"], {
+    cwd: dest,
+    stdio: "inherit",
+    env: { ...process.env, AUTH_VARIANT: variant },
+  });
 }

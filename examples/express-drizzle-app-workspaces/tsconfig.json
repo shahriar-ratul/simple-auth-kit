@@ -12,7 +12,8 @@
     "resolveJsonModule": true,
     "noEmit": true,
     "paths": {
-      "@/lib/auth/core/*": ["./src/lib/auth/core/*"]
+      "@/core/*": ["./src/core/*"],
+      "@/database/*": ["./database/*"]
     }
   },
   "include": ["src"]

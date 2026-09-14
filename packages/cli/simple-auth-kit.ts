@@ -115,8 +115,8 @@ interface AuthLock {
 }
 
 const DEFAULT_CONFIG: SimpleAuthKitConfig = {
-  path: "src/lib/auth",
-  alias: "@/lib/auth",
+  path: "src",
+  alias: "@",
   ignore: [],
 };
 
@@ -439,36 +439,26 @@ function printPostInstallNotes(combo: ComboEntry, variant: string) {
   }
 }
 
-/** An ORM combo's config file (shared/) + data directory (variants/<variant>/) that must land at
- * the *project root* instead of merging into destRoot with everything else — each ORM's own tool
- * (`npx prisma ...`, `npx drizzle-kit ...`) looks for its config there by default, no `cd` needed.
+/** An ORM combo's config file (shared/) + data directory (variants/<variant>/, always named
+ * `database/` — schema/migrations, plus Prisma's generated client under database/generated/ and
+ * the seeder at database/seed.ts) that must land at the *project root* instead of merging into
+ * destRoot with everything else — each ORM's own tool (`npx prisma ...`, `npx drizzle-kit ...`)
+ * looks for its config there by default, no `cd` needed.
  *
- * `generatedClientImport`: only Prisma has this — its schema's `generator { output }` is relative
- * to schema.prisma's own location, so moving prisma.config.ts/prisma/ to the project root also
- * moves the generated client. The registry source's `src/**\/*.ts` files import it with whatever
- * relative depth is correct from their own location — `"../generated/prisma/client.js"` for a
- * top-level file, `"../../generated/prisma/client.js"` for one nested a level deeper in
- * controllers/services/repositories/etc — all correct for the registry's own dev/typecheck loop
- * (where nothing has moved). installMerge rewrites *any* such relative import (matched by regex,
- * not a fixed-depth literal string — a real bug here once: a plain string match only ever
- * matched the top-level depth, leaving a stray leading "../" on every nested file's rewritten
- * import) to the fixed alias `@/prisma/client.js`: the generated client always lands at the
- * project root regardless of how deep the importing file sits (unlike `@/lib/auth/core`, whose
- * depth actually varies with `--path`), so a fixed alias is both simpler and stable across
- * installs. The consumer adds `"@/prisma/*": ["./generated/prisma/*"]` to their tsconfig `paths`
- * once (see postInstall) — the CLI never writes tsconfig itself, same as `@/lib/auth`. Drizzle has
- * no equivalent generated artifact to redirect. */
+ * The registry source never imports database/-relative paths directly — every such reference
+ * (the generated Prisma client, Drizzle's schema.ts) goes through the fixed `@/database/*` alias
+ * instead, which the consumer adds to their tsconfig `paths` once (see postInstall) pointing at
+ * `./database/*` — the CLI never writes tsconfig itself, same as the merged source's own core
+ * alias (see `aliasFrom`/`aliasTo` below). Because database/ always lands at the project root
+ * regardless of how deep the importing file sits (unlike the core alias, whose target depth
+ * actually varies with `--path`), that one fixed alias is stable across installs and needs no
+ * per-file import rewriting on the way in. */
 const ORM_LAYOUTS: {
   configFile: string;
   dataDir: string;
-  generatedClientImport?: RegExp;
 }[] = [
-  {
-    configFile: "prisma.config.ts",
-    dataDir: "prisma",
-    generatedClientImport: /(?:\.\/)?(?:\.\.\/)+generated\/prisma\/client\.js/g,
-  },
-  { configFile: "drizzle.config.ts", dataDir: "drizzle" },
+  { configFile: "prisma.config.ts", dataDir: "database" },
+  { configFile: "drizzle.config.ts", dataDir: "database" },
 ];
 
 interface MergePlan {
@@ -480,7 +470,6 @@ interface MergePlan {
   orm: (typeof ORM_LAYOUTS)[number] | null;
   skipFromShared: Set<string>;
   skipFromVariant: Set<string>;
-  extraRewrites: { from: string | RegExp; to: string }[] | undefined;
   config: SimpleAuthKitConfig;
   previous: Record<string, string>;
 }
@@ -516,15 +505,6 @@ async function buildMergePlan(
     ? new Set([...NEVER_COPY, orm.dataDir])
     : NEVER_COPY;
 
-  const extraRewrites = orm?.generatedClientImport
-    ? [
-        {
-          from: orm.generatedClientImport,
-          to: "@/prisma/client.js",
-        },
-      ]
-    : undefined;
-
   return {
     destRoot,
     installPath,
@@ -534,7 +514,6 @@ async function buildMergePlan(
     orm,
     skipFromShared,
     skipFromVariant,
-    extraRewrites,
     config,
     previous,
   };
@@ -545,7 +524,7 @@ async function buildMergePlan(
  * force:true so a locally-modified file's difference is captured too instead of silently
  * skipped). One exception to "everything merges into destRoot": an ORM combo's config file and
  * data directory (see ORM_LAYOUTS) land at the *project root* instead — e.g. the Prisma combos'
- * `prisma.config.ts` + `prisma/`, or the Drizzle combos' `drizzle.config.ts` + `drizzle/`.
+ * `prisma.config.ts` + `database/`, or the Drizzle combos' `drizzle.config.ts` + `database/`.
  *
  * Both are still copied with destRoot (not targetRoot) as the manifest-key root, which makes
  * copyOneFile compute "../"-relative keys for them — deliberate, not an oversight: those keys
@@ -575,7 +554,6 @@ async function runMergeCopy(
   const copyOpts: CopyOptions = {
     aliasFrom: "@/lib/auth/core",
     aliasTo: `${plan.alias}/core`,
-    extraRewrites: plan.extraRewrites,
     previous: plan.previous,
     force: opts.force,
     forcePaths: opts.forcePaths,
@@ -595,8 +573,8 @@ async function runMergeCopy(
 
   // shared/src/ and variants/<variant>/src/ are the registry's own internal source layout
   // (parallel to core/, prisma.config.ts, etc.) — copied flat into destRoot rather than
-  // preserving that extra "src" level, so a consumer who installed at the default
-  // "src/lib/auth" doesn't end up with a redundant "src/lib/auth/src/...". Order matters:
+  // preserving that extra "src" level, so a consumer who installed at the default "src"
+  // doesn't end up with a redundant "src/src/...". Order matters:
   // shared fully applied (its own src/, then everything else in shared/), then the variant
   // overlaid the same way, so a variant file with the same name still wins.
   const skipShared = new Set([...plan.skipFromShared, "src"]);

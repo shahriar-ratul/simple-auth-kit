@@ -1,10 +1,10 @@
 #!/usr/bin/env node
 // Authors a migration for one variant and copies it back into the registry.
 //
-// drizzle-kit resolves `drizzle.config.ts` — and the `./src/schema.ts` / `./drizzle` paths
+// drizzle-kit resolves `drizzle.config.ts` — and the `./database/schema.ts` / `./database/migrations` paths
 // inside it — relative to the working directory, so migrations are generated inside the
-// materialized variant and copied back into `variants/<variant>/drizzle`, which is what the CLI
-// actually ships. Every emitted `.sql` is recorded in `drizzle/meta/_journal.json` by
+// materialized variant and copied back into `variants/<variant>/database/migrations`, which is what the CLI
+// actually ships. Every emitted `.sql` is recorded in `database/migrations/meta/_journal.json` by
 // drizzle-kit itself; a `.sql` that is not journalled would never be applied, so the whole
 // directory is copied back as one unit rather than file by file.
 //
@@ -20,15 +20,33 @@ const COMBO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const args = process.argv.slice(2);
 const nameIndex = args.indexOf("--name");
 const name = nameIndex === -1 ? "init" : args[nameIndex + 1];
-const variants = args.filter((a, i) => !a.startsWith("--") && i !== nameIndex + 1);
+const variants = args.filter(
+  (a, i) => !a.startsWith("--") && i !== nameIndex + 1,
+);
 
 for (const variant of variants.length ? variants : VARIANTS) {
   const dest = await materialize(variant);
-  execFileSync("npx", ["drizzle-kit", "generate", "--name", name], { cwd: dest, stdio: "inherit" });
-  execFileSync("npx", ["drizzle-kit", "migrate"], { cwd: dest, stdio: "inherit" });
+  execFileSync("npx", ["drizzle-kit", "generate", "--name", name], {
+    cwd: dest,
+    stdio: "inherit",
+  });
+  execFileSync("npx", ["drizzle-kit", "migrate"], {
+    cwd: dest,
+    stdio: "inherit",
+  });
 
-  const registryMigrations = join(COMBO_ROOT, "variants", variant, "drizzle");
+  const registryMigrations = join(
+    COMBO_ROOT,
+    "variants",
+    variant,
+    "database",
+    "migrations",
+  );
   await rm(registryMigrations, { recursive: true, force: true });
-  await cp(join(dest, "drizzle"), registryMigrations, { recursive: true });
-  console.log(`\nwrote migrations back to variants/${variant}/drizzle`);
+  await cp(join(dest, "database", "migrations"), registryMigrations, {
+    recursive: true,
+  });
+  console.log(
+    `\nwrote migrations back to variants/${variant}/database/migrations`,
+  );
 }

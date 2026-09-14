@@ -42,7 +42,8 @@ npx prisma generate && npx prisma migrate deploy
 ```
 
 `--force` overwrites even user-modified files — fine for the in-repo examples, which hold no
-hand edits inside the managed `src/lib/auth/` dir. Without `--force`, modified files are
+hand edits inside the managed `common/`, `core/`, `infra/`, and `modules/` dirs under `src/`
+(or `database/` at the project root). Without `--force`, modified files are
 skipped (that's the consumer-facing update behavior). New backend dependencies (e.g. socket.io,
 throttler) must be added to the example's own `package.json` — the CLI copies source, not deps.
 
@@ -69,19 +70,19 @@ If an app's typecheck can't see a method you just added, it's one of two stalene
 The countries/languages/customers modules all followed this shape; `country.*` is the cleanest
 template. Nine steps, repository → UI:
 
-1. **Prisma model** in `variants/base/prisma/schema/simple-auth-kit.prisma` — copy the standard column set from
+1. **Prisma model** in `variants/base/database/schema/simple-auth-kit.prisma` — copy the standard column set from
    an existing model (id/uuid, `isActive`, `createdBy`/`updatedBy`, soft-delete columns,
    timestamps). Then `npm run migrate -- base --name add_<domain>`.
-2. **Repository** `variants/base/src/<domain>.repository.ts` — list (search/page/limit/
-   `activeOnly`), get, create, update, soft-delete, `setActive`. Shape rows through a
-   `to<Domain>Summary()` that forwards **every safe column** (BigInt ids → strings, Dates →
-   ISO). The list must map rows through it too — returning raw Prisma rows crashes JSON
+2. **Repository** `variants/base/src/modules/auth/repositories/<domain>.repository.ts` — list
+   (search/page/limit/`activeOnly`), get, create, update, soft-delete, `setActive`. Shape rows
+   through a `to<Domain>Summary()` that forwards **every safe column** (BigInt ids → strings,
+   Dates → ISO). The list must map rows through it too — returning raw Prisma rows crashes JSON
    serialization on BigInt (a real bug caught in verification).
-3. **DTOs** `variants/base/src/dto/<domain>.dto.ts` — Swagger documentation only; controllers
-   validate manually, matching the existing convention.
-4. **Service methods** in `auth.service.ts`, **routes** in `admin.controller.ts` (GET list/one,
-   POST create, PATCH update, DELETE soft-delete, POST `/:id/activate|deactivate`), each with
-   `@CheckAbility("<domain>:...")`.
+3. **DTOs** `variants/base/src/modules/auth/dto/<domain>.dto.ts` — Swagger documentation only;
+   controllers validate manually, matching the existing convention.
+4. **Service methods** in `services/auth.service.ts`, **routes** in
+   `controllers/admin.controller.ts` (GET list/one, POST create, PATCH update, DELETE
+   soft-delete, POST `/:id/activate|deactivate`), each with `@CheckAbility("<domain>:...")`.
 5. **Slugs** in `rbac.defaults.ts` — `<domain>:read`, `:manage`, `:status`. That's all the
    seeder needs; the `admin` role spreads the whole catalog.
 6. **Provider registration** in `auth.module.ts`.

@@ -22,9 +22,19 @@ const variants = requested.length ? requested : VARIANTS;
 for (const variant of variants) {
   console.log(`\n=== prove-cycle: ${variant} ===\n`);
   const dest = await materialize(variant, { generate: true });
-  execFileSync("npx", ["prisma", "migrate", "deploy"], { cwd: dest, stdio: "inherit" });
+  execFileSync("npx", ["prisma", "migrate", "deploy"], {
+    cwd: dest,
+    stdio: "inherit",
+  });
   // The consumer-facing seeder, run exactly as a consumer runs it. Idempotent, so a database that
   // has already been seeded is unaffected.
-  execFileSync("npx", ["tsx", "src/seed.ts"], { cwd: dest, stdio: "inherit" });
-  execFileSync("npx", ["tsx", "test/prove-cycle.ts"], { cwd: dest, stdio: "inherit", env: { ...process.env, AUTH_VARIANT: variant } });
+  execFileSync("npx", ["tsx", "database/seed.ts"], {
+    cwd: dest,
+    stdio: "inherit",
+  });
+  execFileSync("npx", ["tsx", "test/prove-cycle.ts"], {
+    cwd: dest,
+    stdio: "inherit",
+    env: { ...process.env, AUTH_VARIANT: variant },
+  });
 }

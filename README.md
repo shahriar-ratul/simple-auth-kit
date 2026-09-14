@@ -17,13 +17,15 @@ arguments needed. Full details: [`docs/cli.md`](docs/cli.md).
 
 **Not sure yet which combo you want?** Run it bare (or `init`) and it'll ask — pick a kind
 (api/admin/mobile), then a framework, then base or workspaces:
+
 ```bash
 npx @simple-auth-kit/cli
 ```
 
 **Already know what you want?** Run the exact combo directly:
 
-**`api` — merges into `src/lib/auth` of an existing project:**
+**`api` — merges into `src` of an existing project (configurable via `--path`/`--alias`):**
+
 ```bash
 npx @simple-auth-kit/cli add nestjs-prisma --into .
 npx @simple-auth-kit/cli add nestjs-drizzle --into .
@@ -32,12 +34,14 @@ npx @simple-auth-kit/cli add express-drizzle --into .
 ```
 
 **`admin` — a whole new standalone app, scaffolded at the target:**
+
 ```bash
 npx @simple-auth-kit/cli add admin-nextjs --into ./admin
 npx @simple-auth-kit/cli add admin-react --into ./admin
 ```
 
 **`mobile` — a whole new standalone app, scaffolded at the target:**
+
 ```bash
 npx @simple-auth-kit/cli add mobile-expo --into ./mobile
 npx @simple-auth-kit/cli add mobile-bare-rn --into ./mobile
@@ -54,15 +58,15 @@ backends, 4 admin consoles, 4 mobile apps, a shared typed API client, and a dev 
 
 ## Repo structure
 
-| Path | What it is |
-|---|---|
-| `registry/` | Source of truth — `core/` (framework-free auth logic), `combos/*` (the 4 `api` products), `admin-apps/`, `mobile-apps/`. Never installed as a dependency; copied by the CLI. |
-| `packages/cli/` | The `@simple-auth-kit/cli` package — `init`, `add`, `update`, `diff`. |
-| `packages/auth-client/` | Shared typed API client (`@simple-auth-kit/auth-client`) used by all 8 client apps. |
-| `examples/` | 8 fresh consumer projects, each `simple-auth-kit add`-installed end to end — the runnable backends. |
-| `apps/` | The 8 runnable client apps (4 admin, 4 mobile) plus `dev-portal` (repo tooling). |
-| `docs/` | The documentation set — start at `docs/README.md`. |
-| `plan/brief.md` | Settled architectural decisions — read before changing anything architectural. |
+| Path                    | What it is                                                                                                                                                                   |
+| ----------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `registry/`             | Source of truth — `core/` (framework-free auth logic), `combos/*` (the 4 `api` products), `admin-apps/`, `mobile-apps/`. Never installed as a dependency; copied by the CLI. |
+| `packages/cli/`         | The `@simple-auth-kit/cli` package — `init`, `add`, `update`, `diff`.                                                                                                        |
+| `packages/auth-client/` | Shared typed API client (`@simple-auth-kit/auth-client`) used by all 8 client apps.                                                                                          |
+| `examples/`             | 8 fresh consumer projects, each `simple-auth-kit add`-installed end to end — the runnable backends.                                                                          |
+| `apps/`                 | The 8 runnable client apps (4 admin, 4 mobile) plus `dev-portal` (repo tooling).                                                                                             |
+| `docs/`                 | The documentation set — start at `docs/README.md`.                                                                                                                           |
+| `plan/brief.md`         | Settled architectural decisions — read before changing anything architectural.                                                                                               |
 
 ## Development
 

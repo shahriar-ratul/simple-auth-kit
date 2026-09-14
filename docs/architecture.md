@@ -24,11 +24,11 @@ npx simple-auth-kit add                             # guided multi-kind flow (ap
 
 Every registry entry has a `kind` and an `installMode` (`packages/cli/registry.json`):
 
-| Kind | Products | Install mode | What the CLI writes |
-|---|---|---|---|
-| `api` | `nestjs-prisma` (reference), `nestjs-drizzle`, `express-prisma`, `express-drizzle` | `merge` | A source fragment composed into an **existing** project: `registry/core/` + the combo's `shared/` + `variants/<variant>/`, landing under `src/lib/auth/` (configurable). |
-| `admin` | `admin-nextjs`, `admin-react` | `scaffold` | A **whole standalone app** — `package.json`, `src/`, everything — written directly into the target directory. |
-| `mobile` | `mobile-expo`, `mobile-bare-rn` | `scaffold` | Same, plus native-identity retemplating for `mobile-bare-rn` (bundle id / `applicationId` / project names driven by `--name`). |
+| Kind     | Products                                                                           | Install mode | What the CLI writes                                                                                                                                                                                                                                                                                                                     |
+| -------- | ---------------------------------------------------------------------------------- | ------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `api`    | `nestjs-prisma` (reference), `nestjs-drizzle`, `express-prisma`, `express-drizzle` | `merge`      | A source fragment composed into an **existing** project: `registry/core/` + the combo's `shared/` + `variants/<variant>/`, landing under `src/` (configurable) as `common/`, `infra/`, `modules/auth/`, plus `core/`; `database/` (schema/migrations/seed, Prisma's generated client) lands at the project root regardless of `--path`. |
+| `admin`  | `admin-nextjs`, `admin-react`                                                      | `scaffold`   | A **whole standalone app** — `package.json`, `src/`, everything — written directly into the target directory.                                                                                                                                                                                                                           |
+| `mobile` | `mobile-expo`, `mobile-bare-rn`                                                    | `scaffold`   | Same, plus native-identity retemplating for `mobile-bare-rn` (bundle id / `applicationId` / project names driven by `--name`).                                                                                                                                                                                                          |
 
 All 8 products use the same `shared/` + `variants/{base,workspaces}` composition and the same
 rule for deciding where a file goes: **write both variants, then hoist every file that comes
@@ -106,17 +106,17 @@ There is **no multi-tenancy** (removed permanently; true isolation is a separate
 `nestjs-prisma` is the reference combo; `apps/admin-nextjs` is the reference console. Not
 everything has been mirrored everywhere, and the docs shouldn't pretend otherwise:
 
-| Feature | Where it exists |
-|---|---|
-| Auth + RBAC + admin surface (users/roles/permissions/audit-log), seeder, prove-cycle | All 4 combos, both variants |
-| Auth-flow rate limiting (login, password reset — `registry/core/rate-limit.ts`) | All 4 combos, both variants |
-| Role `isDefault`/`isActive`, `isActive` on users/permissions | All 4 combos, both variants |
-| Content domains (countries/languages/customers) | `nestjs-prisma` only — both variants (workspace-scoped in `workspaces`) |
-| Realtime audit feed (socket.io `/audit-logs` gateway) | `nestjs-prisma` **base only** |
-| HTTP throttling (`@nestjs/throttler`, global guard) | `nestjs-prisma` **base only** |
-| User profile fields `dob`/`gender`/`joinedDate` | NestJS combos only (both variants); absent from the express combos |
-| Content-domain pages, live-feed UI, full form recipe | All 4 admin consoles |
-| NextAuth v5 + edge `proxy.ts` guard | `apps/admin-nextjs` only — the other 3 consoles use client-side re-verification on every route change (a deliberate trust-model split, see `registry/admin-apps/README.md`) |
+| Feature                                                                              | Where it exists                                                                                                                                                             |
+| ------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Auth + RBAC + admin surface (users/roles/permissions/audit-log), seeder, prove-cycle | All 4 combos, both variants                                                                                                                                                 |
+| Auth-flow rate limiting (login, password reset — `registry/core/rate-limit.ts`)      | All 4 combos, both variants                                                                                                                                                 |
+| Role `isDefault`/`isActive`, `isActive` on users/permissions                         | All 4 combos, both variants                                                                                                                                                 |
+| Content domains (countries/languages/customers)                                      | `nestjs-prisma` only — both variants (workspace-scoped in `workspaces`)                                                                                                     |
+| Realtime audit feed (socket.io `/audit-logs` gateway)                                | `nestjs-prisma` **base only**                                                                                                                                               |
+| HTTP throttling (`@nestjs/throttler`, global guard)                                  | `nestjs-prisma` **base only**                                                                                                                                               |
+| User profile fields `dob`/`gender`/`joinedDate`                                      | NestJS combos only (both variants); absent from the express combos                                                                                                          |
+| Content-domain pages, live-feed UI, full form recipe                                 | All 4 admin consoles                                                                                                                                                        |
+| NextAuth v5 + edge `proxy.ts` guard                                                  | `apps/admin-nextjs` only — the other 3 consoles use client-side re-verification on every route change (a deliberate trust-model split, see `registry/admin-apps/README.md`) |
 
 ## The admin console pairing (2026-08-12 parity build)
 

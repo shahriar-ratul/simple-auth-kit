@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // Runs a variant's seeder against this combo's own dev database.
 //
-// The seeder is consumer-facing source (`variants/<variant>/src/seed.ts`, copied into every
+// The seeder is consumer-facing source (`variants/<variant>/database/seed.ts`, copied into every
 // project the CLI installs into), so it is run here the same way a consumer runs it: from the
 // materialized variant, with that variant's `.env` supplying DATABASE_URL. Nothing about the
 // seeder is test scaffolding, and there is no second copy of it living in `scripts/`.
@@ -20,5 +20,8 @@ const variants = requested.length ? requested : VARIANTS;
 for (const variant of variants) {
   console.log(`\n=== seed: ${variant} ===\n`);
   const dest = await materialize(variant, { generate: true });
-  execFileSync("npx", ["tsx", "src/seed.ts"], { cwd: dest, stdio: "inherit" });
+  execFileSync("npx", ["tsx", "database/seed.ts"], {
+    cwd: dest,
+    stdio: "inherit",
+  });
 }

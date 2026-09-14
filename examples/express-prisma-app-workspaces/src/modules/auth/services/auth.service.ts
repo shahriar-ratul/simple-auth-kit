@@ -1,0 +1,662 @@
+import { randomUUID } from "node:crypto";
+import { hashPassword, verifyPassword } from "@/core/crypto.js";
+import {
+  buildAuthorizationUrl,
+  APPLE_OIDC_PROVIDER,
+  completeOAuthLogin,
+  exchangeCodeForTokens,
+  GOOGLE_OIDC_PROVIDER,
+  OAuthProviderDescriptor,
+  signAppleClientSecret,
+  verifyIdTokenAndExtractProfile,
+} from "@/core/oauth.js";
+import {
+  requestPasswordReset as coreRequestPasswordReset,
+  resetPassword as coreResetPassword,
+} from "@/core/password-reset.js";
+import { checkRateLimit, type RateLimitDeps } from "@/core/rate-limit.js";
+import {
+  createSession,
+  revokeAccessToken,
+  revokeAllSessionsForUser,
+  revokeOtherSessionsForUser,
+  revokeSession,
+  rotateRefreshToken,
+} from "@/core/session-policy.js";
+import {
+  signAccessToken,
+  signRefreshToken,
+  signTwoFactorChallengeToken,
+  verifyRefreshToken,
+  verifyTwoFactorChallengeToken,
+} from "@/core/token-service.js";
+import {
+  buildTotpProvisioningUri,
+  generateBackupCodes,
+  generateTotpSecret,
+  verifyTotpCode,
+} from "@/core/two-factor.js";
+import type { Revoker } from "@/core/types.js";
+import type { AuthConfig } from "../../../common/config/auth.config.js";
+import { HttpError } from "../../../infra/errors/http-error.js";
+import { PrismaClient } from "@/database/generated/prisma/client.js";
+import { KeyProviderService } from "../../../common/config/key-provider.js";
+import { OAuthRepository } from "../repositories/oauth.repository.js";
+import { PasswordResetRepository } from "../repositories/password-reset.repository.js";
+import { SessionRepository } from "../repositories/session.repository.js";
+import { TwoFactorRepository } from "../repositories/two-factor.repository.js";
+import { toId } from "../../../common/helpers/id.helper.js";
+
+export interface AuthTokens {
+  accessToken: string;
+  refreshToken: string;
+  sessionId: string;
+}
+
+export interface TwoFactorChallenge {
+  twoFactorRequired: true;
+  challengeToken: string;
+}
+
+/** `PATCH /auth/me`'s return shape — the same across every combo, workspace-scoped or not, since a profile isn't a workspace concept. */
+export interface SelfProfile {
+  id: string;
+  email: string;
+  firstName: string | null;
+  lastName: string | null;
+  displayName: string | null;
+  phone: string | null;
+  username: string | null;
+  photo: string | null;
+  createdAt: string;
+}
+
+// Plain class, manually constructed with its dependencies (see create-auth-app.ts) —
+// no Nest DI container, no decorators. Wires registry/core functions to the
+// Prisma-backed repositories/key-provider/rate-limit exactly like the reference combo.
+export class AuthService {
+  constructor(
+    private readonly prisma: PrismaClient,
+    private readonly sessions: SessionRepository,
+    private readonly keys: KeyProviderService,
+    private readonly rateLimit: RateLimitDeps,
+    private readonly twoFactor: TwoFactorRepository,
+    private readonly oauth: OAuthRepository,
+    private readonly passwordReset: PasswordResetRepository,
+    private readonly config: AuthConfig,
+  ) {}
+
+  /** Creates the user and nothing else. Joining or creating a workspace is a separate, explicit call — see WorkspaceController. */
+  async signup(input: {
+    email: string;
+    password: string;
+    firstName?: string;
+    lastName?: string;
+    displayName?: string;
+    phone?: string;
+    username?: string;
+    userAgent?: string;
+    ip?: string;
+  }): Promise<AuthTokens> {
+    const existing = await this.prisma.user.findUnique({
+      where: { email: input.email },
+    });
+    if (existing) throw new HttpError(409, "email already registered");
+
+    const passwordHash = await hashPassword(input.password);
+    const user = await this.prisma.user.create({
+      data: {
+        email: input.email,
+        passwordHash,
+        firstName: input.firstName,
+        lastName: input.lastName,
+        displayName: input.displayName,
+        phone: input.phone,
+        username: input.username,
+      },
+    });
+    return this.issueSessionTokens(user, {
+      userAgent: input.userAgent,
+      ip: input.ip,
+    });
+  }
+
+  /** Returns full tokens directly, or a short-lived challenge if the account has 2FA enabled — see `loginTwoFactor`. */
+  async login(input: {
+    identifier: string;
+    password: string;
+    userAgent?: string;
+    ip?: string;
+  }): Promise<AuthTokens | TwoFactorChallenge> {
+    const { allowed } = await checkRateLimit(
+      this.rateLimit,
+      "login",
+      input.identifier,
+    );
+    if (!allowed) throw new HttpError(429, "too many login attempts");
+
+    const user = await this.prisma.user.findFirst({
+      where: {
+        OR: [
+          { email: input.identifier },
+          { username: input.identifier },
+          { phone: input.identifier },
+        ],
+      },
+    });
+    if (
+      !user ||
+      user.blocked ||
+      !user.isActive ||
+      user.isDeleted ||
+      !user.passwordHash
+    )
+      throw new HttpError(401, "invalid credentials");
+
+    const valid = await verifyPassword(user.passwordHash, input.password);
+    if (!valid) throw new HttpError(401, "invalid credentials");
+
+    if (user.twoFactorEnabled) {
+      const key = await this.keys.getActiveKey();
+      const { token } = await signTwoFactorChallengeToken(
+        { activeKey: key },
+        user.id.toString(),
+      ); // core-facing: sub must be string
+      return { twoFactorRequired: true, challengeToken: token };
+    }
+
+    return this.issueSessionTokens(user, {
+      userAgent: input.userAgent,
+      ip: input.ip,
+    });
+  }
+
+  /** Completes the challenge `login()` returned when 2FA is enabled — a TOTP code or an unused backup code. */
+  async loginTwoFactor(input: {
+    challengeToken: string;
+    code: string;
+    userAgent?: string;
+    ip?: string;
+  }): Promise<AuthTokens> {
+    const { sub } = await verifyTwoFactorChallengeToken(
+      { secret: this.keys.secret },
+      input.challengeToken,
+    );
+
+    const user = await this.prisma.user.findUnique({
+      where: { id: toId(sub) },
+    });
+    if (
+      !user ||
+      user.blocked ||
+      !user.isActive ||
+      user.isDeleted ||
+      !user.twoFactorEnabled ||
+      !user.twoFactorSecret
+    )
+      throw new HttpError(401, "invalid credentials");
+
+    const validTotp = verifyTotpCode(user.twoFactorSecret, input.code);
+    const validBackup =
+      !validTotp &&
+      (await this.twoFactor.consumeBackupCode(user.id, input.code));
+    if (!validTotp && !validBackup) {
+      await this.sessions.appendAuditEvent({
+        type: "two_factor_challenge_failed",
+        userId: user.id.toString(),
+      }); // core-facing: string
+      throw new HttpError(401, "invalid two-factor code");
+    }
+
+    return this.issueSessionTokens(user, {
+      userAgent: input.userAgent,
+      ip: input.ip,
+    });
+  }
+
+  async enrollTwoFactor(
+    userId: string,
+  ): Promise<{ secret: string; provisioningUri: string }> {
+    const idBig = toId(userId);
+    const user = await this.getUserOrThrow(userId);
+    const secret = generateTotpSecret();
+    // Not enabled yet — confirmTwoFactor() flips that, so an abandoned enrollment never locks the account out.
+    await this.prisma.user.update({
+      where: { id: idBig },
+      data: { twoFactorSecret: secret, twoFactorEnabled: false },
+    });
+    return {
+      secret,
+      provisioningUri: buildTotpProvisioningUri({
+        secret,
+        accountName: user.email,
+        issuer: this.config.twoFactorIssuer,
+      }),
+    };
+  }
+
+  async confirmTwoFactor(
+    userId: string,
+    code: string,
+  ): Promise<{ backupCodes: string[] }> {
+    const idBig = toId(userId);
+    const user = await this.getUserOrThrow(userId);
+    if (!user.twoFactorSecret)
+      throw new HttpError(400, "call enrollTwoFactor first");
+    if (!verifyTotpCode(user.twoFactorSecret, code))
+      throw new HttpError(401, "invalid two-factor code");
+
+    const backupCodes = generateBackupCodes();
+    await this.twoFactor.saveBackupCodes(
+      idBig,
+      backupCodes.map((c) => c.hash),
+    );
+    await this.prisma.user.update({
+      where: { id: idBig },
+      data: { twoFactorEnabled: true },
+    });
+    await this.sessions.appendAuditEvent({
+      type: "two_factor_enabled",
+      userId,
+    });
+    return { backupCodes: backupCodes.map((c) => c.code) };
+  }
+
+  async disableTwoFactor(userId: string, code: string): Promise<void> {
+    const idBig = toId(userId);
+    const user = await this.getUserOrThrow(userId);
+    if (!user.twoFactorEnabled || !user.twoFactorSecret)
+      throw new HttpError(400, "two-factor is not enabled");
+
+    const validTotp = verifyTotpCode(user.twoFactorSecret, code);
+    const validBackup =
+      !validTotp && (await this.twoFactor.consumeBackupCode(idBig, code));
+    if (!validTotp && !validBackup)
+      throw new HttpError(401, "invalid two-factor code");
+
+    await this.prisma.user.update({
+      where: { id: idBig },
+      data: { twoFactorEnabled: false, twoFactorSecret: null },
+    });
+    await this.twoFactor.clearBackupCodes(idBig);
+    await this.sessions.appendAuditEvent({
+      type: "two_factor_disabled",
+      userId,
+    });
+  }
+
+  /** Always succeeds from the caller's point of view — an unknown email or a throttled request looks identical, to avoid enumeration. */
+  async requestPasswordReset(email: string): Promise<void> {
+    const user = await this.prisma.user.findUnique({ where: { email } });
+    if (!user || user.isDeleted) return;
+
+    const { allowed } = await checkRateLimit(
+      this.rateLimit,
+      "password-reset",
+      email,
+    );
+    if (!allowed) return;
+
+    const { token } = await coreRequestPasswordReset(
+      this.passwordReset,
+      user.id.toString(),
+    );
+    if (this.config.sendPasswordResetEmail)
+      await this.config.sendPasswordResetEmail(email, token);
+  }
+
+  async resetPassword(token: string, newPassword: string): Promise<void> {
+    const { userId } = await coreResetPassword(
+      this.passwordReset,
+      token,
+      newPassword,
+    );
+    // The old password is no longer trusted, so neither are its sessions. The revoker is the user
+    // themselves — they proved control of the account by consuming the reset token.
+    await revokeAllSessionsForUser(this.sessions, userId, { userId });
+  }
+
+  /** Builds the redirect URL for `provider`. `state` is an opaque anti-CSRF nonce the provider echoes back verbatim. */
+  async startOAuth(provider: string): Promise<{ url: string }> {
+    const state = Buffer.from(JSON.stringify({ nonce: randomUUID() })).toString(
+      "base64url",
+    );
+
+    if (provider === "google") {
+      const creds = this.config.oauthProviders.google;
+      if (!creds) throw new HttpError(400, "google OAuth is not configured");
+      return {
+        url: buildAuthorizationUrl(GOOGLE_OIDC_PROVIDER, {
+          clientId: creds.clientId,
+          redirectUri: creds.redirectUri,
+          state,
+        }),
+      };
+    }
+    if (provider === "apple") {
+      const creds = this.config.oauthProviders.apple;
+      if (!creds) throw new HttpError(400, "apple OAuth is not configured");
+      return {
+        url: buildAuthorizationUrl(APPLE_OIDC_PROVIDER, {
+          clientId: creds.clientId,
+          redirectUri: creds.redirectUri,
+          state,
+        }),
+      };
+    }
+    throw new HttpError(400, `unknown OAuth provider "${provider}"`);
+  }
+
+  async completeOAuthCallback(
+    provider: string,
+    code: string,
+    _state: string,
+  ): Promise<AuthTokens> {
+    let providerDescriptor: OAuthProviderDescriptor;
+    let clientId: string;
+    let idToken: string;
+
+    if (provider === "google") {
+      const creds = this.config.oauthProviders.google;
+      if (!creds) throw new HttpError(400, "google OAuth is not configured");
+      providerDescriptor = GOOGLE_OIDC_PROVIDER;
+      clientId = creds.clientId;
+      idToken = (
+        await exchangeCodeForTokens(GOOGLE_OIDC_PROVIDER, {
+          clientId: creds.clientId,
+          clientSecret: creds.clientSecret,
+          redirectUri: creds.redirectUri,
+          code,
+        })
+      ).idToken;
+    } else if (provider === "apple") {
+      const creds = this.config.oauthProviders.apple;
+      if (!creds) throw new HttpError(400, "apple OAuth is not configured");
+      providerDescriptor = APPLE_OIDC_PROVIDER;
+      clientId = creds.clientId;
+      const clientSecret = await signAppleClientSecret({
+        teamId: creds.teamId,
+        clientId: creds.clientId,
+        keyId: creds.keyId,
+        privateKeyPem: creds.privateKey,
+      });
+      idToken = (
+        await exchangeCodeForTokens(APPLE_OIDC_PROVIDER, {
+          clientId: creds.clientId,
+          clientSecret,
+          redirectUri: creds.redirectUri,
+          code,
+        })
+      ).idToken;
+    } else {
+      throw new HttpError(400, `unknown OAuth provider "${provider}"`);
+    }
+
+    const profile = await verifyIdTokenAndExtractProfile(providerDescriptor, {
+      clientId,
+      idToken,
+    });
+    const { userId } = await completeOAuthLogin(this.oauth, {
+      provider,
+      profile,
+    });
+
+    const user = await this.getUserOrThrow(userId);
+    if (user.blocked || !user.isActive || user.isDeleted)
+      throw new HttpError(401, "account is blocked");
+    return this.issueSessionTokens(user, { provider });
+  }
+
+  /** `req.auth` (the JWT claims) never carries 2FA status, so `/auth/me` fetches it fresh — the one bit of the response that isn't just echoing the token. */
+  async getTwoFactorStatus(
+    userId: string,
+  ): Promise<{ twoFactorEnabled: boolean }> {
+    const user = await this.getUserOrThrow(userId);
+    return { twoFactorEnabled: user.twoFactorEnabled };
+  }
+
+  async listActiveSessions(userId: string): Promise<
+    Array<{
+      id: string;
+      createdAt: string;
+      expiresAt: string;
+      provider?: string;
+      userAgent?: string;
+      ip?: string;
+    }>
+  > {
+    // "Active" is now three conditions, not one: not revoked, and not past its own absolute
+    // expiry. `sessions_user_active_idx` is (user_id, is_revoked, expires_at) for exactly this read.
+    const rows = await this.prisma.session.findMany({
+      where: {
+        userId: toId(userId),
+        isRevoked: false,
+        expiresAt: { gt: new Date() },
+      },
+      orderBy: { createdAt: "desc" },
+    });
+    return rows.map((row) => ({
+      id: row.id.toString(),
+      createdAt: row.createdAt.toISOString(),
+      expiresAt: row.expiresAt.toISOString(),
+      provider: row.provider ?? undefined,
+      userAgent: row.userAgent ?? undefined,
+      ip: row.ip ?? undefined,
+    }));
+  }
+
+  async refresh(refreshToken: string): Promise<Omit<AuthTokens, "sessionId">> {
+    const key = await this.keys.getActiveKey();
+    const presented = await verifyRefreshToken(
+      { secret: this.keys.secret },
+      refreshToken,
+    );
+    const { session, nextJti } = await rotateRefreshToken(
+      this.sessions,
+      presented,
+    );
+
+    const user = await this.prisma.user.findUnique({
+      where: { id: toId(session.userId) },
+    });
+    if (!user || user.blocked || !user.isActive || user.isDeleted)
+      throw new HttpError(401, "invalid credentials");
+
+    const access = await signAccessToken(
+      { activeKey: key },
+      { sub: user.id.toString(), sessionId: session.id },
+      { ttlSeconds: this.config.accessTokenTtlSeconds },
+    );
+    const refresh = await signRefreshToken(
+      { activeKey: key },
+      {
+        sub: user.id.toString(),
+        sessionId: session.id,
+        sv: session.sessionVersion,
+      },
+      { jti: nextJti, ttlSeconds: this.config.refreshTokenTtlSeconds },
+    );
+    return { accessToken: access.token, refreshToken: refresh.token };
+  }
+
+  async logout(
+    sessionId: string,
+    accessJti: string,
+    accessRemainingTtlSeconds: number,
+    revoker?: Revoker,
+  ): Promise<void> {
+    await revokeSession(this.sessions, sessionId, revoker);
+    await revokeAccessToken(
+      this.sessions,
+      accessJti,
+      accessRemainingTtlSeconds,
+    );
+  }
+
+  async logoutAll(userId: string, revoker?: Revoker): Promise<void> {
+    await revokeAllSessionsForUser(this.sessions, userId, revoker);
+  }
+
+  async logoutOthers(
+    userId: string,
+    keepSessionId: string,
+    revoker?: Revoker,
+  ): Promise<void> {
+    await revokeOtherSessionsForUser(
+      this.sessions,
+      userId,
+      keepSessionId,
+      revoker,
+    );
+  }
+
+  async changePassword(
+    userId: string,
+    currentSessionId: string,
+    input: { currentPassword: string; newPassword: string },
+  ): Promise<void> {
+    const userIdBig = toId(userId);
+    const user = await this.prisma.user.findUnique({
+      where: { id: userIdBig },
+    });
+    if (
+      !user ||
+      user.blocked ||
+      !user.isActive ||
+      user.isDeleted ||
+      !user.passwordHash
+    )
+      throw new HttpError(401, "invalid credentials");
+
+    const valid = await verifyPassword(
+      user.passwordHash,
+      input.currentPassword,
+    );
+    if (!valid) throw new HttpError(401, "invalid credentials");
+
+    const passwordHash = await hashPassword(input.newPassword);
+    await this.prisma.user.update({
+      where: { id: userIdBig },
+      data: { passwordHash, updatedBy: userIdBig },
+    });
+    // The old password is no longer trusted everywhere else it's signed in — but leave the
+    // session making this very call alone, the same courtesy `logoutOthers` extends.
+    await revokeOtherSessionsForUser(this.sessions, userId, currentSessionId, {
+      userId,
+    });
+  }
+
+  /** Backs both `GET`- and `PATCH /auth/me` — deliberately not workspace-scoped, see `updateProfile`. */
+  private toSelfProfile(user: {
+    id: bigint;
+    email: string;
+    firstName: string | null;
+    lastName: string | null;
+    displayName: string | null;
+    phone: string | null;
+    username: string | null;
+    photo: string | null;
+    createdAt: Date;
+  }): SelfProfile {
+    return {
+      id: user.id.toString(),
+      email: user.email,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      displayName: user.displayName,
+      phone: user.phone,
+      username: user.username,
+      photo: user.photo,
+      createdAt: user.createdAt.toISOString(),
+    };
+  }
+
+  /** Self-service — no `users:manage` permission required, callable by anyone on their own row, and deliberately not workspace-scoped, see `updateProfile`. */
+  async getProfile(userId: string): Promise<SelfProfile> {
+    const userIdBig = toId(userId);
+    const user = await this.prisma.user.findUnique({
+      where: { id: userIdBig, isDeleted: false },
+    });
+    if (!user) throw new HttpError(401, "invalid credentials");
+    return this.toSelfProfile(user);
+  }
+
+  /**
+   * Self-service — no `users:manage` permission required, the caller's own row only, and
+   * deliberately not workspace-scoped: a profile belongs to the account, not to any one
+   * membership, so this updates the same `User` row `updateMember` would, without requiring an
+   * `X-Workspace-Id` or a membership in it.
+   */
+  async updateProfile(
+    userId: string,
+    input: {
+      firstName?: string | null;
+      lastName?: string | null;
+      displayName?: string | null;
+      phone?: string | null;
+      username?: string | null;
+      photo?: string | null;
+    },
+  ): Promise<SelfProfile> {
+    const userIdBig = toId(userId);
+    const existing = await this.prisma.user.findUnique({
+      where: { id: userIdBig, isDeleted: false },
+    });
+    if (!existing) throw new HttpError(401, "invalid credentials");
+    const user = await this.prisma.user.update({
+      where: { id: userIdBig },
+      data: { ...input, updatedBy: userIdBig },
+    });
+    return this.toSelfProfile(user);
+  }
+
+  /** Nest's filter turns Prisma's `findUniqueOrThrow` into a 404; without one, this does it by hand. */
+  private async getUserOrThrow(userId: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: toId(userId) },
+    });
+    if (!user) throw new HttpError(404, `user "${userId}" not found`);
+    return user;
+  }
+
+  /**
+   * The access token identifies the user and the session, and carries no authorization: roles
+   * and permissions belong to a workspace membership, and this token is valid in all of them.
+   * Each request resolves its own — see AuthzGuard. Takes the raw Prisma user row (bigint id) —
+   * every call site already has one in hand.
+   */
+  private async issueSessionTokens(
+    user: { id: bigint },
+    meta: { userAgent?: string; ip?: string; provider?: string },
+  ): Promise<AuthTokens> {
+    const session = await createSession(this.sessions, {
+      userId: user.id.toString(),
+      ...meta,
+    });
+    const key = await this.keys.getActiveKey();
+
+    const access = await signAccessToken(
+      { activeKey: key },
+      { sub: user.id.toString(), sessionId: session.id },
+      { ttlSeconds: this.config.accessTokenTtlSeconds },
+    );
+    const refresh = await signRefreshToken(
+      { activeKey: key },
+      {
+        sub: user.id.toString(),
+        sessionId: session.id,
+        sv: session.sessionVersion,
+      },
+      {
+        jti: session.currentRefreshJti,
+        ttlSeconds: this.config.refreshTokenTtlSeconds,
+      },
+    );
+
+    return {
+      accessToken: access.token,
+      refreshToken: refresh.token,
+      sessionId: session.id,
+    };
+  }
+}
