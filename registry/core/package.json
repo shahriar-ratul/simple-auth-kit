@@ -3,7 +3,6 @@
   "private": true,
   "version": "0.0.0",
   "description": "Framework/ORM-free auth core: token issuance, session policy, crypto, rate limiting. Copied verbatim into every combo by the CLI — never installed as a dependency by consumers.",
-  "type": "module",
   "scripts": {
     "typecheck": "tsc --noEmit",
     "test": "vitest run"

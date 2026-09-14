@@ -1,5 +1,13 @@
 {
+  // module/moduleResolution overridden to CommonJS/bundler, not inherited from the root
+  // tsconfig.base.json's NodeNext - core's imports are extensionless CommonJS-style (see the
+  // combo materialize.mjs TSCONFIG comment for the same reasoning), so this package's own
+  // standalone typecheck needs to resolve them the same way.
   "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "module": "CommonJS",
+    "moduleResolution": "bundler"
+  },
   "include": ["*.ts", "test"],
   "exclude": ["node_modules"]
 }
