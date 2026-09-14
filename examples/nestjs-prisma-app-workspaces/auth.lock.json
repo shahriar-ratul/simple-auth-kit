@@ -1,7 +1,7 @@
 {
   "combo": "nestjs-prisma",
   "variant": "workspaces",
-  "installedAt": "2026-09-14T17:18:20.209Z",
+  "installedAt": "2026-09-14T18:31:39.471Z",
   "files": {
     "core/crypto.ts": "9411c998b33f4ba97078fb6ff5beee1823bfb8c14a324c0e24e1967640e0c985",
     "core/.gitignore": "32dc6c42e34b0e1b8c9a5780abe9f951874d9082690a6e035e064f96dfd06ee6",
@@ -25,7 +25,9 @@
     "common/helpers/id.helper.ts": "4abc82611fb220c0a6802a50765a2fdb32467b5a6ebe145cf1dcc07cf5f2b183",
     "common/helpers/pagination.ts": "0a7f33cc4927927c478a95f5e915421b6f09b9acc94053feee230189f6b848d1",
     "infra/filters/auth-core-error.filter.ts": "2c66617d992ffce0e3e981e54a7ef89b60f292a2e264f5535639ef9e4c5bb0e8",
+    "infra/interceptor/request-logger.interceptor.ts": "75b34e53a8550dc91e79c5fe03c80e849c3e1782cf35baf061472a42110c7c9a",
     "infra/interceptor/response.interceptor.ts": "19de66b75bcfaa8a61eee6101f4ea85e3d76c0c1f525136d85363d306711cb6d",
+    "infra/logger/logger.ts": "4cd899acc6d28d00f02e316f8ad858b73b45237311b7414af8f8266f11cbf138",
     "infra/request-context.ts": "1da44a6e6b2ac1829f73f9cc91961fad5243e0288157bc740b572ff8b5ccf5e9",
     "infra/route-tiers.ts": "47bccdb1223e242e2c03dabede73c449b1a76a0e27d50e022bbe38a0f6626947",
     "modules/admin/admin.module.ts": "384c0abe50f06fbb43c68a3fecc898bb13fe4e889be1cd99f685ee651189b385",
@@ -42,8 +44,8 @@
     "modules/prisma/prisma.service.ts": "7da30283481f4338cd3f0b14f7f2dfa81953a106f5fb76406b61ff5cd424bcc9",
     "modules/roles/dto/role.dto.ts": "cda75af032d7809b729582ffed083d762ef83d0ae9cf29730ee8ac38789bd2cd",
     "modules/roles/roles.module.ts": "d4eee7b1adeb60406128f1c09902f59f507a6420fbd3ed8e7eb1f9097256e3c4",
-    ".gitignore": "972d044ddd0c9f6106bc745ebea0954be11fef4bbd7b52683bea0b7d06d9f004",
-    "common/auth/core-auth.module.ts": "774011b609fd5e3c7f47bceabf265ce30eadcb16c36e8add165fd7bd76cfd464",
+    ".gitignore": "4dc187cac673b738a7fa0c020efbf0820f589a64293daa2df089e2792fafcbed",
+    "common/auth/core-auth.module.ts": "82063338a29acb4f572d61b6e31db8d3fd730bd274ea84851001b6c85c7d3331",
     "common/auth/guards/authz.guard.ts": "c30da8b094bab246f6bce30c434f7937ae919a3f23a88ff79b63f3a1b8c8f49c",
     "modules/admin/controllers/admin.controller.ts": "184677e7b13d658e670c2666990073f798dbdf56d65ca469811abf4911280f85",
     "modules/admin/dto/admin.dto.ts": "75e772d4e28f423665bb6a9bc0bf3b1973c1280b1114750fbbb633906549ebee",
@@ -96,6 +98,6 @@
     "../test/jest-e2e.json": "f237f269795a59450a8bc68332b19b5d0adab0fe2085033c6190cd6dad433470",
     "../tsconfig.build.json": "c50c6eb1e4b13e278440f12c4ac195d631e497dcd77ba69023525bb08d220092",
     "../tsconfig.json": "852af06b2af2f5055180148e3003dd4c0fb201856ff66cbc55f974e6ca4c9c39",
-    "../package.json": "a6fa8343e722258e0093620c67e5a743d62dd6d71ebf8218715f75244288cf05"
+    "../package.json": "43a94b619d2f76fb326090ca2d0e9055756c6b78ca454e8a00cf8eb6f8b8d9c6"
   }
 }

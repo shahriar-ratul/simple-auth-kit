@@ -8,6 +8,7 @@ import { AuthCoreErrorFilter } from './infra/filters/auth-core-error.filter.js';
 import { AuthModule } from './modules/auth/auth.module.js';
 import { CoreAuthModule } from './common/auth/core-auth.module.js';
 import { PermissionModule } from './modules/permissions/permissions.module.js';
+import { RequestLoggerInterceptor } from './infra/interceptor/request-logger.interceptor.js';
 import { ResponseInterceptor } from './infra/interceptor/response.interceptor.js';
 import { RoleModule } from './modules/roles/roles.module.js';
 import { AppController } from './app.controller.js';
@@ -38,6 +39,10 @@ import { AppService } from './app.service.js';
     AppService,
     { provide: APP_GUARD, useClass: ThrottlerGuard },
     { provide: APP_FILTER, useClass: AuthCoreErrorFilter },
+    // RequestLoggerInterceptor first: Nest's first-registered interceptor is outermost, so its
+    // response-logging tap observes the value *after* ResponseInterceptor has enveloped it — the
+    // same body the client receives.
+    { provide: APP_INTERCEPTOR, useClass: RequestLoggerInterceptor },
     { provide: APP_INTERCEPTOR, useClass: ResponseInterceptor },
   ],
 })

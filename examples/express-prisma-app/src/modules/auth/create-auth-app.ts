@@ -19,12 +19,14 @@ import { AuthService } from '@/modules/auth/services/auth.service';
 import { createAuthzMiddleware } from '@/common/auth/middleware/authz.middleware';
 import { PrismaClient } from '@/database/generated/prisma/client';
 import { KeyProviderService } from '@/common/config/key-provider';
+import { log } from '@/infra/logger/logger';
 import { OAuthRepository } from '@/modules/auth/repositories/oauth.repository';
 import { openApiSpec } from '@/infra/openapi/openapi-spec';
 import { PasswordResetRepository } from '@/modules/auth/repositories/password-reset.repository';
 import { InMemoryPermissionCacheStore, PermissionCache } from '@/common/auth/cache/permission-cache';
 import { InMemoryRateLimitStore } from '@/common/auth/cache/rate-limit.store';
 import { RbacRepository } from '@/modules/auth/repositories/rbac.repository';
+import { requestLogger } from '@/infra/middleware/request-logger.middleware';
 import { responseEnvelope } from '@/infra/middleware/response-envelope.middleware';
 import { SessionRepository } from '@/modules/auth/repositories/session.repository';
 import { TwoFactorRepository } from '@/modules/auth/repositories/two-factor.repository';
@@ -79,7 +81,8 @@ export function createAuthApp(options: CreateAuthAppOptions = {}): Express {
   const authorization = createAuthzMiddleware({ rbac, cache: permissionCache });
 
   if (!config.permissionCacheStore || !config.rateLimitStore) {
-    console.warn(
+    log.warn(
+      'auth',
       '[simple-auth-kit] permissionCacheStore/rateLimitStore not overridden — using in-memory defaults. ' +
         'Fine for a single instance; silently inconsistent (stale grants, wrong rate-limit counts) ' +
         'across replicas once you run more than one. Override permissionCacheStore/rateLimitStore ' +
@@ -89,6 +92,7 @@ export function createAuthApp(options: CreateAuthAppOptions = {}): Express {
 
   const app = options.app ?? express();
   app.use(express.json());
+  app.use(requestLogger());
   // Swagger UI at /docs, raw OpenAPI JSON at /docs-json — parity with the nestjs-* combos'
   // SwaggerModule.setup("docs", ...), hand-authored instead of decorator-derived (see
   // openapi-spec.ts for why). `redirect: false` keeps the bare "/docs" path (no trailing
