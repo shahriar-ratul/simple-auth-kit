@@ -1,7 +1,7 @@
 {
   "combo": "nestjs-drizzle",
   "variant": "workspaces",
-  "installedAt": "2026-09-14T14:37:20.251Z",
+  "installedAt": "2026-09-14T14:52:44.398Z",
   "files": {
     "core/crypto.ts": "9411c998b33f4ba97078fb6ff5beee1823bfb8c14a324c0e24e1967640e0c985",
     "core/.gitignore": "32dc6c42e34b0e1b8c9a5780abe9f951874d9082690a6e035e064f96dfd06ee6",
@@ -74,13 +74,17 @@
     "../database/migrations/meta/_journal.json": "25483de0f29384258c8ff74e8d92ba650767cdc2b295e74f518953476d2a1534",
     "../database/schema.ts": "4d2cf73d4734dc03857a390a15f44a1a33bd154e1019774aae16d0e01272bb12",
     "../database/seed.ts": "d187d5a0c1c97ce380465b7d5b84a00758bfd01fdebbf84e7072fd02513d2584",
+    "../.husky/commit-msg": "03db64d409126b6de08dc6d3316ffc302899c31f3b14b04a3c572d86d4cbfa2d",
+    "../.husky/pre-commit": "e2b7c9733375d7182af2033bda9a7d2a05d0db5eef5be53d26eb7b5f3df8fbc3",
     "../.prettierignore": "cb8ea4ff6fcb160cf389cbf93e422479c7422b41e24378509f60da47c16b56c3",
     "../.prettierrc": "ef29a8e9929a7355d4f6fb612f83f2b0608aae0386bfcc64db57eed2b68ab663",
     "../commitlint.config.ts": "f26a7ce724c414741df2d1ac5867a32c5616be7e9b9a21d353405f82321051c2",
     "../docker-compose.yml": "a96347fd1ee70716314484a26c39f4d9396e0632e29b285076ba4be844b658ac",
+    "../e2e/app.e2e-spec.ts": "79f536bd5f79ce53ea9cbbe97c8acd2149bcd1ed580aee7065c73956aeef58a7",
+    "../e2e/jest-e2e.json": "0a561456d91a76966c32c848f3918bbce4a7bcb9b5d1a8f4d6ca236892242ba2",
     "../eslint.config.mjs": "adecca1563152e780bdc3da06e9da0e28d6b40f805affddf94c0d9632bf818f2",
     "../nest-cli.json": "bcb15e3049ff5d131762d2bfe3a6f917c3c64c83ac772467a4073975cd423b5b",
-    "../package.json": "288526e376429ee161cfd645d7a243039ccb5038c71b1faafd8236e572c14e8b",
+    "../package.json": "f66a475c825fa7d96eb1e0f5a1f9829126efdf0e544b2432dc4a88e0bbbe4168",
     "../tsconfig.build.json": "6c0ec263d460f9ce1139e1ac23b06321281cce69ff52112a8825ceb49a50b4d9"
   }
 }
