@@ -886,6 +886,26 @@ async function installScaffold(
   printPostInstallNotes(combo, variant);
 }
 
+/** Scaffold-mode combos (admin/mobile) write a whole standalone app — package.json, src/,
+ * everything — so unlike merge-mode's "compose into an existing project," landing directly in
+ * targetRoot when the caller never named a destination means dumping that whole app into
+ * whatever directory the command happened to be run from. When --into was passed explicitly,
+ * that's trusted as the exact destination (e.g. `--into ./admin`, or the `examples/` resync
+ * workflow) — same as always. Only the unnamed default (bare cwd) gets nested one level, into a
+ * new folder named for --name or the combo itself, so a scaffold install always starts in a new
+ * folder rather than the same one you ran it from. */
+function scaffoldInstallRoot(
+  comboName: string,
+  combo: ComboEntry,
+  targetRoot: string,
+  flags: Record<string, string | true>,
+): string {
+  if (comboInstallMode(combo) !== "scaffold" || flagString(flags.into)) {
+    return targetRoot;
+  }
+  return join(targetRoot, flagString(flags.name) ?? comboName);
+}
+
 async function installCombo(
   comboName: string,
   combo: ComboEntry,
@@ -922,7 +942,9 @@ async function cmdAdd(
     return;
   }
 
-  await installCombo(comboName, combo, variant, registry, targetRoot, flags);
+  const installRoot = scaffoldInstallRoot(comboName, combo, targetRoot, flags);
+  if (installRoot !== targetRoot) await mkdir(installRoot, { recursive: true });
+  await installCombo(comboName, combo, variant, registry, installRoot, flags);
 }
 
 function combosByKind(
@@ -1106,8 +1128,10 @@ async function cmdCreate(
   // regardless of which mix of merge/scaffold combos ended up selected.
   const namespaced = selections.length > 1;
   for (const { comboName, combo, variant } of selections) {
-    const installRoot = namespaced ? join(targetRoot, comboName) : targetRoot;
-    if (namespaced) await mkdir(installRoot, { recursive: true });
+    const installRoot = namespaced
+      ? join(targetRoot, comboName)
+      : scaffoldInstallRoot(comboName, combo, targetRoot, flags);
+    if (installRoot !== targetRoot) await mkdir(installRoot, { recursive: true });
     // An explicit --name applies to every selection uniformly — fine for merge-mode combos
     // (they don't have their own package.json identity), but two scaffold apps both literally
     // named e.g. "combo-test" would collide if anything ever treats them as sibling packages

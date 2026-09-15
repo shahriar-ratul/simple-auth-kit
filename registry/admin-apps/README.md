@@ -20,6 +20,9 @@ dev wiring.
 
 `package.json`'s `name`/`description` are templated from `--name` (falling back to the target
 directory's basename) after the copy — see `installScaffold` in `packages/cli/simple-auth-kit.ts`.
+Without an explicit `--into`, `scaffoldInstallRoot` in that same file nests the install one level
+below cwd (a new `./admin-react/`-style folder, not the bare current directory) — `--into` is only
+trusted as the literal destination when the caller actually passes it.
 
 ## `admin-react`: the clean case
 

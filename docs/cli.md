@@ -92,6 +92,12 @@ move, iOS project/scheme/source renames, and a string sweep across `android/`/`i
 `app.json`, so every generated app gets a unique bundle id / `applicationId`
 (see `registry/mobile-apps/README.md` for the mechanics).
 
+An explicit `--into <dir>` is trusted as that exact target directory (e.g. `--into ./admin`).
+Without `--into`, a scaffold install never writes into the bare current directory — it always
+creates a new subdirectory one level below cwd, named from `--name` or the combo itself (e.g.
+`add admin-nextjs` with no `--into` creates `./admin-nextjs/`), the same way `create-next-app`
+always starts a new project in its own folder rather than the one you ran it from.
+
 ## The lockfile
 
 Both modes write `auth.lock.json`: combo, variant, install time, and a sha256 manifest of
@@ -110,9 +116,11 @@ spuriously-removed-and-modified.
 When one `add` run installs **more than one** product (e.g. `--kind api,admin`), each install
 goes into its own subdirectory of the target root — `<targetRoot>/<comboName>/` (e.g.
 `./nestjs-prisma/`, `./admin-react/`). Two scaffold installs into one directory would collide
-outright, and each one's prune step would delete the other's files. With a single selection
-the install lands directly in the target root, as before. When namespaced, a given `--name`
-is suffixed per combo (`<name>-<comboName>`) so sibling apps don't collide on package name.
+outright, and each one's prune step would delete the other's files. With a single selection, a
+merge-mode (`api`) combo still lands directly in the target root; a scaffold-mode (`admin`/
+`mobile`) combo gets the same one-level nesting described above unless `--into` was given
+explicitly. When namespaced, a given `--name` is suffixed per combo (`<name>-<comboName>`) so
+sibling apps don't collide on package name.
 
 ## `@simple-auth-kit/auth-client`
 
