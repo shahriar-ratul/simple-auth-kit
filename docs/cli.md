@@ -11,15 +11,17 @@ Published as [`@simple-auth-kit/cli`](https://www.npmjs.com/package/@simple-auth
 registry bundled in — no separate clone needed:
 
 ```bash
-cd ~/your-project
 npx @simple-auth-kit/cli add nestjs-prisma      # or any other combo, optionally --workspaces
+cd nestjs-prisma
 npx @simple-auth-kit/cli update                 # later: re-syncs whatever add installed, no args needed
 ```
 
-No `--into` needed — it already defaults to the current directory. Not sure which combo you want?
-See the Commands table below — running the CLI with no arguments launches a guided picker instead
-of requiring every flag up front. See `docs/cli-generation-guide.html` for a fully-verified
-walkthrough of all 16 combo×variant combinations, real terminal output included.
+No `--into` needed to pick a destination — without it, every combo (api included) starts a new
+project one level below cwd, named from the combo (`./nestjs-prisma/` above) or `--name`. Pass
+`--into <dir>` (e.g. `--into .`) to install into an existing directory instead. Not sure which
+combo you want? See the Commands table below — running the CLI with no arguments launches a
+guided picker instead of requiring every flag up front. See `docs/cli-generation-guide.html` for
+a fully-verified walkthrough of all 16 combo×variant combinations, real terminal output included.
 
 ## From a monorepo checkout (developing this repo)
 
@@ -92,11 +94,13 @@ move, iOS project/scheme/source renames, and a string sweep across `android/`/`i
 `app.json`, so every generated app gets a unique bundle id / `applicationId`
 (see `registry/mobile-apps/README.md` for the mechanics).
 
-An explicit `--into <dir>` is trusted as that exact target directory (e.g. `--into ./admin`).
-Without `--into`, a scaffold install never writes into the bare current directory — it always
-creates a new subdirectory one level below cwd, named from `--name` or the combo itself (e.g.
-`add admin-nextjs` with no `--into` creates `./admin-nextjs/`), the same way `create-next-app`
-always starts a new project in its own folder rather than the one you ran it from.
+An explicit `--into <dir>` is trusted as that exact target directory (e.g. `--into ./admin`,
+`--into .` to merge an api combo into the project you're already standing in). Without `--into`,
+**no combo of any kind** writes into the bare current directory — every install always creates a
+new subdirectory one level below cwd, named from `--name` or the combo itself (e.g. `add
+nestjs-prisma` or `add admin-nextjs` with no `--into` create `./nestjs-prisma/` /
+`./admin-nextjs/`), the same way `create-next-app` always starts a new project in its own folder
+rather than the one you ran it from.
 
 ## The lockfile
 
@@ -116,11 +120,10 @@ spuriously-removed-and-modified.
 When one `add` run installs **more than one** product (e.g. `--kind api,admin`), each install
 goes into its own subdirectory of the target root — `<targetRoot>/<comboName>/` (e.g.
 `./nestjs-prisma/`, `./admin-react/`). Two scaffold installs into one directory would collide
-outright, and each one's prune step would delete the other's files. With a single selection, a
-merge-mode (`api`) combo still lands directly in the target root; a scaffold-mode (`admin`/
-`mobile`) combo gets the same one-level nesting described above unless `--into` was given
-explicitly. When namespaced, a given `--name` is suffixed per combo (`<name>-<comboName>`) so
-sibling apps don't collide on package name.
+outright, and each one's prune step would delete the other's files. With a single selection,
+every combo — merge-mode (`api`) included — gets the same one-level nesting described above
+unless `--into` was given explicitly. When namespaced, a given `--name` is suffixed per combo
+(`<name>-<comboName>`) so sibling apps don't collide on package name.
 
 ## `@simple-auth-kit/auth-client`
 

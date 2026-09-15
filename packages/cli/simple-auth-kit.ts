@@ -1,7 +1,7 @@
 #!/usr/bin/env node
-// Published as @simple-auth-kit/cli — `npx @simple-auth-kit/cli add nestjs-prisma --into .`.
-// Also runnable straight from a monorepo checkout: `pnpm --filter @simple-auth-kit/cli run cli
-// -- add nestjs-prisma --into ../my-app`.
+// Published as @simple-auth-kit/cli — `npx @simple-auth-kit/cli add nestjs-prisma --into .` to
+// merge into the project you're standing in. Also runnable straight from a monorepo checkout:
+// `pnpm --filter @simple-auth-kit/cli run cli -- add nestjs-prisma --into ../my-app`.
 //
 // A combo ships in variants (see registry/README.md). `add <combo>` emits the default one;
 // `add <combo> --workspaces` emits the workspace variant, composed by copying the combo's
@@ -9,12 +9,15 @@
 //
 // Combos also carry a `kind` ("api" | "admin" | "mobile", defaults to "api" when absent) and an
 // `installMode` ("merge" | "scaffold", defaults to "merge" for api / "scaffold" otherwise). "api"
-// combos merge a source fragment into an existing project (today's only behavior, unchanged).
-// "admin"/"mobile" combos scaffold a whole standalone app directly into --into, package.json and
-// all. `add` with no combo positional launches a guided, shadcn-CLI-style prompt flow (via
-// `prompts`) asking which kind(s) to generate, which framework per kind, and whether to include
-// workspaces support — or reads the same choices from --kind/--framework/--workspaces for
-// non-interactive/scripted use.
+// combos merge a source fragment into a project; "admin"/"mobile" combos scaffold a whole
+// standalone app, package.json and all. Both write into --into when given (an existing project),
+// but without --into neither kind touches the bare cwd — every install nests one level down into
+// a new folder named for --name or the combo itself, so `add <combo>` alone always starts a fresh
+// project rather than dropping files into whatever directory you happened to run it from. `add`
+// with no combo positional launches a guided, shadcn-CLI-style prompt flow (via `prompts`) asking
+// which kind(s) to generate, which framework per kind, and whether to include workspaces support
+// — or reads the same choices from --kind/--framework/--workspaces for non-interactive/scripted
+// use.
 import { existsSync } from "node:fs";
 import { spawnSync } from "node:child_process";
 import { basename, dirname, join, resolve } from "node:path";
@@ -886,23 +889,21 @@ async function installScaffold(
   printPostInstallNotes(combo, variant);
 }
 
-/** Scaffold-mode combos (admin/mobile) write a whole standalone app — package.json, src/,
- * everything — so unlike merge-mode's "compose into an existing project," landing directly in
- * targetRoot when the caller never named a destination means dumping that whole app into
- * whatever directory the command happened to be run from. When --into was passed explicitly,
- * that's trusted as the exact destination (e.g. `--into ./admin`, or the `examples/` resync
- * workflow) — same as always. Only the unnamed default (bare cwd) gets nested one level, into a
- * new folder named for --name or the combo itself, so a scaffold install always starts in a new
- * folder rather than the same one you ran it from. */
-function scaffoldInstallRoot(
+/** Landing directly in targetRoot when the caller never named a destination means dumping
+ * whatever this install writes — a merge-mode fragment's core/src files and project-root
+ * scaffolding, or a scaffold-mode app's whole package.json/src/ tree — into whatever directory
+ * the command happened to be run from. When --into was passed explicitly, that's trusted as the
+ * exact destination (e.g. `--into ./admin`, `--into .`, or the `examples/` resync workflow) —
+ * same as always, for every kind. Only the unnamed default (bare cwd) gets nested one level, into
+ * a new folder named for --name or the combo itself, so every install — api, admin, or mobile —
+ * always starts in a new folder rather than the same one you ran it from. */
+function resolveInstallRoot(
   comboName: string,
   combo: ComboEntry,
   targetRoot: string,
   flags: Record<string, string | true>,
 ): string {
-  if (comboInstallMode(combo) !== "scaffold" || flagString(flags.into)) {
-    return targetRoot;
-  }
+  if (flagString(flags.into)) return targetRoot;
   return join(targetRoot, flagString(flags.name) ?? comboName);
 }
 
@@ -942,7 +943,7 @@ async function cmdAdd(
     return;
   }
 
-  const installRoot = scaffoldInstallRoot(comboName, combo, targetRoot, flags);
+  const installRoot = resolveInstallRoot(comboName, combo, targetRoot, flags);
   if (installRoot !== targetRoot) await mkdir(installRoot, { recursive: true });
   await installCombo(comboName, combo, variant, registry, installRoot, flags);
 }
@@ -1130,8 +1131,9 @@ async function cmdCreate(
   for (const { comboName, combo, variant } of selections) {
     const installRoot = namespaced
       ? join(targetRoot, comboName)
-      : scaffoldInstallRoot(comboName, combo, targetRoot, flags);
-    if (installRoot !== targetRoot) await mkdir(installRoot, { recursive: true });
+      : resolveInstallRoot(comboName, combo, targetRoot, flags);
+    if (installRoot !== targetRoot)
+      await mkdir(installRoot, { recursive: true });
     // An explicit --name applies to every selection uniformly — fine for merge-mode combos
     // (they don't have their own package.json identity), but two scaffold apps both literally
     // named e.g. "combo-test" would collide if anything ever treats them as sibling packages
