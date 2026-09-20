@@ -12,6 +12,7 @@ import { InMemoryPermissionCacheStore } from "../src/common/auth/cache/permissio
 import { PermissionModule } from "../src/modules/permissions/permissions.module.js";
 import { RequestLoggerInterceptor } from "../src/infra/interceptor/request-logger.interceptor.js";
 import { ResponseInterceptor } from "../src/infra/interceptor/response.interceptor.js";
+import { setupMetrics } from "../src/infra/metrics/metrics.js";
 import { RoleModule } from "../src/modules/roles/roles.module.js";
 
 // No mailer is wired up for the proof, so this stands in for one — prove-cycle.ts reads the
@@ -85,6 +86,10 @@ export async function bootstrap(port: number) {
   // a consumer's own main.ts does (see examples/nestjs-prisma-app/src/main.ts), so the proof
   // hits the same URLs a real deployment would.
   app.setGlobalPrefix("api");
+  // Exactly what a consumer's main.ts does (see examples/nestjs-prisma-app/src/main.ts), so the
+  // proof scrapes the same `/metrics` a real deployment serves. setGlobalPrefix does not touch
+  // raw middleware, so the endpoint stays at the root either way.
+  setupMetrics(app);
   await app.listen(port);
   return app;
 }

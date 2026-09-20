@@ -1,0 +1,147 @@
+# Grafana, provisioned the same way the compose stack is: a datasource pointing at the
+# Prometheus Service, and a file provider reading dashboards from a mounted ConfigMap.
+#
+# The dashboard ConfigMap (grafana-dashboards) is NOT defined here — it is generated from
+# monitoring/grafana/dashboards/simple-auth-kit.json by the kustomization one directory up, so
+# the compose stack and this one render the identical dashboard rather than two copies that
+# drift. `kubectl apply -k monitoring/` builds it; see monitoring/README.md for applying these
+# files without kustomize.
+#
+# Storage is an emptyDir for the same reason Prometheus's is — see k8s/20-prometheus.yaml.
+# Everything that matters (datasource, dashboards) is provisioned at startup, so losing the
+# volume costs only UI-local state.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-provisioning
+  namespace: monitoring
+data:
+  datasources.yaml: |
+    apiVersion: 1
+    datasources:
+      - name: Prometheus
+        type: prometheus
+        uid: simple-auth-kit-prometheus
+        access: proxy
+        url: http://prometheus.monitoring.svc.cluster.local:9090
+        isDefault: true
+        editable: false
+  dashboards.yaml: |
+    apiVersion: 1
+    providers:
+      - name: simple-auth-kit
+        orgId: 1
+        type: file
+        allowUiUpdates: true
+        disableDeletion: false
+        updateIntervalSeconds: 30
+        options:
+          path: /var/lib/grafana/dashboards
+          foldersFromFilesStructure: false
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: grafana
+  namespace: monitoring
+  labels:
+    app.kubernetes.io/name: grafana
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: grafana
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: grafana
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 472
+        fsGroup: 472
+      containers:
+        - name: grafana
+          image: grafana/grafana:11.5.0
+          env:
+            - name: GF_SECURITY_ADMIN_USER
+              value: admin
+            # No literal, and no default: create the Secret before applying this, with
+            #   kubectl -n monitoring create secret generic grafana-admin \
+            #     --from-literal=password="$(openssl rand -base64 24)"
+            # The pod stays in CreateContainerConfigError until it exists, which is the
+            # intended failure — an unset password must not mean admin/admin.
+            - name: GF_SECURITY_ADMIN_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: grafana-admin
+                  key: password
+            - name: GF_USERS_ALLOW_SIGN_UP
+              value: 'false'
+            - name: GF_ANALYTICS_REPORTING_ENABLED
+              value: 'false'
+            - name: GF_ANALYTICS_CHECK_FOR_UPDATES
+              value: 'false'
+          ports:
+            - name: http
+              containerPort: 3000
+          readinessProbe:
+            httpGet:
+              path: /api/health
+              port: http
+            initialDelaySeconds: 10
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              memory: 512Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ['ALL']
+          volumeMounts:
+            - name: provisioning-datasources
+              mountPath: /etc/grafana/provisioning/datasources
+              readOnly: true
+            - name: provisioning-dashboards
+              mountPath: /etc/grafana/provisioning/dashboards
+              readOnly: true
+            - name: dashboards
+              mountPath: /var/lib/grafana/dashboards
+              readOnly: true
+            - name: grafana-data
+              mountPath: /var/lib/grafana
+      volumes:
+        # Same ConfigMap mounted twice, one key each: Grafana reads these two provisioning
+        # directories separately and rejects a directory containing the other's file.
+        - name: provisioning-datasources
+          configMap:
+            name: grafana-provisioning
+            items:
+              - key: datasources.yaml
+                path: datasources.yaml
+        - name: provisioning-dashboards
+          configMap:
+            name: grafana-provisioning
+            items:
+              - key: dashboards.yaml
+                path: dashboards.yaml
+        - name: dashboards
+          configMap:
+            name: grafana-dashboards
+        - name: grafana-data
+          emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: grafana
+  namespace: monitoring
+spec:
+  selector:
+    app.kubernetes.io/name: grafana
+  ports:
+    - name: http
+      port: 3000
+      targetPort: http

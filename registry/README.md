@@ -49,6 +49,10 @@ registry/
     ├── shared/                ← COPIED FOR BOTH VARIANTS
     │   ├── .gitignore
     │   ├── prisma.config.ts   (Prisma combos only) / drizzle.config.ts (Drizzle combos only)
+    │   ├── root/**            lands at the consumer's PROJECT root, not under src/ —
+    │   │                      tsconfig/eslint/husky wiring, docker-compose.yml, and
+    │   │                      monitoring/ (Grafana + Prometheus + node_exporter, in both
+    │   │                      docker compose and Kubernetes form)
     │   └── src/**
     ├── variants/
     │   ├── base/              ← COPIED FOR `add <combo>`
@@ -56,6 +60,9 @@ registry/
     │   │   ├── database/schema/**  (Prisma: .prisma files) or database/schema.ts (Drizzle)
     │   │   ├── database/migrations/**
     │   │   ├── database/seed.ts
+    │   │   ├── root/**        project-root files that differ per variant, copied over
+    │   │                      shared/root/ — e.g. monitoring/prometheus/prometheus.yml,
+    │   │                      whose scrape target is this variant's own app port
     │   │   ├── src/**
     │   │   └── test/variant-hooks.ts
     │   └── workspaces/        ← COPIED FOR `add <combo> --workspaces`

@@ -5,6 +5,7 @@ import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { apiReference } from '@scalar/nestjs-api-reference';
 import type { Request, Response } from 'express';
 import { AppModule } from './app.module.js';
+import { setupMetrics } from './infra/metrics/metrics.js';
 
 async function main() {
   const app = await NestFactory.create(AppModule);
@@ -30,6 +31,11 @@ async function main() {
   app.use('/docs', reference);
   app.use('/reference', reference);
   app.use('/docs-json', (_req: Request, res: Response) => res.json(document));
+
+  // Prometheus metrics at /metrics. Raw middleware, like the docs above — a Nest
+  // controller would sit behind the guard chain and never see the 401s and 403s it
+  // raises. Set METRICS_TOKEN to require a bearer token on every scrape.
+  setupMetrics(app);
 
   const port = Number(process.env['PORT'] ?? 3006);
   await app.listen(port);

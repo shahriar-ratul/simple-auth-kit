@@ -20,6 +20,7 @@ import { createAuthzMiddleware } from '@/common/auth/middleware/authz.middleware
 import { PrismaClient } from '@/database/generated/prisma/client';
 import { KeyProviderService } from '@/common/config/key-provider';
 import { log } from '@/infra/logger/logger';
+import { metricsCollector, metricsEndpoint, warnIfMetricsUnprotected } from '@/infra/metrics/metrics';
 import { OAuthRepository } from '@/modules/auth/repositories/oauth.repository';
 import { openApiSpec } from '@/infra/openapi/openapi-spec';
 import { PasswordResetRepository } from '@/modules/auth/repositories/password-reset.repository';
@@ -90,9 +91,18 @@ export function createAuthApp(options: CreateAuthAppOptions = {}): Express {
     );
   }
 
+  warnIfMetricsUnprotected();
+
   const app = options.app ?? express();
+  // First in the chain, ahead of body parsing: a request express.json() rejects as malformed, or
+  // a tier middleware rejects as unauthenticated, is still a request this service served, and its
+  // latency still counts. See infra/metrics/metrics.ts for why this is middleware and not a route.
+  app.use(metricsCollector());
   app.use(express.json());
   app.use(requestLogger());
+  // Mounted before responseEnvelope() below: Prometheus parses a bare text exposition format,
+  // which the {success, statusCode, message, data} wrapper would render unparseable.
+  app.get('/metrics', metricsEndpoint());
   // Scalar API reference at /docs, raw OpenAPI JSON at /docs-json — parity with the nestjs-*
   // combos' apiReference() mount, hand-authored instead of decorator-derived (see
   // openapi-spec.ts for why). Scalar renders a single HTML document rather than serving a

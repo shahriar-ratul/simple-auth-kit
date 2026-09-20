@@ -1,0 +1,41 @@
+# Scrape configuration for the docker compose stack. The Kubernetes stack uses a different
+# config, shipped inside k8s/20-prometheus.yaml — it discovers pods by annotation instead of
+# naming targets here.
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  external_labels:
+    variant: base
+
+scrape_configs:
+  # Prometheus scraping itself. Cheap, and the first thing to check when a panel is empty:
+  # if this target is down, nothing else in here is being collected either.
+  - job_name: prometheus
+    static_configs:
+      - targets: ["localhost:9090"]
+
+  # Host CPU, memory, disk and network. On Docker Desktop (macOS/Windows) these describe the
+  # Linux VM that runs your containers, not the machine you are sitting at — the numbers are
+  # real, they just are not your laptop's.
+  - job_name: node
+    static_configs:
+      - targets: ["node-exporter:9100"]
+
+  # The application. It runs on the host (npm run start), so it is reached through the host
+  # gateway rather than by service name.
+  #
+  # Change the port if your app listens elsewhere. If you run the app as a container on a shared
+  # docker network instead, replace the whole target with that service's name and port, and add
+  # the network to docker-compose.yml.
+  - job_name: simple-auth-kit
+    metrics_path: /metrics
+    static_configs:
+      - targets: ["host.docker.internal:3002"]
+
+    # Uncomment if you set METRICS_TOKEN on the app. Prometheus does not expand environment
+    # variables in this file, so the value has to be literal here — which means this file now
+    # holds a secret. Either keep it out of version control, or write the token to a file,
+    # mount it into the container, and use `credentials_file:` instead of `credentials:`.
+    # authorization:
+    #   type: Bearer
+    #   credentials: "same value as METRICS_TOKEN"

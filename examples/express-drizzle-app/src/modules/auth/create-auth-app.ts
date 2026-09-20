@@ -19,6 +19,7 @@ import { createAuthzMiddleware } from '@/common/auth/middleware/authz.middleware
 import { DrizzleService } from '@/modules/drizzle/drizzle.service';
 import { KeyProviderService } from '@/common/config/key-provider';
 import { log } from '@/infra/logger/logger';
+import { metricsCollector, metricsEndpoint, warnIfMetricsUnprotected } from '@/infra/metrics/metrics';
 import { OAuthRepository } from '@/modules/auth/repositories/oauth.repository';
 import { openApiSpec } from '@/infra/openapi/openapi-spec';
 import { PasswordResetRepository } from '@/modules/auth/repositories/password-reset.repository';
@@ -97,9 +98,18 @@ export function createAuthApp(config: Partial<AuthConfig> = {}): Express {
     );
   }
 
+  warnIfMetricsUnprotected();
+
   const app = express();
+  // First in the chain, ahead of body parsing: a request express.json() rejects as malformed, or
+  // a tier middleware rejects as unauthenticated, is still a request this service served, and its
+  // latency still counts. See infra/metrics/metrics.ts for why this is middleware and not a route.
+  app.use(metricsCollector());
   app.use(express.json());
   app.use(requestLogger());
+  // Mounted before responseEnvelope() below: Prometheus parses a bare text exposition format,
+  // which the {success, statusCode, message, data} wrapper would render unparseable.
+  app.get('/metrics', metricsEndpoint());
   // Express equivalent of the reference combo's global APP_FILTER/APP_INTERCEPTOR — the
   // response envelope and error handling ship mounted here rather than something you add to
   // your own app.
