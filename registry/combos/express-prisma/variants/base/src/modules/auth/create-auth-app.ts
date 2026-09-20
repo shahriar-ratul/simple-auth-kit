@@ -1,6 +1,6 @@
 import { PrismaPg } from "@prisma/adapter-pg";
 import express, { type Express } from "express";
-import swaggerUi from "swagger-ui-express";
+import { apiReference } from "@scalar/express-api-reference";
 import type { RateLimitDeps } from "@/lib/auth/core/rate-limit";
 import { AdminService } from "@/modules/admin/services/admin.service";
 import { createAdminRouter } from "@/modules/admin/routers/admin.router";
@@ -107,17 +107,12 @@ export function createAuthApp(options: CreateAuthAppOptions = {}): Express {
   const app = options.app ?? express();
   app.use(express.json());
   app.use(requestLogger());
-  // Swagger UI at /docs, raw OpenAPI JSON at /docs-json — parity with the nestjs-* combos'
-  // SwaggerModule.setup("docs", ...), hand-authored instead of decorator-derived (see
-  // openapi-spec.ts for why). `redirect: false` keeps the bare "/docs" path (no trailing
-  // slash) a plain 200 instead of swagger-ui-express's default 301 to "/docs/" — the
-  // underlying static asset middleware would otherwise treat the mount root as a directory
-  // listing and redirect.
-  app.use(
-    "/docs",
-    swaggerUi.serveWithOptions({ redirect: false }),
-    swaggerUi.setup(openApiSpec),
-  );
+  // Scalar API reference at /docs, raw OpenAPI JSON at /docs-json — parity with the nestjs-*
+  // combos' apiReference() mount, hand-authored instead of decorator-derived (see
+  // openapi-spec.ts for why). Scalar renders a single HTML document rather than serving a
+  // directory of static assets, so the bare "/docs" path needs no trailing-slash redirect
+  // handling of its own.
+  app.use("/docs", apiReference({ content: openApiSpec }));
   app.get("/docs-json", (_req, res) => res.json(openApiSpec));
   // Express equivalent of the reference combo's global APP_FILTER/APP_INTERCEPTOR — the
   // response envelope and error handling ship mounted here rather than something you add to

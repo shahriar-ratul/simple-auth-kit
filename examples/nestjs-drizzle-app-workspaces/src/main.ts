@@ -2,6 +2,8 @@ import 'dotenv/config';
 import 'reflect-metadata';
 import { NestFactory } from '@nestjs/core';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+import { apiReference } from '@scalar/nestjs-api-reference';
+import type { Request, Response } from 'express';
 import { AppModule } from './app.module.js';
 
 async function main() {
@@ -24,12 +26,15 @@ async function main() {
       .addBearerAuth()
       .build(),
   );
-  SwaggerModule.setup('docs', app, document);
+  const reference = apiReference({ content: document });
+  app.use('/docs', reference);
+  app.use('/reference', reference);
+  app.use('/docs-json', (_req: Request, res: Response) => res.json(document));
 
   const port = Number(process.env['PORT'] ?? 3006);
   await app.listen(port);
   console.log(`example-nestjs-drizzle-app-workspaces listening on http://localhost:${port}`);
-  console.log(`Swagger UI at http://localhost:${port}/docs`);
+  console.log(`API reference at http://localhost:${port}/docs — also at /reference`);
 }
 
 main();

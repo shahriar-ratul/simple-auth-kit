@@ -1,5 +1,5 @@
 import express, { Express } from "express";
-import swaggerUi from "swagger-ui-express";
+import { apiReference } from "@scalar/express-api-reference";
 import type { RateLimitDeps } from "@/lib/auth/core/rate-limit";
 import { createAdminRouter } from "@/modules/admin/routers/admin.router";
 import { AdminService } from "@/modules/admin/services/admin.service";
@@ -172,7 +172,7 @@ export function createAuthApp(config: Partial<AuthConfig> = {}): Express {
   );
   // Hand-authored OpenAPI spec (see openapi-spec.ts) — this combo has no NestJS decorators to
   // generate one from, so it's served as static JSON, same as the nestjs-* combos' /docs-json.
-  app.use("/docs", swaggerUi.serve, swaggerUi.setup(openApiSpec));
+  app.use("/docs", apiReference({ content: openApiSpec }));
   app.get("/docs-json", (req, res) => res.json(openApiSpec));
   app.use(authCoreErrorMiddleware);
 
