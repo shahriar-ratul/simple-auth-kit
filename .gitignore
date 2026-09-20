@@ -32,3 +32,5 @@ coverage/
 
 # husky-generated shim dir (recreated by the "prepare" script on install)
 .husky/_
+
+graphify-out/cache
