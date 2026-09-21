@@ -1,0 +1,28 @@
+# Lives at monitoring/, not monitoring/k8s/, so the dashboard JSON below is inside the
+# kustomization root — kustomize refuses to read files above it. That one placement decision is
+# what lets the compose stack and the Kubernetes stack share a single dashboard file instead of
+# keeping two copies in step by hand.
+#
+#   kubectl apply -k monitoring/
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: monitoring
+
+resources:
+  - k8s/00-namespace.yaml
+  - k8s/10-node-exporter.yaml
+  - k8s/20-prometheus.yaml
+  - k8s/30-grafana.yaml
+
+configMapGenerator:
+  - name: grafana-dashboards
+    files:
+      - grafana/dashboards/simple-auth-kit.json
+
+generatorOptions:
+  # The Deployment references this ConfigMap by a fixed name. A content hash suffix would be the
+  # better default (it restarts Grafana when the dashboard changes), but only if the Deployment
+  # is part of the same kustomization build — it is, so this could be dropped; it stays off so
+  # that applying k8s/30-grafana.yaml on its own still resolves.
+  disableNameSuffixHash: true

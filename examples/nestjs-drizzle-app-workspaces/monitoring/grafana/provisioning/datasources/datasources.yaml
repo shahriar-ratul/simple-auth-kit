@@ -1,0 +1,15 @@
+# Provisioned at startup, so a fresh grafana-data volume comes up already connected.
+apiVersion: 1
+
+datasources:
+  - name: Prometheus
+    type: prometheus
+    # Fixed uid: the dashboard JSON refers to the datasource by this, so the two cannot drift
+    # apart the way a name-based reference can.
+    uid: simple-auth-kit-prometheus
+    access: proxy
+    # Service name on the compose network — Grafana queries from inside the container, so
+    # localhost here would be Grafana itself.
+    url: http://prometheus:9090
+    isDefault: true
+    editable: false

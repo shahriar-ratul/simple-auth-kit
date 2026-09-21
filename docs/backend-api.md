@@ -52,6 +52,33 @@ Every route is exactly one of: `@Public()` (no auth), authenticated-only (any va
 token), or `@CheckAbility("<slug>")` (admin surface). A route with none of these **fails at
 boot**. Send the access token as `Authorization: Bearer <token>`.
 
+`/docs`, `/reference` and `/metrics` are outside this scheme on purpose: they are raw middleware,
+not routed controllers, so they are operator plumbing rather than API surface and are gated by an
+operator secret instead of a permission slug (`DOCS_USERNAME`/`DOCS_PASSWORD`, `METRICS_TOKEN`).
+
+## Metrics — `GET /metrics`
+
+Prometheus exposition format (`text/plain`), deliberately **outside** the response envelope.
+All combos, both variants.
+
+| Metric                                         | Labels                           |
+| ---------------------------------------------- | -------------------------------- |
+| `http_requests_total`                          | `method`, `route`, `status_code` |
+| `http_request_duration_seconds` (histogram)    | `method`, `route`, `status_code` |
+| `nodejs_*`, `process_*` (prom-client defaults) | —                                |
+
+`route` is the **matched route pattern** (`/api/v1/admin/users/:userId`), never the raw path. One
+time series exists per distinct label combination, so labelling by path would let an
+unauthenticated caller mint unbounded series by requesting random URLs; unmatched requests
+collapse to a single `<unmatched>` label. Collection is middleware mounted ahead of the guard
+chain, so requests rejected with 401/403 are counted rather than invisible.
+
+Set `METRICS_TOKEN` to require `Authorization: Bearer <token>` on every scrape; unset, the
+endpoint is served openly and the app logs a warning at boot. NestJS combos call
+`setupMetrics(app)` in `main.ts` (next to `setupDocs(app)`); Express combos get it from
+`createAuthApp()`. Each installed project also ships a `monitoring/` directory — a Grafana +
+Prometheus + node_exporter stack in both docker compose and Kubernetes form; see its `README.md`.
+
 ## Versioning
 
 Every route lives under `/v1` in its own controller/router (`@Controller("v1/auth")`,

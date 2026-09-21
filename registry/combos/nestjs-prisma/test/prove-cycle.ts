@@ -1590,7 +1590,102 @@ async function main() {
       `and every grant that pointed at it works again immediately (got ${restored.status})`,
     );
 
-    console.log(`13. ${hooks.variant}-specific properties`);
+    console.log("13. Prometheus metrics");
+    // `/metrics` is not on the tiered route table — it is operator plumbing, mounted the way
+    // `/docs` is, and gated by METRICS_TOKEN rather than by a permission slug. The assertions
+    // below are the proof of the three properties that placement was chosen for: that the
+    // exposition escapes the response envelope, that requests the guard chain rejects are still
+    // counted, and that the route label cannot be used to exhaust Prometheus's memory.
+    const scrapeMetrics = async (token?: string) => {
+      const res = await fetch(`http://localhost:${BASE_PORT}/metrics`, {
+        headers: token ? { authorization: `Bearer ${token}` } : {},
+      });
+      return {
+        status: res.status,
+        contentType: res.headers.get("content-type") ?? "",
+        body: await res.text(),
+      };
+    };
+
+    // One unauthenticated call against a route whose path carries an id — it proves two separate
+    // things below, because the route matches (so the pattern is recorded) before the
+    // authentication middleware refuses it.
+    const scannedId = randomUUID();
+    const guardRejected = await call("GET", `/admin/users/${scannedId}`);
+    assert(
+      guardRejected.status === 401,
+      `an unauthenticated admin call is rejected (got ${guardRejected.status})`,
+    );
+
+    const metrics = await scrapeMetrics();
+    assert(
+      metrics.status === 200,
+      `GET /metrics responds (got ${metrics.status})`,
+    );
+    assert(
+      metrics.contentType.startsWith("text/plain"),
+      `...as Prometheus text rather than JSON (got "${metrics.contentType}")`,
+    );
+    assert(
+      !metrics.body.trimStart().startsWith("{"),
+      "...and escapes the {success, statusCode, message, data} envelope",
+    );
+    assert(
+      metrics.body.includes("http_requests_total"),
+      "...exposing the HTTP request counter",
+    );
+    assert(
+      metrics.body.includes("http_request_duration_seconds_bucket"),
+      "...and the latency histogram's buckets, which is what makes a quantile computable",
+    );
+    assert(
+      metrics.body.includes("process_cpu_seconds_total"),
+      "...alongside the Node runtime metrics",
+    );
+    // The whole reason collection is middleware and not an interceptor or a tiered route:
+    // guards run first, so anything registered at route level never observes the 401 it raised.
+    assert(
+      /http_requests_total\{[^}]*status_code="401"/.test(metrics.body),
+      "requests rejected by the guard chain are counted, not invisible to the collector",
+    );
+    assert(
+      metrics.body.includes('route="/api/v1/admin/users/:userId"'),
+      "the route label is the matched route pattern",
+    );
+    assert(
+      !metrics.body.includes(scannedId),
+      "...and never the raw path, so an unauthenticated caller cannot mint one series per request",
+    );
+    assert(
+      !metrics.body.includes('route="/metrics"'),
+      "a scrape does not record itself",
+    );
+
+    // METRICS_TOKEN is read per request rather than captured when the handler is built, which is
+    // what lets one running app prove both sides of the gate.
+    const metricsToken = `proof-metrics-${RUN_ID}`;
+    process.env["METRICS_TOKEN"] = metricsToken;
+    try {
+      const anonymous = await scrapeMetrics();
+      assert(
+        anonymous.status === 401,
+        `with METRICS_TOKEN set, an unauthenticated scrape is refused (got ${anonymous.status})`,
+      );
+      const wrongToken = await scrapeMetrics("not-the-metrics-token");
+      assert(
+        wrongToken.status === 401,
+        `...and so is a wrong token (got ${wrongToken.status})`,
+      );
+      const authorized = await scrapeMetrics(metricsToken);
+      assert(
+        authorized.status === 200,
+        `...while the matching one is served (got ${authorized.status})`,
+      );
+    } finally {
+      delete process.env["METRICS_TOKEN"];
+    }
+
+    console.log(`14. ${hooks.variant}-specific properties`);
     await hooks.proveVariantProperties(ctx, admin);
   } finally {
     await app.close();

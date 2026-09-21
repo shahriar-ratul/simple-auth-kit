@@ -1,4 +1,5 @@
 import 'dotenv/config';
+import { describe, expect, it } from 'vitest';
 import request from 'supertest';
 import { createAuthApp } from '../../src/modules/auth/create-auth-app';
 

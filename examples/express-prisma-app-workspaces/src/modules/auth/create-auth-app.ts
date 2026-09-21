@@ -1,6 +1,6 @@
 import { PrismaPg } from '@prisma/adapter-pg';
 import express, { type Express } from 'express';
-import swaggerUi from 'swagger-ui-express';
+import { apiReference } from '@scalar/express-api-reference';
 import type { RateLimitDeps } from '@/core/rate-limit';
 import { AdminService } from '@/modules/admin/services/admin.service';
 import { createAdminRouter } from '@/modules/admin/routers/admin.router';
@@ -20,6 +20,7 @@ import { createAuthzMiddleware, createWorkspaceMiddleware } from '@/common/auth/
 import { PrismaClient } from '@/database/generated/prisma/client';
 import { KeyProviderService } from '@/common/config/key-provider';
 import { log } from '@/infra/logger/logger';
+import { metricsCollector, metricsEndpoint, warnIfMetricsUnprotected } from '@/infra/metrics/metrics';
 import { OAuthRepository } from '@/modules/auth/repositories/oauth.repository';
 import { openApiSpec } from '@/infra/openapi/openapi-spec';
 import { PasswordResetRepository } from '@/modules/auth/repositories/password-reset.repository';
@@ -98,16 +99,24 @@ export function createAuthApp(options: CreateAuthAppOptions = {}): Express {
     );
   }
 
+  warnIfMetricsUnprotected();
+
   const app = options.app ?? express();
+  // First in the chain, ahead of body parsing: a request express.json() rejects as malformed, or
+  // a tier middleware rejects as unauthenticated, is still a request this service served, and its
+  // latency still counts. See infra/metrics/metrics.ts for why this is middleware and not a route.
+  app.use(metricsCollector());
   app.use(express.json());
   app.use(requestLogger());
-  // Swagger UI at /docs, raw OpenAPI JSON at /docs-json — parity with the nestjs-* combos'
-  // SwaggerModule.setup("docs", ...), hand-authored instead of decorator-derived (see
-  // openapi-spec.ts for why). `redirect: false` keeps the bare "/docs" path (no trailing
-  // slash) a plain 200 instead of swagger-ui-express's default 301 to "/docs/" — the
-  // underlying static asset middleware would otherwise treat the mount root as a directory
-  // listing and redirect.
-  app.use('/docs', swaggerUi.serveWithOptions({ redirect: false }), swaggerUi.setup(openApiSpec));
+  // Mounted before responseEnvelope() below: Prometheus parses a bare text exposition format,
+  // which the {success, statusCode, message, data} wrapper would render unparseable.
+  app.get('/metrics', metricsEndpoint());
+  // Scalar API reference at /docs, raw OpenAPI JSON at /docs-json — parity with the nestjs-*
+  // combos' apiReference() mount, hand-authored instead of decorator-derived (see
+  // openapi-spec.ts for why). Scalar renders a single HTML document rather than serving a
+  // directory of static assets, so the bare "/docs" path needs no trailing-slash redirect
+  // handling of its own.
+  app.use('/docs', apiReference({ content: openApiSpec }));
   app.get('/docs-json', (_req, res) => res.json(openApiSpec));
   // Express equivalent of the reference combo's global APP_FILTER/APP_INTERCEPTOR — the
   // response envelope and error handling ship mounted here rather than something you add to

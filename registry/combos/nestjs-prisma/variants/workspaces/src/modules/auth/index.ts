@@ -7,6 +7,8 @@ export * from "@/modules/audit-log/audit-log.module";
 
 export * from "@/infra/route-tiers";
 
+export * from "@/infra/metrics/metrics";
+
 export * from "@/common/auth/guards/auth.guard";
 export * from "@/common/auth/guards/authz.guard";
 

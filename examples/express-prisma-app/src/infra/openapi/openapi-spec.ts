@@ -9,7 +9,7 @@
 // everything the administration side adds, which comes from `./openapi-admin.js`.
 //
 // Typed loosely as `Record<string, unknown>` — this is a giant JSON literal handed to
-// swagger-ui-express, not a data structure this codebase manipulates, so fighting for a
+// Scalar, not a data structure this codebase manipulates, so fighting for a
 // precise OpenAPI TS type isn't worth it.
 import { adminSpec } from '@/infra/openapi/openapi-admin';
 import { errorResponse } from '@/infra/openapi/openapi-fragment';

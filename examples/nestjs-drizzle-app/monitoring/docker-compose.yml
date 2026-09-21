@@ -1,0 +1,86 @@
+# Grafana + Prometheus + node_exporter for this application.
+#
+# A separate compose project from the app's own docker-compose.yml (which brings up Postgres and
+# nothing else), so restarting your dashboards never restarts your database.
+#
+#   cp monitoring/.env.example monitoring/.env     # set GRAFANA_ADMIN_PASSWORD
+#   docker compose -f monitoring/docker-compose.yml up -d
+#
+#   Grafana      http://localhost:3032    (the dashboard is provisioned — nothing to import)
+#   Prometheus   http://localhost:9092    (Status > Target health, if a panel stays empty)
+#
+# Relative paths below resolve against monitoring/, because that is the directory the compose
+# file lives in — the same reason the .env file it reads is monitoring/.env and not the project
+# root's.
+#
+# Ports are overridable because both variants of this combo publish the same defaults: set
+# GRAFANA_PORT/PROMETHEUS_PORT/NODE_EXPORTER_PORT and MONITORING_PROJECT_NAME in monitoring/.env
+# to run a second stack alongside this one.
+name: ${MONITORING_PROJECT_NAME:-nestjs-drizzle-monitoring}
+
+services:
+  prometheus:
+    image: prom/prometheus:v3.1.0
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      # Metrics here are for looking at a running system, not for long-term capacity planning.
+      # Two weeks keeps the volume small; raise it if you actually go back further than that.
+      - '--storage.tsdb.retention.time=14d'
+      - '--web.enable-lifecycle'
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+    ports:
+      - '${PROMETHEUS_PORT:-9092}:9090'
+    # The application runs on the host (npm run start), not in this project, so Prometheus
+    # reaches it through the host gateway. Docker Desktop defines host.docker.internal already;
+    # this line is what makes the same name resolve on Linux.
+    extra_hosts:
+      - 'host.docker.internal:host-gateway'
+    restart: unless-stopped
+
+  grafana:
+    image: grafana/grafana:11.5.0
+    environment:
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER:-admin}
+      # No literal default on purpose: an unset password should stop the stack, not silently
+      # publish a dashboard behind admin/admin.
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:?set GRAFANA_ADMIN_PASSWORD in monitoring/.env}
+      GF_USERS_ALLOW_SIGN_UP: 'false'
+      # Nothing here is worth phoning home about, and it keeps the container working offline.
+      GF_ANALYTICS_REPORTING_ENABLED: 'false'
+      GF_ANALYTICS_CHECK_FOR_UPDATES: 'false'
+    volumes:
+      # Datasource + dashboard provider: read at startup, so a fresh volume comes up already wired.
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - grafana-data:/var/lib/grafana
+    ports:
+      - '${GRAFANA_PORT:-3032}:3000'
+    depends_on:
+      - prometheus
+    restart: unless-stopped
+
+  node-exporter:
+    image: prom/node-exporter:v1.8.2
+    command:
+      - '--path.procfs=/host/proc'
+      - '--path.sysfs=/host/sys'
+      - '--path.rootfs=/host/root'
+      # Without this every overlay/tmpfs mount Docker creates shows up as a filesystem to alert
+      # on. `$$` is compose's escape for a literal `$` in the regex.
+      - '--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)'
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      # rslave so unmounts on the host propagate in; without it the container can pin a mount.
+      - /:/host/root:ro,rslave
+    pid: host
+    ports:
+      - '${NODE_EXPORTER_PORT:-9102}:9100'
+    restart: unless-stopped
+
+volumes:
+  prometheus-data:
+  grafana-data:

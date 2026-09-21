@@ -4,7 +4,7 @@
 // (contrast with the nestjs-* combos' controllers + dto/*.dto.ts, which produce their spec from
 // `@Api*` decorators reflected at boot). This is a plain object transcribed from those same
 // reference controllers — same routes, same request/response shapes, same bearer-auth
-// requirements — served as static JSON via swagger-ui-express (see create-auth-app.ts).
+// requirements — rendered by Scalar at /docs and served raw at /docs-json (see create-auth-app.ts).
 //
 // The split mirrors the routers it documents: this file covers the identity endpoints
 // (auth.router.ts) and merges in `openapi-admin.ts`, which documents everything the admin router

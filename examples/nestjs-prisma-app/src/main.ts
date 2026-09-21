@@ -2,6 +2,7 @@ import 'dotenv/config';
 import 'reflect-metadata';
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module.js';
+import { setupMetrics } from './infra/metrics/metrics.js';
 import { setupDocs } from './infra/openapi/docs.js';
 
 async function main() {
@@ -21,6 +22,11 @@ async function main() {
   // Swagger UI at /docs, Scalar at /reference — both Basic-Auth-gated when NODE_ENV=production
   // (DOCS_USERNAME/DOCS_PASSWORD), open in dev.
   setupDocs(app);
+
+  // Prometheus metrics at /metrics. Raw middleware, like the docs above — a Nest
+  // controller would sit behind the guard chain and never see the 401s and 403s it
+  // raises. Set METRICS_TOKEN to require a bearer token on every scrape.
+  setupMetrics(app);
 
   const port = Number(process.env['PORT'] ?? 3001);
   await app.listen(port);

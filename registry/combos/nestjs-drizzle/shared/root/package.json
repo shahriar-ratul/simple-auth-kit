@@ -11,7 +11,8 @@
     "lint": "eslint \"src/**/*.ts\" --fix",
     "format": "prettier --write \"src/**/*.ts\"",
     "prepare": "husky",
-    "test:e2e": "jest --config test/jest-e2e.json"
+    "test": "vitest run",
+    "test:e2e": "vitest run --config test/vitest-e2e.config.mts"
   },
   "dependencies": {
     "@casl/ability": "^7.0.1",
@@ -29,6 +30,7 @@
     "jose": "^6.2.8",
     "pg": "^8.23.0",
     "pino": "^10.3.1",
+    "prom-client": "^15.1.3",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.2"
   },
@@ -41,7 +43,6 @@
     "@nestjs/cli": "^11.0.21",
     "@nestjs/testing": "^11.1.28",
     "@types/express": "^5.0.6",
-    "@types/jest": "^30.0.0",
     "@types/node": "^26.2.0",
     "@types/pg": "^8.21.0",
     "@types/supertest": "^7.2.0",
@@ -51,17 +52,16 @@
     "eslint-plugin-prettier": "^5.5.6",
     "globals": "^17.6.0",
     "husky": "^9.1.7",
-    "jest": "^30.4.2",
     "lint-staged": "^17.0.7",
     "prettier": "^3.8.3",
     "supertest": "^7.2.2",
     "tsc-alias": "^1.8.17",
-    "ts-jest": "^29.4.11",
     "ts-node": "^10.9.2",
     "tsconfig-paths": "^4.2.0",
     "tsx": "^4.23.11",
     "typescript": "^6.0.3",
-    "typescript-eslint": "^8.60.1"
+    "typescript-eslint": "^8.60.1",
+    "vitest": "^4.1.10"
   },
   "allowScripts": {
     "argon2@0.45.1": true,
@@ -75,5 +75,8 @@
       "eslint --fix",
       "prettier --write"
     ]
+  },
+  "overrides": {
+    "swagger-ui-dist": "5.17.14"
   }
 }
