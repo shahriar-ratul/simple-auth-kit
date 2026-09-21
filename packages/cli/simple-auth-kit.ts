@@ -19,7 +19,7 @@
 // — or reads the same choices from --kind/--framework/--workspaces for non-interactive/scripted
 // use.
 import { existsSync } from "node:fs";
-import { spawnSync } from "node:child_process";
+import { spawnSync, type SpawnSyncReturns } from "node:child_process";
 import { basename, dirname, join, resolve } from "node:path";
 import { access, mkdir, readdir, readFile, writeFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
@@ -318,29 +318,120 @@ async function installDependencies(
     : ["install"];
 
   console.log(`\nInstalling dependencies (${pm})...`);
-  let result = spawnSync(pm, args, { cwd: targetRoot, stdio: "inherit" });
-  if (result.status !== 0 && pm === "pnpm") {
+  let result = run(pm, args, targetRoot);
+
+  // Only the *ignored-builds* failure is worth retrying, and only the package manager that has
+  // that concept. `spawnFailed` is checked first and separately: a process that never started
+  // reports `status: null`, which `!== 0` happily accepts — conflating the two is what made a
+  // broken `pnpm` binary surface as the (completely unrelated) "blocked some install scripts".
+  if (!spawnFailed(result) && result.status !== 0 && pm === "pnpm") {
     // pnpm's default security posture blocks postinstall/preinstall scripts from any dependency
     // it hasn't seen approved before — argon2 (native addon build) and prisma (downloads its
     // query-engine binary) both need theirs to run, so this is the single most common reason a
     // combo install fails under pnpm specifically (ERR_PNPM_IGNORED_BUILDS). It can also recur on
     // a later `update` (a version bump re-flags a build), so approve unconditionally and retry
     // once rather than just telling the consumer to do it by hand each time — `approve-builds
-    // --all` is a no-op when nothing is pending.
+    // --all` is a no-op when nothing is pending, so this is safe even when the failure was
+    // something else entirely.
     console.log(
-      `\n${pm} blocked some install scripts — running "pnpm approve-builds --all" and retrying...`,
+      `\n${pm} exited non-zero — running "pnpm approve-builds --all" (a no-op unless builds were blocked) and retrying once...`,
     );
-    spawnSync(pm, ["approve-builds", "--all"], {
-      cwd: targetRoot,
-      stdio: "inherit",
-    });
-    result = spawnSync(pm, args, { cwd: targetRoot, stdio: "inherit" });
+    const approve = run(pm, ["approve-builds", "--all"], targetRoot);
+    if (spawnFailed(approve)) {
+      reportSpawnFailure(pm, approve);
+      return;
+    }
+    result = run(pm, args, targetRoot);
+  }
+
+  if (spawnFailed(result)) {
+    reportSpawnFailure(pm, result);
+    console.error(
+      `  Dependencies were NOT installed. Once ${pm} runs, finish with:\n` +
+        `    cd ${targetRoot} && ${pm} ${args.join(" ")}`,
+    );
+    return;
   }
   if (result.status !== 0) {
     console.error(
       `\n${pm} install exited with an error — run it yourself: cd ${targetRoot} && ${pm} ${args.join(" ")}`,
     );
   }
+}
+
+/**
+ * Arguments a shell can be handed verbatim: no quoting, no substitution, no word splitting. The
+ * package specs this passes are registry.json's, so they are already ours rather than a caller's
+ * — this is the belt to that braces, and the reason the shell fallback below can exist at all
+ * without turning a dependency name into an injection point. `^` (version ranges) and `@`
+ * (scopes) are ordinary characters to a POSIX shell; anything outside this set is refused.
+ */
+const SHELL_SAFE_ARG = /^[A-Za-z0-9@._/^~+-]+$/;
+
+/**
+ * One package-manager invocation, inheriting stdio so the consumer sees its real output.
+ *
+ * Runs the argv directly, which is the safe form — nothing is handed to a shell to re-parse.
+ * Two cases need a shell anyway, and both are launcher problems rather than anything to do with
+ * the arguments:
+ *
+ *   • Windows, always: `.cmd`/`.ps1` shims are not directly executable there. Documented Node
+ *     behaviour, not a broken install.
+ *   • ENOEXEC, as a fallback: the file exists and is executable but has no shebang, so the
+ *     kernel cannot run it while a shell still can. A half-finished pnpm install leaves exactly
+ *     this — its placeholder script never got replaced by the native binary. Falling back keeps
+ *     an install working on a machine the consumer has not noticed is broken yet.
+ */
+function run(
+  pm: PackageManager,
+  args: string[],
+  cwd: string,
+): SpawnSyncReturns<Buffer> {
+  const onWindows = process.platform === "win32";
+  const direct = spawnSync(pm, args, {
+    cwd,
+    stdio: "inherit",
+    shell: onWindows,
+  });
+  if (onWindows || !spawnFailed(direct)) return direct;
+
+  const code = (direct.error as NodeJS.ErrnoException | undefined)?.code;
+  const shellSafe =
+    SHELL_SAFE_ARG.test(pm) && args.every((a) => SHELL_SAFE_ARG.test(a));
+  if (code !== "ENOEXEC" || !shellSafe) return direct;
+
+  console.log(
+    `\nNote: "${pm}" is not directly executable (ENOEXEC) — retrying through a shell.\n` +
+      `      Its launcher has no shebang, which usually means a half-finished ${pm} install;\n` +
+      `      reinstalling ${pm} is worth doing, as other tools will hit the same thing.`,
+  );
+  return spawnSync(pm, args, { cwd, stdio: "inherit", shell: true });
+}
+
+/**
+ * A command that never started at all, as opposed to one that ran and failed. `spawnSync` signals
+ * this with `error` set and `status: null` — and `null !== 0`, so every "did it fail?" check has
+ * to rule this out first or it silently misattributes the cause.
+ */
+function spawnFailed(result: SpawnSyncReturns<Buffer>): boolean {
+  return result.error !== undefined || result.status === null;
+}
+
+function reportSpawnFailure(
+  pm: PackageManager,
+  result: SpawnSyncReturns<Buffer>,
+): void {
+  const code = (result.error as NodeJS.ErrnoException | undefined)?.code;
+  const reason =
+    code === "ENOENT"
+      ? `"${pm}" was not found on PATH — it is not installed, or not visible to this process.`
+      : code === "ENOEXEC"
+        ? `"${pm}" exists on PATH but could not be executed (ENOEXEC) — the file is not a runnable ` +
+          `program. A pnpm install left half-finished does this: its placeholder script ("pnpm's ` +
+          `native binary replaces this file during installation") has no shebang, so a shell can ` +
+          `run it but a direct spawn cannot. Reinstalling ${pm} fixes it.`
+        : `"${pm}" could not be started${code ? ` (${code})` : ""}.`;
+  console.error(`\n${reason}`);
 }
 
 /**

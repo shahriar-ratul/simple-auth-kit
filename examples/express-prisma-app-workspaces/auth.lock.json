@@ -28,6 +28,7 @@
     "../monitoring/kustomization.yaml": "56bd8b302847b65aa3e62fb02b7250a0b94b6e727433a2d59cde5216c189bed9",
     "../monitoring/prometheus/prometheus.yml": "90ec044d81ae542b6b197ad68715956f0b9d494975925988a63ef046aa07557c",
     "../package.json": "085b95dc3dc83e6db64aaba0665cea0e94706170783459bed83be95baa4d404a",
+    "../pnpm-workspace.yaml": "3acbfd5bd1f4214d3c7a3269d214c7fda4af3008716bf783bb61a89390a4b172",
     "../prisma.config.ts": "4b12dab8aa88ddf334b186fd922f26ec10b50ed24a5676633b5d1375332cbda5",
     "../test/e2e/app.e2e-spec.ts": "5f650f561251b35d060397bc58f809a3f7afc02e10d2dfbf82a494786495df02",
     "../test/jest-e2e.json": "f237f269795a59450a8bc68332b19b5d0adab0fe2085033c6190cd6dad433470",

@@ -36,6 +36,7 @@
     "../monitoring/prometheus/prometheus.yml": "870c5295aa8a85cf7d3644a00d9b7a7d8e67ec479a967fe9fc7210ab0bcb4814",
     "../nest-cli.json": "bcb15e3049ff5d131762d2bfe3a6f917c3c64c83ac772467a4073975cd423b5b",
     "../package.json": "05b597ad734857bd68aade4e73d36d68867397797cf85f5760a5c01af74392dc",
+    "../pnpm-workspace.yaml": "3acbfd5bd1f4214d3c7a3269d214c7fda4af3008716bf783bb61a89390a4b172",
     "../prisma.config.ts": "4b12dab8aa88ddf334b186fd922f26ec10b50ed24a5676633b5d1375332cbda5",
     "../test/e2e/app.e2e-spec.ts": "a8fc3acc8c152f46e417a407b1965275f9810538880adfb7be5a922fb65d627d",
     "../test/jest-e2e.json": "f237f269795a59450a8bc68332b19b5d0adab0fe2085033c6190cd6dad433470",
