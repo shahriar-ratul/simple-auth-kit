@@ -20,11 +20,11 @@
 // middleware, or `authCoreErrorMiddleware` — so the status recorded is the one the client got.
 import { timingSafeEqual } from 'node:crypto';
 import type { NextFunction, Request, RequestHandler, Response } from 'express';
-import { collectDefaultMetrics, Counter, Histogram, Registry } from 'prom-client';
+import { collectDefaultMetrics, Counter, Histogram, Registry } from '@prometheus-io/client';
 import { log } from '@/infra/logger/logger';
 
 /**
- * This library's own registry rather than prom-client's global `register`, so an application that
+ * This combo's own registry rather than @prometheus-io/client's global `register`, so an application that
  * already collects its own metrics keeps its registry untouched and nothing here depends on
  * module-load order across two packages.
  */
@@ -52,9 +52,9 @@ export const httpRequestDuration = new Histogram({
   name: 'http_request_duration_seconds',
   help: 'HTTP request latency in seconds, by method, matched route pattern and response status.',
   labelNames: HTTP_LABELS,
-  // prom-client's default bucket set, written out because the spread is load-bearing here: argon2
-  // password hashing puts signup and login in the 100-500ms range under normal load, so the
-  // resolution that matters is in the middle of this range, not at the fast end.
+  // @prometheus-io/client's default bucket set, written out because the spread is load-bearing
+  // here: argon2 password hashing puts signup and login in the 100-500ms range under normal load,
+  // so the resolution that matters is in the middle of this range, not at the fast end.
   buckets: [0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1, 2.5, 5, 10],
   registers: [metricsRegistry],
 });

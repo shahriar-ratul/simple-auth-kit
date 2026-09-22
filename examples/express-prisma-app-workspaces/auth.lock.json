@@ -57,7 +57,7 @@
     "core/types.ts": "f043ab4ed2c461558f15514a61201529492396763f2bb0f5b85c8bed8304bda9",
     "infra/errors/http-error.ts": "99f795a9ea91a56167ac265111aa51b58ab60493d5ab4c45e7867661ddd8bf6b",
     "infra/logger/logger.ts": "4cd899acc6d28d00f02e316f8ad858b73b45237311b7414af8f8266f11cbf138",
-    "infra/metrics/metrics.ts": "a900532b9b2fea0914f6aeb24e47bc7fc5f4c2c33062501cdf3eb0c740e5d786",
+    "infra/metrics/metrics.ts": "bfc200f5d6cdd227b45f94283712825456058b46fbf309f467b665a9ba4db102",
     "infra/middleware/auth-core-error.middleware.ts": "be580b2d66a53b14d6d7d8486b59c0a85162f198c969972669f44b82130e2bf6",
     "infra/middleware/request-logger.middleware.ts": "8db784b127114341ab0869d82842408dd36f8121180327faf5a9b291a73bce2b",
     "infra/middleware/response-envelope.middleware.ts": "29ccd3e99f525a2d68152cce2f9ed57e3caf59898f09921135a37c96e4f67c40",

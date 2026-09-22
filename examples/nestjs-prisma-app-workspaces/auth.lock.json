@@ -71,7 +71,7 @@
     "infra/interceptor/request-logger.interceptor.ts": "75b34e53a8550dc91e79c5fe03c80e849c3e1782cf35baf061472a42110c7c9a",
     "infra/interceptor/response.interceptor.ts": "19de66b75bcfaa8a61eee6101f4ea85e3d76c0c1f525136d85363d306711cb6d",
     "infra/logger/logger.ts": "4cd899acc6d28d00f02e316f8ad858b73b45237311b7414af8f8266f11cbf138",
-    "infra/metrics/metrics.ts": "77cefe63c4d2d281c0442b87a4ecdfe9d59fee8c97032ff29bac8b65f0e59e08",
+    "infra/metrics/metrics.ts": "9f15e082a9c8ff726ce3c0896007c9a54efaaa8c69f37288a5b7e1abc83db5d6",
     "infra/request-context.ts": "1da44a6e6b2ac1829f73f9cc91961fad5243e0288157bc740b572ff8b5ccf5e9",
     "infra/route-tiers.ts": "47bccdb1223e242e2c03dabede73c449b1a76a0e27d50e022bbe38a0f6626947",
     "modules/admin/admin.module.ts": "384c0abe50f06fbb43c68a3fecc898bb13fe4e889be1cd99f685ee651189b385",

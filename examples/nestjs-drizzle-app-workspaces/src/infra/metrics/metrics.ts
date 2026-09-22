@@ -18,11 +18,11 @@
 import { timingSafeEqual } from 'node:crypto';
 import type { INestApplication } from '@nestjs/common';
 import type { NextFunction, Request, RequestHandler, Response } from 'express';
-import { collectDefaultMetrics, Counter, Histogram, Registry } from 'prom-client';
+import { collectDefaultMetrics, Counter, Histogram, Registry } from '@prometheus-io/client';
 import { log } from '@/infra/logger/logger';
 
 /**
- * This library's own registry rather than prom-client's global `register`. A consuming app that
+ * This combo's own registry rather than @prometheus-io/client's global `register`. A consuming app that
  * already collects its own metrics keeps its registry untouched, and nothing here depends on
  * module-load order across two packages.
  */
@@ -50,9 +50,9 @@ export const httpRequestDuration = new Histogram({
   name: 'http_request_duration_seconds',
   help: 'HTTP request latency in seconds, by method, matched route pattern and response status.',
   labelNames: HTTP_LABELS,
-  // prom-client's defaults, stated explicitly because the top bucket is load-bearing here: argon2
-  // password hashing puts signup/login in the 100-500ms range under normal load, so the useful
-  // resolution sits in the middle of this range, not at the fast end.
+  // @prometheus-io/client's defaults, stated explicitly because the top bucket is load-bearing
+  // here: argon2 password hashing puts signup/login in the 100-500ms range under normal load, so
+  // the useful resolution sits in the middle of this range, not at the fast end.
   buckets: [0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1, 2.5, 5, 10],
   registers: [metricsRegistry],
 });
