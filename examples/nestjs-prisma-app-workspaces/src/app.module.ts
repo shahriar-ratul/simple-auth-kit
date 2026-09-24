@@ -13,6 +13,7 @@ import { ResponseInterceptor } from './infra/interceptor/response.interceptor.js
 import { RoleModule } from './modules/roles/roles.module.js';
 import { AppController } from './app.controller.js';
 import { AppService } from './app.service.js';
+import { authStoresFromEnv } from './redis-stores.js';
 
 // This is now the whole integration surface a consumer assembles by hand — it used to ship
 // bundled inside AuthModule.forRoot(). ConfigModule/ThrottlerModule and the global
@@ -22,7 +23,7 @@ import { AppService } from './app.service.js';
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
-    CoreAuthModule.forRoot({}),
+    CoreAuthModule.forRoot({ ...authStoresFromEnv() }),
     ThrottlerModule.forRoot([
       { name: 'short', ttl: 1_000, limit: 100 },
       { name: 'medium', ttl: 10_000, limit: 200 },

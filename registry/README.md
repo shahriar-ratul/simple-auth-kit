@@ -232,6 +232,10 @@ const store: AuthzCacheStore = {
 // authzCache: { store }
 ```
 
+A complete, runnable version — Redis for the cache and/or the rate limiter, each switched on by its
+own env flag — is in every `examples/*/src/redis-stores.ts` (see the examples' README, "Optional:
+Redis").
+
 Without a shared store each server keeps its own entries; they stay correct across servers
 because the version they are checked against lives in the database.
 
