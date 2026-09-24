@@ -94,8 +94,6 @@ export const users = pgTable(
   (table) => [
     uniqueIndex("users_uuid_key").on(table.uuid),
     uniqueIndex("users_email_key").on(table.email),
-    uniqueIndex("users_first_name_key").on(table.firstName),
-    uniqueIndex("users_last_name_key").on(table.lastName),
     uniqueIndex("users_phone_key").on(table.phone),
     uniqueIndex("users_username_key").on(table.username),
     index("users_is_deleted_idx").on(table.isDeleted),

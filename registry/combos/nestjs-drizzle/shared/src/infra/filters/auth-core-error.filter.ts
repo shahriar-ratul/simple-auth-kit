@@ -1,11 +1,13 @@
 import {
   ArgumentsHost,
   Catch,
+  ConflictException,
   ExceptionFilter,
   HttpException,
   HttpStatus,
 } from "@nestjs/common";
 import { AuthCoreError } from "@/lib/auth/core/types";
+import { uniqueViolationMessage } from "@/infra/errors/unique-violation";
 
 /**
  * Every error response carries `success: false` alongside whatever produced it — `AuthCoreError`
@@ -18,6 +20,11 @@ import { AuthCoreError } from "@/lib/auth/core/types";
 export class AuthCoreErrorFilter implements ExceptionFilter {
   catch(exception: unknown, host: ArgumentsHost) {
     const res = host.switchToHttp().getResponse();
+
+    // A duplicate on a unique column (another user's phone or username, ...) is the caller's
+    // conflict, not a server fault: answer it like any other ConflictException.
+    const conflict = uniqueViolationMessage(exception);
+    if (conflict) exception = new ConflictException(conflict);
 
     if (exception instanceof AuthCoreError) {
       res.status(HttpStatus.UNAUTHORIZED).json({

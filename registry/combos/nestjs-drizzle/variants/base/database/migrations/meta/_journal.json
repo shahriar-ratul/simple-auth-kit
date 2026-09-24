@@ -22,6 +22,13 @@
       "when": 1786593624911,
       "tag": "0002_colossal_true_believers",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1790216797861,
+      "tag": "0003_drop_user_name_unique",
+      "breakpoints": true
     }
   ]
 }
