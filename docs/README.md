@@ -57,6 +57,6 @@ The most-developed pair — the one to look at first — is:
 
 ```bash
 cp .env.example .env          # fill in the secrets (openssl rand -base64 32 each)
-docker compose up --build     # postgres + all 8 backends + 4 consoles
+docker compose up --build     # postgres + redis (rate limiter) + all 8 backends + 4 consoles
 # then: seed an admin (see getting-started.md) and log in at http://localhost:3000
 ```
