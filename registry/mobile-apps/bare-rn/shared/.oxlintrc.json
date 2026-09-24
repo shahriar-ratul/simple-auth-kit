@@ -1,0 +1,13 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "plugins": ["typescript", "unicorn", "oxc", "react", "vitest"],
+  "categories": { "correctness": "error" },
+  "env": { "browser": true, "node": true, "es2022": true },
+  "ignorePatterns": ["node_modules/**", "ios/**", "android/**", "coverage/**"],
+  "rules": {
+    "react/rules-of-hooks": "error",
+    "react/exhaustive-deps": "warn",
+    // Reported, not blocking: @react-native/eslint-config (the previous linter) never enabled it.
+    "react/set-state-in-effect": "warn"
+  }
+}

@@ -1,12 +1,12 @@
-import React, { useCallback, useEffect, useState } from 'react';
-import { RefreshControl, ScrollView, Text, View } from 'react-native';
-import type { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { PrimaryButton } from '../components/PrimaryButton';
-import { useAuthStore } from '../store/authStore';
-import { useActiveWorkspace } from '../store/workspaceStore';
-import type { RootStackParamList } from '../navigation/types';
+import React, { useCallback, useEffect, useState } from "react";
+import { RefreshControl, ScrollView, Text, View } from "react-native";
+import type { NativeStackScreenProps } from "@react-navigation/native-stack";
+import { PrimaryButton } from "../components/PrimaryButton";
+import { useAuthStore } from "../store/authStore";
+import { useActiveWorkspace } from "../store/workspaceStore";
+import type { RootStackParamList } from "../navigation/types";
 
-type Props = NativeStackScreenProps<RootStackParamList, 'Home'>;
+type Props = NativeStackScreenProps<RootStackParamList, "Home">;
 
 export function HomeScreen({ navigation }: Props): React.JSX.Element {
   const currentUser = useAuthStore((s) => s.currentUser);
@@ -30,23 +30,39 @@ export function HomeScreen({ navigation }: Props): React.JSX.Element {
   return (
     <ScrollView
       contentContainerClassName="flex-grow p-6"
-      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+      refreshControl={
+        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+      }
     >
       <Text className="mb-4 text-[28px] font-bold">Profile</Text>
 
       <View className="mb-6 rounded-xl border border-blue-600 bg-blue-50 p-4">
-        <Text className="mb-0.5 text-xs font-semibold uppercase text-blue-600">Active workspace</Text>
-        <Text className="text-[17px] font-semibold text-[#111111]">{activeWorkspace?.name ?? '—'}</Text>
-        <Text className="mt-1 text-xs text-[#666666]">{activeWorkspace?.id ?? ''}</Text>
+        <Text className="mb-0.5 text-xs font-semibold uppercase text-blue-600">
+          Active workspace
+        </Text>
+        <Text className="text-[17px] font-semibold text-[#111111]">
+          {activeWorkspace?.name ?? "—"}
+        </Text>
+        <Text className="mt-1 text-xs text-[#666666]">
+          {activeWorkspace?.id ?? ""}
+        </Text>
         <PrimaryButton
           title="Switch workspace"
           variant="secondary"
-          onPress={() => navigation.navigate('SwitchWorkspace')}
+          onPress={() => navigation.navigate("SwitchWorkspace")}
         />
       </View>
 
       {currentUser ? (
         <View className="mb-6 rounded-xl bg-[#f5f5f7] p-4">
+          <Row label="Email" value={currentUser.email} />
+          <Row label="Name" value={fullName(currentUser) || "—"} />
+          <Row label="Username" value={currentUser.username ?? "—"} />
+          <Row label="Phone" value={currentUser.phone ?? "—"} />
+          <Row
+            label="Two-factor"
+            value={currentUser.twoFactorEnabled ? "Enabled" : "Disabled"}
+          />
           <Row label="User ID" value={currentUser.sub} />
           <Row label="Session ID" value={currentUser.sessionId} />
           {/*
@@ -55,31 +71,84 @@ export function HomeScreen({ navigation }: Props): React.JSX.Element {
             any other workspace, which is the property the backend enforces.
           */}
           <Row
-            label={`Roles in ${activeWorkspace?.name ?? 'this workspace'}`}
-            value={currentUser.roles.length ? currentUser.roles.join(', ') : '—'}
+            label={`Roles in ${activeWorkspace?.name ?? "this workspace"}`}
+            value={
+              currentUser.roles.length ? currentUser.roles.join(", ") : "—"
+            }
           />
           <Row
             label="Permissions here"
-            value={currentUser.permissions.length ? currentUser.permissions.join(', ') : '—'}
+            value={
+              currentUser.permissions.length
+                ? currentUser.permissions.join(", ")
+                : "—"
+            }
           />
         </View>
       ) : (
-        <Text className="mb-6 text-sm text-[#666666]">Loading your profile…</Text>
+        <Text className="mb-6 text-sm text-[#666666]">
+          Loading your profile…
+        </Text>
       )}
 
-      {error ? <Text className="mb-3 text-sm text-red-600">{error}</Text> : null}
+      {error ? (
+        <Text className="mb-3 text-sm text-red-600">{error}</Text>
+      ) : null}
 
-      <PrimaryButton title="View sessions" variant="secondary" onPress={() => navigation.navigate('Sessions')} />
-      <PrimaryButton title="Log out" variant="danger" onPress={() => void logout()} loading={isLoading} />
+      <PrimaryButton
+        title="Edit profile"
+        variant="secondary"
+        onPress={() => navigation.navigate("EditProfile")}
+      />
+      <PrimaryButton
+        title="Change password"
+        variant="secondary"
+        onPress={() => navigation.navigate("ChangePassword")}
+      />
+      <PrimaryButton
+        title={currentUser?.twoFactorEnabled ? "Disable 2FA" : "Enable 2FA"}
+        variant="secondary"
+        onPress={() => navigation.navigate("TwoFactorSettings")}
+      />
+      <PrimaryButton
+        title="View sessions"
+        variant="secondary"
+        onPress={() => navigation.navigate("Sessions")}
+      />
+      <PrimaryButton
+        title="Log out"
+        variant="danger"
+        onPress={() => void logout()}
+        loading={isLoading}
+      />
     </ScrollView>
   );
 }
 
-function Row({ label, value }: { label: string; value: string }): React.JSX.Element {
+function Row({
+  label,
+  value,
+}: {
+  label: string;
+  value: string;
+}): React.JSX.Element {
   return (
     <View className="mb-3">
-      <Text className="mb-0.5 text-xs font-semibold text-[#666666]">{label}</Text>
+      <Text className="mb-0.5 text-xs font-semibold text-[#666666]">
+        {label}
+      </Text>
       <Text className="text-[15px] text-[#111111]">{value}</Text>
     </View>
+  );
+}
+
+function fullName(user: {
+  firstName: string | null;
+  lastName: string | null;
+  displayName: string | null;
+}): string {
+  return (
+    user.displayName ??
+    [user.firstName, user.lastName].filter(Boolean).join(" ")
   );
 }

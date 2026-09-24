@@ -8,14 +8,17 @@ import { SignupScreen } from '../screens/SignupScreen';
 import { TwoFactorScreen } from '../screens/TwoFactorScreen';
 import { HomeScreen } from '../screens/HomeScreen';
 import { SessionsScreen } from '../screens/SessionsScreen';
+import { EditProfileScreen } from '../screens/EditProfileScreen';
+import { ChangePasswordScreen } from '../screens/ChangePasswordScreen';
+import { TwoFactorSettingsScreen } from '../screens/TwoFactorSettingsScreen';
 import type { RootStackParamList } from './types';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
 export function RootNavigator(): React.JSX.Element {
-  const isHydrated = useAuthStore((s) => s.isHydrated);
-  const isAuthenticated = useAuthStore((s) => s.currentUser !== null);
-  const hydrate = useAuthStore((s) => s.hydrate);
+  const isHydrated = useAuthStore(s => s.isHydrated);
+  const isAuthenticated = useAuthStore(s => s.currentUser !== null);
+  const hydrate = useAuthStore(s => s.hydrate);
 
   useEffect(() => {
     void hydrate();
@@ -34,14 +37,49 @@ export function RootNavigator(): React.JSX.Element {
       <Stack.Navigator screenOptions={{ headerShown: true }}>
         {isAuthenticated ? (
           <>
-            <Stack.Screen name="Home" component={HomeScreen} options={{ title: 'Profile' }} />
-            <Stack.Screen name="Sessions" component={SessionsScreen} options={{ title: 'Sessions' }} />
+            <Stack.Screen
+              name="Home"
+              component={HomeScreen}
+              options={{ title: 'Profile' }}
+            />
+            <Stack.Screen
+              name="Sessions"
+              component={SessionsScreen}
+              options={{ title: 'Sessions' }}
+            />
+            <Stack.Screen
+              name="EditProfile"
+              component={EditProfileScreen}
+              options={{ title: 'Edit profile' }}
+            />
+            <Stack.Screen
+              name="ChangePassword"
+              component={ChangePasswordScreen}
+              options={{ title: 'Change password' }}
+            />
+            <Stack.Screen
+              name="TwoFactorSettings"
+              component={TwoFactorSettingsScreen}
+              options={{ title: 'Two-factor authentication' }}
+            />
           </>
         ) : (
           <>
-            <Stack.Screen name="Login" component={LoginScreen} options={{ title: 'Log in' }} />
-            <Stack.Screen name="Signup" component={SignupScreen} options={{ title: 'Create account' }} />
-            <Stack.Screen name="TwoFactor" component={TwoFactorScreen} options={{ title: 'Verification code' }} />
+            <Stack.Screen
+              name="Login"
+              component={LoginScreen}
+              options={{ title: 'Log in' }}
+            />
+            <Stack.Screen
+              name="Signup"
+              component={SignupScreen}
+              options={{ title: 'Create account' }}
+            />
+            <Stack.Screen
+              name="TwoFactor"
+              component={TwoFactorScreen}
+              options={{ title: 'Verification code' }}
+            />
           </>
         )}
       </Stack.Navigator>
