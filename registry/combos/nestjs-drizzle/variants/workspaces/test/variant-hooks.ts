@@ -25,6 +25,10 @@ import {
   type VariantHooks,
 } from "./harness.js";
 import { authzCache, waitOutAuthzCache } from "./bootstrap.js";
+import {
+  AuthzCache,
+  type AuthzCacheStore,
+} from "../src/common/auth/cache/authz-cache.js";
 
 /** One short-lived pool per call, closed on the way out, so the proof process has no lingering handle to wait on. */
 async function withDb<T>(fn: (db: Database) => Promise<T>): Promise<T> {
@@ -913,4 +917,80 @@ async function proveAuthzIsCachedUntilTheDatabaseChanges(
       .where(eq(permissions.slug, "audit-log:read")),
   );
   await waitOutAuthzCache();
+
+  await proveAuthzCacheIsConfigurable(ctx);
+}
+
+/**
+ * `AuthConfig.authzCache` switches, exercised on `AuthzCache` directly with a stub resolver and a
+ * stub version reader, so each mode is proved in isolation: caching off, revalidation off, and a
+ * custom store (the seam a Redis-backed store plugs into).
+ */
+async function proveAuthzCacheIsConfigurable(ctx: ProofContext): Promise<void> {
+  let versionReads = 0;
+  const readVersion = async () => {
+    versionReads += 1;
+    return 1;
+  };
+  let resolves = 0;
+  const resolve = async () => {
+    resolves += 1;
+    return { roles: [], permissions: ["audit-log:read"] };
+  };
+
+  const off = new AuthzCache(
+    { enabled: false, revalidate: true, ttlSeconds: 30 },
+    readVersion,
+  );
+  await off.get("k", resolve);
+  await off.get("k", resolve);
+  ctx.assert(
+    resolves === 2 && versionReads === 0,
+    `authzCache.enabled = false resolves from the database on every call (resolves ${resolves}, version reads ${versionReads})`,
+  );
+
+  resolves = 0;
+  versionReads = 0;
+  const noRevalidate = new AuthzCache(
+    { enabled: true, revalidate: false, ttlSeconds: 1 },
+    readVersion,
+  );
+  await noRevalidate.get("k", resolve);
+  await noRevalidate.get("k", resolve);
+  ctx.assert(
+    resolves === 1 && versionReads === 0,
+    `authzCache.revalidate = false never reads authz_version and reuses the entry (resolves ${resolves}, version reads ${versionReads})`,
+  );
+  await waitOutAuthzCache();
+  await noRevalidate.get("k", resolve);
+  ctx.assert(
+    resolves === 2,
+    `…until the entry's TTL runs out (resolves ${resolves})`,
+  );
+
+  resolves = 0;
+  const calls: string[] = [];
+  const entries = new Map<string, string>();
+  const store: AuthzCacheStore = {
+    get: async (key) => {
+      calls.push(`get ${key}`);
+      return entries.get(key);
+    },
+    set: async (key, value, ttlSeconds) => {
+      calls.push(`set ${key} ${ttlSeconds}`);
+      entries.set(key, value);
+    },
+  };
+  const custom = new AuthzCache(
+    { enabled: true, revalidate: true, ttlSeconds: 7, store },
+    readVersion,
+  );
+  await custom.get("u1", resolve);
+  await custom.get("u1", resolve);
+  ctx.assert(
+    resolves === 1 &&
+      calls.filter((c) => c === "get simpleauthkit:authz:u1").length === 2 &&
+      calls.includes("set simpleauthkit:authz:u1 7"),
+    `a custom authzCache.store (e.g. Redis-backed) receives every get/set (${calls.join(", ")})`,
+  );
 }

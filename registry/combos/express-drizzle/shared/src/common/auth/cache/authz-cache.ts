@@ -1,19 +1,63 @@
-// Caches each caller's resolved authorization context.
+// Caches each caller's resolved authorization context. Configured by `AuthConfig.authzCache`
+// (see auth.config.ts for what each option does):
 //
-// Two ways an entry stops being served:
-//   1. Version: every write path in this app that changes what `resolveAuthzContext` returns bumps
-//      the `authz_version` row (see authz-version.ts). Each request reads that one row and reuses
-//      an entry only if it was resolved at the same version — so a change made through this app,
-//      on any instance, applies on the very next request. The common case (nothing changed) costs
-//      one primary-key read instead of the multi-join resolution.
-//   2. TTL: every entry also expires after `authzCacheTtlSeconds`. That is the backstop for writes
-//      made behind the app's back (a raw SQL session), which don't bump the version.
+//   - enabled: false  → no caching; every request resolves from the database.
+//   - revalidate: true → each request reads the `authz_version` row (one primary-key read) and
+//     reuses an entry only if it was resolved at the same version. Every app write path that
+//     changes a caller's authorization bumps that row (authz-version.ts), so such a change applies
+//     on the very next request, on every server.
+//   - revalidate: false → no version read; any unexpired entry is served. Zero database reads on a
+//     hit, and changes apply within `ttlSeconds`.
+//
+// `ttlSeconds` always bounds an entry's life — the backstop for writes made behind the app's back
+// (a raw SQL session), which don't bump the version. Entries live in an `AuthzCacheStore`:
+// in-process memory by default, or anything with get/set — e.g. Redis — to share them across
+// servers. This library never depends on a Redis client; you pass the store.
 
-export interface AuthzCacheDeps {
-  /** The current `authz_version`. */
-  readVersion(): Promise<number>;
-  /** Maximum age of an entry, in seconds. */
+/** Where cached entries live. Values are opaque strings; `ttlSeconds` is the entry's lifetime. */
+export interface AuthzCacheStore {
+  get(key: string): Promise<string | undefined>;
+  set(key: string, value: string, ttlSeconds: number): Promise<void>;
+}
+
+/** A generous bound for one process; past it the oldest-inserted entry is evicted. */
+const MAX_ENTRIES = 10_000;
+
+/** The default store: a `Map` with expiry, scoped to one process. */
+export class InMemoryAuthzCacheStore implements AuthzCacheStore {
+  private readonly entries = new Map<
+    string,
+    { value: string; expiresAt: number }
+  >();
+
+  async get(key: string): Promise<string | undefined> {
+    const entry = this.entries.get(key);
+    if (!entry) return undefined;
+    if (entry.expiresAt <= Date.now()) {
+      this.entries.delete(key);
+      return undefined;
+    }
+    return entry.value;
+  }
+
+  async set(key: string, value: string, ttlSeconds: number): Promise<void> {
+    // Re-inserting moves the key to the end of the Map's insertion order.
+    this.entries.delete(key);
+    if (this.entries.size >= MAX_ENTRIES) {
+      const oldest = this.entries.keys().next().value;
+      if (oldest !== undefined) this.entries.delete(oldest);
+    }
+    this.entries.set(key, { value, expiresAt: Date.now() + ttlSeconds * 1000 });
+  }
+}
+
+export interface AuthzCacheOptions {
+  enabled: boolean;
+  revalidate: boolean;
   ttlSeconds: number;
+  store: AuthzCacheStore;
+  /** The current `authz_version`. Only called when `revalidate` is on. */
+  readVersion(): Promise<number>;
 }
 
 export interface AuthzCache<T> {
@@ -22,48 +66,41 @@ export interface AuthzCache<T> {
   readonly stats: { resolutions: number; hits: number };
 }
 
-/** A generous bound for one process; past it the map is simply cleared and refilled. */
-const MAX_ENTRIES = 10_000;
+export const AUTHZ_CACHE_NAMESPACE = "simpleauthkit:authz";
 
-export function createAuthzCache<T>(deps: AuthzCacheDeps): AuthzCache<T> {
-  const entries = new Map<
-    string,
-    { version: number; expiresAt: number; value: T }
-  >();
+export function createAuthzCache<T>(options: AuthzCacheOptions): AuthzCache<T> {
   const stats = { resolutions: 0, hits: 0 };
-  let lastVersion: number | undefined;
 
   return {
     stats,
     async get(key, resolve) {
+      if (!options.enabled) {
+        stats.resolutions += 1;
+        return resolve();
+      }
+
+      const storeKey = `${AUTHZ_CACHE_NAMESPACE}:${key}`;
       // Read before resolving: if a write lands in between, the entry is stored under the older
       // version and the next request, seeing the newer one, re-resolves.
-      const version = await deps.readVersion();
-      if (version !== lastVersion) {
-        // Every entry is stale once the version moves; drop them rather than let them linger.
-        entries.clear();
-        lastVersion = version;
-      }
-      const now = Date.now();
-      const cached = entries.get(key);
-      if (cached && cached.version === version && cached.expiresAt > now) {
-        stats.hits += 1;
-        return cached.value;
+      const version = options.revalidate ? await options.readVersion() : 0;
+      const raw = await options.store.get(storeKey);
+      if (raw !== undefined) {
+        const entry = JSON.parse(raw) as { version: number; value: T };
+        if (!options.revalidate || entry.version === version) {
+          stats.hits += 1;
+          return entry.value;
+        }
       }
 
       stats.resolutions += 1;
       const value = await resolve();
       // Negative results aren't cached: "not a member" is re-read every time.
-      if (value === null) {
-        entries.delete(key);
-      } else {
-        if (entries.size >= MAX_ENTRIES) entries.clear();
-        entries.set(key, {
-          version,
-          expiresAt: now + deps.ttlSeconds * 1000,
-          value,
-        });
-      }
+      if (value !== null)
+        await options.store.set(
+          storeKey,
+          JSON.stringify({ version, value }),
+          options.ttlSeconds,
+        );
       return value;
     },
   };

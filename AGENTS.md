@@ -52,7 +52,7 @@ exactly what the CLI emits.
   `verifyAccessToken`, sets `req.auth`. Never touches `req.authz`/`req.ability`.
 - `AuthzGuard` (variant-specific) — resolves `req.authz = {roles, permissions}` from the
   database (`base`: by `userId`; `workspaces`: by `(userId, X-Workspace-Id)` membership, also
-  sets `workspaceId`/`memberId`), and caches it in memory by `AuthzCache` (`common/auth/cache/`): every authorization write the app makes bumps the single `authz_version` row through the ORM (inside the same transaction when there is one), so API-driven grants and revokes apply on the very next request on every instance; a change written straight to the database applies once the entry's TTL (`authzCacheTtlSeconds`, default 30) runs out.
+  sets `workspaceId`/`memberId`), and caches it in memory by `AuthzCache` (`common/auth/cache/`): every authorization write the app makes bumps the single `authz_version` row through the ORM (inside the same transaction when there is one), so API-driven grants and revokes apply on the very next request on every instance; a change written straight to the database applies once the entry's TTL (`authzCache.ttlSeconds`, default 30) runs out. `authzCache.enabled`/`revalidate` turn the cache or the per-request version check off; `authzCache.store` swaps in-memory for e.g. Redis (never a dependency).
   No triggers or hand-written SQL: the `authz_version` table migration is ORM-generated. Then
   builds `req.ability` from the flat CASL slugs.
 - `AbilityGuard` (shared) — reads `@CheckAbility` metadata and enforces `req.ability`; only reads,

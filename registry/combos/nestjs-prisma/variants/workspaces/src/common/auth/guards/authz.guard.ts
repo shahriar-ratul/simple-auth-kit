@@ -21,11 +21,12 @@ export interface AuthzContext {
   permissions: string[];
 }
 
-// Extracted so both guards below resolve identically; only their behavior on "no workspace
-// named" differs. Served from `AuthzCache`: a grant, a revocation, or a membership change made
-// through this app is enforced on the very next request; one written straight to the database,
-// within `authzCacheTtlSeconds`. Idempotent: a route may sit behind both guards, and resolving twice
-// would double the hot path's query count for no gain.
+// Extracted so both guards below resolve identically; only their behavior on "no workspace named"
+// differs. Served from `AuthzCache` (see `AuthConfig.authzCache`); with the default settings a
+// grant, a revocation, or a membership change made through this app is enforced on the very next
+// request; one written straight to the database, within `authzCache.ttlSeconds`. Idempotent: a
+// route may sit behind both guards, and resolving twice would double the hot path's query count for
+// no gain.
 async function resolve(
   rbac: RbacRepository,
   cache: AuthzCache,

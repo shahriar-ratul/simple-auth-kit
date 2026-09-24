@@ -70,7 +70,8 @@ If an app's typecheck can't see a method you just added, it's one of two stalene
 The countries/languages/customers modules all followed this shape; `country.*` is the cleanest
 template. Nine steps, repository → UI:
 
-1. **Prisma model** in `variants/base/database/schema/simple-auth-kit.prisma` — copy the standard column set from
+1. **Prisma model** in `variants/base/database/schema/simple-auth-kit/<domain>.prisma` (e.g.
+   `content.prisma`) — copy the standard column set from
    an existing model (id/uuid, `isActive`, `createdBy`/`updatedBy`, soft-delete columns,
    timestamps). Then `npm run migrate -- base --name add_<domain>`.
 2. **Repository** `variants/base/src/modules/<module>/repositories/<domain>.repository.ts` (or

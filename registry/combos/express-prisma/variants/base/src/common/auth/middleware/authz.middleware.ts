@@ -35,7 +35,7 @@ export interface AuthzMiddlewareDeps {
  *
  * The answer is cached (`AuthzCache`). Every app write that changes authorization bumps
  * `authz_version`, so a change made through the admin API applies on the very next request; a
- * direct database edit applies once the entry's TTL (`authzCacheTtlSeconds`) runs out.
+ * direct database edit applies once the entry's TTL (`authzCache.ttlSeconds`) runs out.
  *
  * Replaces the reference combo's `AuthzGuard`.
  */

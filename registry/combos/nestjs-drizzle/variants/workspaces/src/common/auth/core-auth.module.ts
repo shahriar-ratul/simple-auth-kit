@@ -5,14 +5,17 @@ import { AdminController } from "@/modules/admin/controllers/admin.controller";
 import { AuditLogController } from "@/modules/audit-log/controllers/audit-log.controller";
 import {
   AUTH_CONFIG,
-  AuthConfig,
-  defaultAuthConfig,
+  type AuthConfig,
+  type AuthConfigInput,
+  resolveAuthConfig,
 } from "@/common/config/auth.config";
 import { AuthController } from "@/modules/auth/controllers/auth.controller";
 import { AuthGuard } from "@/common/auth/guards/auth.guard";
 import { AuthzCache } from "@/common/auth/cache/authz-cache";
 import { AuthzGuard, WorkspaceGuard } from "@/common/auth/guards/authz.guard";
 import { DrizzleModule } from "@/modules/drizzle/drizzle.module";
+import { DRIZZLE_DB, type Database } from "@/common/config/db";
+import { readAuthzVersion } from "@/common/auth/cache/authz-version";
 import { loadJwtSecret } from "@/common/config/key-provider";
 import { AuthTokenService } from "@/common/auth/token.service";
 import {
@@ -59,7 +62,7 @@ const TIERED_CONTROLLERS = [
 @Global()
 @Module({})
 export class CoreAuthModule {
-  static forRoot(config: Partial<AuthConfig> = {}): DynamicModule {
+  static forRoot(config: AuthConfigInput = {}): DynamicModule {
     // Fail-closed before anything else exists — nothing above this line allocates a database
     // connection or a port, so a failed boot leaves nothing behind.
     assertEveryRouteDeclaresATier(TIERED_CONTROLLERS, {
@@ -67,7 +70,7 @@ export class CoreAuthModule {
       ability: AbilityGuard,
     });
 
-    const resolved: AuthConfig = { ...defaultAuthConfig, ...config };
+    const resolved: AuthConfig = resolveAuthConfig(config);
 
     if (!config.rateLimitStore) {
       log.warn(
@@ -101,7 +104,12 @@ export class CoreAuthModule {
           useValue: config.rateLimitStore ?? new InMemoryRateLimitStore(),
         },
         RbacRepository,
-        AuthzCache,
+        {
+          provide: AuthzCache,
+          useFactory: (db: Database, cfg: AuthConfig) =>
+            new AuthzCache(cfg.authzCache, () => readAuthzVersion(db)),
+          inject: [DRIZZLE_DB, AUTH_CONFIG],
+        },
         WorkspaceRepository,
         SessionRepository,
         AuthGuard,

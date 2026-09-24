@@ -18,8 +18,9 @@ export interface AuthzContext {
 // The seam between authentication and authorization: `AuthGuard` proves who the caller is, this
 // turns that into "what may this request do". Must run after `AuthGuard`. Nothing about
 // authorization is in the token — a grant or revocation lands on the caller's next request, not
-// their next token. Served from `AuthzCache`: a change made through this app is enforced on the
-// next request; one written straight to the database, within `authzCacheTtlSeconds`.
+// their next token. Served from `AuthzCache` (see `AuthConfig.authzCache`); with the default
+// settings a change made through this app is enforced on the next request; one written straight to
+// the database, within `authzCache.ttlSeconds`.
 @Injectable()
 export class AuthzGuard implements CanActivate {
   constructor(

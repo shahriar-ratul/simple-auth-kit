@@ -1,4 +1,5 @@
 import type { RateLimitDeps } from "@/lib/auth/core/rate-limit";
+import type { AuthzCacheStore } from "@/common/auth/cache/authz-cache";
 
 export interface GoogleOAuthCredentials {
   clientId: string;
@@ -14,6 +15,32 @@ export interface AppleOAuthCredentials {
   redirectUri: string;
 }
 
+/** `AuthConfig.authzCache`. Pass any subset to `createAuthApp`; the rest keep their defaults. */
+export interface AuthzCacheConfig {
+  /**
+   * `false` turns caching off: every authorized request resolves roles and permissions from the
+   * database.
+   */
+  enabled: boolean;
+  /**
+   * `true`: each request reads the `authz_version` row (one primary-key read) and re-resolves if it
+   * changed since the entry was cached — every change this app makes bumps it, so app-side changes
+   * apply on the next request, on every server. `false`: skip that read and trust an entry until
+   * `ttlSeconds` — zero database reads on a hit, and changes apply within the TTL.
+   */
+  revalidate: boolean;
+  /**
+   * The longest an entry is served. Also the bound on how long a change made behind the app's back
+   * (a raw SQL session, which bumps nothing) can take to apply.
+   */
+  ttlSeconds: number;
+  /**
+   * Where entries live. Defaults to in-process memory (`InMemoryAuthzCacheStore`); pass e.g. a
+   * Redis-backed `AuthzCacheStore` to share entries across servers.
+   */
+  store?: AuthzCacheStore;
+}
+
 export interface AuthConfig {
   accessTokenTtlSeconds: number;
   refreshTokenTtlSeconds: number;
@@ -24,12 +51,8 @@ export interface AuthConfig {
    * "log in again after N days" true regardless of activity. `rotateRefreshToken` enforces it.
    */
   sessionTtlSeconds: number;
-  /**
-   * How long a cached authorization context may be served. Changes made through this app bump
-   * `authz_version` and apply on the very next request regardless; this is the backstop for
-   * writes made behind the app's back (a raw SQL session), which apply within this many seconds.
-   */
-  authzCacheTtlSeconds: number;
+  /** How each caller's resolved roles and permissions are cached. See `AuthzCacheConfig`. */
+  authzCache: AuthzCacheConfig;
   /** App name shown inside authenticator apps next to the account (issuer part of the otpauth:// URI). */
   twoFactorIssuer: string;
   oauthProviders: {
@@ -49,7 +72,21 @@ export const defaultAuthConfig: AuthConfig = {
   accessTokenTtlSeconds: 900,
   refreshTokenTtlSeconds: 60 * 60 * 24 * 30,
   sessionTtlSeconds: 60 * 60 * 24 * 30,
-  authzCacheTtlSeconds: 30,
+  authzCache: { enabled: true, revalidate: true, ttlSeconds: 30 },
   twoFactorIssuer: "simple-auth-kit",
   oauthProviders: {},
 };
+
+/** What `createAuthApp` accepts: every field optional, `authzCache` included field by field. */
+export type AuthConfigInput = Partial<Omit<AuthConfig, "authzCache">> & {
+  authzCache?: Partial<AuthzCacheConfig>;
+};
+
+/** Fills in the defaults — `authzCache` is merged key by key, so a partial one keeps the rest. */
+export function resolveAuthConfig(config: AuthConfigInput = {}): AuthConfig {
+  return {
+    ...defaultAuthConfig,
+    ...config,
+    authzCache: { ...defaultAuthConfig.authzCache, ...config.authzCache },
+  };
+}

@@ -35,7 +35,7 @@ export interface AuthzMiddlewareDeps {
  *
  * Resolved through `AuthzCache`, versioned by the `authz_version` row this app bumps on
  * every RBAC write — so a change made through this API applies on the very next request — and
- * expiring after `authzCacheTtlSeconds`, the backstop for direct database edits.
+ * expiring after `authzCache.ttlSeconds`, the backstop for direct database edits.
  *
  * Replaces the reference combo's `AuthzGuard`.
  */

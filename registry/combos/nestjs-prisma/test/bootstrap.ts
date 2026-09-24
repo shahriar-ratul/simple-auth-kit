@@ -48,9 +48,9 @@ export async function bootstrap(port: number) {
         // short enough to stay realistic. See `renewingToken` in test/harness.ts for the other
         // half of the fix.
         accessTokenTtlSeconds: 300,
-        // One second, so the proof can show a raw database write (which bypasses the app's
-        // `authz_version` bump) being picked up once the cache TTL passes, without a long wait.
-        authzCacheTtlSeconds: 1,
+        // A one-second TTL (the rest stays default), so the proof can show a raw database write
+        // (which bypasses the app's `authz_version` bump) being picked up once it passes.
+        authzCache: { ttlSeconds: 1 },
         throttle,
         sendPasswordResetEmail: async (email, token) => {
           capturedResetTokens.set(email, token);

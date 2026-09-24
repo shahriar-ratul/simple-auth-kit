@@ -200,7 +200,7 @@ export const hooks: VariantHooks = {
 
 /**
  * Writes made straight to the database don't bump `authz_version` — nothing in the app sees them —
- * so they apply once any cached context expires. bootstrap.ts sets `authzCacheTtlSeconds` to 1.
+ * so they apply once any cached context expires. bootstrap.ts sets `authzCache.ttlSeconds` to 1.
  */
 const waitForAuthzCacheTtl = () =>
   new Promise<void>((resolve) => setTimeout(resolve, 1200));
@@ -209,7 +209,7 @@ const waitForAuthzCacheTtl = () =>
  * The admin API already proves that editing the catalog changes enforcement, but it is the API
  * doing the writing — this rules out any possibility that it is also doing something in memory.
  * A `psql` session would look exactly like this: nothing tells the app, so each change applies
- * once the cached context expires (`authzCacheTtlSeconds`).
+ * once the cached context expires (`authzCache.ttlSeconds`).
  */
 async function proveARawDatabaseEditChangesEnforcement(
   ctx: ProofContext,

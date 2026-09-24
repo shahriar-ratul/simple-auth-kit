@@ -863,6 +863,6 @@ async function proveAuthzIsCachedUntilItChanges(
   );
 }
 
-/** Waits out `authzCacheTtlSeconds` (1s in the proof, see bootstrap.ts). */
+/** Waits out `authzCache.ttlSeconds` (1s in the proof, see bootstrap.ts). */
 const pastAuthzCacheTtl = () =>
   new Promise<void>((resolve) => setTimeout(resolve, 1_200));

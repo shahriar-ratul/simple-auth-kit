@@ -32,7 +32,7 @@ export interface AuthzMiddlewareDeps {
  * The one lookup is `resolveAuthzContext`'s — anchored on the `[userId, workspaceId]` unique
  * index — cached per `userId:workspaceId` (`AuthzCache`). Every app write that changes
  * authorization bumps `authz_version`, so a change made through the admin API applies on the very
- * next request; a direct database edit applies once the entry's TTL (`authzCacheTtlSeconds`) runs
+ * next request; a direct database edit applies once the entry's TTL (`authzCache.ttlSeconds`) runs
  * out. "Not a member" is never cached.
  *
  * The CASL ability is derived from what came back, in memory, so gating routes on abilities costs

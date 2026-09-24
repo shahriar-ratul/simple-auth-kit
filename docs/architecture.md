@@ -76,7 +76,7 @@ There is **no multi-tenancy** (removed permanently; true isolation is a separate
 - **CASL** with **flat permission slugs**: the slug is the CASL action, subject is the empty
   string — `can("users:read", "")`. No subject taxonomy, no conditions.
 - **Permissions live in the database**, resolved per request (user → roles → role permissions,
-  plus direct grants, deduped), cached in memory by `AuthzCache` (`common/auth/cache/`): every authorization write the app makes bumps the single `authz_version` row through the ORM (inside the same transaction when there is one), so API-driven grants and revokes apply on the very next request on every instance; a change written straight to the database applies once the entry's TTL (`authzCacheTtlSeconds`, default 30) runs out. Real join tables: `RoleUser`,
+  plus direct grants, deduped), cached in memory by `AuthzCache` (`common/auth/cache/`): every authorization write the app makes bumps the single `authz_version` row through the ORM (inside the same transaction when there is one), so API-driven grants and revokes apply on the very next request on every instance; a change written straight to the database applies once the entry's TTL (`authzCache.ttlSeconds`, default 30) runs out. `authzCache.enabled`/`revalidate` turn the cache or the per-request version check off; `authzCache.store` swaps in-memory for e.g. Redis (never a dependency). Real join tables: `RoleUser`,
   `PermissionRole`, `PermissionUser`. A grant or revocation made through the API lands on the
   caller's **next request**, not their next token.
 - **Never in the JWT.** The access token carries identity and session only.

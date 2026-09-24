@@ -1,0 +1,100 @@
+// Sessions and the credential side-tables: OAuth links, password-reset tokens, 2FA backup codes,
+// and the access-token denylist.
+
+/// Links a social-login identity to a User. `[provider, providerAccountId]` is the OIDC `sub`
+/// claim; one User can have several, one per provider.
+model OAuthAccount {
+  id                BigInt   @id @default(autoincrement())
+  uuid              String   @unique @default(uuid())
+  userId            BigInt   @map("user_id")
+  provider          String   @db.VarChar(100)
+  providerAccountId String   @map("provider_account_id")
+  email             String?
+  createdAt         DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@unique([provider, providerAccountId])
+  @@index([userId], map: "oauth_accounts_user_id_idx")
+  @@map("oauth_accounts")
+}
+
+/// Single-use forgot-password tokens. Only `tokenHash` is stored, never the raw token.
+model PasswordResetToken {
+  id         BigInt    @id @default(autoincrement())
+  uuid       String    @unique @default(uuid())
+  userId     BigInt    @map("user_id")
+  tokenHash  String    @unique @map("token_hash")
+  expiresAt  DateTime  @map("expires_at") @db.Timestamptz(6)
+  consumedAt DateTime? @map("consumed_at") @db.Timestamptz(6)
+  createdAt  DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@map("password_reset_tokens")
+}
+
+/// One-time 2FA recovery codes, issued when the user confirms TOTP enrollment.
+model TwoFactorBackupCode {
+  id       BigInt    @id @default(autoincrement())
+  uuid     String    @unique @default(uuid())
+  userId   BigInt    @map("user_id")
+  codeHash String    @map("code_hash")
+  usedAt   DateTime? @map("used_at") @db.Timestamptz(6)
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@index([userId], map: "two_factor_backup_codes_user_id_idx")
+  @@map("two_factor_backup_codes")
+}
+
+/// One row per logged-in device. Stores no usable credential: `currentRefreshJti` is the id of
+/// the currently-valid refresh token, not the token itself. `expiresAt` is an absolute cap set
+/// once at creation, never extended — `rotateRefreshToken` in core enforces it. `isRevoked` is
+/// derived from `revokedAt` by the repository, never set independently.
+model Session {
+  id                BigInt    @id @default(autoincrement())
+  uuid              String    @unique @default(uuid())
+  userId            BigInt    @map("user_id")
+  sessionVersion    Int       @default(0) @map("session_version")
+  currentRefreshJti String    @map("current_refresh_jti")
+  provider          String?   @db.VarChar(100) // OAuth provider this login came through; null for a password login
+  userAgent         String?   @map("user_agent")
+  ip                String?   @db.VarChar(100)
+  expiresAt         DateTime  @map("expires_at") @db.Timestamptz(6)
+  isRevoked         Boolean   @default(false) @map("is_revoked")
+  revokedAt         DateTime? @map("revoked_at") @db.Timestamptz(6)
+  revokedBy         BigInt?   @map("revoked_by")
+  revokedByIp       String?   @map("revoked_ip") @db.VarChar(100)
+  isActive          Boolean   @default(true) @map("is_active")
+  createdBy         BigInt?   @map("created_by")
+  updatedBy         BigInt?   @map("updated_by")
+  isDeleted         Boolean   @default(false) @map("is_deleted")
+  deletedAt         DateTime? @map("deleted_at") @db.Timestamptz(6)
+  deletedBy         BigInt?   @map("deleted_by")
+  deletedReason     String?   @map("deleted_reason") @db.VarChar(255)
+  createdAt         DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt         DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  user          User  @relation("UserSessions", fields: [userId], references: [id], onDelete: Cascade)
+  revokedByUser User? @relation("UserRevokedSessions", fields: [revokedBy], references: [id], onDelete: SetNull)
+  createdByUser User? @relation("SessionCreatedBy", fields: [createdBy], references: [id], onDelete: SetNull)
+  updatedByUser User? @relation("SessionUpdatedBy", fields: [updatedBy], references: [id], onDelete: SetNull)
+  deletedByUser User? @relation("SessionDeletedBy", fields: [deletedBy], references: [id], onDelete: SetNull)
+
+  @@index([userId], map: "sessions_user_id_idx")
+  @@index([isRevoked], map: "sessions_is_revoked_idx")
+  @@index([expiresAt], map: "sessions_expires_at_idx")
+  @@index([userId, isRevoked, expiresAt], map: "sessions_user_active_idx")
+  @@index([revokedBy], map: "sessions_revoked_by_idx")
+  @@map("sessions")
+}
+
+/// Instant access-token revocation. Rows are only ever as old as the access-token TTL (~15 min)
+/// — safe to move to Redis with a matching TTL without changing callers.
+model DenylistedAccessToken {
+  jti       String   @id
+  expiresAt DateTime @map("expires_at") @db.Timestamptz(6)
+
+  @@map("denylisted_access_tokens")
+}

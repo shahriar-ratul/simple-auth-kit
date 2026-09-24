@@ -696,7 +696,7 @@ async function proveGrantsAreScopedAndLive(
  * The admin API already proves that editing the catalog changes enforcement, but it is the API
  * doing the writing — this rules out any possibility that it is also doing something in memory.
  * A `psql` session would look exactly like this: nothing tells the app about the write and no
- * authorization version is bumped, so it lands once the cached entry's TTL (`authzCacheTtlSeconds`,
+ * authorization version is bumped, so it lands once the cached entry's TTL (`authzCache.ttlSeconds`,
  * 1s here) runs out — never later.
  */
 async function proveARawDatabaseEditChangesEnforcement(

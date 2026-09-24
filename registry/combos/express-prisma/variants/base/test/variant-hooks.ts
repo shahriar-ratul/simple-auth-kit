@@ -224,7 +224,7 @@ async function proveARawDatabaseEditChangesEnforcement(
 
   // Written straight to the table, with no code change, no redeploy, and nothing telling the app.
   // A direct database edit bumps no version, so it lands once the cached entry's TTL
-  // (`authzCacheTtlSeconds`, 1s here) runs out — never later.
+  // (`authzCache.ttlSeconds`, 1s here) runs out — never later.
   await prisma.permission.update({
     where: { slug: "audit-log:read" },
     data: { isActive: false },

@@ -192,7 +192,7 @@ async function proveARawDatabaseEditChangesEnforcement(
 
   // Written straight to the table, with no code change, no redeploy, and nothing telling the app
   // it happened: it doesn't bump `authz_version`, so the cached authorization stands until
-  // `authzCacheTtlSeconds` passes, and the request after that sees it.
+  // `authzCache.ttlSeconds` passes, and the request after that sees it.
   await prisma.permission.update({
     where: { slug: "audit-log:read" },
     data: { isActive: false },
@@ -342,6 +342,6 @@ async function proveAuthzIsCachedUntilItChanges(
   );
 }
 
-/** Waits out `authzCacheTtlSeconds` (1s in the proof, see bootstrap.ts). */
+/** Waits out `authzCache.ttlSeconds` (1s in the proof, see bootstrap.ts). */
 const pastAuthzCacheTtl = () =>
   new Promise<void>((resolve) => setTimeout(resolve, 1_200));

@@ -22,7 +22,7 @@ export async function bootstrap(
     // half of the fix.
     accessTokenTtlSeconds: 300,
     // Short, so the proof can show a direct-database edit applying once cached contexts expire.
-    authzCacheTtlSeconds: 1,
+    authzCache: { ttlSeconds: 1 },
     sendPasswordResetEmail: async (email, token) => {
       capturedResetTokens.set(email, token);
     },
