@@ -626,7 +626,7 @@ export class RbacRepository {
    * A permission slug this deployment never defined is created on the spot, inactive-safe: it
    * exists, it can be granted, and it opens nothing until a route names it. That is the same
    * closed-catalog property the routes always had — `@CheckAbility` only accepts slugs from
-   * `rbac.defaults.ts`, so an invented slug cannot gate anything shipped by this library.
+   * `permission-slugs.ts`, so an invented slug cannot gate anything shipped by this library.
    */
   async attachPermissionToRole(
     roleId: string,

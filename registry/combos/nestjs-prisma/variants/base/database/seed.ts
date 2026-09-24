@@ -12,7 +12,7 @@ import {
   provisionDefaultRoles,
   SEED_ADMIN_ROLES,
   SEED_SUPERADMIN_ROLES,
-} from "../src/modules/auth/rbac.defaults.js";
+} from "./seedData/index.js";
 
 function requireEnv(name: string): string {
   const value = process.env[name];

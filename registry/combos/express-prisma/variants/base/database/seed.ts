@@ -17,9 +17,9 @@
 // an admin who already exists keeps the password they have now (the seeder never rewrites a
 // password it did not set).
 //
-// (1) and (2) are not defined here: they live in `rbac.defaults.ts`, which is also what types
-// `@CheckAbility` on the routes. The seeder is a caller of that definition, not its owner — so
-// what gets seeded and what the routes demand cannot drift apart.
+// (1) and (2) are defined in `database/seedData/`, which the app never imports: after seeding,
+// the database is the only source of truth. The seed permissions are keyed by the app's
+// `PermissionSlug`, so every slug a route is gated on gets a row.
 import { PrismaPg } from "@prisma/adapter-pg";
 import { hashPassword } from "@/lib/auth/core/crypto.js";
 import { PrismaClient } from "@/database/generated/prisma/client.js";
@@ -29,7 +29,7 @@ import {
   provisionDefaultRoles,
   SEED_ADMIN_ROLES,
   SEED_SUPERADMIN_ROLES,
-} from "../src/modules/auth/rbac.defaults.js";
+} from "./seedData/index.js";
 
 function requireEnv(name: string): string {
   const value = process.env[name];
@@ -40,7 +40,7 @@ function requireEnv(name: string): string {
   return value;
 }
 
-/** The catalog and the roles come from rbac.defaults.ts; this only reports what it wrote. */
+/** The catalog and the roles come from `database/seedData/`; this only reports what it wrote. */
 async function seedRbacDefaults(prisma: PrismaClient): Promise<void> {
   await provisionDefaultRoles(prisma);
   console.log(`permissions: ${PERMISSION_SLUGS.length} slug(s) in the catalog`);

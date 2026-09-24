@@ -26,7 +26,7 @@ import type { CurrentUser } from "@simple-auth-kit/auth-client";
 export type AppAbility = Ability<string>;
 
 /**
- * The backend's permission catalog (`rbac.defaults.ts`), mirrored here so a screen names a
+ * The backend's permission catalog (`permission-slugs.ts`), mirrored here so a screen names a
  * capability rather than spelling a string. These are exactly the keys the server's
  * `@CheckAbility` decorators demand: hiding a control on one of them and getting a 403
  * from the matching route are the same fact, reported twice.
@@ -75,12 +75,18 @@ export function buildAbility(user: CurrentUser | null): AppAbility {
   return build();
 }
 
-export function hasPermission(ability: AppAbility, permissionKey: PermissionKey): boolean {
+export function hasPermission(
+  ability: AppAbility,
+  permissionKey: PermissionKey,
+): boolean {
   return ability.can(permissionKey);
 }
 
 /** For a screen that several capabilities can each open on their own — see the roles screen. */
-export function hasAnyPermission(ability: AppAbility, permissionKeys: readonly PermissionKey[]): boolean {
+export function hasAnyPermission(
+  ability: AppAbility,
+  permissionKeys: readonly PermissionKey[],
+): boolean {
   return permissionKeys.some((key) => ability.can(key));
 }
 

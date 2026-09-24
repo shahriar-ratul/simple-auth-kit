@@ -711,7 +711,7 @@ export class RbacRepository {
    * Scoped by workspace, so an admin cannot reach a role id belonging to a workspace they are not
    * in. A permission slug this deployment never defined is created on the spot: it exists, it can
    * be granted, and it opens nothing until a route names it — and no route shipped by this
-   * library can name it, because `@CheckAbility` only accepts slugs from `rbac.defaults.ts`.
+   * library can name it, because `@CheckAbility` only accepts slugs from `permission-slugs.ts`.
    */
   async attachPermissionToRole(
     workspaceId: string,

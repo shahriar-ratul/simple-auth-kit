@@ -6,21 +6,22 @@
 // is deleted, and an existing admin keeps the password they already have.
 //
 // Roles seeded here belong to the seeded workspace only — `Role` is unique per
-// `[workspaceId, slug]`. A workspace created later through POST /workspaces provisions its own
-// from the same `rbac.defaults.ts` definition, so no workspace's roles can drift from what the
-// routes demand.
+// `[workspaceId, slug]`, so there is no such thing as a role that exists in all of them. A
+// workspace created later through POST /workspaces builds its own roles from the database (see
+// `WorkspaceRepository.create`), not from this seed data. (1) and (3) are defined in
+// `database/seedData/`, which the app never imports: after seeding, the database is the only
+// source of truth.
 import { PrismaPg } from "@prisma/adapter-pg";
 import { hashPassword } from "@/lib/auth/core/crypto.js";
 import { PrismaClient } from "@/database/generated/prisma/client.js";
 import {
   DEFAULT_ROLES,
+  DEFAULT_WORKSPACE_NAME,
   PERMISSION_SLUGS,
   provisionDefaultRoles,
+  SEED_ADMIN_ROLES,
   SEED_SUPERADMIN_ROLES,
-  WORKSPACE_CREATOR_ROLES,
-} from "../src/modules/auth/rbac.defaults.js";
-
-const DEFAULT_WORKSPACE_NAME = "Default workspace";
+} from "./seedData/index.js";
 
 function requireEnv(name: string): string {
   const value = process.env[name];
@@ -116,7 +117,7 @@ async function seedAdminUser(
     update: {},
   });
   const roles = await prisma.role.findMany({
-    where: { workspaceId: workspace.id, slug: { in: WORKSPACE_CREATOR_ROLES } },
+    where: { workspaceId: workspace.id, slug: { in: SEED_ADMIN_ROLES } },
     select: { id: true, slug: true },
   });
   await prisma.roleMember.createMany({

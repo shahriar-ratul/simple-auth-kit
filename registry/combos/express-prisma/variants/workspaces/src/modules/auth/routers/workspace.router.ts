@@ -48,7 +48,7 @@ export interface WorkspaceRouterDeps {
  *   • `GET /workspaces/members` is gated on membership itself: the workspace middleware already
  *     proved the caller belongs to the workspace, and seeing who else is in a room you are in is
  *     not an administrative capability.
- * The three that mutate membership are permission-gated — see `rbac.defaults.ts` for the catalog.
+ * The three that mutate membership are permission-gated — see `permission-slugs.ts` for the catalog.
  *
  * Two tiered routers, because the tier's middleware is what enforces the tier: the unscoped
  * routes resolve a workspace only if one is named, while everything under a workspace uses the

@@ -10,7 +10,7 @@ import { toId } from "../src/common/helpers/id.helper.js";
 import {
   provisionDefaultRoles,
   SEED_ADMIN_ROLES,
-} from "../src/modules/auth/rbac.defaults.js";
+} from "../database/seedData/index.js";
 import { POLICY_VERSION_KEY } from "../src/common/auth/cache/permission-cache.js";
 import { permissionCacheStore } from "./bootstrap.js";
 import {

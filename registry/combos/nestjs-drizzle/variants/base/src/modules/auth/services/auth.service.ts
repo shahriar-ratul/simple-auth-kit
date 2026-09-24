@@ -135,7 +135,7 @@ export class AuthService {
       })
       .returning();
     // The signup default is whichever roles are flagged `isDefault` in the database, not a name
-    // spelled in code — see rbac.defaults.ts.
+    // spelled in code — see permission-slugs.ts.
     await this.rbac.assignDefaultRoles(user.id);
     return this.issueSessionTokens(user, {
       userAgent: input.userAgent,

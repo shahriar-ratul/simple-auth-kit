@@ -6,12 +6,11 @@ import {
 } from "@nestjs/common";
 import { and, asc, eq, inArray } from "drizzle-orm";
 import { DRIZZLE_DB, type Database } from "@/common/config/db";
-import {
-  provisionDefaultRoles,
-  WORKSPACE_CREATOR_ROLES,
-} from "@/modules/auth/rbac.defaults";
+import { PERMISSION_SLUGS } from "@/modules/auth/permission-slugs";
 import { RbacRepository } from "@/modules/auth/repositories/rbac.repository";
 import {
+  permissionRole,
+  permissions,
   roleMember,
   roles,
   users,
@@ -36,6 +35,36 @@ export interface MembershipSummary {
   createdAt: string;
 }
 
+/**
+ * The roles every new workspace starts with, so its creator can administer it from the first
+ * request. Built from the database, never from seed data: `admin` carries every permission this
+ * build's routes are gated on (`PERMISSION_SLUGS`) that exists and is active in the permission
+ * table when the workspace is created. Permissions a deployment invented at runtime are left out,
+ * so one workspace's custom permissions never leak into another's admin role. `member` (the
+ * new-membership default) carries none. The creator holds both. On a database that was never
+ * seeded this still works; `admin` just carries nothing until those permissions exist.
+ */
+const WORKSPACE_ROLES = [
+  {
+    slug: "admin",
+    displayName: "Administrator",
+    description:
+      "Carries every built-in permission that was active when this workspace was created.",
+    isDefault: false,
+    order: 0,
+    carriesEveryPermission: true,
+  },
+  {
+    slug: "member",
+    displayName: "Member",
+    description:
+      "The default for a new membership. Carries no administrative permission.",
+    isDefault: true,
+    order: 1,
+    carriesEveryPermission: false,
+  },
+] as const;
+
 @Injectable()
 export class WorkspaceRepository {
   constructor(
@@ -44,15 +73,10 @@ export class WorkspaceRepository {
   ) {}
 
   /**
-   * Creates a workspace, its creator's admin membership, *and* that workspace's default roles —
-   * all in one transaction, so a workspace is never left without an administrator.
-   *
-   * The role provisioning is not optional garnish. `roles` is unique per `[workspaceId, slug]`, so
-   * a new workspace genuinely has no role rows: without them the creator's membership would point
-   * at nothing, resolve to zero permissions, and lock them out of the workspace they had just made
-   * the instant any route enforced a permission. The seeder only provisions the workspace *it*
-   * creates, so this path has to provision its own — from the same definition, which is why both
-   * call `provisionDefaultRoles` rather than each keeping a copy of the table.
+   * Creates a workspace, its roles (`WORKSPACE_ROLES`), and its creator's membership holding
+   * them — all in one transaction, so a workspace is never left without an administrator. `Role`
+   * is unique per `[workspaceId, slug]`, so a new workspace genuinely has no role rows until this
+   * step writes them.
    */
   async create(userId: string, name: string): Promise<WorkspaceSummary> {
     const userIdBig = toId(userId);
@@ -61,36 +85,55 @@ export class WorkspaceRepository {
         .insert(workspaces)
         .values({ name, createdBy: userIdBig, updatedBy: userIdBig })
         .returning();
-      await provisionDefaultRoles(tx, created.id);
-
-      const creatorRoles = await tx
-        .select({ id: roles.id })
-        .from(roles)
+      const active = await tx
+        .select({ id: permissions.id })
+        .from(permissions)
         .where(
           and(
-            eq(roles.workspaceId, created.id),
-            inArray(roles.slug, WORKSPACE_CREATOR_ROLES),
+            inArray(permissions.slug, PERMISSION_SLUGS),
+            eq(permissions.isActive, true),
+            eq(permissions.isDeleted, false),
           ),
         );
+      const roleIds: bigint[] = [];
+      for (const role of WORKSPACE_ROLES) {
+        const [row] = await tx
+          .insert(roles)
+          .values({
+            workspaceId: created.id,
+            slug: role.slug,
+            name: role.displayName,
+            displayName: role.displayName,
+            description: role.description,
+            isDefault: role.isDefault,
+            order: role.order,
+            createdBy: userIdBig,
+            updatedBy: userIdBig,
+          })
+          .returning({ id: roles.id });
+        roleIds.push(row.id);
+        if (role.carriesEveryPermission && active.length) {
+          await tx
+            .insert(permissionRole)
+            .values(
+              active.map((p) => ({ permissionId: p.id, roleId: row.id })),
+            );
+        }
+      }
       const [member] = await tx
         .insert(workspaceMembers)
         .values({ workspaceId: created.id, userId: userIdBig })
         .returning({ id: workspaceMembers.id });
-      if (creatorRoles.length) {
-        await tx.insert(roleMember).values(
-          creatorRoles.map((role) => ({
-            memberId: member.id,
-            roleId: role.id,
-          })),
-        );
-      }
+      await tx
+        .insert(roleMember)
+        .values(roleIds.map((roleId) => ({ memberId: member.id, roleId })));
       return created;
     });
     return {
       id: workspace.id.toString(),
       name: workspace.name,
       createdAt: workspace.createdAt.toISOString(),
-      roles: [...WORKSPACE_CREATOR_ROLES].sort(),
+      roles: WORKSPACE_ROLES.map((role) => role.slug).sort(),
     };
   }
 

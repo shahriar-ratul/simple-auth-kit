@@ -83,8 +83,9 @@ template. Nine steps, repository → UI:
 4. **Service methods** in `services/auth.service.ts`, **routes** in
    `controllers/admin.controller.ts` (GET list/one, POST create, PATCH update, DELETE
    soft-delete, POST `/:id/activate|deactivate`), each with `@CheckAbility("<domain>:...")`.
-5. **Slugs** in `rbac.defaults.ts` — `<domain>:read`, `:manage`, `:status`. That's all the
-   seeder needs; the `admin` role spreads the whole catalog.
+5. **Slugs** in `src/modules/auth/permission-slugs.ts` — `<domain>:read`, `:manage`, `:status` —
+   plus one seed row each in `database/seedData/permissions.ts` (a missing row is a compile
+   error). The seeded `admin` role carries every slug.
 6. **Provider registration** in `auth.module.ts`.
 7. **prove-cycle**: run it — the startup route-tier check alone will catch an unguarded route.
 8. **auth-client**: types (full row) + methods following the `listRoles` pattern

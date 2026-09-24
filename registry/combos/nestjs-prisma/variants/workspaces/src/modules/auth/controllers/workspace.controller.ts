@@ -65,7 +65,7 @@ const WORKSPACE_HEADER_DOC = {
 // (`@Authenticated()`, no permission slug) since they're outside any workspace — any
 // authenticated user may create one or list their own. `GET /workspaces/members` is gated on
 // membership itself, proven by `WorkspaceGuard`. The three that mutate membership are
-// permission-gated — see `rbac.defaults.ts` for the catalog.
+// permission-gated — see `permission-slugs.ts` for the catalog.
 @ApiTags("workspaces")
 @Controller("v1/workspaces")
 @ApiBearerAuth()

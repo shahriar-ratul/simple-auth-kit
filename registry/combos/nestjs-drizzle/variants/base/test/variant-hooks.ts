@@ -13,7 +13,7 @@ import { POLICY_VERSION_KEY } from "../src/common/auth/cache/permission-cache.js
 import {
   provisionDefaultRoles,
   SEED_ADMIN_ROLES,
-} from "../src/modules/auth/rbac.defaults.js";
+} from "../database/seedData/index.js";
 import * as schema from "@/database/schema.js";
 import { permissions, roleUser, roles } from "@/database/schema.js";
 import { permissionCacheStore } from "./bootstrap.js";

@@ -5,10 +5,7 @@ import {
   NotFoundException,
 } from "@nestjs/common";
 import { PrismaService } from "@/modules/prisma/prisma.service";
-import {
-  provisionDefaultRoles,
-  WORKSPACE_CREATOR_ROLES,
-} from "@/modules/auth/rbac.defaults";
+import { PERMISSION_SLUGS } from "@/modules/auth/permission-slugs";
 import { RbacRepository } from "@/modules/auth/repositories/rbac.repository";
 import { toId } from "@/common/helpers/id.helper";
 
@@ -28,6 +25,36 @@ export interface MembershipSummary {
   createdAt: string;
 }
 
+/**
+ * The roles every new workspace starts with, so its creator can administer it from the first
+ * request. Built from the database, never from seed data: `admin` carries every permission this
+ * build's routes are gated on (`PERMISSION_SLUGS`) that exists and is active in the permission
+ * table when the workspace is created. Permissions a deployment invented at runtime are left out,
+ * so one workspace's custom permissions never leak into another's admin role. `member` (the
+ * new-membership default) carries none. The creator holds both. On a database that was never
+ * seeded this still works; `admin` just carries nothing until those permissions exist.
+ */
+const WORKSPACE_ROLES = [
+  {
+    slug: "admin",
+    displayName: "Administrator",
+    description:
+      "Carries every built-in permission that was active when this workspace was created.",
+    isDefault: false,
+    order: 0,
+    carriesEveryPermission: true,
+  },
+  {
+    slug: "member",
+    displayName: "Member",
+    description:
+      "The default for a new membership. Carries no administrative permission.",
+    isDefault: true,
+    order: 1,
+    carriesEveryPermission: false,
+  },
+] as const;
+
 @Injectable()
 export class WorkspaceRepository {
   constructor(
@@ -35,28 +62,52 @@ export class WorkspaceRepository {
     @Inject(RbacRepository) private readonly rbac: RbacRepository,
   ) {}
 
-  // Creates a workspace, its creator's admin membership, and that workspace's default roles all
-  // in one transaction, so a workspace is never left without an administrator. `Role` is unique
-  // per `[workspaceId, slug]`, so a new workspace genuinely has no `Role` rows without this step.
+  /**
+   * Creates a workspace, its roles (`WORKSPACE_ROLES`), and its creator's membership holding
+   * them — all in one transaction, so a workspace is never left without an administrator. `Role`
+   * is unique per `[workspaceId, slug]`, so a new workspace genuinely has no role rows until this
+   * step writes them.
+   */
   async create(userId: string, name: string): Promise<WorkspaceSummary> {
     const userIdBig = toId(userId);
     const workspace = await this.prisma.$transaction(async (tx) => {
       const created = await tx.workspace.create({
         data: { name, createdBy: userIdBig, updatedBy: userIdBig },
       });
-      await provisionDefaultRoles(tx, created.id);
-      const roles = await tx.role.findMany({
+      const active = await tx.permission.findMany({
         where: {
-          workspaceId: created.id,
-          slug: { in: WORKSPACE_CREATOR_ROLES },
+          slug: { in: PERMISSION_SLUGS },
+          isActive: true,
+          isDeleted: false,
         },
         select: { id: true },
       });
+      const roleIds: bigint[] = [];
+      for (const role of WORKSPACE_ROLES) {
+        const { id } = await tx.role.create({
+          data: {
+            workspaceId: created.id,
+            slug: role.slug,
+            name: role.displayName,
+            displayName: role.displayName,
+            description: role.description,
+            isDefault: role.isDefault,
+            order: role.order,
+            createdBy: userIdBig,
+            updatedBy: userIdBig,
+            permissions: role.carriesEveryPermission
+              ? { create: active.map((p) => ({ permissionId: p.id })) }
+              : undefined,
+          },
+          select: { id: true },
+        });
+        roleIds.push(id);
+      }
       await tx.workspaceMember.create({
         data: {
           workspaceId: created.id,
           userId: userIdBig,
-          roles: { create: roles.map((role) => ({ roleId: role.id })) },
+          roles: { create: roleIds.map((roleId) => ({ roleId })) },
         },
       });
       return created;
@@ -65,7 +116,7 @@ export class WorkspaceRepository {
       id: workspace.id.toString(),
       name: workspace.name,
       createdAt: workspace.createdAt.toISOString(),
-      roles: [...WORKSPACE_CREATOR_ROLES].sort(),
+      roles: WORKSPACE_ROLES.map((role) => role.slug).sort(),
     };
   }
 

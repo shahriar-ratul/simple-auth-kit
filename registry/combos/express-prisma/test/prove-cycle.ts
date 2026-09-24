@@ -126,11 +126,11 @@ async function main() {
     bootError instanceof Error ? bootError.message : String(bootError);
   assert(
     bootError !== undefined,
-    "registering a route gated on a slug outside PERMISSION_CATALOG throws at registration, not at request time",
+    "registering a route gated on a slug outside PERMISSION_SLUGS throws at registration, not at request time",
   );
   assert(
     bootMessage.includes("no:such-permission") &&
-      bootMessage.includes("PERMISSION_CATALOG"),
+      bootMessage.includes("PERMISSION_SLUGS"),
     `…and the error names the offending permission (got: ${bootMessage.split("\n")[0]})`,
   );
 

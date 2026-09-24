@@ -60,6 +60,7 @@ registry/
     │   │   ├── database/schema/**  (Prisma: .prisma files) or database/schema.ts (Drizzle)
     │   │   ├── database/migrations/**
     │   │   ├── database/seed.ts
+    │   │   ├── database/seedData/**  seed data only — never imported by src/
     │   │   ├── root/**        project-root files that differ per variant, copied over
     │   │                      shared/root/ — e.g. monitoring/prometheus/prometheus.yml,
     │   │                      whose scrape target is this variant's own app port
@@ -148,17 +149,17 @@ repositories (`modules/auth/repositories/`), `modules/auth/dto/auth.dto.ts`.
 `variants/<variant>/src`: everything whose implementation depends on how authorization is
 scoped — `modules/auth/auth.module.ts`, `modules/auth/services/auth.service.ts`,
 `modules/admin/controllers/admin.controller.ts`, `common/auth/guards/authz.guard.ts`,
-`modules/auth/repositories/rbac.repository.ts`, `modules/auth/rbac.defaults.ts`,
-`modules/audit-log/repositories/audit-log.repository.ts`, `database/seed.ts`,
+`modules/auth/repositories/rbac.repository.ts`, `modules/auth/permission-slugs.ts`,
+`modules/audit-log/repositories/audit-log.repository.ts`, `database/seed.ts`, `database/seedData/**`,
 `modules/admin/dto/admin.dto.ts`, and the content-domain repositories
 (`modules/admin/repositories/{country,language,customer}.repository.ts`, this combo only). Plus,
 in `base` only, `modules/auth/gateways/audit-log.gateway.ts` (the socket.io feed) and
 `infra/openapi/docs.ts`; in `workspaces` only, `modules/auth/controllers/workspace.controller.ts`,
 `modules/auth/repositories/workspace.repository.ts`, `modules/auth/dto/workspace.dto.ts`.
 
-`rbac.defaults.ts` is per variant rather than shared because the catalogs differ by one slug
-(`members:manage` exists only where there are members to manage), and a file must not branch on
-its variant. See "Enforcement" below — it is the file the whole authorization story hangs off.
+`permission-slugs.ts` and `database/seedData/` are per variant rather than shared because the
+slug lists differ by one (`members:manage` exists only where there are members to manage), and a
+file must not branch on its variant. See "Enforcement" below.
 
 `variants/<variant>/.env.example`: not shared. The workspace variant's seeder reads one variable
 the base variant has no concept of (`SEED_WORKSPACE_NAME`), and an emitted project must not
@@ -244,8 +245,9 @@ of these rules into that combo's ORM, not a redesign:
    (`Permission.slug`, `Role.slug` / `[workspaceId, slug]`, the join-table composite ids,
    `User.email`, `[userId, workspaceId]`). Nothing is ever deleted, so a re-run is additive: a
    permission attached to a seeded role by hand survives it.
-2. **The permission catalog comes from `rbac.defaults.ts`** (see "Enforcement"), one
-   `noun:verb` slug per capability the admin API actually exposes — not a speculative list.
+2. **The seed data lives in `database/seedData/`** (`permissions.ts`, `roles.ts`, `provision.ts`,
+   plus `workspace.ts` in the workspaces variant): one permission row per slug in
+   `permission-slugs.ts` (see "Enforcement"), not a speculative list.
 3. **Two default roles.** `admin` carries the whole catalog; `member` is the signup/new-membership
    default and carries the empty set, because every slug in the catalog is administrative. No
    guard checks for a role name — the names are load-bearing only as the default a new user or
@@ -266,9 +268,11 @@ of these rules into that combo's ORM, not a redesign:
    the working directory's `.env` via `process.loadEnvFile()` — which never overrides a variable
    the process was already given. No `dotenv` dependency is added to the consumer's project.
 
-The seeder does not own the catalog or the role definitions — `rbac.defaults.ts` does, and the
-seeder is one of its callers. See "Enforcement" below for why that matters and who the other
-callers are.
+**Seed data is not application code.** Nothing under `src/` imports `database/seedData/` or
+`database/seed.ts`: the app builds and runs with both deleted, and after seeding the database is
+the only source of truth for which permissions exist, which roles carry them, and who holds
+them. The dependency runs one way only — the seed data imports `PermissionSlug` from the app so
+it can't miss a slug a route is gated on.
 
 ## Enforcement
 
@@ -278,29 +282,25 @@ boot and a route carrying none of them **crashes the boot, naming itself** — a
 cannot ship open by omission. There is **no role-based bypass** anywhere in a combo: a role
 that carries no permissions confers no authority, whatever it is called.
 
-### `rbac.defaults.ts` — the one definition, and what mirrors it
+### `permission-slugs.ts` — the one piece of RBAC that is code
 
-`variants/<variant>/src/rbac.defaults.ts` is the single source of truth, and every other piece
-reads it rather than keeping a copy:
+`variants/<variant>/src/modules/auth/permission-slugs.ts` lists the slugs this build's routes are
+gated on, and nothing else — no display names, no roles, no grants:
 
-- **`PERMISSION_CATALOG`** — `noun:verb` slug → display name, description, group. One entry per
-  capability the admin API exposes: in the reference combo, 18 slugs in `base`, 19 in
-  `workspaces` (+`members:manage`); 9/10 in the other combos, which have no content domains.
-  The full slug list and the route → slug mapping live in `docs/backend-api.md`.
-- **`PermissionSlug`** = `keyof typeof PERMISSION_CATALOG`, and `@CheckAbility` takes **that
-  type, not `string`**. A route cannot demand a slug the catalog does not define, so "this
-  route requires something nothing can ever grant" is a compile error rather than a 403 nobody
-  can explain. Deployments may mint new slugs at runtime (`POST /permissions`
-  accepts any string), but those cannot gate a route this library ships.
-- **`DEFAULT_ROLES`** — `admin` carries the whole catalog, `member` carries nothing.
-- **`provisionDefaultRoles(db[, workspaceId])`** — writes catalog + default roles into a
-  database. `db` is typed structurally so it accepts either the client or a transaction
-  client. Every insert is `ON CONFLICT DO NOTHING` on the natural unique key, so it is
-  idempotent _and_ safe to run concurrently, and nothing is ever deleted.
+- **`PERMISSION_SLUGS`** — one `noun:verb` slug per capability the admin API exposes: in the
+  reference combo, 18 in `base`, 19 in `workspaces` (+`members:manage`); 9/10 in the other combos,
+  which have no content domains. The route → slug mapping lives in `docs/backend-api.md`.
+- **`PermissionSlug`** — the union of those slugs. `@CheckAbility` (Express: `ability(...)`) takes
+  **that type, not `string`**, so "this route requires something nothing can ever grant" is a
+  compile error rather than a 403 nobody can explain. Express also checks each slug against
+  `PERMISSION_SLUGS` at registration. Deployments may mint new slugs at runtime
+  (`POST /permissions` accepts any string), but those cannot gate a route this library ships.
 
-Its callers: `src/seed.ts` (both variants), `src/workspace.repository.ts` (workspaces only), and
-the variant hooks in `test/`. The seeder is a _caller_ of this definition, not its owner —
-which is what makes it impossible for what gets seeded and what the routes demand to drift.
+Everything else is data. `database/seedData/` holds a starting point — permission display names
+and groups, the `admin`/`member` roles, which roles the seeded accounts get — and
+`provisionDefaultRoles(db[, workspaceId])` writes it; its only callers are `database/seed.ts` and
+the variant hooks in `test/`. Every insert is `ON CONFLICT DO NOTHING` on the natural unique key,
+so it is idempotent _and_ safe to run concurrently, and nothing is ever deleted.
 
 Resolution at request time (`AuthzGuard` → `PermissionCache` → `RbacRepository`) unions role
 permissions with direct grants and dedupes; `AbilityGuard` then checks the route's slug against
@@ -326,11 +326,15 @@ locked out of the workspace they just made — permanently, since every route th
 is one of the gated ones. The seeder does not help: it only provisions the workspace _it_
 creates.
 
-`WorkspaceRepository.create` therefore calls `provisionDefaultRoles(tx, workspace.id)` **inside
-the same transaction** that creates the workspace and the creator's membership, so a workspace
-never exists without the roles that make it administrable. `prove-cycle` proves it end to end:
+`WorkspaceRepository.create` therefore creates the workspace's roles **inside the same
+transaction** that creates the workspace and the creator's membership, so a workspace never
+exists without the roles that make it administrable. It builds them from the database, not from
+seed data: `admin` carries every slug in `PERMISSION_SLUGS` that exists and is active in the
+permission table, and `member` (the new-membership default) carries nothing; the creator holds
+both. Permissions a deployment minted at runtime are deliberately left out, so one workspace's
+custom permissions never leak into another workspace's admin role. `prove-cycle` proves it end to end:
 create a brand-new workspace, then exercise the administrative capabilities inside it as the
-person who created it. Remove the provisioning call and that section fails immediately — as
+person who created it. Remove the role creation and that section fails immediately — as
 does most of the rest of the workspaces run, since the proof's own admin gets their authority
 from a workspace they create.
 
@@ -357,14 +361,15 @@ and running its own build/typecheck, not this file's proof harness).
 2. Write `variants/workspaces/` against the reference combo's schema and endpoint shapes.
 3. Copy `scripts/*.mjs` from `nestjs-prisma` — they are combo-agnostic apart from the Prisma/
    Drizzle migration command in `migrate.mjs`.
-4. Port `variants/<variant>/src/rbac.defaults.ts` first — the catalog, `PermissionSlug`,
-   `DEFAULT_ROLES` and `provisionDefaultRoles` — then `variants/<variant>/src/seed.ts` and the
-   `SEED_*` block of each variant's `.env.example`, following the contract in "The seeder" above.
-   Translating `provisionDefaultRoles` into that combo's ORM is the only real work; keep it
-   idempotent, transaction-client-friendly, and `ON CONFLICT DO NOTHING`.
+4. Port `variants/<variant>/src/modules/auth/permission-slugs.ts` first, then
+   `variants/<variant>/database/seedData/` (permissions, roles, `provisionDefaultRoles`), then
+   `database/seed.ts` and the `SEED_*` block of each variant's `root/.env.example`, following the
+   contract in "The seeder" above. Translating `provisionDefaultRoles` into that combo's ORM is
+   the only real work; keep it idempotent, transaction-client-friendly, and `ON CONFLICT DO
+NOTHING`. Nothing under `src/` may import `database/seedData/`.
 5. Put `@CheckAbility` on every admin route per the mapping in `docs/backend-api.md`, wire the
-   startup route-tier check, and — in the workspace variant — provision the default roles
-   inside the workspace-creation transaction. A combo that seeds a catalog it does not enforce
+   startup route-tier check, and — in the workspace variant — create the new workspace's roles
+   from the database inside the workspace-creation transaction. A combo that seeds a catalog it does not enforce
    is worse than one that does neither: the admin console hides UI the server would have
    allowed anyway.
 6. Add `sharedDir`, `variantsDir` and `variants: ["base", "workspaces"]` to the combo's entry in

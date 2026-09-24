@@ -34,7 +34,7 @@ convention for everything under `registry/`.
    core's `*Deps` interfaces (e.g. `SessionRepository implements SessionStoreDeps`).
 3. `registry/combos/<combo>/variants/{base,workspaces}/src/` — everything whose shape depends on
    how authorization is scoped: `AuthzGuard`'s concrete resolution, `RbacRepository`,
-   `rbac.defaults.ts` (permission catalog), `seed.ts`, admin routes, the composition root
+   `permission-slugs.ts` (the slugs routes are gated on), admin routes, the composition root
    (`auth.module.ts` / `create-auth-app.ts`).
 
 **The rule for where a file goes** (`registry/README.md`, verbatim): _"write both variants, then
@@ -74,7 +74,7 @@ exactly what the CLI emits.
 classes+decorators+DI (`@Injectable`, `CanActivate` guards, `Reflector`); Express combos use
 factory functions returning closures (`createAuthMiddleware`, `createTieredRouter`), with
 `ability(...slugs)` throwing at router-registration time if a slug isn't in
-`PERMISSION_CATALOG` (a compile/register-time analogue of Nest's boot check, not the identical
+`PERMISSION_SLUGS` (a compile/register-time analogue of Nest's boot check, not the identical
 mechanism).
 
 **CLI composition & distribution**: `packages/cli/simple-auth-kit.ts` is fully `packages/cli/registry.json`-driven (no
@@ -168,9 +168,14 @@ express-prisma, express-drizzle` order); `admin-nextjs` `3000`/`3010`; `admin-re
   take a small `*Deps` object as their first argument; combo repositories satisfy those types
   structurally (duck typing), never via a shared base class. Follow this shape for any new core
   function — do not introduce a unified store interface.
-- **Flat permission slugs**: `PermissionSlug = keyof typeof PERMISSION_CATALOG`
-  (`variants/<v>/src/rbac.defaults.ts`) — a route can only name a slug the catalog defines; the
-  compiler enforces it. New permission → add to the catalog first.
+- **Flat permission slugs**: `PermissionSlug` is the union of `PERMISSION_SLUGS`
+  (`variants/<v>/src/modules/auth/permission-slugs.ts`) — a route can only name a slug that list
+  defines; the compiler enforces it. New permission → add the slug there, then its seed row in
+  `variants/<v>/database/seedData/permissions.ts` (a missing row is a compile error).
+- **Seed data is not app code**: `variants/<v>/database/seedData/` (permission metadata, default
+  roles, seeded-account roles, `provisionDefaultRoles`) is imported only by `database/seed.ts` and
+  the proof harness — never from `src/`. After seeding, the database is the only source of truth;
+  the app must build and run with the seed folder deleted.
 - **Error handling**: `registry/core/types.ts` defines `AuthCoreError` + 6 typed subclasses (each
   with a fixed `code` string). Combos map these centrally — one `@Catch()` filter in NestJS
   combos, one `next(err)`-driven middleware in Express combos — so handlers never format error
@@ -213,8 +218,8 @@ express-prisma, express-drizzle` order); `admin-nextjs` `3000`/`3010`; `admin-re
 ability.guard.ts,route-tiers.ts,permission-cache.ts,response.interceptor.ts,
 auth-core-error.filter.ts}` — the reference implementation of the authn/authz seam; read these
   first to understand the pattern before touching any other combo.
-- `registry/combos/nestjs-prisma/variants/{base,workspaces}/src/{authz.guard.ts,rbac.defaults.ts,
-seed.ts,auth.module.ts}` — variant-specific resolution, the permission catalog, the seeder, and
+- `registry/combos/nestjs-prisma/variants/{base,workspaces}/src/{authz.guard.ts,permission-slugs.ts,
+auth.module.ts}` + `database/{seed.ts,seedData/}` — variant-specific resolution, the slug list, the seeder, and
   the composition root (`AuthModule.forRoot` runs the boot-time tier check before any DB/port
   allocation).
 - `packages/cli/simple-auth-kit.ts`, `packages/cli/lib/copy.ts`, `packages/cli/registry.json` — CLI entrypoint, manifest-driven
