@@ -75,7 +75,6 @@
     "modules/permissions/services/permission.service.ts": "bbc429fd5d0465dcab3f294e2f7d8a190cc070008ec4969ab44f7988d37a9429",
     "modules/roles/controllers/role.controller.ts": "7e66d8493fe2e2cab5c21b3be8bc34371f30700770cd82c0b4fb716c36f314b0",
     "modules/roles/services/role.service.ts": "f58c7b5ea411ac16fc708824e65c8d902a8cec83f8db6fe3d9d9104d302a728f",
-    ".env.example": "bacf51d2ffc4b9324488b8ab316b50c92b2164bf87d092ad51d4accb7fbaa531",
     "../prisma.config.ts": "f057ce361d6f1659d573ff2fe03637092fc9b986d39b5105131e4bfc5073ea40",
     "../database/migrations/20260810084938_init/migration.sql": "49f5e4dfcccbc7d96add69114bfb7ce7e4cfb396a66af3d93dc1d3f888717a65",
     "../database/migrations/20260810123450_add_profile_audit_soft_delete/migration.sql": "c283a9e6c116d5fdf13095cb57fa39c5eac757a7c179535feb3178c10344a9b7",
@@ -128,6 +127,7 @@
     "../tsconfig.json": "852af06b2af2f5055180148e3003dd4c0fb201856ff66cbc55f974e6ca4c9c39",
     "../vitest.config.mts": "4341dee57708074ca47625cd13d98e8e4e13624f10e6e8825afd196b82b7c258",
     "../monitoring/prometheus/prometheus.yml": "d2edceb897bea139cfd751baff4de5f8bf23aedb96442a8524d09adab0bf78ea",
-    "../package.json": "6f05063c7da602eeced4153febdc02c682dcd3ba5150a6d4e72215904f182a6a"
+    "../package.json": "6f05063c7da602eeced4153febdc02c682dcd3ba5150a6d4e72215904f182a6a",
+    "../.env.example": "bacf51d2ffc4b9324488b8ab316b50c92b2164bf87d092ad51d4accb7fbaa531"
   }
 }

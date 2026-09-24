@@ -57,7 +57,6 @@
     "modules/permissions/services/permissions.service.ts": "0195c3a2d09878936f4d4d2a86085d89fd62345938ece071b855e4f50c2b2629",
     "modules/roles/routers/roles.router.ts": "872075c74f41152511ba37d5c82bf9d5e1d45329283e2475dfba73c0b648930d",
     "modules/roles/services/roles.service.ts": "d289b318deed642798b73d8c86a4c314b5f9c9d2e920b4d4c4fdb882fa7d64f3",
-    ".env.example": "a6211c2f0d8d6c4ed9d66adfcd8f2a14fb05ada6c989e905ebf16bf3b43a2b0f",
     "../drizzle.config.ts": "9b4579b9622485b796027c7f66016ac83537e1382d764c6a3e01edb49d07ee9a",
     "../database/migrations/0000_init.sql": "684bf36980d83f4581e59369f4754e239fa5dec49849ebb952885580121ed593",
     "../database/migrations/0001_add_is_active_field.sql": "dcba7ba62356487f1e273cc5a0d0b0b16fcec06692754218135021f0babcdeba",
@@ -99,6 +98,7 @@
     "../tsconfig.build.json": "1e35cbd4f809238f267f340c53c11edcac6c84af2e8771807d1adb5f08eb1e8e",
     "../tsconfig.json": "903253acbaaa19962f43c4bf1bbe2338b036a6d6b15c200645baa61f8fc713b3",
     "../vitest.config.mts": "4341dee57708074ca47625cd13d98e8e4e13624f10e6e8825afd196b82b7c258",
-    "../monitoring/prometheus/prometheus.yml": "64ef4f3fe3f03377fa1d5daa791e4383728aaf623544bfe15fc899b57a96b103"
+    "../monitoring/prometheus/prometheus.yml": "64ef4f3fe3f03377fa1d5daa791e4383728aaf623544bfe15fc899b57a96b103",
+    "../.env.example": "a6211c2f0d8d6c4ed9d66adfcd8f2a14fb05ada6c989e905ebf16bf3b43a2b0f"
   }
 }
