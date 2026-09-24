@@ -50,6 +50,7 @@ export const PERMISSIONS = {
   permissionsDefine: "permissions:define",
   permissionsGrant: "permissions:grant",
   auditLogRead: "audit-log:read",
+  authzCacheManage: "authz-cache:manage",
   membersManage: "members:manage",
   countriesRead: "countries:read",
   countriesManage: "countries:manage",

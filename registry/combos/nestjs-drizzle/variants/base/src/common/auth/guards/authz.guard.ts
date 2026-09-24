@@ -5,7 +5,7 @@ import {
   Injectable,
 } from "@nestjs/common";
 import { defineAbilitiesFor } from "@/common/auth/ability/ability";
-import { AuthzCache } from "@/common/auth/cache/authz-cache";
+import { AuthzCache, authzCacheKey } from "@/common/auth/cache/authz-cache";
 import { RbacRepository } from "@/common/repositories/rbac.repository";
 
 /**
@@ -49,7 +49,7 @@ export class AuthzGuard implements CanActivate {
     const req = context.switchToHttp().getRequest();
     if (req.auth) {
       const userId = req.auth.sub as string;
-      req.authz = (await this.cache.get(userId, () =>
+      req.authz = (await this.cache.get(authzCacheKey(userId), () =>
         this.rbac.resolveAuthzContext(userId),
       )) ?? {
         roles: [],

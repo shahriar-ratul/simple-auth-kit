@@ -2,6 +2,7 @@ import { DynamicModule, Global, Module } from "@nestjs/common";
 import { JwtModule } from "@nestjs/jwt";
 import { AbilityGuard } from "@/common/auth/ability/ability.guard";
 import { AdminController } from "@/modules/admin/controllers/admin.controller";
+import { AuthzCacheController } from "@/modules/admin/controllers/authz-cache.controller";
 import { AuditLogController } from "@/modules/audit-log/controllers/audit-log.controller";
 import {
   AUTH_CONFIG,
@@ -15,7 +16,11 @@ import { AuthzCache } from "@/common/auth/cache/authz-cache";
 import { AuthzGuard } from "@/common/auth/guards/authz.guard";
 import { DrizzleModule } from "@/modules/drizzle/drizzle.module";
 import { DRIZZLE_DB, type Database } from "@/common/config/db";
-import { readAuthzVersion } from "@/common/auth/cache/authz-version";
+import {
+  bumpAuthzVersion,
+  loadIdentities,
+  readAuthzVersion,
+} from "@/common/auth/cache/authz-version";
 import { loadJwtSecret } from "@/common/config/key-provider";
 import { AuthTokenService } from "@/common/auth/token.service";
 import {
@@ -36,6 +41,7 @@ import { log } from "@/infra/logger/logger";
 const TIERED_CONTROLLERS = [
   AuthController,
   AdminController,
+  AuthzCacheController,
   RoleController,
   PermissionController,
   AuditLogController,
@@ -101,7 +107,11 @@ export class CoreAuthModule {
         {
           provide: AuthzCache,
           useFactory: (db: Database, cfg: AuthConfig) =>
-            new AuthzCache(cfg.authzCache, () => readAuthzVersion(db)),
+            new AuthzCache(cfg.authzCache, {
+              readVersion: () => readAuthzVersion(db),
+              bumpVersion: () => bumpAuthzVersion(db),
+              loadIdentities: (userIds) => loadIdentities(db, userIds),
+            }),
           inject: [DRIZZLE_DB, AUTH_CONFIG],
         },
         SessionRepository,

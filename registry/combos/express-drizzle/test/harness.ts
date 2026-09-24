@@ -126,6 +126,12 @@ export function adminRouteProbes(args: {
       body: { displayName: "Probe User" },
     },
     {
+      permission: "authz-cache:manage",
+      label: "GET /admin/authz-cache",
+      method: "GET",
+      path: "/admin/authz-cache",
+    },
+    {
       permission: "audit-log:read",
       label: "GET /audit-log",
       method: "GET",

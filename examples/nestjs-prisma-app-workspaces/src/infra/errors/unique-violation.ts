@@ -19,7 +19,12 @@ export function uniqueViolationMessage(err: unknown): string | null {
 
 interface PrismaUniqueMeta {
   target?: string[] | string;
-  driverAdapterError?: { cause?: { table?: string; constraint?: { index?: string; fields?: string[] } } };
+  driverAdapterError?: {
+    cause?: {
+      table?: string;
+      constraint?: { index?: string; fields?: string[] };
+    };
+  };
 }
 
 /** "users_phone_key" on table "users" -> "phone". */

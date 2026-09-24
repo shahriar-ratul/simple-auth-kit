@@ -132,6 +132,18 @@ export function adminRouteProbes(args: {
       path: "/audit-log",
     },
     {
+      permission: "authz-cache:manage",
+      label: "GET /admin/authz-cache",
+      method: "GET",
+      path: "/admin/authz-cache",
+    },
+    {
+      permission: "authz-cache:manage",
+      label: "POST /admin/authz-cache/clear",
+      method: "POST",
+      path: "/admin/authz-cache/clear",
+    },
+    {
       permission: "permissions:read",
       label: "GET /permissions",
       method: "GET",

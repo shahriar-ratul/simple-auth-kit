@@ -1,5 +1,7 @@
 import type { NextFunction, Request, RequestHandler, Response } from "express";
 import { hashPassword } from "@/lib/auth/core/crypto";
+import type { AuthzCache } from "@/common/auth/cache/authz-cache";
+import type { AuthzContext } from "@/common/auth/middleware/authz.middleware";
 import { AdminService } from "@/modules/admin/services/admin.service";
 import { HttpError } from "@/infra/errors/http-error";
 import { ability, createTieredRouter } from "@/infra/route-tiers";
@@ -17,6 +19,8 @@ const optionalString = (value: unknown): string | undefined =>
 
 export interface AdminRouterDeps {
   admin: AdminService;
+  /** Inspected and cleared by `/authz-cache` — see authz-cache.ts. */
+  authzCache: AuthzCache<AuthzContext>;
   /** Creating a member directly writes through the repository, not `AdminService` — see the `POST /users` route below. */
   workspaces: WorkspaceRepository;
   authentication: RequestHandler;
@@ -47,7 +51,8 @@ export interface AdminRouterDeps {
  * required argument rather than a decorator.
  */
 export function createAdminRouter(deps: AdminRouterDeps): RequestHandler {
-  const { admin, workspaces, authentication, workspaceScope } = deps;
+  const { admin, authzCache, workspaces, authentication, workspaceScope } =
+    deps;
   const router = createTieredRouter({
     authentication,
     authorization: workspaceScope,
@@ -338,6 +343,33 @@ export function createAdminRouter(deps: AdminRouterDeps): RequestHandler {
           { userId: req.auth!.sub, ip: req.ip },
         );
         res.status(201).json({ ok: true });
+      } catch (err) {
+        next(err);
+      }
+    },
+  );
+
+  router.route(
+    "get",
+    "/authz-cache",
+    ability("authz-cache:manage"),
+    async (req: Request, res: Response, next: NextFunction) => {
+      try {
+        // Only this workspace's entries — never another workspace's.
+        res.status(200).json(await authzCache.inspect(req.authz!.workspaceId));
+      } catch (err) {
+        next(err);
+      }
+    },
+  );
+
+  router.route(
+    "post",
+    "/authz-cache/clear",
+    ability("authz-cache:manage"),
+    async (req: Request, res: Response, next: NextFunction) => {
+      try {
+        res.status(201).json(await authzCache.clear(req.authz!.workspaceId));
       } catch (err) {
         next(err);
       }

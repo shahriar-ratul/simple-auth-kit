@@ -8,6 +8,7 @@ import { AuditLogModule } from "../src/modules/audit-log/audit-log.module.js";
 import { AuthCoreErrorFilter } from "../src/infra/filters/auth-core-error.filter.js";
 import { AuthModule } from "../src/modules/auth/auth.module.js";
 import { AuthzCache } from "../src/common/auth/cache/authz-cache.js";
+import { MapAuthzCacheStore } from "./map-authz-cache-store.js";
 import { CoreAuthModule } from "../src/common/auth/core-auth.module.js";
 import { PermissionModule } from "../src/modules/permissions/permissions.module.js";
 import { RequestLoggerInterceptor } from "../src/infra/interceptor/request-logger.interceptor.js";
@@ -48,9 +49,10 @@ export async function bootstrap(port: number) {
         // short enough to stay realistic. See `renewingToken` in test/harness.ts for the other
         // half of the fix.
         accessTokenTtlSeconds: 300,
-        // A one-second TTL (the rest stays default), so the proof can show a raw database write
-        // (which bypasses the app's `authz_version` bump) being picked up once it passes.
-        authzCache: { ttlSeconds: 1 },
+        // Caching needs a store (there is no in-memory fallback), so the proof supplies a
+        // test-only Map-backed one. A one-second TTL (the rest stays default) lets it show a raw
+        // database write (which bypasses the app's `authz_version` bump) picked up once it passes.
+        authzCache: { ttlSeconds: 1, store: new MapAuthzCacheStore() },
         throttle,
         sendPasswordResetEmail: async (email, token) => {
           capturedResetTokens.set(email, token);

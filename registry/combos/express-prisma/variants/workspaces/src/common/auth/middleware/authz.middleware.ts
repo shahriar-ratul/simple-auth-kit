@@ -1,7 +1,10 @@
 import type { NextFunction, Request, RequestHandler, Response } from "express";
 import { defineAbilitiesFor } from "@/common/auth/ability/ability";
 import { HttpError } from "@/infra/errors/http-error";
-import type { AuthzCache } from "@/common/auth/cache/authz-cache";
+import {
+  authzCacheKey,
+  type AuthzCache,
+} from "@/common/auth/cache/authz-cache";
 import type { RbacRepository } from "@/common/repositories/rbac.repository";
 import "@/infra/request-context";
 
@@ -30,7 +33,7 @@ export interface AuthzMiddlewareDeps {
  * named" differs.
  *
  * The one lookup is `resolveAuthzContext`'s — anchored on the `[userId, workspaceId]` unique
- * index — cached per `userId:workspaceId` (`AuthzCache`). Every app write that changes
+ * index — cached per `workspaceId:userId` (`AuthzCache`, when a store is configured). Every app write that changes
  * authorization bumps `authz_version`, so a change made through the admin API applies on the very
  * next request; a direct database edit applies once the entry's TTL (`authzCache.ttlSeconds`) runs
  * out. "Not a member" is never cached.
@@ -49,7 +52,7 @@ async function resolve(deps: AuthzMiddlewareDeps, req: Request): Promise<void> {
     return;
 
   const userId = req.auth.sub;
-  const authz = await deps.cache.get(`${userId}:${workspaceId}`, () =>
+  const authz = await deps.cache.get(authzCacheKey(userId, workspaceId), () =>
     deps.rbac.resolveAuthzContext(userId, workspaceId),
   );
   // Deliberately the same answer for "no such workspace" and "not your workspace": a caller

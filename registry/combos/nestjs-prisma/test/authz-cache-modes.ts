@@ -10,6 +10,7 @@ import {
   type AuthzCacheStore,
 } from "../src/common/auth/cache/authz-cache.js";
 import type { PrismaService } from "../src/modules/prisma/prisma.service.js";
+import { MapAuthzCacheStore } from "./map-authz-cache-store.js";
 
 type Assert = (condition: boolean, message: string) => void;
 
@@ -25,7 +26,12 @@ function harness(authzCache: Partial<AuthConfig["authzCache"]>) {
   } as unknown as PrismaService;
   const config: AuthConfig = {
     ...defaultAuthConfig,
-    authzCache: { ...defaultAuthConfig.authzCache, ...authzCache },
+    // A store unless the case says otherwise ("store" in authzCache, even as undefined).
+    authzCache: {
+      ...defaultAuthConfig.authzCache,
+      store: new MapAuthzCacheStore(),
+      ...authzCache,
+    },
   };
   const cache = new AuthzCache(prisma, config);
   const resolve = async () => {
@@ -36,6 +42,15 @@ function harness(authzCache: Partial<AuthConfig["authzCache"]>) {
 }
 
 export async function proveAuthzCacheModes(assert: Assert): Promise<void> {
+  {
+    const { cache, counts, resolve } = harness({ store: undefined });
+    for (let i = 0; i < 3; i++) await cache.get("u1", resolve);
+    assert(
+      counts.resolutions === 3 && counts.versionReads === 0,
+      `no authzCache.store means no cache: every call resolves and the version is never read (got ${counts.resolutions} resolutions, ${counts.versionReads} version reads)`,
+    );
+  }
+
   {
     const { cache, counts, resolve } = harness({ enabled: false });
     for (let i = 0; i < 3; i++) await cache.get("u1", resolve);

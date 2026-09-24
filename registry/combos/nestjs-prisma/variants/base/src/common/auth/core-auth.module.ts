@@ -2,6 +2,7 @@ import { DynamicModule, Global, Module } from "@nestjs/common";
 import { JwtModule } from "@nestjs/jwt";
 import { AbilityGuard } from "@/common/auth/ability/ability.guard";
 import { AdminController } from "@/modules/admin/controllers/admin.controller";
+import { AuthzCacheController } from "@/modules/admin/controllers/authz-cache.controller";
 import { AuditLogController } from "@/modules/audit-log/controllers/audit-log.controller";
 import {
   AUTH_CONFIG,
@@ -34,6 +35,7 @@ import { log } from "@/infra/logger/logger";
 const TIERED_CONTROLLERS = [
   AuthController,
   AdminController,
+  AuthzCacheController,
   RoleController,
   PermissionController,
   AuditLogController,

@@ -40,7 +40,7 @@ async function resolve(
     return;
 
   const userId = req.auth.sub as string;
-  const authz = await cache.get(`${userId}:${workspaceId}`, () =>
+  const authz = await cache.get(`${workspaceId}:${userId}`, () =>
     rbac.resolveAuthzContext(userId, workspaceId),
   );
   // Same answer for "no such workspace" and "not your workspace" — a caller outside a workspace

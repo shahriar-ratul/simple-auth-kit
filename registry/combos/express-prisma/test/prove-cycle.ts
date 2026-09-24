@@ -13,12 +13,10 @@ import {
   ABILITY_SUBJECT,
   defineAbilitiesFor,
 } from "../src/common/auth/ability/ability.js";
-import {
-  AuthzCache,
-  InMemoryAuthzCacheStore,
-} from "../src/common/auth/cache/authz-cache.js";
+import { AuthzCache } from "../src/common/auth/cache/authz-cache.js";
 import { ability, createTieredRouter } from "../src/infra/route-tiers.js";
-import { bootstrap, capturedResetTokens } from "./bootstrap.js";
+import { authzCache, bootstrap, capturedResetTokens } from "./bootstrap.js";
+import { MapAuthzCacheStore } from "./map-authz-cache-store.js";
 import {
   adminRouteProbes,
   AuthTokens,
@@ -1697,6 +1695,100 @@ async function main() {
     );
     await proveAuthzCacheConfiguration();
 
+    console.log(
+      "13c. the authorization-cache admin endpoints: gated, scoped, and clear really invalidates",
+    );
+    for (const [method, path] of [
+      ["GET", "/admin/authz-cache"],
+      ["POST", "/admin/authz-cache/clear"],
+    ] as const) {
+      const denied = await call(method, path, {
+        token: bare.token,
+        workspaceId: admin.workspaceId,
+      });
+      assert(
+        denied.status === 403,
+        `an ordinary user is refused ${method} ${path} (got ${denied.status})`,
+      );
+    }
+
+    const cacheAdminToken = await admin.freshToken();
+    const cacheProbe = await probeUser("cache-probe", ["users:read"]);
+    // One authorized request, so this user's resolved authorization is now in the store.
+    await call("GET", "/admin/users", {
+      token: cacheProbe.token,
+      workspaceId: admin.workspaceId,
+    });
+    const inspected = await call("GET", "/admin/authz-cache", {
+      token: cacheAdminToken,
+      workspaceId: admin.workspaceId,
+    });
+    type InspectedEntry = {
+      key: string;
+      userId: string;
+      workspaceId?: string;
+      roles: string[];
+      permissions: string[];
+    };
+    const inspectedEntries = (inspected.body?.entries ??
+      []) as InspectedEntry[];
+    const probeEntry = inspectedEntries.find(
+      (e) => e.userId === cacheProbe.userId,
+    );
+    assert(
+      inspected.status === 200 && inspected.body?.active === true,
+      `the admin sees an active cache (got ${inspected.status}, active=${inspected.body?.active})`,
+    );
+    assert(
+      !!probeEntry &&
+        probeEntry.permissions.includes("users:read") &&
+        probeEntry.roles.includes(NO_PERMS_ROLE),
+      `…with an entry for a user who just made an authorized request, carrying their roles and permissions (got ${JSON.stringify(probeEntry)})`,
+    );
+    if (admin.workspaceId !== undefined) {
+      const wsPrefix = `simpleauthkit:authz:${admin.workspaceId}:`;
+      assert(
+        inspectedEntries.length > 0 &&
+          inspectedEntries.every(
+            (e) =>
+              e.workspaceId === admin.workspaceId && e.key.startsWith(wsPrefix),
+          ),
+        `…and every listed entry belongs to the workspace the request named — no other workspace's entries leak (${inspectedEntries.length} entries)`,
+      );
+    }
+
+    const cleared = await call("POST", "/admin/authz-cache/clear", {
+      token: cacheAdminToken,
+      workspaceId: admin.workspaceId,
+    });
+    assert(
+      cleared.status === 201 &&
+        cleared.body?.version ===
+          (BigInt(inspected.body.version as string) + 1n).toString() &&
+        (cleared.body?.removed as number) >= 1,
+      `clearing bumps the version by one and deletes the stored entries (got ${cleared.status}, ${JSON.stringify(cleared.body)}, previous version ${inspected.body?.version})`,
+    );
+    const afterClear = await call("GET", "/admin/authz-cache", {
+      token: cacheAdminToken,
+      workspaceId: admin.workspaceId,
+    });
+    assert(
+      !((afterClear.body?.entries ?? []) as InspectedEntry[]).some(
+        (e) => e.userId === cacheProbe.userId,
+      ),
+      "…after which the cleared user's entry is gone",
+    );
+    const beforeRecall = { ...authzCache.stats };
+    const recall = await call("GET", "/admin/users", {
+      token: cacheProbe.token,
+      workspaceId: admin.workspaceId,
+    });
+    assert(
+      recall.status === 200 &&
+        authzCache.stats.resolutions - beforeRecall.resolutions === 1,
+      `…and their next authorized request re-resolves from the database (got ${recall.status}, resolutions +${authzCache.stats.resolutions - beforeRecall.resolutions})`,
+    );
+
     console.log(`14. ${hooks.variant}-specific properties`);
     await hooks.proveVariantProperties(ctx, admin);
   } finally {
@@ -1722,6 +1814,9 @@ async function proveAuthzCacheConfiguration(): Promise<void> {
       versionReads += 1;
       return 1n;
     },
+    bumpAuthzVersion: async () => 2n,
+    // Never exercised here — this suite only drives .get(), never the admin .inspect() endpoint.
+    readProfileSummaries: async () => new Map(),
   };
   let resolves = 0;
   const resolver = async () => {
@@ -1742,10 +1837,24 @@ async function proveAuthzCacheConfiguration(): Promise<void> {
 
   resolves = 0;
   versionReads = 0;
+  const storeless = new AuthzCache(source, {
+    enabled: true,
+    revalidate: true,
+    ttlSeconds: 30,
+  });
+  for (let i = 0; i < 3; i += 1) await storeless.get("u1", resolver);
+  assert(
+    resolves === 3 && versionReads === 0 && !storeless.active,
+    `no store = no cache: enabled but storeless resolves on every call and never reads the version (resolves ${resolves}, version reads ${versionReads})`,
+  );
+
+  resolves = 0;
+  versionReads = 0;
   const trusting = new AuthzCache(source, {
     enabled: true,
     revalidate: false,
     ttlSeconds: 1,
+    store: new MapAuthzCacheStore(),
   });
   for (let i = 0; i < 3; i += 1) await trusting.get("u1", resolver);
   assert(
@@ -1760,7 +1869,7 @@ async function proveAuthzCacheConfiguration(): Promise<void> {
   );
 
   const calls: string[] = [];
-  const backing = new InMemoryAuthzCacheStore();
+  const backing = new MapAuthzCacheStore();
   const customStore = {
     get: async (key: string) => {
       calls.push(`get ${key}`);
@@ -1792,6 +1901,7 @@ async function proveAuthzCacheConfiguration(): Promise<void> {
     enabled: true,
     revalidate: true,
     ttlSeconds: 30,
+    store: new MapAuthzCacheStore(),
   });
   await neverCached.get("u3", async () => {
     resolves += 1;

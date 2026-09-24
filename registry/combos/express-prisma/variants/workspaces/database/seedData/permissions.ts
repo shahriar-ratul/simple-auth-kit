@@ -94,6 +94,13 @@ export const PERMISSION_CATALOG = {
     group: "Audit",
     order: 1,
   },
+  "authz-cache:manage": {
+    displayName: "Manage the authorization cache",
+    description:
+      "GET /api/v1/admin/authz-cache, POST /api/v1/admin/authz-cache/clear",
+    group: "System",
+    order: 1,
+  },
 } as const satisfies Record<PermissionSlug, PermissionSeed>;
 
 /** Groups, in render order for an admin console. Derived from the catalog so it can't drift. */

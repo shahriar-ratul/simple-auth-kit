@@ -2,9 +2,11 @@
 // in the same write path (and, where there is one, the same transaction) as every change to what
 // `resolveAuthzContext` returns. `AuthzCache` compares it on each request. Writes made behind the
 // app's back — a raw SQL session — don't bump it; those are covered by the cache's TTL instead.
-import { eq, sql } from "drizzle-orm";
+import { eq, inArray, sql } from "drizzle-orm";
 import type { Database } from "@/common/config/db";
-import { authzVersion } from "@/database/schema";
+import { authzVersion, users } from "@/database/schema";
+import { toId } from "@/common/helpers/id.helper";
+import type { CachedIdentity } from "./authz-cache";
 
 /** The database handle or a transaction handle — both expose the same builders. */
 export type AuthzVersionDb = Pick<Database, "insert" | "select">;
@@ -28,4 +30,28 @@ export async function bumpAuthzVersion(db: AuthzVersionDb): Promise<void> {
       target: authzVersion.id,
       set: { version: sql`${authzVersion.version} + 1` },
     });
+}
+
+/** Batched profile lookup for the admin cache-inspection endpoint — one query for every user id not already cached. */
+export async function loadIdentities(
+  db: Pick<Database, "select">,
+  userIds: string[],
+): Promise<Map<string, CachedIdentity>> {
+  if (!userIds.length) return new Map();
+  const rows = await db
+    .select({
+      id: users.id,
+      email: users.email,
+      firstName: users.firstName,
+      lastName: users.lastName,
+      displayName: users.displayName,
+    })
+    .from(users)
+    .where(
+      inArray(
+        users.id,
+        userIds.map((id) => toId(id)),
+      ),
+    );
+  return new Map(rows.map((row) => [row.id.toString(), row]));
 }

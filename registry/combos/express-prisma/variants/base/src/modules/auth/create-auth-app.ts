@@ -142,7 +142,12 @@ export function createAuthApp(options: CreateAuthAppOptions = {}): Express {
   // its own top-level path; paths no longer overlap the way a single `/api/v1/admin` mount did.
   app.use(
     "/api/v1/admin",
-    createAdminRouter({ admin: adminService, authentication, authorization }),
+    createAdminRouter({
+      admin: adminService,
+      authzCache,
+      authentication,
+      authorization,
+    }),
   );
   app.use(
     "/api/v1/roles",

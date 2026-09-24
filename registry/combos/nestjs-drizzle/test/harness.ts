@@ -214,6 +214,18 @@ export function adminRouteProbes(args: {
       method: "POST",
       path: `/admin/users/${targetUserId}/unblock`,
     },
+    {
+      permission: "authz-cache:manage",
+      label: "GET /admin/authz-cache",
+      method: "GET",
+      path: "/admin/authz-cache",
+    },
+    {
+      permission: "authz-cache:manage",
+      label: "POST /admin/authz-cache/clear",
+      method: "POST",
+      path: "/admin/authz-cache/clear",
+    },
   ];
 }
 

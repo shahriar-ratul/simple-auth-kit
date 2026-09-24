@@ -15,11 +15,17 @@ export interface AppleOAuthCredentials {
   redirectUri: string;
 }
 
-/** `AuthConfig.authzCache`. Pass any subset to `createAuthApp`; the rest keep their defaults. */
+/**
+ * `AuthConfig.authzCache`. Pass any subset to `createAuthApp`; the rest keep their defaults.
+ *
+ * No store = no cache: there is no in-memory fallback. Caching is active only when `enabled` is
+ * true AND a `store` is given; otherwise every authorized request resolves roles and permissions
+ * from the database.
+ */
 export interface AuthzCacheConfig {
   /**
-   * `false` turns caching off: every authorized request resolves roles and permissions from the
-   * database.
+   * `false` turns caching off even when a store is given: every authorized request resolves roles
+   * and permissions from the database.
    */
   enabled: boolean;
   /**
@@ -35,8 +41,9 @@ export interface AuthzCacheConfig {
    */
   ttlSeconds: number;
   /**
-   * Where entries live. Defaults to in-process memory (`InMemoryAuthzCacheStore`); pass e.g. a
-   * Redis-backed `AuthzCacheStore` to share entries across servers.
+   * Where entries live — e.g. a Redis-backed `AuthzCacheStore`, shared by every server. Required
+   * for caching: with no store there is no cache. Implement `list`/`clear` too to let
+   * `GET /admin/authz-cache` list entries and `POST /admin/authz-cache/clear` delete them.
    */
   store?: AuthzCacheStore;
 }

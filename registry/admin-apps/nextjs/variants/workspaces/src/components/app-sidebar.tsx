@@ -4,9 +4,25 @@ import { useAbility } from "@casl/react";
 import { observer } from "mobx-react-lite";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ChevronRightIcon, ContactIcon, GlobeIcon, LanguagesIcon, LayoutDashboardIcon, ScrollTextIcon, ShieldCheckIcon, UserPlusIcon, UsersIcon, UsersRoundIcon } from "lucide-react";
+import {
+  ChevronRightIcon,
+  DatabaseZapIcon,
+  ContactIcon,
+  GlobeIcon,
+  LanguagesIcon,
+  LayoutDashboardIcon,
+  ScrollTextIcon,
+  ShieldCheckIcon,
+  UserPlusIcon,
+  UsersIcon,
+  UsersRoundIcon,
+} from "lucide-react";
 import { NavUser } from "@/components/nav-user";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
 import {
   Sidebar,
   SidebarContent,
@@ -23,7 +39,13 @@ import {
   SidebarMenuSubItem,
   SidebarRail,
 } from "@/components/ui/sidebar";
-import { PERMISSIONS, ROLES_SCREEN_PERMISSIONS, hasAnyPermission, type AppAbility, type PermissionKey } from "@/lib/ability";
+import {
+  PERMISSIONS,
+  ROLES_SCREEN_PERMISSIONS,
+  hasAnyPermission,
+  type AppAbility,
+  type PermissionKey,
+} from "@/lib/ability";
 import { useWorkspaceStore } from "@/lib/stores/store-context";
 
 /**
@@ -41,7 +63,11 @@ const LINKS: Array<{
   icon: typeof UsersIcon;
   requires?: readonly PermissionKey[];
   needsWorkspace?: boolean;
-  children?: Array<{ href: string; label: string; requires?: readonly PermissionKey[] }>;
+  children?: Array<{
+    href: string;
+    label: string;
+    requires?: readonly PermissionKey[];
+  }>;
 }> = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboardIcon },
   {
@@ -52,13 +78,47 @@ const LINKS: Array<{
     needsWorkspace: true,
     children: [
       { href: "/users", label: "All users", requires: [PERMISSIONS.usersRead] },
-      { href: "/users/new", label: "Add user", requires: [PERMISSIONS.usersManage] },
+      {
+        href: "/users/new",
+        label: "Add user",
+        requires: [PERMISSIONS.usersManage],
+      },
     ],
   },
-  { href: "/members", label: "Members", icon: UsersRoundIcon, needsWorkspace: true },
-  { href: "/roles", label: "Roles & permissions", icon: ShieldCheckIcon, requires: ROLES_SCREEN_PERMISSIONS, needsWorkspace: true },
-  { href: "/permissions", label: "Permissions", icon: ShieldCheckIcon, requires: [PERMISSIONS.permissionsRead], needsWorkspace: true },
-  { href: "/audit-log", label: "Audit log", icon: ScrollTextIcon, requires: [PERMISSIONS.auditLogRead], needsWorkspace: true },
+  {
+    href: "/members",
+    label: "Members",
+    icon: UsersRoundIcon,
+    needsWorkspace: true,
+  },
+  {
+    href: "/roles",
+    label: "Roles & permissions",
+    icon: ShieldCheckIcon,
+    requires: ROLES_SCREEN_PERMISSIONS,
+    needsWorkspace: true,
+  },
+  {
+    href: "/permissions",
+    label: "Permissions",
+    icon: ShieldCheckIcon,
+    requires: [PERMISSIONS.permissionsRead],
+    needsWorkspace: true,
+  },
+  {
+    href: "/audit-log",
+    label: "Audit log",
+    icon: ScrollTextIcon,
+    requires: [PERMISSIONS.auditLogRead],
+    needsWorkspace: true,
+  },
+  {
+    href: "/authz-cache",
+    label: "Cache",
+    icon: DatabaseZapIcon,
+    requires: [PERMISSIONS.authzCacheManage],
+    needsWorkspace: true,
+  },
   {
     href: "/customers",
     label: "Customers",
@@ -66,8 +126,16 @@ const LINKS: Array<{
     requires: [PERMISSIONS.customersRead],
     needsWorkspace: true,
     children: [
-      { href: "/customers", label: "All customers", requires: [PERMISSIONS.customersRead] },
-      { href: "/customers/new", label: "Add customer", requires: [PERMISSIONS.customersManage] },
+      {
+        href: "/customers",
+        label: "All customers",
+        requires: [PERMISSIONS.customersRead],
+      },
+      {
+        href: "/customers/new",
+        label: "Add customer",
+        requires: [PERMISSIONS.customersManage],
+      },
     ],
   },
   {
@@ -77,8 +145,16 @@ const LINKS: Array<{
     requires: [PERMISSIONS.countriesRead],
     needsWorkspace: true,
     children: [
-      { href: "/countries", label: "All countries", requires: [PERMISSIONS.countriesRead] },
-      { href: "/countries/new", label: "Add country", requires: [PERMISSIONS.countriesManage] },
+      {
+        href: "/countries",
+        label: "All countries",
+        requires: [PERMISSIONS.countriesRead],
+      },
+      {
+        href: "/countries/new",
+        label: "Add country",
+        requires: [PERMISSIONS.countriesManage],
+      },
     ],
   },
   {
@@ -88,8 +164,16 @@ const LINKS: Array<{
     requires: [PERMISSIONS.languagesRead],
     needsWorkspace: true,
     children: [
-      { href: "/languages", label: "All languages", requires: [PERMISSIONS.languagesRead] },
-      { href: "/languages/new", label: "Add language", requires: [PERMISSIONS.languagesManage] },
+      {
+        href: "/languages",
+        label: "All languages",
+        requires: [PERMISSIONS.languagesRead],
+      },
+      {
+        href: "/languages/new",
+        label: "Add language",
+        requires: [PERMISSIONS.languagesManage],
+      },
     ],
   },
 ];
@@ -100,10 +184,23 @@ export const AppSidebar = observer(function AppSidebar() {
   const pathname = usePathname();
 
   const hasWorkspace = workspaces.activeWorkspaceId !== null;
-  const links = LINKS.filter((link) => (!link.needsWorkspace || hasWorkspace) && (!link.requires || hasAnyPermission(ability, link.requires)))
-    .map((link) => ({ ...link, children: link.children?.filter((child) => !child.requires || hasAnyPermission(ability, child.requires)) }))
+  const links = LINKS.filter(
+    (link) =>
+      (!link.needsWorkspace || hasWorkspace) &&
+      (!link.requires || hasAnyPermission(ability, link.requires)),
+  )
+    .map((link) => ({
+      ...link,
+      children: link.children?.filter(
+        (child) => !child.requires || hasAnyPermission(ability, child.requires),
+      ),
+    }))
     // A parent with every child hidden by permissions collapses to a plain link.
-    .map((link) => (link.children && link.children.length <= 1 ? { ...link, children: undefined } : link));
+    .map((link) =>
+      link.children && link.children.length <= 1
+        ? { ...link, children: undefined }
+        : link,
+    );
 
   return (
     <Sidebar collapsible="icon">
@@ -117,7 +214,9 @@ export const AppSidebar = observer(function AppSidebar() {
                 </div>
                 <div className="grid flex-1 text-left text-sm leading-tight">
                   <span className="truncate font-medium">simple-auth-kit</span>
-                  <span className="truncate text-xs text-muted-foreground">admin console</span>
+                  <span className="truncate text-xs text-muted-foreground">
+                    admin console
+                  </span>
                 </div>
               </Link>
             </SidebarMenuButton>
@@ -131,10 +230,18 @@ export const AppSidebar = observer(function AppSidebar() {
             <SidebarMenu>
               {links.map((link) =>
                 link.children ? (
-                  <Collapsible key={link.href} asChild defaultOpen={pathname.startsWith(link.href)} className="group/collapsible">
+                  <Collapsible
+                    key={link.href}
+                    asChild
+                    defaultOpen={pathname.startsWith(link.href)}
+                    className="group/collapsible"
+                  >
                     <SidebarMenuItem>
                       <CollapsibleTrigger asChild>
-                        <SidebarMenuButton tooltip={link.label} isActive={pathname === link.href}>
+                        <SidebarMenuButton
+                          tooltip={link.label}
+                          isActive={pathname === link.href}
+                        >
                           <link.icon />
                           <span>{link.label}</span>
                           <ChevronRightIcon className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
@@ -144,9 +251,14 @@ export const AppSidebar = observer(function AppSidebar() {
                         <SidebarMenuSub>
                           {link.children.map((child) => (
                             <SidebarMenuSubItem key={child.href}>
-                              <SidebarMenuSubButton asChild isActive={pathname === child.href}>
+                              <SidebarMenuSubButton
+                                asChild
+                                isActive={pathname === child.href}
+                              >
                                 <Link href={child.href}>
-                                  {child.href === "/users/new" ? <UserPlusIcon /> : null}
+                                  {child.href === "/users/new" ? (
+                                    <UserPlusIcon />
+                                  ) : null}
                                   <span>{child.label}</span>
                                 </Link>
                               </SidebarMenuSubButton>
@@ -158,7 +270,11 @@ export const AppSidebar = observer(function AppSidebar() {
                   </Collapsible>
                 ) : (
                   <SidebarMenuItem key={link.href}>
-                    <SidebarMenuButton asChild isActive={pathname === link.href} tooltip={link.label}>
+                    <SidebarMenuButton
+                      asChild
+                      isActive={pathname === link.href}
+                      tooltip={link.label}
+                    >
                       <Link href={link.href}>
                         <link.icon />
                         <span>{link.label}</span>

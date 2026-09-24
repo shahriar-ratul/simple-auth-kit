@@ -6,6 +6,7 @@ import type { AuthzContext } from '@/common/auth/guards/authz.guard';
 import { toId, toIdOrNull } from '@/common/helpers/id.helper';
 import { buildPageMeta, normalizeLimit, normalizePage, type Paginated } from '@/common/helpers/pagination';
 import { bumpAuthzVersion } from '@/common/auth/cache/authz-version';
+import { AuthzCache } from '@/common/auth/cache/authz-cache';
 
 const MEMBER_INCLUDE = {
   user: true,
@@ -140,7 +141,10 @@ const ROLE_SELECT = {
 
 @Injectable()
 export class RbacRepository {
-  constructor(@Inject(PrismaService) private readonly prisma: PrismaService) {}
+  constructor(
+    @Inject(PrismaService) private readonly prisma: PrismaService,
+    @Inject(AuthzCache) private readonly cache: AuthzCache,
+  ) {}
 
   // The hot path: every workspace-scoped request runs this once. Anchored on the
   // `[userId, workspaceId]` unique index — never a scan over the user's workspaces — walking
@@ -281,6 +285,7 @@ export class RbacRepository {
       where: { id: toId(userId) },
       data: { ...input, updatedBy: toIdOrNull(actorUserId) },
     });
+    await this.cache.invalidateProfile(toId(userId));
     return this.getMember(workspaceId, userId);
   }
 
@@ -299,6 +304,7 @@ export class RbacRepository {
         deletedReason: reason ?? null,
       },
     });
+    await this.cache.invalidateProfile(toId(userId));
     await bumpAuthzVersion(this.prisma);
   }
 

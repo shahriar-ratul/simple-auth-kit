@@ -412,6 +412,7 @@ export const hooks: VariantHooks = {
     await proveWorkspaceHeaderCannotBeSkipped(ctx, alpha);
     await proveAGrantStaysInItsWorkspace(ctx, alpha, beta);
     await proveARawDatabaseEditChangesEnforcement(ctx, beta);
+    await proveTheAuthzCacheAdminEndpoints(ctx);
   },
 };
 
@@ -900,5 +901,100 @@ async function proveARawDatabaseEditChangesEnforcement(
   ctx.assert(
     afterRoleDeleted.status === 403,
     `a role assignment deleted by a raw database write denies the next request after the cache TTL, same token (got ${afterRoleDeleted.status})`,
+  );
+}
+
+/**
+ * `GET /admin/authz-cache` and `POST /admin/authz-cache/clear`: gated on `authz-cache:manage`,
+ * scoped to the workspace the request names — its entries only, never another workspace's — and
+ * clearing bumps the version first, so every server's entries are invalidated.
+ */
+async function proveTheAuthzCacheAdminEndpoints(
+  ctx: ProofContext,
+): Promise<void> {
+  const gamma = await newAdminWithWorkspace(ctx, "gamma");
+  const delta = await newAdminWithWorkspace(ctx, "delta");
+  const asGamma = { token: gamma.token, workspaceId: gamma.workspace.id };
+  // An entry under another workspace's prefix, which gamma's view must never show.
+  await ctx.call("GET", "/admin/users", {
+    token: delta.token,
+    workspaceId: delta.workspace.id,
+  });
+
+  const email = ctx.uniqueEmail("cacheadmin");
+  const member = await ctx.signup(email, "cacheadmin-pw-12345");
+  const memberUserId = (
+    await ctx.call("GET", "/auth/me", { token: member.accessToken })
+  ).body.sub as string;
+  await ctx.call("POST", "/workspaces/members", {
+    ...asGamma,
+    body: { email },
+  });
+  const asMember = {
+    token: member.accessToken,
+    workspaceId: gamma.workspace.id,
+  };
+
+  const plainGet = await ctx.call("GET", "/admin/authz-cache", asMember);
+  const plainClear = await ctx.call(
+    "POST",
+    "/admin/authz-cache/clear",
+    asMember,
+  );
+  ctx.assert(
+    plainGet.status === 403 && plainClear.status === 403,
+    `an ordinary member is refused both authz-cache endpoints (got ${plainGet.status}, ${plainClear.status})`,
+  );
+
+  await ctx.call("POST", `/admin/users/${memberUserId}/permissions`, {
+    ...asGamma,
+    body: { permission: "audit-log:read" },
+  });
+  const authorized = await ctx.call("GET", "/audit-log", asMember);
+  const inspected = await ctx.call("GET", "/admin/authz-cache", asGamma);
+  const entries: Array<{
+    key: string;
+    userId: string;
+    workspaceId?: string;
+    permissions: string[];
+    roles: string[];
+  }> = inspected.body?.entries ?? [];
+  const entry = entries.find((e) => e.userId === memberUserId);
+  ctx.assert(
+    authorized.status === 200 &&
+      inspected.status === 200 &&
+      inspected.body.active === true &&
+      entry?.key ===
+        `simpleauthkit:authz:${gamma.workspace.id}:${memberUserId}` &&
+      entry.permissions.includes("audit-log:read") &&
+      Array.isArray(entry.roles),
+    `the workspace admin sees the cache active, with an entry for a member who just made an authorized request, carrying their permissions (entry: ${JSON.stringify(entry)})`,
+  );
+  ctx.assert(
+    entries.length > 0 &&
+      entries.every((e) => e.workspaceId === gamma.workspace.id),
+    `…and only this workspace's entries — none from another workspace (workspaces seen: ${[...new Set(entries.map((e) => e.workspaceId))].join(", ")})`,
+  );
+
+  const cleared = await ctx.call("POST", "/admin/authz-cache/clear", asGamma);
+  ctx.assert(
+    cleared.status === 201 &&
+      cleared.body.version === String(Number(inspected.body.version) + 1) &&
+      cleared.body.removed >= 1,
+    `clearing bumps the version by one and deletes this workspace's stored entries (got ${JSON.stringify(cleared.body)}, version was ${inspected.body.version})`,
+  );
+
+  const afterClear = await ctx.call("GET", "/admin/authz-cache", asGamma);
+  ctx.assert(
+    !(afterClear.body?.entries ?? []).some(
+      (e: { userId: string }) => e.userId === memberUserId,
+    ),
+    "…after which the member's entry is gone",
+  );
+  const before = authzCache!.stats.resolutions;
+  await ctx.call("GET", "/audit-log", asMember);
+  ctx.assert(
+    authzCache!.stats.resolutions - before === 1,
+    `…and their next authorized request re-resolves (resolved ${authzCache!.stats.resolutions - before} time(s))`,
   );
 }

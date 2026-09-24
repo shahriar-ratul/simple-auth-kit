@@ -23,6 +23,7 @@ const SLUGS = [
   "customers:read",
   "customers:manage",
   "customers:status",
+  "authz-cache:manage",
 ] as const;
 
 export type PermissionSlug = (typeof SLUGS)[number];

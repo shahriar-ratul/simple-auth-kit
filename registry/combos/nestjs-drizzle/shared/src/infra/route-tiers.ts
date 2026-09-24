@@ -7,7 +7,9 @@
 //                                 listing your own workspaces and seeing who else is in one you
 //                                 belong to.
 //   3. @CheckAbility(...slugs)  — the administrative surface. Every named slug must be in the
-//                                 caller's ability or the request is refused.
+//                                 caller's ability or the request is refused. An argument may
+//                                 itself be an array — an OR-group, satisfied by any one slug in
+//                                 it — so top-level arguments AND while one array argument ORs.
 //
 // The point of making the tier explicit is `assertEveryRouteDeclaresATier` below: a route that
 // declares none of the three **fails at startup, by name**. Forgetting to gate a new admin route
@@ -50,7 +52,10 @@ export const Authenticated = () =>
 /**
  * Tier 3: `@CheckAbility("users:block")`. Requires `AuthGuard`, then the variant's authorization
  * guard, then `AbilityGuard`, so `req.ability` is populated and checked. Several slugs may be
- * named, and **all** of them must be held — the guard ANDs them.
+ * named, and **all** of them must be held — the guard ANDs them — except an argument that is
+ * itself an array, which is an OR-group: any one slug in it suffices. So
+ * `@CheckAbility('a', ['b', 'c'])` reads as a AND (b OR c); a plain `@CheckAbility('a', 'b')`
+ * call means exactly what it always has.
  *
  * This is the half of authorization that has to be code. **A route declares what it demands; the
  * database decides who is granted it.** The argument is typed as `PermissionSlug`, the catalog in
@@ -58,10 +63,12 @@ export const Authenticated = () =>
  * requires something that does not exist" stays a compile error rather than a 403 nobody can
  * explain. Which *users* hold the slug is entirely a matter of rows.
  */
-export const CheckAbility = (...abilities: PermissionSlug[]) =>
+export const CheckAbility = (
+  ...abilities: (PermissionSlug | PermissionSlug[])[]
+) =>
   applyBoth(
     SetMetadata(ROUTE_TIER_KEY, "ability" satisfies RouteTier),
-    SetMetadata(CHECK_ABILITY_KEY, abilities as string[]),
+    SetMetadata(CHECK_ABILITY_KEY, abilities as (string | string[])[]),
   );
 
 /** `applyDecorators` from @nestjs/common, minus its class-decorator branch — these two are method decorators. */

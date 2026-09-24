@@ -188,6 +188,8 @@ function everyCall(
       scoped: true,
       run: () => c.listAuditLog({ userId: "u1", action: "role_assigned" }),
     },
+    { name: "getAuthzCache", scoped: true, run: () => c.getAuthzCache() },
+    { name: "clearAuthzCache", scoped: true, run: () => c.clearAuthzCache() },
   ];
 }
 
@@ -917,6 +919,20 @@ describe("AuthClient", () => {
     beforeEach(async () => {
       await storage.set(SESSION);
       fetchMock.mockResolvedValue(jsonResponse({ ok: true }));
+    });
+
+    it("getAuthzCache and clearAuthzCache hit the admin cache endpoints", async () => {
+      await client.getAuthzCache();
+      await client.clearAuthzCache();
+
+      expect(fetchMock.mock.calls[0][0]).toBe(
+        "https://api.example.com/api/v1/admin/authz-cache",
+      );
+      expect(fetchMock.mock.calls[0][1].method).toBe("GET");
+      expect(fetchMock.mock.calls[1][0]).toBe(
+        "https://api.example.com/api/v1/admin/authz-cache/clear",
+      );
+      expect(fetchMock.mock.calls[1][1].method).toBe("POST");
     });
 
     it("listAuditLog serializes filters as query params, keyed on `action`", async () => {

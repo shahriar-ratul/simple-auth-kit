@@ -17,8 +17,8 @@ import { ability, createTieredRouter } from "../src/infra/route-tiers.js";
 import {
   type AuthzCacheStore,
   createAuthzCache,
-  InMemoryAuthzCacheStore,
 } from "../src/common/auth/cache/authz-cache.js";
+import { MapAuthzCacheStore } from "./map-authz-cache-store.js";
 import { bootstrap, capturedResetTokens } from "./bootstrap.js";
 import {
   adminRouteProbes,
@@ -135,6 +135,7 @@ async function proveAuthzCacheModes(): Promise<void> {
         counts.versionReads += 1;
         return 7;
       },
+      bumpVersion: async () => {},
     };
   };
 
@@ -143,8 +144,9 @@ async function proveAuthzCacheModes(): Promise<void> {
     enabled: false,
     revalidate: true,
     ttlSeconds: 30,
-    store: new InMemoryAuthzCacheStore(),
+    store: new MapAuthzCacheStore(),
     readVersion: off.readVersion,
+    bumpVersion: off.bumpVersion,
   });
   for (let i = 0; i < 3; i++) await disabled.get("u1", off.resolve);
   assert(
@@ -152,13 +154,32 @@ async function proveAuthzCacheModes(): Promise<void> {
     `enabled: false resolves on every call and never reads the version (resolved ${off.counts.resolves}, version reads ${off.counts.versionReads})`,
   );
 
+  const storeless = counted();
+  const noStore = createAuthzCache({
+    enabled: true,
+    revalidate: true,
+    ttlSeconds: 30,
+    readVersion: storeless.readVersion,
+    bumpVersion: storeless.bumpVersion,
+  });
+  for (let i = 0; i < 3; i++) await noStore.get("u1", storeless.resolve);
+  assert(
+    storeless.counts.resolves === 3 && storeless.counts.versionReads === 0,
+    `no store means no cache — there is no in-memory fallback: every call resolves and the version is never read (resolved ${storeless.counts.resolves}, version reads ${storeless.counts.versionReads})`,
+  );
+  assert(
+    (await noStore.inspect()).active === false,
+    "…and inspect() reports the cache inactive",
+  );
+
   const trusting = counted();
   const noRevalidate = createAuthzCache({
     enabled: true,
     revalidate: false,
     ttlSeconds: 1,
-    store: new InMemoryAuthzCacheStore(),
+    store: new MapAuthzCacheStore(),
     readVersion: trusting.readVersion,
+    bumpVersion: trusting.bumpVersion,
   });
   for (let i = 0; i < 3; i++) await noRevalidate.get("u1", trusting.resolve);
   assert(
@@ -191,6 +212,7 @@ async function proveAuthzCacheModes(): Promise<void> {
     ttlSeconds: 45,
     store: customStore,
     readVersion: plugged.readVersion,
+    bumpVersion: plugged.bumpVersion,
   });
   await pluggable.get("u1", plugged.resolve);
   await pluggable.get("u1", plugged.resolve);
@@ -1774,7 +1796,7 @@ async function main() {
     }
 
     console.log(
-      "13b. authz cache modes: disabled, no revalidation, pluggable store",
+      "13b. authz cache modes: disabled, no store, no revalidation, pluggable store",
     );
     await proveAuthzCacheModes();
 

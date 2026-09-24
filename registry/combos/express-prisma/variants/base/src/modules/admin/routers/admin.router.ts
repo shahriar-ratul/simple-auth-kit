@@ -1,4 +1,5 @@
 import type { NextFunction, Request, RequestHandler, Response } from "express";
+import type { AuthzCache } from "@/common/auth/cache/authz-cache";
 import { AdminService } from "@/modules/admin/services/admin.service";
 import { HttpError } from "@/infra/errors/http-error";
 import {
@@ -19,6 +20,7 @@ const optionalString = (value: unknown): string | undefined =>
 
 export interface AdminRouterDeps extends TierMiddleware {
   admin: AdminService;
+  authzCache: AuthzCache;
 }
 
 /**
@@ -45,7 +47,7 @@ export interface AdminRouterDeps extends TierMiddleware {
  * required argument rather than a decorator.
  */
 export function createAdminRouter(deps: AdminRouterDeps): RequestHandler {
-  const { admin, authentication, authorization } = deps;
+  const { admin, authzCache, authentication, authorization } = deps;
   const router = createTieredRouter({ authentication, authorization });
 
   router.route(
@@ -319,6 +321,33 @@ export function createAdminRouter(deps: AdminRouterDeps): RequestHandler {
           ip: req.ip,
         });
         res.status(201).json({ ok: true });
+      } catch (err) {
+        next(err);
+      }
+    },
+  );
+
+  // The authorization cache — what it holds and a way to empty it. Global, like every role and permission in this variant.
+  router.route(
+    "get",
+    "/authz-cache",
+    ability("authz-cache:manage"),
+    async (req: Request, res: Response, next: NextFunction) => {
+      try {
+        res.status(200).json(await authzCache.inspect(undefined));
+      } catch (err) {
+        next(err);
+      }
+    },
+  );
+
+  router.route(
+    "post",
+    "/authz-cache/clear",
+    ability("authz-cache:manage"),
+    async (req: Request, res: Response, next: NextFunction) => {
+      try {
+        res.status(201).json(await authzCache.clear(undefined));
       } catch (err) {
         next(err);
       }

@@ -17,7 +17,8 @@ import {
 } from "../src/common/auth/ability/ability.js";
 import { AuthController } from "../src/modules/auth/controllers/auth.controller.js";
 import { proveAuthzCacheModes } from "./authz-cache-modes.js";
-import { bootstrap, capturedResetTokens } from "./bootstrap.js";
+import { proveAuthzCacheAdminEndpoints } from "./authz-cache-admin.js";
+import { bootstrap, capturedResetTokens, proofHandles } from "./bootstrap.js";
 import {
   adminRouteProbes,
   AuthTokens,
@@ -1732,6 +1733,14 @@ async function main() {
 
     console.log("\nauthz cache modes (AuthzCache constructed directly)");
     await proveAuthzCacheModes(assert);
+
+    console.log("\nauthz cache admin endpoints");
+    await proveAuthzCacheAdminEndpoints(
+      ctx,
+      admin,
+      hooks,
+      proofHandles.authzCache!,
+    );
   } finally {
     await app.close();
   }

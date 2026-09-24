@@ -1,6 +1,9 @@
 import type { NextFunction, Request, RequestHandler, Response } from "express";
 import { defineAbilitiesFor } from "@/common/auth/ability/ability";
-import type { AuthzCache } from "@/common/auth/cache/authz-cache";
+import {
+  authzCacheKey,
+  type AuthzCache,
+} from "@/common/auth/cache/authz-cache";
 import type { RbacRepository } from "@/common/repositories/rbac.repository";
 import "@/infra/request-context";
 
@@ -33,7 +36,7 @@ export interface AuthzMiddlewareDeps {
  * or a revocation land on the caller's next *request* rather than their next token. The price of
  * the alternative was a revocation that silently did not apply for up to an access-token TTL.
  *
- * The answer is cached (`AuthzCache`). Every app write that changes authorization bumps
+ * The answer is cached (`AuthzCache`, when a store is configured). Every app write that changes authorization bumps
  * `authz_version`, so a change made through the admin API applies on the very next request; a
  * direct database edit applies once the entry's TTL (`authzCache.ttlSeconds`) runs out.
  *
@@ -51,7 +54,7 @@ export function createAuthzMiddleware(
     try {
       if (req.auth) {
         const userId = req.auth.sub;
-        req.authz = (await cache.get(userId, () =>
+        req.authz = (await cache.get(authzCacheKey(userId), () =>
           rbac.resolveAuthzContext(userId),
         )) ?? {
           roles: [],

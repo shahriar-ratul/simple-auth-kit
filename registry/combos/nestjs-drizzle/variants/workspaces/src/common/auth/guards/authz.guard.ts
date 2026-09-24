@@ -6,7 +6,7 @@ import {
   Injectable,
 } from "@nestjs/common";
 import { defineAbilitiesFor } from "@/common/auth/ability/ability";
-import { AuthzCache } from "@/common/auth/cache/authz-cache";
+import { AuthzCache, authzCacheKey } from "@/common/auth/cache/authz-cache";
 import { RbacRepository } from "@/common/repositories/rbac.repository";
 
 export const WORKSPACE_HEADER = "x-workspace-id";
@@ -51,7 +51,7 @@ async function resolve(
     return;
 
   const userId = req.auth.sub as string;
-  const authz = await cache.get(`${userId}:${workspaceId}`, () =>
+  const authz = await cache.get(authzCacheKey(userId, workspaceId), () =>
     rbac.resolveAuthzContext(userId, workspaceId),
   );
   // Deliberately the same answer for "no such workspace" and "not your workspace": a caller

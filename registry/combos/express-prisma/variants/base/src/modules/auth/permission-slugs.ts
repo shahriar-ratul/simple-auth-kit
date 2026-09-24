@@ -14,6 +14,7 @@ const SLUGS = [
   "permissions:define",
   "permissions:grant",
   "audit-log:read",
+  "authz-cache:manage",
 ] as const;
 
 export type PermissionSlug = (typeof SLUGS)[number];

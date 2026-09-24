@@ -15,6 +15,7 @@ import {
   type Paginated,
 } from "@/common/helpers/pagination";
 import { bumpAuthzVersion } from "@/common/auth/cache/authz-version";
+import { AuthzCache } from "@/common/auth/cache/authz-cache";
 
 const USER_ROLES_INCLUDE = {
   roles: { select: { role: { select: { slug: true } } } },
@@ -158,7 +159,10 @@ const ROLE_SELECT = {
 
 @Injectable()
 export class RbacRepository {
-  constructor(@Inject(PrismaService) private readonly prisma: PrismaService) {}
+  constructor(
+    @Inject(PrismaService) private readonly prisma: PrismaService,
+    @Inject(AuthzCache) private readonly cache: AuthzCache,
+  ) {}
 
   // The hot path: every authenticated request runs this once. Walks user → role_user → roles →
   // permission_role → permissions, and user → permission_user → permissions — constant cost in
@@ -345,6 +349,7 @@ export class RbacRepository {
         updatedBy: toIdOrNull(actorUserId),
       },
     });
+    await this.cache.invalidateProfile(userIdBig);
     return this.getUser(userId);
   }
 
@@ -371,6 +376,7 @@ export class RbacRepository {
         deletedReason: reason ?? null,
       },
     });
+    await this.cache.invalidateProfile(userIdBig);
     await bumpAuthzVersion(this.prisma);
   }
 
