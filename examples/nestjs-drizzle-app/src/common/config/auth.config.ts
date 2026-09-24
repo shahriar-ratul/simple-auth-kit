@@ -34,6 +34,10 @@ export interface AuthConfig {
   };
   /** Wire your own mailer here — if unset, requestPasswordReset() just returns the token without emailing it. */
   sendPasswordResetEmail?: (email: string, token: string) => Promise<void>;
+  // How long a cached authorization may be served without re-reading it. Changes made through
+  // this app are seen on the next request regardless (they bump `authz_version`); this only
+  // bounds how long a change written straight to the database can go unseen.
+  authzCacheTtlSeconds: number;
   /**
    * Where rate-limit windows are counted. Defaults to an in-process `Map`, which is correct for
    * a single instance; pass a Redis-backed implementation of `RateLimitDeps` for several.
@@ -43,6 +47,7 @@ export interface AuthConfig {
 
 export const defaultAuthConfig: AuthConfig = {
   accessTokenTtlSeconds: 900,
+  authzCacheTtlSeconds: 30,
   refreshTokenTtlSeconds: 60 * 60 * 24 * 30,
   sessionTtlSeconds: 60 * 60 * 24 * 30,
   twoFactorIssuer: 'simple-auth-kit',

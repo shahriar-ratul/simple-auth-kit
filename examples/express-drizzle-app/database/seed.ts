@@ -34,6 +34,7 @@ import {
 } from './seedData/index.js';
 import * as schema from './schema.js';
 import { permissions, roleUser, roles, users } from './schema.js';
+import { bumpAuthzVersion } from '../src/common/auth/cache/authz-version.js';
 
 function requireEnv(name: string): string {
   const value = process.env[name];
@@ -163,6 +164,8 @@ async function main(): Promise<void> {
     await seedRbacDefaults(db);
     await seedAdminUser(db);
     await seedSuperAdminUser(db);
+    // Clear any running app's authz cache: the seeder writes behind the app's back.
+    await bumpAuthzVersion(db);
     console.log('seed complete.');
   } finally {
     await pool.end();

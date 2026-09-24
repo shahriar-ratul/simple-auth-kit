@@ -37,6 +37,10 @@ export interface AuthConfig {
   };
   /** Wire your own mailer here — if unset, requestPasswordReset() just returns the token without emailing it. */
   sendPasswordResetEmail?: (email: string, token: string) => Promise<void>;
+  // How long a cached authorization may be served without re-reading it. Changes made through
+  // this app are seen on the next request regardless (they bump `authz_version`); this only
+  // bounds how long a change written straight to the database can go unseen.
+  authzCacheTtlSeconds: number;
   // Defaults to an in-process Map; pass a Redis-backed RateLimitDeps for multiple instances.
   rateLimitStore?: RateLimitDeps;
   // Enforced by a globally registered ThrottlerGuard, per client IP, all buckets at once.
@@ -55,6 +59,7 @@ export const defaultThrottleBuckets: ThrottleBucket[] = [
 
 export const defaultAuthConfig: AuthConfig = {
   accessTokenTtlSeconds: 900,
+  authzCacheTtlSeconds: 30,
   throttle: defaultThrottleBuckets,
   refreshTokenTtlSeconds: 60 * 60 * 24 * 30,
   sessionTtlSeconds: 60 * 60 * 24 * 30,

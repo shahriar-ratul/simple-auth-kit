@@ -1,5 +1,6 @@
 import type { NextFunction, Request, RequestHandler, Response } from 'express';
 import { defineAbilitiesFor } from '@/common/auth/ability/ability';
+import type { AuthzCache } from '@/common/auth/cache/authz-cache';
 import type { RbacRepository } from '@/common/repositories/rbac.repository';
 import '@/infra/request-context';
 
@@ -15,6 +16,7 @@ export interface AuthzContext {
 
 export interface AuthzMiddlewareDeps {
   rbac: RbacRepository;
+  cache: AuthzCache<AuthzContext>;
 }
 
 /**
@@ -31,18 +33,19 @@ export interface AuthzMiddlewareDeps {
  * or a revocation land on the caller's next *request* rather than their next token. The price of
  * the alternative was a revocation that silently did not apply for up to an access-token TTL.
  *
- * Nothing is cached: every request reads the live rows, so a change made anywhere — through this
- * API, another service, or a raw SQL statement — applies on the very next request.
+ * Resolved through `AuthzCache`, versioned by the `authz_version` row this app bumps on
+ * every RBAC write — so a change made through this API applies on the very next request — and
+ * expiring after `authzCacheTtlSeconds`, the backstop for direct database edits.
  *
  * Replaces the reference combo's `AuthzGuard`.
  */
 export function createAuthzMiddleware(deps: AuthzMiddlewareDeps): RequestHandler {
-  const { rbac } = deps;
+  const { rbac, cache } = deps;
   return async function authzMiddleware(req: Request, _res: Response, next: NextFunction): Promise<void> {
     try {
       if (req.auth) {
         const userId = req.auth.sub;
-        req.authz = (await rbac.resolveAuthzContext(userId)) ?? {
+        req.authz = (await cache.get(userId, () => rbac.resolveAuthzContext(userId))) ?? {
           roles: [],
           permissions: [],
         };

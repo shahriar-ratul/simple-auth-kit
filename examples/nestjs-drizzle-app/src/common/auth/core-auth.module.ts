@@ -6,6 +6,7 @@ import { AuditLogController } from '@/modules/audit-log/controllers/audit-log.co
 import { AUTH_CONFIG, AuthConfig, defaultAuthConfig } from '@/common/config/auth.config';
 import { AuthController } from '@/modules/auth/controllers/auth.controller';
 import { AuthGuard } from '@/common/auth/guards/auth.guard';
+import { AuthzCache } from '@/common/auth/cache/authz-cache';
 import { AuthzGuard } from '@/common/auth/guards/authz.guard';
 import { DrizzleModule } from '@/modules/drizzle/drizzle.module';
 import { loadJwtSecret } from '@/common/config/key-provider';
@@ -81,6 +82,7 @@ export class CoreAuthModule {
           useValue: config.rateLimitStore ?? new InMemoryRateLimitStore(),
         },
         RbacRepository,
+        AuthzCache,
         SessionRepository,
         AuthGuard,
         AuthzGuard,
@@ -91,6 +93,7 @@ export class CoreAuthModule {
         AuthTokenService,
         RATE_LIMIT_STORE,
         RbacRepository,
+        AuthzCache,
         SessionRepository,
         AuthGuard,
         AuthzGuard,

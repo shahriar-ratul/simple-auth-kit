@@ -15,7 +15,7 @@ import { AuthConfig, defaultAuthConfig } from '@/common/config/auth.config';
 import { createAuthMiddleware } from '@/common/auth/middleware/auth.middleware';
 import { createAuthRouter } from '@/modules/auth/routers/auth.router';
 import { AuthService } from '@/modules/auth/services/auth.service';
-import { createAuthzMiddleware } from '@/common/auth/middleware/authz.middleware';
+import { type AuthzContext, createAuthzMiddleware } from '@/common/auth/middleware/authz.middleware';
 import { DrizzleService } from '@/modules/drizzle/drizzle.service';
 import { KeyProviderService } from '@/common/config/key-provider';
 import { log } from '@/infra/logger/logger';
@@ -24,6 +24,8 @@ import { OAuthRepository } from '@/modules/auth/repositories/oauth.repository';
 import { openApiSpec } from '@/infra/openapi/openapi-spec';
 import { PasswordResetRepository } from '@/modules/auth/repositories/password-reset.repository';
 import { InMemoryRateLimitStore } from '@/common/auth/cache/rate-limit.store';
+import { createAuthzCache } from '@/common/auth/cache/authz-cache';
+import { readAuthzVersion } from '@/common/auth/cache/authz-version';
 import { RbacRepository } from '@/common/repositories/rbac.repository';
 import { requestLogger } from '@/infra/middleware/request-logger.middleware';
 import { responseEnvelope } from '@/infra/middleware/response-envelope.middleware';
@@ -57,6 +59,12 @@ export function createAuthApp(config: Partial<AuthConfig> = {}): Express {
   // this library's source changes.
   const rateLimit: RateLimitDeps = resolvedConfig.rateLimitStore ?? new InMemoryRateLimitStore();
   const rbac = new RbacRepository(db);
+  // Versioned by the app's own RBAC writes, with a TTL backstop for direct DB edits — see
+  // authz-cache.ts.
+  const authzCache = createAuthzCache<AuthzContext>({
+    readVersion: () => readAuthzVersion(db),
+    ttlSeconds: resolvedConfig.authzCacheTtlSeconds,
+  });
   const twoFactor = new TwoFactorRepository(db);
   const oauth = new OAuthRepository(db);
   const passwordReset = new PasswordResetRepository(db);
@@ -79,7 +87,7 @@ export function createAuthApp(config: Partial<AuthConfig> = {}): Express {
   const requireAuth = createAuthMiddleware(keys, sessions);
   // Roles are global here, but they are read from the database on the request that uses them —
   // the token carries none. See authz.middleware.ts.
-  const requireAuthz = createAuthzMiddleware({ rbac });
+  const requireAuthz = createAuthzMiddleware({ rbac, cache: authzCache });
 
   if (!resolvedConfig.rateLimitStore) {
     log.warn(
@@ -157,6 +165,8 @@ export function createAuthApp(config: Partial<AuthConfig> = {}): Express {
   // left unreachable — a consumer closes it on SIGTERM/SIGINT with
   // `(app.locals["drizzle"] as DrizzleService).close()`.
   app.locals['drizzle'] = drizzleService;
+  // Read by the proof harness for its hit/resolution counters.
+  app.locals['authzCache'] = authzCache;
 
   return app;
 }

@@ -3,6 +3,7 @@ import { PrismaService } from '@/modules/prisma/prisma.service';
 import { PERMISSION_SLUGS } from '@/modules/auth/permission-slugs';
 import { RbacRepository } from '@/common/repositories/rbac.repository';
 import { toId } from '@/common/helpers/id.helper';
+import { bumpAuthzVersion } from '@/common/auth/cache/authz-version';
 
 export interface WorkspaceSummary {
   id: string;
@@ -103,6 +104,7 @@ export class WorkspaceRepository {
           roles: { create: roleIds.map((roleId) => ({ roleId })) },
         },
       });
+      await bumpAuthzVersion(tx);
       return created;
     });
     return {
@@ -196,6 +198,7 @@ export class WorkspaceRepository {
         roles: { create: roles.map((role) => ({ roleId: role.id })) },
       },
     });
+    await bumpAuthzVersion(this.prisma);
     return {
       memberId: member.id.toString(),
       userId: user.id.toString(),
@@ -252,6 +255,7 @@ export class WorkspaceRepository {
         roles: { create: roles.map((role) => ({ roleId: role.id })) },
       },
     });
+    await bumpAuthzVersion(this.prisma);
     return {
       memberId: member.id.toString(),
       userId: user.id.toString(),
@@ -273,5 +277,6 @@ export class WorkspaceRepository {
     // Role assignments and direct grants belong to the membership, so `onDelete: Cascade` on
     // both join tables takes them with it.
     await this.prisma.workspaceMember.delete({ where: { id: memberIdBig } });
+    await bumpAuthzVersion(this.prisma);
   }
 }

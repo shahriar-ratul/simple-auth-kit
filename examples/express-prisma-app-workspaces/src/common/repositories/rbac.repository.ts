@@ -1,4 +1,5 @@
 import { resolvePermissions } from '@/core/rbac';
+import { bumpAuthzVersion, readAuthzVersion } from '@/common/auth/cache/authz-version';
 import { Prisma, PrismaClient } from '@/database/generated/prisma/client';
 import type { AuthzContext } from '@/common/auth/middleware/authz.middleware';
 import { HttpError } from '@/infra/errors/http-error';
@@ -126,6 +127,14 @@ const ROLE_SELECT = {
 
 export class RbacRepository {
   constructor(private readonly prisma: PrismaClient) {}
+
+  /**
+   * The `authz_version` counter the authorization cache compares against (see authz-cache.ts).
+   * Every write method below that changes what `resolveAuthzContext` returns bumps it.
+   */
+  async readAuthzVersion(): Promise<bigint> {
+    return readAuthzVersion(this.prisma);
+  }
 
   /**
    * The hot path: every workspace-scoped request runs this once.
@@ -280,6 +289,7 @@ export class RbacRepository {
       where: { id: toId(userId) },
       data: { ...input, updatedBy: toIdOrNull(actorUserId) },
     });
+    await bumpAuthzVersion(this.prisma);
     return this.getMember(workspaceId, userId);
   }
 
@@ -298,6 +308,7 @@ export class RbacRepository {
         deletedReason: reason ?? null,
       },
     });
+    await bumpAuthzVersion(this.prisma);
   }
 
   async updateRole(
@@ -324,6 +335,7 @@ export class RbacRepository {
       data: { ...input, updatedBy: toIdOrNull(actorUserId) },
       select: ROLE_SELECT,
     });
+    await bumpAuthzVersion(this.prisma);
     return { ...role, id: role.id.toString() };
   }
 
@@ -347,6 +359,7 @@ export class RbacRepository {
         deletedReason: reason ?? null,
       },
     });
+    await bumpAuthzVersion(this.prisma);
   }
 
   // ---- the catalog itself ----
@@ -400,6 +413,7 @@ export class RbacRepository {
       update: shared,
       select: PERMISSION_SELECT,
     });
+    await bumpAuthzVersion(this.prisma);
     return { ...permission, id: permission.id.toString() };
   }
 
@@ -434,6 +448,7 @@ export class RbacRepository {
       },
       select: ROLE_SELECT,
     });
+    await bumpAuthzVersion(this.prisma);
     return { ...role, id: role.id.toString() };
   }
 
@@ -465,6 +480,7 @@ export class RbacRepository {
       create: { permissionId: permission.id, roleId: roleIdBig },
       update: {},
     });
+    await bumpAuthzVersion(this.prisma);
   }
 
   async assignRoleToMember(workspaceId: string, userId: string, roleSlug: string): Promise<void> {
@@ -475,6 +491,7 @@ export class RbacRepository {
       create: { memberId: member.id, roleId: role.id },
       update: {},
     });
+    await bumpAuthzVersion(this.prisma);
   }
 
   async revokeRoleFromMember(workspaceId: string, userId: string, roleSlug: string): Promise<void> {
@@ -489,6 +506,7 @@ export class RbacRepository {
     await this.prisma.roleMember.deleteMany({
       where: { memberId: member.id, roleId: role.id },
     });
+    await bumpAuthzVersion(this.prisma);
   }
 
   /** Replaces the whole set — the "set a member's roles" operation, as opposed to assign/revoke one at a time. */
@@ -524,6 +542,7 @@ export class RbacRepository {
         data: roles.map((role) => ({ memberId: memberIdBig, roleId: role.id })),
         skipDuplicates: true,
       }),
+      bumpAuthzVersion(this.prisma),
     ]);
     return { memberId, roles: roles.map((role) => role.slug).sort() };
   }
@@ -564,6 +583,7 @@ export class RbacRepository {
       create: { memberId: member.id, permissionId: permission.id },
       update: {},
     });
+    await bumpAuthzVersion(this.prisma);
   }
 
   async revokePermissionFromMember(workspaceId: string, userId: string, permissionSlug: string): Promise<void> {
@@ -576,6 +596,7 @@ export class RbacRepository {
     await this.prisma.permissionMember.deleteMany({
       where: { memberId: member.id, permissionId: permission.id },
     });
+    await bumpAuthzVersion(this.prisma);
   }
 
   // Returns bigint directly: its one caller (assignRoleToMember) feeds the id straight into

@@ -1,4 +1,5 @@
 import { PrismaClient } from '@/database/generated/prisma/client';
+import { bumpAuthzVersion } from '@/common/auth/cache/authz-version';
 import { HttpError } from '@/infra/errors/http-error';
 import { PERMISSION_SLUGS } from '@/modules/auth/permission-slugs';
 import { RbacRepository } from '@/common/repositories/rbac.repository';
@@ -102,6 +103,7 @@ export class WorkspaceRepository {
           roles: { create: roleIds.map((roleId) => ({ roleId })) },
         },
       });
+      await bumpAuthzVersion(tx);
       return created;
     });
     return {
@@ -195,6 +197,7 @@ export class WorkspaceRepository {
         roles: { create: roles.map((role) => ({ roleId: role.id })) },
       },
     });
+    await bumpAuthzVersion(this.prisma);
     return {
       memberId: member.id.toString(),
       userId: user.id.toString(),
@@ -249,6 +252,7 @@ export class WorkspaceRepository {
         roles: { create: roles.map((role) => ({ roleId: role.id })) },
       },
     });
+    await bumpAuthzVersion(this.prisma);
     return {
       memberId: member.id.toString(),
       userId: user.id.toString(),
@@ -271,5 +275,6 @@ export class WorkspaceRepository {
     // the point of hanging them off the member row. `onDelete: Cascade` on both join tables is
     // what makes that a database guarantee rather than two deletes someone has to remember.
     await this.prisma.workspaceMember.delete({ where: { id: memberIdBig } });
+    await bumpAuthzVersion(this.prisma);
   }
 }

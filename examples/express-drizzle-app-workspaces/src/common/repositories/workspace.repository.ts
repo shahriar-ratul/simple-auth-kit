@@ -5,6 +5,7 @@ import { RbacRepository } from '@/common/repositories/rbac.repository';
 import { permissionRole, permissions, roleMember, roles, users, workspaceMembers, workspaces } from '@/database/schema';
 import { HttpError } from '@/infra/errors/http-error';
 import { toId } from '@/common/helpers/id.helper';
+import { bumpAuthzVersion } from '@/common/auth/cache/authz-version';
 
 export interface WorkspaceSummary {
   id: string;
@@ -105,6 +106,7 @@ export class WorkspaceRepository {
         .values({ workspaceId: created.id, userId: userIdBig })
         .returning({ id: workspaceMembers.id });
       await tx.insert(roleMember).values(roleIds.map((roleId) => ({ memberId: member.id, roleId })));
+      await bumpAuthzVersion(tx);
       return created;
     });
     return {
@@ -214,6 +216,7 @@ export class WorkspaceRepository {
         .returning();
       if (granted.length)
         await tx.insert(roleMember).values(granted.map((role) => ({ memberId: created.id, roleId: role.id })));
+      await bumpAuthzVersion(tx);
       return created;
     });
 
@@ -271,6 +274,7 @@ export class WorkspaceRepository {
         .returning();
       if (granted.length)
         await tx.insert(roleMember).values(granted.map((role) => ({ memberId: created.id, roleId: role.id })));
+      await bumpAuthzVersion(tx);
       return { member: created, user };
     });
 
@@ -302,6 +306,7 @@ export class WorkspaceRepository {
     // the point of hanging them off the member row. `onDelete: "cascade"` on both join tables is
     // what makes that a database guarantee rather than two deletes someone has to remember.
     await this.db.delete(workspaceMembers).where(eq(workspaceMembers.id, memberIdBig));
+    await bumpAuthzVersion(this.db);
   }
 
   /** One read for a page's role assignments rather than one per membership. */

@@ -1,4 +1,5 @@
 import { resolvePermissions } from '@/core/rbac';
+import { bumpAuthzVersion, readAuthzVersion } from '@/common/auth/cache/authz-version';
 import { Prisma, PrismaClient } from '@/database/generated/prisma/client';
 import { HttpError } from '@/infra/errors/http-error';
 import { buildPageMeta, normalizeLimit, normalizePage, type Paginated } from '@/common/helpers/pagination';
@@ -126,6 +127,14 @@ const ROLE_SELECT = {
 
 export class RbacRepository {
   constructor(private readonly prisma: PrismaClient) {}
+
+  /**
+   * The `authz_version` counter the authorization cache compares against (see authz-cache.ts).
+   * Every write method below that changes what `resolveAuthzContext` returns bumps it.
+   */
+  async readAuthzVersion(): Promise<bigint> {
+    return readAuthzVersion(this.prisma);
+  }
 
   /**
    * The hot path: every authenticated request runs this once.
@@ -263,6 +272,7 @@ export class RbacRepository {
       await this.assignDefaultRoles(user.id);
     }
 
+    await bumpAuthzVersion(this.prisma);
     return this.getUser(user.id.toString());
   }
 
@@ -290,6 +300,7 @@ export class RbacRepository {
       where: { id: userIdBig },
       data: { ...input, updatedBy: toIdOrNull(actorUserId) },
     });
+    await bumpAuthzVersion(this.prisma);
     return this.getUser(userId);
   }
 
@@ -312,6 +323,7 @@ export class RbacRepository {
         deletedReason: reason ?? null,
       },
     });
+    await bumpAuthzVersion(this.prisma);
   }
 
   async updateRole(
@@ -335,6 +347,7 @@ export class RbacRepository {
       data: { ...input, updatedBy: toIdOrNull(actorUserId) },
       select: ROLE_SELECT,
     });
+    await bumpAuthzVersion(this.prisma);
     return { ...role, id: role.id.toString() };
   }
 
@@ -357,6 +370,7 @@ export class RbacRepository {
         deletedReason: reason ?? null,
       },
     });
+    await bumpAuthzVersion(this.prisma);
   }
 
   // ---- the catalog itself ----
@@ -406,6 +420,7 @@ export class RbacRepository {
       update: shared,
       select: PERMISSION_SELECT,
     });
+    await bumpAuthzVersion(this.prisma);
     return { ...permission, id: permission.id.toString() };
   }
 
@@ -438,6 +453,7 @@ export class RbacRepository {
       },
       select: ROLE_SELECT,
     });
+    await bumpAuthzVersion(this.prisma);
     return { ...role, id: role.id.toString() };
   }
 
@@ -463,6 +479,7 @@ export class RbacRepository {
       create: { permissionId: permission.id, roleId: roleIdBig },
       update: {},
     });
+    await bumpAuthzVersion(this.prisma);
   }
 
   async assignRoleToUser(userId: string, roleSlug: string): Promise<void> {
@@ -482,6 +499,7 @@ export class RbacRepository {
       create: { userId: userIdBig, roleId: role.id },
       update: {},
     });
+    await bumpAuthzVersion(this.prisma);
   }
 
   async revokeRoleFromUser(userId: string, roleSlug: string): Promise<void> {
@@ -493,6 +511,7 @@ export class RbacRepository {
     await this.prisma.roleUser.deleteMany({
       where: { userId: toId(userId), roleId: role.id },
     });
+    await bumpAuthzVersion(this.prisma);
   }
 
   /**
@@ -513,6 +532,7 @@ export class RbacRepository {
       data: defaults.map((role) => ({ userId, roleId: role.id })),
       skipDuplicates: true,
     });
+    await bumpAuthzVersion(this.prisma);
   }
 
   async hasAnyRole(userId: bigint): Promise<boolean> {
@@ -529,6 +549,7 @@ export class RbacRepository {
       create: { userId: userIdBig, permissionId: permission.id },
       update: {},
     });
+    await bumpAuthzVersion(this.prisma);
   }
 
   async revokePermissionFromUser(userId: string, permissionSlug: string): Promise<void> {
@@ -540,6 +561,7 @@ export class RbacRepository {
     await this.prisma.permissionUser.deleteMany({
       where: { userId: toId(userId), permissionId: permission.id },
     });
+    await bumpAuthzVersion(this.prisma);
   }
 
   /** Creates the row for a slug granted before anyone defined it; leaves an existing definition alone. */

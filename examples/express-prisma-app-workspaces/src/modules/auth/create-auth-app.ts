@@ -16,6 +16,7 @@ import { AuthConfig, defaultAuthConfig } from '@/common/config/auth.config';
 import { createAuthMiddleware } from '@/common/auth/middleware/auth.middleware';
 import { createAuthRouter } from '@/modules/auth/routers/auth.router';
 import { AuthService } from '@/modules/auth/services/auth.service';
+import { AuthzCache } from '@/common/auth/cache/authz-cache';
 import { createAuthzMiddleware, createWorkspaceMiddleware } from '@/common/auth/middleware/authz.middleware';
 import { PrismaClient } from '@/database/generated/prisma/client';
 import { KeyProviderService } from '@/common/config/key-provider';
@@ -38,6 +39,8 @@ export interface CreateAuthAppOptions {
   config?: Partial<AuthConfig>;
   /** Mount onto an existing Express app instead of creating a new one (e.g. to add your own business routes alongside). */
   app?: Express;
+  /** The authorization cache — pass one to read its `stats` (the proof does); a fresh one otherwise. */
+  authzCache?: AuthzCache;
 }
 
 /**
@@ -62,6 +65,7 @@ export function createAuthApp(options: CreateAuthAppOptions = {}): Express {
   // this library's source changes.
   const rateLimit: RateLimitDeps = config.rateLimitStore ?? new InMemoryRateLimitStore();
   const rbac = new RbacRepository(prisma);
+  const authzCache = options.authzCache ?? new AuthzCache(rbac, config.authzCacheTtlSeconds);
   const workspaces = new WorkspaceRepository(prisma, rbac);
   const twoFactor = new TwoFactorRepository(prisma);
   const oauth = new OAuthRepository(prisma);
@@ -76,8 +80,8 @@ export function createAuthApp(options: CreateAuthAppOptions = {}): Express {
   // Roles belong to a workspace membership, resolved from the database on the request that names
   // the workspace. `authorization` tolerates a request that names none (GET /auth/me answers with
   // empty roles); `workspaceScope` does not. See authz.middleware.ts.
-  const authorization = createAuthzMiddleware({ rbac });
-  const workspaceScope = createWorkspaceMiddleware({ rbac });
+  const authorization = createAuthzMiddleware({ rbac, cache: authzCache });
+  const workspaceScope = createWorkspaceMiddleware({ rbac, cache: authzCache });
 
   if (!config.rateLimitStore) {
     log.warn(

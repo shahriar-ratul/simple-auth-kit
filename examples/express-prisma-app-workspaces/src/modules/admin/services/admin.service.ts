@@ -1,4 +1,5 @@
 import { hashPassword } from '@/core/crypto';
+import { bumpAuthzVersion } from '@/common/auth/cache/authz-version';
 import { blockUser, deactivateUser } from '@/core/session-policy';
 import type { Revoker } from '@/core/types';
 import { PrismaClient } from '@/database/generated/prisma/client';
@@ -143,6 +144,7 @@ export class AdminService {
     });
     // The administrator, not the blocked user, is what lands in `sessions.revoked_by`.
     await blockUser(this.sessions, userId, revoker);
+    await bumpAuthzVersion(this.prisma);
   }
 
   async unblock(ctx: AuthzContext, userId: string, revoker?: Revoker): Promise<void> {
@@ -151,6 +153,7 @@ export class AdminService {
       where: { id: toId(userId) },
       data: { blocked: false, updatedBy: toIdOrNull(revoker?.userId) },
     });
+    await bumpAuthzVersion(this.prisma);
   }
 
   /**
@@ -164,6 +167,7 @@ export class AdminService {
       data: { isActive: false, updatedBy: toIdOrNull(revoker?.userId) },
     });
     await deactivateUser(this.sessions, userId, revoker);
+    await bumpAuthzVersion(this.prisma);
   }
 
   async activate(ctx: AuthzContext, userId: string, revoker?: Revoker): Promise<void> {
@@ -172,5 +176,6 @@ export class AdminService {
       where: { id: toId(userId) },
       data: { isActive: true, updatedBy: toIdOrNull(revoker?.userId) },
     });
+    await bumpAuthzVersion(this.prisma);
   }
 }
