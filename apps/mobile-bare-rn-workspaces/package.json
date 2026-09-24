@@ -6,58 +6,61 @@
   "scripts": {
     "android": "react-native run-android",
     "ios": "react-native run-ios",
-    "lint": "eslint .",
+    "lint": "oxlint --type-aware",
     "prepare": "husky",
     "start": "react-native start",
-    "test": "jest",
+    "test": "vitest run",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@simple-auth-kit/auth-client": "^1.0.2",
     "@react-native-async-storage/async-storage": "^3.1.1",
     "@react-native/new-app-screen": "0.86.3",
     "@react-navigation/native": "^7.3.16",
     "@react-navigation/native-stack": "^7.18.8",
-    "nativewind": "5.0.0-preview.4",
+    "@simple-auth-kit/auth-client": "^2.0.0",
+    "nativewind": "^4.2.7",
     "react": "19.2.3",
     "react-native": "0.86.3",
     "react-native-config": "^1.6.1",
-    "react-native-css": "^3.0.7",
+    "react-native-css-interop": "0.2.7",
     "react-native-gesture-handler": "^3.1.0",
     "react-native-reanimated": "4.5.3",
     "react-native-safe-area-context": "^5.5.2",
     "react-native-screens": "^4.27.0",
     "react-native-worklets": "0.11.3",
-    "tailwindcss": "^4.3.3",
+    "tailwindcss": "^3.4.19",
     "zustand": "^5.0.14"
   },
   "devDependencies": {
     "@babel/core": "^7.25.2",
     "@babel/preset-env": "^7.25.3",
     "@babel/runtime": "^7.25.0",
-    "@expo/metro-config": "^57.0.7",
+    "@commitlint/cli": "^21.2.2",
+    "@commitlint/config-conventional": "^21.2.2",
     "@react-native-community/cli": "20.2.0",
     "@react-native-community/cli-platform-android": "20.2.0",
     "@react-native-community/cli-platform-ios": "20.2.0",
     "@react-native/babel-preset": "0.86.3",
-    "@react-native/eslint-config": "0.86.3",
-    "@react-native/jest-preset": "0.86.3",
     "@react-native/metro-config": "0.86.3",
     "@react-native/typescript-config": "0.86.3",
-    "@types/jest": "^29.5.13",
     "@types/react": "^19.2.0",
-    "@types/react-test-renderer": "^19.1.0",
-    "@commitlint/cli": "^21.2.2",
-    "@commitlint/config-conventional": "^21.2.2",
-    "eslint": "^9.39.5",
     "husky": "^9.1.7",
-    "jest": "^29.6.3",
     "lint-staged": "^17.5.1",
+    "oxlint": "^1.85.0",
+    "oxlint-tsgolint": "^7.0.2002",
     "prettier": "^3.9.6",
-    "react-test-renderer": "19.2.3",
-    "typescript": "^5.8.3"
+    "typescript": "^5.8.3",
+    "vitest": "^4.1.10"
   },
   "engines": {
     "node": ">= 22.11.0"
+  },
+  "overrides": {
+    "babel-plugin-istanbul": {
+      "test-exclude": {
+        ".": "^7.0.2",
+        "glob": "^13.0.0"
+      }
+    }
   }
 }

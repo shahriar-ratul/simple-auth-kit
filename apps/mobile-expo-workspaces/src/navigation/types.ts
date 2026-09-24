@@ -16,5 +16,8 @@ export type WorkspaceGateStackParamList = {
 export type AppStackParamList = {
   Home: undefined;
   Sessions: undefined;
+  EditProfile: undefined;
+  ChangePassword: undefined;
+  TwoFactorSettings: undefined;
   SwitchWorkspace: undefined;
 };

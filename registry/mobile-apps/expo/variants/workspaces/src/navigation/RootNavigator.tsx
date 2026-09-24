@@ -2,7 +2,11 @@ import React, { useEffect } from "react";
 import { ActivityIndicator, View } from "react-native";
 import { NavigationContainer } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
-import type { AppStackParamList, AuthStackParamList, WorkspaceGateStackParamList } from "./types";
+import type {
+  AppStackParamList,
+  AuthStackParamList,
+  WorkspaceGateStackParamList,
+} from "./types";
 import { useAuthStore, useIsAuthenticated } from "../store/authStore";
 import { useActiveWorkspaceId } from "../workspace/activeWorkspace";
 import { LoginScreen } from "../screens/LoginScreen";
@@ -10,10 +14,14 @@ import { SignupScreen } from "../screens/SignupScreen";
 import { TwoFactorScreen } from "../screens/TwoFactorScreen";
 import { HomeScreen } from "../screens/HomeScreen";
 import { SessionsScreen } from "../screens/SessionsScreen";
+import { EditProfileScreen } from "../screens/EditProfileScreen";
+import { ChangePasswordScreen } from "../screens/ChangePasswordScreen";
+import { TwoFactorSettingsScreen } from "../screens/TwoFactorSettingsScreen";
 import { WorkspaceSelectScreen } from "../screens/WorkspaceSelectScreen";
 
 const AuthStack = createNativeStackNavigator<AuthStackParamList>();
-const WorkspaceGateStack = createNativeStackNavigator<WorkspaceGateStackParamList>();
+const WorkspaceGateStack =
+  createNativeStackNavigator<WorkspaceGateStackParamList>();
 const AppStack = createNativeStackNavigator<AppStackParamList>();
 
 // Module-scope wrappers rather than inline arrows so the screen component identity is stable
@@ -26,7 +34,11 @@ function AuthNavigator() {
     <AuthStack.Navigator screenOptions={{ headerShown: false }}>
       <AuthStack.Screen name="Login" component={LoginScreen} />
       <AuthStack.Screen name="Signup" component={SignupScreen} />
-      <AuthStack.Screen name="TwoFactor" component={TwoFactorScreen} options={{ headerShown: true, title: "Verify" }} />
+      <AuthStack.Screen
+        name="TwoFactor"
+        component={TwoFactorScreen}
+        options={{ headerShown: true, title: "Verify" }}
+      />
     </AuthStack.Navigator>
   );
 }
@@ -34,7 +46,10 @@ function AuthNavigator() {
 function WorkspaceGateNavigator() {
   return (
     <WorkspaceGateStack.Navigator screenOptions={{ headerShown: false }}>
-      <WorkspaceGateStack.Screen name="ChooseWorkspace" component={ChooseWorkspace} />
+      <WorkspaceGateStack.Screen
+        name="ChooseWorkspace"
+        component={ChooseWorkspace}
+      />
     </WorkspaceGateStack.Navigator>
   );
 }
@@ -42,9 +57,36 @@ function WorkspaceGateNavigator() {
 function AppNavigator() {
   return (
     <AppStack.Navigator>
-      <AppStack.Screen name="Home" component={HomeScreen} options={{ title: "Profile" }} />
-      <AppStack.Screen name="Sessions" component={SessionsScreen} options={{ title: "Sessions" }} />
-      <AppStack.Screen name="SwitchWorkspace" component={SwitchWorkspace} options={{ title: "Workspaces" }} />
+      <AppStack.Screen
+        name="Home"
+        component={HomeScreen}
+        options={{ title: "Profile" }}
+      />
+      <AppStack.Screen
+        name="Sessions"
+        component={SessionsScreen}
+        options={{ title: "Sessions" }}
+      />
+      <AppStack.Screen
+        name="EditProfile"
+        component={EditProfileScreen}
+        options={{ title: "Edit profile" }}
+      />
+      <AppStack.Screen
+        name="ChangePassword"
+        component={ChangePasswordScreen}
+        options={{ title: "Change password" }}
+      />
+      <AppStack.Screen
+        name="TwoFactorSettings"
+        component={TwoFactorSettingsScreen}
+        options={{ title: "Two-factor authentication" }}
+      />
+      <AppStack.Screen
+        name="SwitchWorkspace"
+        component={SwitchWorkspace}
+        options={{ title: "Workspaces" }}
+      />
     </AppStack.Navigator>
   );
 }
@@ -76,7 +118,13 @@ export function RootNavigator() {
 
   return (
     <NavigationContainer>
-      {!isAuthenticated ? <AuthNavigator /> : activeWorkspaceId ? <AppNavigator /> : <WorkspaceGateNavigator />}
+      {!isAuthenticated ? (
+        <AuthNavigator />
+      ) : activeWorkspaceId ? (
+        <AppNavigator />
+      ) : (
+        <WorkspaceGateNavigator />
+      )}
     </NavigationContainer>
   );
 }

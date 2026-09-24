@@ -1,0 +1,19 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "plugins": ["typescript", "unicorn", "oxc", "import", "vitest"],
+  "categories": { "correctness": "error" },
+  "env": { "node": true, "es2022": true },
+  "ignorePatterns": ["dist/**", "coverage/**", "node_modules/**", "database/generated/**"],
+  "rules": {
+    // Carried over from the previous typescript-eslint recommendedTypeChecked config.
+    "no-unused-vars": "off",
+    "typescript/no-explicit-any": "off",
+    "typescript/no-floating-promises": "off",
+    "typescript/no-unsafe-argument": "off",
+    "typescript/no-unsafe-call": "off",
+    "typescript/no-unsafe-member-access": "off",
+    "typescript/no-unsafe-assignment": "off",
+    "typescript/no-unsafe-return": "off",
+    "typescript/require-await": "off"
+  }
+}

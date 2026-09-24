@@ -1,0 +1,8 @@
+# pnpm reads overrides only from here (it ignores package.json's "pnpm" field); npm/bun read the
+# same pin from package.json's "overrides".
+overrides:
+  # react-native itself depends on @react-native/jest-preset, whose babel-jest -> babel-plugin-istanbul
+  # -> test-exclude@6 drags in the deprecated glob@7/inflight even though this app runs vitest, not
+  # jest. test-exclude@7 keeps the same API; lift it onto a supported glob.
+  'babel-plugin-istanbul>test-exclude': '^7.0.2'
+  'test-exclude>glob': '^13.0.0'

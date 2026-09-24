@@ -61,11 +61,11 @@ operator secret instead of a permission slug (`DOCS_USERNAME`/`DOCS_PASSWORD`, `
 Prometheus exposition format (`text/plain`), deliberately **outside** the response envelope.
 All combos, both variants.
 
-| Metric                                         | Labels                           |
-| ---------------------------------------------- | -------------------------------- |
-| `http_requests_total`                          | `method`, `route`, `status_code` |
-| `http_request_duration_seconds` (histogram)    | `method`, `route`, `status_code` |
-| `nodejs_*`, `process_*` (prom-client defaults) | —                                |
+| Metric                                            | Labels                           |
+| ------------------------------------------------- | -------------------------------- |
+| `http_requests_total`                             | `method`, `route`, `status_code` |
+| `http_request_duration_seconds` (histogram)       | `method`, `route`, `status_code` |
+| `nodejs_*`, `process_*` (client-library defaults) | —                                |
 
 `route` is the **matched route pattern** (`/api/v1/admin/users/:userId`), never the raw path. One
 time series exists per distinct label combination, so labelling by path would let an

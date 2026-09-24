@@ -1170,6 +1170,47 @@ async function main() {
       "…including the photo field",
     );
 
+    console.log(
+      "11d-3. profile uniqueness: shared names are fine, a taken phone is a 409 (not a 500)",
+    );
+    const nameTwinTokens = await signup(
+      uniqueEmail("name-twin"),
+      "lifetime-pw-123",
+    );
+    const sharedName = {
+      firstName: `Ada-${RUN_ID}`,
+      lastName: `Lovelace-${RUN_ID}`,
+    };
+    const firstNameOwner = await call("PATCH", "/auth/me", {
+      token: identTokens.accessToken,
+      body: sharedName,
+    });
+    const secondNameOwner = await call("PATCH", "/auth/me", {
+      token: nameTwinTokens.accessToken,
+      body: sharedName,
+    });
+    assert(
+      firstNameOwner.status === 200 && secondNameOwner.status === 200,
+      `two users can share a first and last name (got ${firstNameOwner.status}, ${secondNameOwner.status})`,
+    );
+    const takenPhone = `+1-555-${RUN_ID}`;
+    const phoneOwner = await call("PATCH", "/auth/me", {
+      token: identTokens.accessToken,
+      body: { phone: takenPhone },
+    });
+    const phoneClash = await call("PATCH", "/auth/me", {
+      token: nameTwinTokens.accessToken,
+      body: { phone: takenPhone },
+    });
+    assert(
+      phoneOwner.status === 200 && phoneClash.status === 409,
+      `taking another user's phone is a 409 conflict, not a 500 (got ${phoneOwner.status}, ${phoneClash.status})`,
+    );
+    assert(
+      phoneClash.body?.message === "phone is already in use",
+      `…and the message names the field (got ${JSON.stringify(phoneClash.body)})`,
+    );
+
     const selfProfileRejectsNoToken = await call("PATCH", "/auth/me", {
       body: { displayName: "No Auth" },
     });

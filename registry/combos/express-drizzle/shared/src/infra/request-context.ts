@@ -35,4 +35,6 @@ declare global {
   }
 }
 
+// Keeps the emitted JS a module once the type-only imports above are erased.
+// oxlint-disable-next-line typescript/no-useless-empty-export
 export {};

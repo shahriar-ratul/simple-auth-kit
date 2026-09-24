@@ -28,8 +28,8 @@ model User {
   id               BigInt    @id @default(autoincrement())
   uuid             String    @unique @default(uuid())
   email            String    @unique
-  firstName        String?   @unique @map("first_name")
-  lastName         String?   @unique @map("last_name")
+  firstName        String?   @map("first_name")
+  lastName         String?   @map("last_name")
   displayName      String?   @map("display_name")
   phone            String?   @unique
   username         String?   @unique

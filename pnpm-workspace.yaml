@@ -5,8 +5,8 @@ packages:
   - "apps/*"
 
 allowBuilds:
-  '@prisma/engines': true
-  '@scarf/scarf': true
+  "@prisma/engines": true
+  "@scarf/scarf": true
   argon2: true
   esbuild: true
   prisma: true
@@ -36,3 +36,14 @@ overrides:
   # Scoped to @expo/metro-config so nothing else in the workspace is affected. Lift it when
   # react-native-css supports a newer lightningcss.
   "@expo/metro-config>lightningcss": "1.30.1"
+
+  # Same pin the Expo template ships in its own pnpm-workspace.yaml (which the in-repo
+  # apps/mobile-expo* copies can't carry — a nested pnpm-workspace.yaml would make each of them its own
+  # workspace root). xcode (via @expo/config-plugins) still asks for the deprecated uuid@7; its only
+  # use is require('uuid').v4(), which uuid@11 (the last CommonJS line) still provides.
+  "xcode>uuid": "^11.1.1"
+  # Same pins the bare-rn template ships: react-native's own @react-native/jest-preset ->
+  # babel-jest -> babel-plugin-istanbul -> test-exclude@6 drags in the deprecated glob@7/inflight.
+  # test-exclude@7 keeps the same API; lift it onto a supported glob.
+  "babel-plugin-istanbul>test-exclude": "^7.0.2"
+  "test-exclude>glob": "^13.0.0"

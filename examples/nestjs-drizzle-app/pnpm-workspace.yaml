@@ -1,0 +1,23 @@
+# Pre-approves the dependency build scripts this stack genuinely needs, so `pnpm install`
+# does not stop with ERR_PNPM_IGNORED_BUILDS on a fresh clone.
+#
+# pnpm blocks postinstall/preinstall scripts from any dependency it has not seen approved before
+# — a good default, since a build script runs arbitrary code at install time. These are the ones
+# this stack cannot work without: argon2 compiles a native addon (password hashing), and
+# prisma/@prisma/engines download the query engine binary. The rest are build-tool internals
+# pulled in by the dev toolchain. Listing a package that this combo does not install is a no-op,
+# so the list is the same for every combo.
+#
+# pnpm reads this from pnpm-workspace.yaml specifically; the older `pnpm.onlyBuiltDependencies`
+# field in package.json is ignored by pnpm 11+. npm, yarn and bun ignore this file entirely, so
+# it is inert if you use one of those.
+#
+# Remove an entry to withhold approval — pnpm will then ask you about it on the next install.
+allowBuilds:
+  '@parcel/watcher': true
+  '@prisma/engines': true
+  '@scarf/scarf': true
+  argon2: true
+  esbuild: true
+  prisma: true
+  unrs-resolver: true

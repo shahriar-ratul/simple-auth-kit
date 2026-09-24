@@ -7,4 +7,7 @@ export type AuthStackParamList = {
 export type AppStackParamList = {
   Home: undefined;
   Sessions: undefined;
+  EditProfile: undefined;
+  ChangePassword: undefined;
+  TwoFactorSettings: undefined;
 };

@@ -7,7 +7,7 @@
   "scripts": {
     "materialize": "node scripts/materialize.mjs",
     "typecheck": "node scripts/materialize.mjs --all && tsc -p .variant/base && tsc -p .variant/workspaces",
-    "lint": "eslint shared variants",
+    "lint": "oxlint shared variants",
     "prove-cycle": "node scripts/prove-cycle.mjs",
     "migrate": "node scripts/migrate.mjs",
     "seed": "node scripts/seed.mjs"
@@ -18,20 +18,18 @@
     "express": "^5.2.1",
     "pg": "^8.23.0",
     "pino": "^10.3.1",
-    "prom-client": "^15.1.3",
+    "@prometheus-io/client": "^0.16.1",
     "@scalar/express-api-reference": "^0.10.19"
   },
   "devDependencies": {
-    "@eslint/js": "^9.39.5",
     "@types/express": "^5.0.6",
     "@types/node": "^26.2.0",
     "@types/pg": "^8.21.0",
     "dotenv": "^17.4.2",
     "drizzle-kit": "^0.31.10",
-    "eslint": "^9.39.5",
+    "oxlint": "^1.85.0",
     "tsx": "^4.23.11",
     "typescript": "^6.0.3",
-    "typescript-eslint": "^8.70.0",
     "vitest": "^4.1.10"
   }
 }

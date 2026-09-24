@@ -10,11 +10,11 @@
     "ios": "expo start --ios",
     "web": "expo start --web",
     "typecheck": "tsc --noEmit",
-    "lint": "eslint .",
+    "lint": "oxlint --type-aware",
     "prepare": "husky"
   },
   "dependencies": {
-    "@simple-auth-kit/auth-client": "^1.0.2",
+    "@simple-auth-kit/auth-client": "^2.0.0",
     "@react-native-async-storage/async-storage": "2.2.0",
     "@react-navigation/native": "^7.3.16",
     "@react-navigation/native-stack": "^7.18.8",
@@ -32,13 +32,23 @@
   "devDependencies": {
     "@commitlint/cli": "^21.2.2",
     "@commitlint/config-conventional": "^21.2.2",
+    "@tailwindcss/postcss": "^4.3.3",
     "@types/react": "~19.2.2",
-    "eslint": "^9.39.5",
-    "eslint-config-expo": "^57.0.2",
+    "babel-preset-expo": "~57.0.12",
     "husky": "^9.1.7",
     "lint-staged": "^17.5.1",
+    "oxlint": "^1.85.0",
+    "oxlint-tsgolint": "^7.0.2002",
     "prettier": "^3.9.6",
     "tailwindcss": "^4.3.3",
     "typescript": "~6.0.3"
+  },
+  "overrides": {
+    "xcode": {
+      "uuid": "^11.1.1"
+    },
+    "@expo/metro-config": {
+      "lightningcss": "1.30.1"
+    }
   }
 }

@@ -1,6 +1,7 @@
 import type { NextFunction, Request, Response } from "express";
 import { AuthCoreError } from "@/lib/auth/core/types";
 import { HttpError } from "@/infra/errors/http-error";
+import { uniqueViolationMessage } from "@/infra/errors/unique-violation";
 
 /**
  * Replaces the reference combo's `AuthCoreErrorFilter` (a Nest global `@Catch` exception
@@ -21,6 +22,11 @@ export function authCoreErrorMiddleware(
     next(err);
     return;
   }
+
+  // A duplicate on a unique column (another user's phone or username, ...) is the caller's
+  // conflict, not a server fault: answer it like any other 409 HttpError.
+  const conflict = uniqueViolationMessage(err);
+  if (conflict) err = new HttpError(409, conflict);
 
   if (err instanceof AuthCoreError) {
     res

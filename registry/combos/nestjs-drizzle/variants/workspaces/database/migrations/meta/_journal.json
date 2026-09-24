@@ -22,6 +22,13 @@
       "when": 1786593633464,
       "tag": "0002_calm_tyger_tiger",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1790216799147,
+      "tag": "0003_drop_user_name_unique",
+      "breakpoints": true
     }
   ]
 }

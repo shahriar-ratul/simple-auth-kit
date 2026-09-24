@@ -9,6 +9,9 @@ import { SignupScreen } from "../screens/SignupScreen";
 import { TwoFactorScreen } from "../screens/TwoFactorScreen";
 import { HomeScreen } from "../screens/HomeScreen";
 import { SessionsScreen } from "../screens/SessionsScreen";
+import { EditProfileScreen } from "../screens/EditProfileScreen";
+import { ChangePasswordScreen } from "../screens/ChangePasswordScreen";
+import { TwoFactorSettingsScreen } from "../screens/TwoFactorSettingsScreen";
 
 const AuthStack = createNativeStackNavigator<AuthStackParamList>();
 const AppStack = createNativeStackNavigator<AppStackParamList>();
@@ -18,7 +21,11 @@ function AuthNavigator() {
     <AuthStack.Navigator screenOptions={{ headerShown: false }}>
       <AuthStack.Screen name="Login" component={LoginScreen} />
       <AuthStack.Screen name="Signup" component={SignupScreen} />
-      <AuthStack.Screen name="TwoFactor" component={TwoFactorScreen} options={{ headerShown: true, title: "Verify" }} />
+      <AuthStack.Screen
+        name="TwoFactor"
+        component={TwoFactorScreen}
+        options={{ headerShown: true, title: "Verify" }}
+      />
     </AuthStack.Navigator>
   );
 }
@@ -26,8 +33,31 @@ function AuthNavigator() {
 function AppNavigator() {
   return (
     <AppStack.Navigator>
-      <AppStack.Screen name="Home" component={HomeScreen} options={{ title: "Profile" }} />
-      <AppStack.Screen name="Sessions" component={SessionsScreen} options={{ title: "Sessions" }} />
+      <AppStack.Screen
+        name="Home"
+        component={HomeScreen}
+        options={{ title: "Profile" }}
+      />
+      <AppStack.Screen
+        name="Sessions"
+        component={SessionsScreen}
+        options={{ title: "Sessions" }}
+      />
+      <AppStack.Screen
+        name="EditProfile"
+        component={EditProfileScreen}
+        options={{ title: "Edit profile" }}
+      />
+      <AppStack.Screen
+        name="ChangePassword"
+        component={ChangePasswordScreen}
+        options={{ title: "Change password" }}
+      />
+      <AppStack.Screen
+        name="TwoFactorSettings"
+        component={TwoFactorSettingsScreen}
+        options={{ title: "Two-factor authentication" }}
+      />
     </AppStack.Navigator>
   );
 }
@@ -54,5 +84,9 @@ export function RootNavigator() {
     );
   }
 
-  return <NavigationContainer>{isAuthenticated ? <AppNavigator /> : <AuthNavigator />}</NavigationContainer>;
+  return (
+    <NavigationContainer>
+      {isAuthenticated ? <AppNavigator /> : <AuthNavigator />}
+    </NavigationContainer>
+  );
 }

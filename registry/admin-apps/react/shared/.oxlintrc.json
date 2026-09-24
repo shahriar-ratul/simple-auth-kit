@@ -1,0 +1,22 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "plugins": ["typescript", "unicorn", "oxc", "react"],
+  "categories": { "correctness": "error" },
+  "env": { "browser": true, "es2022": true },
+  // src/components/ui/** is shadcn-generated (components.json), not hand-authored — vendored,
+  // don't lint.
+  "ignorePatterns": ["dist/**", "node_modules/**", "src/components/ui/**"],
+  "rules": {
+    "react/rules-of-hooks": "error",
+    "react/exhaustive-deps": "warn",
+    // Type-aware (oxlint-tsgolint). Reported, not blocking: fire-and-forget calls in effects and
+    // event handlers are the norm here, and the previous (syntactic) linter never checked them.
+    "typescript/no-floating-promises": "warn",
+    "react/only-export-components": ["warn", { "allowConstantExport": true }],
+    // TanStack Table's useReactTable() is on React Compiler's own documented list of
+    // incompatible APIs (it returns functions that can't be safely memoized) — the compiler
+    // already handles this correctly by skipping memoization for it; there's no code change
+    // that "fixes" a structural library incompatibility.
+    "react/incompatible-library": "off"
+  }
+}

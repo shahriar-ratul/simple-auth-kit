@@ -6,6 +6,9 @@ export type RootStackParamList = {
   // Authenticated stack
   Home: undefined;
   Sessions: undefined;
+  EditProfile: undefined;
+  ChangePassword: undefined;
+  TwoFactorSettings: undefined;
 };
 
 declare global {

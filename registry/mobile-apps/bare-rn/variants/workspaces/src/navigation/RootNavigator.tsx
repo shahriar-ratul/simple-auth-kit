@@ -1,16 +1,19 @@
-import React, { useEffect } from 'react';
-import { ActivityIndicator, StyleSheet, View } from 'react-native';
-import { NavigationContainer } from '@react-navigation/native';
-import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import { useAuthStore } from '../store/authStore';
-import { useActiveWorkspaceId } from '../workspace/activeWorkspace';
-import { LoginScreen } from '../screens/LoginScreen';
-import { SignupScreen } from '../screens/SignupScreen';
-import { TwoFactorScreen } from '../screens/TwoFactorScreen';
-import { WorkspaceSelectScreen } from '../screens/WorkspaceSelectScreen';
-import { HomeScreen } from '../screens/HomeScreen';
-import { SessionsScreen } from '../screens/SessionsScreen';
-import type { RootStackParamList } from './types';
+import React, { useEffect } from "react";
+import { ActivityIndicator, StyleSheet, View } from "react-native";
+import { NavigationContainer } from "@react-navigation/native";
+import { createNativeStackNavigator } from "@react-navigation/native-stack";
+import { useAuthStore } from "../store/authStore";
+import { useActiveWorkspaceId } from "../workspace/activeWorkspace";
+import { LoginScreen } from "../screens/LoginScreen";
+import { SignupScreen } from "../screens/SignupScreen";
+import { TwoFactorScreen } from "../screens/TwoFactorScreen";
+import { WorkspaceSelectScreen } from "../screens/WorkspaceSelectScreen";
+import { HomeScreen } from "../screens/HomeScreen";
+import { SessionsScreen } from "../screens/SessionsScreen";
+import { EditProfileScreen } from "../screens/EditProfileScreen";
+import { ChangePasswordScreen } from "../screens/ChangePasswordScreen";
+import { TwoFactorSettingsScreen } from "../screens/TwoFactorSettingsScreen";
+import type { RootStackParamList } from "./types";
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
@@ -42,20 +45,63 @@ export function RootNavigator(): React.JSX.Element {
       <Stack.Navigator screenOptions={{ headerShown: true }}>
         {!isAuthenticated ? (
           <>
-            <Stack.Screen name="Login" component={LoginScreen} options={{ title: 'Log in' }} />
-            <Stack.Screen name="Signup" component={SignupScreen} options={{ title: 'Create account' }} />
-            <Stack.Screen name="TwoFactor" component={TwoFactorScreen} options={{ title: 'Verification code' }} />
+            <Stack.Screen
+              name="Login"
+              component={LoginScreen}
+              options={{ title: "Log in" }}
+            />
+            <Stack.Screen
+              name="Signup"
+              component={SignupScreen}
+              options={{ title: "Create account" }}
+            />
+            <Stack.Screen
+              name="TwoFactor"
+              component={TwoFactorScreen}
+              options={{ title: "Verification code" }}
+            />
           </>
         ) : !activeWorkspaceId ? (
           // Authenticated but no workspace chosen yet: the only screen reachable is the
           // gate. Every workspace-scoped call would otherwise go out with no
           // `X-Workspace-Id` and be refused.
-          <Stack.Screen name="ChooseWorkspace" component={ChooseWorkspace} options={{ title: 'Choose a workspace' }} />
+          <Stack.Screen
+            name="ChooseWorkspace"
+            component={ChooseWorkspace}
+            options={{ title: "Choose a workspace" }}
+          />
         ) : (
           <>
-            <Stack.Screen name="Home" component={HomeScreen} options={{ title: 'Profile' }} />
-            <Stack.Screen name="Sessions" component={SessionsScreen} options={{ title: 'Sessions' }} />
-            <Stack.Screen name="SwitchWorkspace" component={SwitchWorkspace} options={{ title: 'Workspaces' }} />
+            <Stack.Screen
+              name="Home"
+              component={HomeScreen}
+              options={{ title: "Profile" }}
+            />
+            <Stack.Screen
+              name="Sessions"
+              component={SessionsScreen}
+              options={{ title: "Sessions" }}
+            />
+            <Stack.Screen
+              name="EditProfile"
+              component={EditProfileScreen}
+              options={{ title: "Edit profile" }}
+            />
+            <Stack.Screen
+              name="ChangePassword"
+              component={ChangePasswordScreen}
+              options={{ title: "Change password" }}
+            />
+            <Stack.Screen
+              name="TwoFactorSettings"
+              component={TwoFactorSettingsScreen}
+              options={{ title: "Two-factor authentication" }}
+            />
+            <Stack.Screen
+              name="SwitchWorkspace"
+              component={SwitchWorkspace}
+              options={{ title: "Workspaces" }}
+            />
           </>
         )}
       </Stack.Navigator>
@@ -66,7 +112,7 @@ export function RootNavigator(): React.JSX.Element {
 const styles = StyleSheet.create({
   splash: {
     flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
   },
 });

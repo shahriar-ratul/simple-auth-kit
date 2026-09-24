@@ -5,11 +5,10 @@
   "files": {
     ".husky/commit-msg": "28a616e5cb4c46b5b3119b320c4aae6a4de9c8cc634e712fedbff6aa752aa148",
     ".husky/pre-commit": "e2b7c9733375d7182af2033bda9a7d2a05d0db5eef5be53d26eb7b5f3df8fbc3",
-    ".lintstagedrc.json": "64a17a50dd381a6b18112a9c0825d74d90c3fa2cc1696c32ba217649052fb7fd",
+    ".lintstagedrc.json": "bf6fa9dcfebe33238272658d9d830da14b9bb8dcbe4b41b2fef366d105fb897d",
     ".prettierrc.json": "081337891d0f5748005d34049bf4dc8e08cab489fde8fac6c618ace9cca33dc2",
     "commitlint.config.js": "7fe74e705d0a0def48c5e134465c58fdd5c16982f2fa048ace1a010991de96aa",
     "components.json": "a7720c54d6a109d6063937fac1c7766c44a1020cdbe43eb489ca2cb126fbbaa9",
-    "eslint.config.js": "ddecaf373be8933978c01d2b52e5c9249680d2c996425081a2e7797ba975aa3b",
     ".gitignore": "d2b2d13f3a47347dfefb31fa94a7f2590c6f9cee797d26dd2d3f604d141e8822",
     "next.config.ts": "ccde5a1b928a5c0674655babefb0b78e6fbcd1b8972e4ec8a1154b04b66c1c80",
     "postcss.config.mjs": "dfac7ac2d86d326a0e5adb024e7943c181393ed17a5fcb8f0315b24c7da6ddde",
@@ -56,7 +55,7 @@
     "tsconfig.json": "be2265e91ac6bee8d32830350846f37cafccc0045abff49b88fde06b4c7e80ee",
     ".env.example": "c45479f62763e67347df1202729b938b1d9deab329d8320b741c596d5b579559",
     "Dockerfile": "e1911c025610ff9e5489369a6b21ca80d1d6bf745d919203c861913058a04c76",
-    "package.json": "69eb68a43900779a33fce60861ebb1b54e41ed69f64a5335191c00ff240f9770",
+    "package.json": "3178056bbaca8ad20de5b6d24135832977e4a5b43c078ca36c6b0e8f2cd28721",
     "src/app/(console)/account/change-password/page.tsx": "750f869106fb3d3a63dfac125ebe69127a908153f2f40514fb987e4e31e33b6b",
     "src/app/(console)/account/page.tsx": "581aea36fcae494d288073486d9f0a42b3394963dfa1b8ab3f2085cba28d7f00",
     "src/app/(console)/audit-log/page.tsx": "75a3079f62ab24546ff82d0388455dba0cedb252858c7e2354ae2d9beeffcdd1",
@@ -146,6 +145,7 @@
     "src/lib/stores/auth-store.ts": "ca639d56f13f3e3775b37c33d59ffd60c3d4cfc63ad7bc76836127ddf57f2c62",
     "src/lib/stores/store-context.tsx": "d85d470b01852274b2e307f1b0311bc4558e698d6dc6f4d23cc7615525ac26ab",
     "src/proxy.ts": "3eee456af27509f4d63edb85fb47364079cdd9a4ce0b3d371c8721ca0cff6d79",
-    "src/routes.ts": "9ac69858bd54edb1bd372e1b07c2c41fc4e20d5474cbec2448f3888398a19bb0"
+    "src/routes.ts": "9ac69858bd54edb1bd372e1b07c2c41fc4e20d5474cbec2448f3888398a19bb0",
+    ".oxlintrc.json": "f1dbe2d3cad29a4e828f58c6ec10beb088797aa6456c436a317f7ae573b655f2"
   }
 }

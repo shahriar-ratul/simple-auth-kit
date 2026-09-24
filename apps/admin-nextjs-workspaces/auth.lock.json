@@ -6,11 +6,10 @@
     ".gitignore": "d2b2d13f3a47347dfefb31fa94a7f2590c6f9cee797d26dd2d3f604d141e8822",
     ".husky/commit-msg": "28a616e5cb4c46b5b3119b320c4aae6a4de9c8cc634e712fedbff6aa752aa148",
     ".husky/pre-commit": "e2b7c9733375d7182af2033bda9a7d2a05d0db5eef5be53d26eb7b5f3df8fbc3",
-    ".lintstagedrc.json": "64a17a50dd381a6b18112a9c0825d74d90c3fa2cc1696c32ba217649052fb7fd",
+    ".lintstagedrc.json": "bf6fa9dcfebe33238272658d9d830da14b9bb8dcbe4b41b2fef366d105fb897d",
     ".prettierrc.json": "081337891d0f5748005d34049bf4dc8e08cab489fde8fac6c618ace9cca33dc2",
     "commitlint.config.js": "7fe74e705d0a0def48c5e134465c58fdd5c16982f2fa048ace1a010991de96aa",
     "components.json": "a7720c54d6a109d6063937fac1c7766c44a1020cdbe43eb489ca2cb126fbbaa9",
-    "eslint.config.js": "5c26cfd748696a7006e8cd55d158164352bd6bb878bb7bd111315eef22234a7f",
     "next.config.ts": "ccde5a1b928a5c0674655babefb0b78e6fbcd1b8972e4ec8a1154b04b66c1c80",
     "postcss.config.mjs": "dfac7ac2d86d326a0e5adb024e7943c181393ed17a5fcb8f0315b24c7da6ddde",
     "src/app/globals.css": "622dd2db7efecb7dad573b4edf37a70b0630db62e384c3b49029f3fcb2662bca",
@@ -56,7 +55,7 @@
     "tsconfig.json": "be2265e91ac6bee8d32830350846f37cafccc0045abff49b88fde06b4c7e80ee",
     ".env.example": "957edcf4b3fbc94303422cdffae7248a2766baf7f438b80916bd78073ee97e3a",
     "Dockerfile": "25619b87ad3fe5cf5c4b59c608500ee07fd263767fc0939944a7f024cb51a62f",
-    "package.json": "e31fde551278f421cd906f7f21ca2478f2e06d4009ee0d5139035fad17840b5d",
+    "package.json": "589aae20176aa2b1027336e1ab2259d218fe5b4fd3ca88e26fd5034c1180cc54",
     "src/app/(console)/account/page.tsx": "1388e229611df1ab49d8e3d1a41d1e04c3c793558fab8041b8041fde895d5371",
     "src/app/(console)/audit-log/page.tsx": "b0a62672d53c5dd509c43002e98c6d635875bc2c857bda5b05dd87b777a8fa20",
     "src/app/(console)/countries/[id]/edit/page.tsx": "0c209930f2b5c2f3828f1d501a4658ea7a908904c75764bfce6570785ed0401f",
@@ -111,6 +110,7 @@
     "src/lib/env.ts": "89424f93adbda950862957de8f4da3967d78e0e51ae6c341f03e5c2b4e8b0b56",
     "src/lib/stores/auth-store.ts": "2c21b2e514790c98028e92f08ea5c6fdb194bb92d814758990266df94a393659",
     "src/lib/stores/store-context.tsx": "201f7d214585c6bc2787cb8e278175df6180837a93a55310c624d97a69ed627a",
-    "src/lib/stores/workspace-store.ts": "f172f5f7b043d85c0e272ad9d55e934b64bb883a143b483e85a831de468889fc"
+    "src/lib/stores/workspace-store.ts": "f172f5f7b043d85c0e272ad9d55e934b64bb883a143b483e85a831de468889fc",
+    ".oxlintrc.json": "f1dbe2d3cad29a4e828f58c6ec10beb088797aa6456c436a317f7ae573b655f2"
   }
 }

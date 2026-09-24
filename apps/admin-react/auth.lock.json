@@ -6,11 +6,10 @@
     ".gitignore": "5624abe12084358fb605d9cbffdc6c45eca5edfb98e848e5faa724eae013eadd",
     ".husky/commit-msg": "28a616e5cb4c46b5b3119b320c4aae6a4de9c8cc634e712fedbff6aa752aa148",
     ".husky/pre-commit": "e2b7c9733375d7182af2033bda9a7d2a05d0db5eef5be53d26eb7b5f3df8fbc3",
-    ".lintstagedrc.json": "64a17a50dd381a6b18112a9c0825d74d90c3fa2cc1696c32ba217649052fb7fd",
+    ".lintstagedrc.json": "bf6fa9dcfebe33238272658d9d830da14b9bb8dcbe4b41b2fef366d105fb897d",
     ".prettierrc.json": "081337891d0f5748005d34049bf4dc8e08cab489fde8fac6c618ace9cca33dc2",
     "commitlint.config.js": "101001638e174a3b7e9b426ae05db040fa10d04c85d3b01924d9193be16ca27e",
     "components.json": "8972a821c798ab1259df238f740c3ac8578db4faaa2bd164acd49b0e1457a0aa",
-    "eslint.config.js": "917af8bcce82adb754e5406a35c784d9b76ed1cb9b76c2c78ef5fc4a7e94e457",
     "postcss.config.js": "4cae941be9bc3bee9a6905e47ea7a51aee216d587d34a8cc4ae48f78fd6d8159",
     "src/components/alert-modal.tsx": "6bbe3f692d51efbad466a677117b840293b6d869d21a64de032bbf08f02d3b44",
     "src/components/loader/skeleton.tsx": "01986b8c42b8ea65d0ffde3dbe8bfce560262f3e8943827c9bd0fbf5db7b7e09",
@@ -83,7 +82,7 @@
     ".env.example": "c5c2da887728cfa8d2ecf9851128a1550c241978f93f45cf046ab3cb0c7debaa",
     "Dockerfile": "387820ad8fd3c8c6130e6f59ccedc84c5bfde25ab0306d631ac1190044f8a062",
     "index.html": "6d317fbd06a1c7404edd670afe25102f8413ee8db1ce11eafec27f142a6f4e20",
-    "package.json": "b1b1dacb231d868306062b52fe7ee601637f73e70c484108f4782522ba847a68",
+    "package.json": "70f60f1421d842d8d62029f4639f2b86d536502b3e3a8489ee2768fe43802bc5",
     "src/App.tsx": "db26d1d03862a99362f12d32ab4dc9c110f3d0bf8633ed8846ab156da440d549",
     "src/components/app-sidebar.tsx": "e02812900b5c7429cdbd6cfb43a1a8ba636c5581eea012a33d3e0182dc70637c",
     "src/components/breadcrumb.tsx": "8b2031f08e5d53d1051c3a8e2a41e36e6446907d5f3e0242eda9825b783c200f",
@@ -138,6 +137,7 @@
     "src/pages/user-schema.ts": "256a18347a0b2b04108374616a46550808241ec2aac85c6843deec293e47700b",
     "src/stores/auth-store.ts": "833416e14886a3e7caa3ee4c46398bffb7131540718616fe00bdb9de4c5b7d99",
     "src/stores/store-context.tsx": "09e4c36d4e02170c3920b0aac7a6601a216d39f242675afea1c7bd9aa8f0ec2e",
-    "vite.config.ts": "970f2c326d62fca85bdf41a0a70d81ffd434c38ad86b18768b9ce41adad1f21c"
+    "vite.config.ts": "970f2c326d62fca85bdf41a0a70d81ffd434c38ad86b18768b9ce41adad1f21c",
+    ".oxlintrc.json": "23cc710aa1034eb474d9138839e7e29689f2abfc1faebde46f61fbdcc856a077"
   }
 }

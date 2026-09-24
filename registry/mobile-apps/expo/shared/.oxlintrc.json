@@ -1,0 +1,20 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "plugins": ["typescript", "unicorn", "oxc", "react", "import"],
+  "categories": { "correctness": "error" },
+  "env": { "browser": true, "node": true, "es2022": true },
+  "ignorePatterns": [
+    "dist/**",
+    "node_modules/**",
+    ".expo/**",
+    "ios/**",
+    "android/**"
+  ],
+  "rules": {
+    "react/rules-of-hooks": "error",
+    "react/exhaustive-deps": "warn",
+    // Type-aware (oxlint-tsgolint). Reported, not blocking: fire-and-forget calls in effects and
+    // event handlers are the norm here, and the previous (syntactic) linter never checked them.
+    "typescript/no-floating-promises": "warn"
+  }
+}

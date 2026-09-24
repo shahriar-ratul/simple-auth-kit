@@ -1,13 +1,19 @@
-import React, { useState } from "react";
-import { ActivityIndicator, Pressable, Text, TextInput, View } from "react-native";
-import { useAuthStore } from "../store/authStore";
+import React, { useState } from 'react';
+import {
+  ActivityIndicator,
+  Pressable,
+  Text,
+  TextInput,
+  View,
+} from 'react-native';
+import { useAuthStore } from '../store/authStore';
 
 export function TwoFactorScreen() {
-  const [code, setCode] = useState("");
-  const loginTwoFactor = useAuthStore((state) => state.loginTwoFactor);
-  const isSubmitting = useAuthStore((state) => state.isSubmitting);
-  const error = useAuthStore((state) => state.error);
-  const clearError = useAuthStore((state) => state.clearError);
+  const [code, setCode] = useState('');
+  const loginTwoFactor = useAuthStore(state => state.loginTwoFactor);
+  const isSubmitting = useAuthStore(state => state.isSubmitting);
+  const error = useAuthStore(state => state.error);
+  const clearError = useAuthStore(state => state.clearError);
 
   const canSubmit = code.trim().length > 0 && !isSubmitting;
 
@@ -28,9 +34,13 @@ export function TwoFactorScreen() {
       </Text>
 
       <TextInput
-        className="border border-[#ccc] rounded-lg px-3 py-2.5 text-xl tracking-[4px] text-center"
+        className="border border-[#ccc] rounded-lg px-3 py-2.5 text-xl tracking-[4px]"
+        // textAlign as a style, not `text-center`: react-native-css 3.0.7 (under NativeWind 5)
+        // routes a TextInput's textAlign through its native-prop mapping, which throws
+        // "undefined is not a function" at render.
+        style={{ textAlign: 'center' }}
         value={code}
-        onChangeText={(text) => {
+        onChangeText={text => {
           clearError();
           setCode(text);
         }}
@@ -44,7 +54,7 @@ export function TwoFactorScreen() {
       {error ? <Text className="text-[#c0392b] mt-4">{error}</Text> : null}
 
       <Pressable
-        className={`bg-blue-600 rounded-lg py-3.5 items-center mt-6 ${!canSubmit ? "opacity-50" : ""}`}
+        className={`bg-blue-600 rounded-lg py-3.5 items-center mt-6 ${!canSubmit ? 'opacity-50' : ''}`}
         onPress={handleSubmit}
         disabled={!canSubmit}
       >

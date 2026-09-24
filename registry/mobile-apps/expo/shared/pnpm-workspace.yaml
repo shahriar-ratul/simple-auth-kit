@@ -1,0 +1,12 @@
+# pnpm reads overrides only from here (it ignores package.json's "pnpm" field); npm/bun read the
+# same pin from package.json's "overrides".
+overrides:
+  # xcode (via @expo/config-plugins) still asks for the deprecated uuid@7; its only use is
+  # require('uuid').v4(), which uuid@11 (the last CommonJS line) still provides.
+  'xcode>uuid': '^11.1.1'
+  # react-native-css@3.0.7 (the engine under nativewind@5.0.0-preview.4) drives lightningcss through
+  # a JS visitor, and lightningcss >= 1.31.0 changed how optional struct fields round-trip through
+  # it: the first Tailwind v4 stylesheet fails to bundle ("failed to deserialize; expected an
+  # object-like struct named Specifier"). react-native-css resolves lightningcss from
+  # @expo/metro-config, so the pin is scoped there. Lift it when react-native-css supports newer.
+  '@expo/metro-config>lightningcss': '1.30.1'

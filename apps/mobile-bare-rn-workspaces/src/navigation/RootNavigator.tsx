@@ -10,6 +10,9 @@ import { TwoFactorScreen } from '../screens/TwoFactorScreen';
 import { WorkspaceSelectScreen } from '../screens/WorkspaceSelectScreen';
 import { HomeScreen } from '../screens/HomeScreen';
 import { SessionsScreen } from '../screens/SessionsScreen';
+import { EditProfileScreen } from '../screens/EditProfileScreen';
+import { ChangePasswordScreen } from '../screens/ChangePasswordScreen';
+import { TwoFactorSettingsScreen } from '../screens/TwoFactorSettingsScreen';
 import type { RootStackParamList } from './types';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -20,9 +23,9 @@ const ChooseWorkspace = () => <WorkspaceSelectScreen mode="gate" />;
 const SwitchWorkspace = () => <WorkspaceSelectScreen mode="switch" />;
 
 export function RootNavigator(): React.JSX.Element {
-  const isHydrated = useAuthStore((s) => s.isHydrated);
-  const isAuthenticated = useAuthStore((s) => s.currentUser !== null);
-  const hydrate = useAuthStore((s) => s.hydrate);
+  const isHydrated = useAuthStore(s => s.isHydrated);
+  const isAuthenticated = useAuthStore(s => s.currentUser !== null);
+  const hydrate = useAuthStore(s => s.hydrate);
   const activeWorkspaceId = useActiveWorkspaceId();
 
   useEffect(() => {
@@ -42,20 +45,63 @@ export function RootNavigator(): React.JSX.Element {
       <Stack.Navigator screenOptions={{ headerShown: true }}>
         {!isAuthenticated ? (
           <>
-            <Stack.Screen name="Login" component={LoginScreen} options={{ title: 'Log in' }} />
-            <Stack.Screen name="Signup" component={SignupScreen} options={{ title: 'Create account' }} />
-            <Stack.Screen name="TwoFactor" component={TwoFactorScreen} options={{ title: 'Verification code' }} />
+            <Stack.Screen
+              name="Login"
+              component={LoginScreen}
+              options={{ title: 'Log in' }}
+            />
+            <Stack.Screen
+              name="Signup"
+              component={SignupScreen}
+              options={{ title: 'Create account' }}
+            />
+            <Stack.Screen
+              name="TwoFactor"
+              component={TwoFactorScreen}
+              options={{ title: 'Verification code' }}
+            />
           </>
         ) : !activeWorkspaceId ? (
           // Authenticated but no workspace chosen yet: the only screen reachable is the
           // gate. Every workspace-scoped call would otherwise go out with no
           // `X-Workspace-Id` and be refused.
-          <Stack.Screen name="ChooseWorkspace" component={ChooseWorkspace} options={{ title: 'Choose a workspace' }} />
+          <Stack.Screen
+            name="ChooseWorkspace"
+            component={ChooseWorkspace}
+            options={{ title: 'Choose a workspace' }}
+          />
         ) : (
           <>
-            <Stack.Screen name="Home" component={HomeScreen} options={{ title: 'Profile' }} />
-            <Stack.Screen name="Sessions" component={SessionsScreen} options={{ title: 'Sessions' }} />
-            <Stack.Screen name="SwitchWorkspace" component={SwitchWorkspace} options={{ title: 'Workspaces' }} />
+            <Stack.Screen
+              name="Home"
+              component={HomeScreen}
+              options={{ title: 'Profile' }}
+            />
+            <Stack.Screen
+              name="Sessions"
+              component={SessionsScreen}
+              options={{ title: 'Sessions' }}
+            />
+            <Stack.Screen
+              name="EditProfile"
+              component={EditProfileScreen}
+              options={{ title: 'Edit profile' }}
+            />
+            <Stack.Screen
+              name="ChangePassword"
+              component={ChangePasswordScreen}
+              options={{ title: 'Change password' }}
+            />
+            <Stack.Screen
+              name="TwoFactorSettings"
+              component={TwoFactorSettingsScreen}
+              options={{ title: 'Two-factor authentication' }}
+            />
+            <Stack.Screen
+              name="SwitchWorkspace"
+              component={SwitchWorkspace}
+              options={{ title: 'Workspaces' }}
+            />
           </>
         )}
       </Stack.Navigator>
