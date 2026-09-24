@@ -8,3 +8,9 @@ services:
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=postgres
       - POSTGRES_DB=nestjs_drizzle
+  # Optional: only used when REDIS_AUTHZ_CACHE / REDIS_RATE_LIMIT is true (see README,
+  # "Optional: Redis"). Start just this one with: docker compose up -d redis
+  redis:
+    image: redis:7
+    ports:
+      - '6379:6379'
