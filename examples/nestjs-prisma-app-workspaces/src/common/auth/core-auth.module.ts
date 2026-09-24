@@ -3,7 +3,7 @@ import { JwtModule } from '@nestjs/jwt';
 import { AbilityGuard } from '@/common/auth/ability/ability.guard';
 import { AdminController } from '@/modules/admin/controllers/admin.controller';
 import { AuditLogController } from '@/modules/audit-log/controllers/audit-log.controller';
-import { AUTH_CONFIG, AuthConfig, defaultAuthConfig } from '@/common/config/auth.config';
+import { AUTH_CONFIG, AuthConfig, defaultAuthConfig, type AuthConfigInput } from '@/common/config/auth.config';
 import { AuthController } from '@/modules/auth/controllers/auth.controller';
 import { AuthGuard } from '@/common/auth/guards/auth.guard';
 import { AuthzGuard, WorkspaceGuard } from '@/common/auth/guards/authz.guard';
@@ -52,7 +52,7 @@ const TIERED_CONTROLLERS = [
 @Global()
 @Module({})
 export class CoreAuthModule {
-  static forRoot(config: Partial<AuthConfig> = {}): DynamicModule {
+  static forRoot(config: AuthConfigInput = {}): DynamicModule {
     // Fail-closed before anything else exists — nothing above this line allocates a database
     // client or a port, so a failed boot leaves nothing behind.
     assertEveryRouteDeclaresATier(TIERED_CONTROLLERS, {
@@ -60,7 +60,12 @@ export class CoreAuthModule {
       ability: AbilityGuard,
     });
 
-    const resolved: AuthConfig = { ...defaultAuthConfig, ...config };
+    const resolved: AuthConfig = {
+      ...defaultAuthConfig,
+      ...config,
+      // Merged a level deeper, so `authzCache: { ttlSeconds: 5 }` keeps the other defaults.
+      authzCache: { ...defaultAuthConfig.authzCache, ...config.authzCache },
+    };
 
     if (!config.rateLimitStore) {
       log.warn(

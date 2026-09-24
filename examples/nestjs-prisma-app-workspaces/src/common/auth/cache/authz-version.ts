@@ -2,7 +2,7 @@
 // that changes what `resolveAuthzContext` returns calls `bumpAuthzVersion`, inside the same
 // transaction when there is one, so the next request anywhere in this process re-resolves.
 // Writes made outside the app (raw SQL, another tool) don't bump it; the cache's TTL
-// (`authzCacheTtlSeconds`) bounds how long those can go unseen.
+// (`authzCache.ttlSeconds`) bounds how long those can go unseen.
 import type { PrismaClient } from '@/database/generated/prisma/client';
 
 /** The client or a transaction client — anything with the `authzVersion` delegate. */

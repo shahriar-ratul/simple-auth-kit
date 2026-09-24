@@ -12,7 +12,7 @@ import { createPermissionRouter } from '@/modules/permissions/routers/permission
 import { RoleService } from '@/modules/roles/services/role.service';
 import { createRoleRouter } from '@/modules/roles/routers/roles.router';
 import { authCoreErrorMiddleware } from '@/infra/middleware/auth-core-error.middleware';
-import { AuthConfig, defaultAuthConfig } from '@/common/config/auth.config';
+import { AuthConfig, AuthConfigInput, defaultAuthConfig } from '@/common/config/auth.config';
 import { createAuthMiddleware } from '@/common/auth/middleware/auth.middleware';
 import { createAuthRouter } from '@/modules/auth/routers/auth.router';
 import { AuthService } from '@/modules/auth/services/auth.service';
@@ -34,11 +34,11 @@ import { TwoFactorRepository } from '@/modules/auth/repositories/two-factor.repo
 
 export interface CreateAuthAppOptions {
   /** Overrides merged on top of `defaultAuthConfig`, same shape as the reference combo's `AuthModule.forRoot(config)`. */
-  config?: Partial<AuthConfig>;
+  config?: AuthConfigInput;
   /** Mount onto an existing Express app instead of creating a new one (e.g. to add your own business routes alongside). */
   app?: Express;
-  /** The authorization cache — pass one to read its `stats` (the proof does); a fresh one otherwise. */
-  authzCache?: AuthzCache;
+  /** A prebuilt authorization cache — pass one to read its `stats` (the proof does); built from `config.authzCache` otherwise. */
+  authzCacheInstance?: AuthzCache;
 }
 
 /**
@@ -49,7 +49,15 @@ export interface CreateAuthAppOptions {
  * middleware, and mount everything on an Express app.
  */
 export function createAuthApp(options: CreateAuthAppOptions = {}): Express {
-  const config: AuthConfig = { ...defaultAuthConfig, ...options.config };
+  const config: AuthConfig = {
+    ...defaultAuthConfig,
+    ...options.config,
+    // Merged a level deeper, so `authzCache: { ttlSeconds: 5 }` keeps the other defaults.
+    authzCache: {
+      ...defaultAuthConfig.authzCache,
+      ...options.config?.authzCache,
+    },
+  };
 
   const adapter = new PrismaPg({
     connectionString: process.env['DATABASE_URL'],
@@ -63,7 +71,7 @@ export function createAuthApp(options: CreateAuthAppOptions = {}): Express {
   // this library's source changes.
   const rateLimit: RateLimitDeps = config.rateLimitStore ?? new InMemoryRateLimitStore();
   const rbac = new RbacRepository(prisma);
-  const authzCache = options.authzCache ?? new AuthzCache(rbac, config.authzCacheTtlSeconds);
+  const authzCache = options.authzCacheInstance ?? new AuthzCache(rbac, config.authzCache);
   const twoFactor = new TwoFactorRepository(prisma);
   const oauth = new OAuthRepository(prisma);
   const passwordReset = new PasswordResetRepository(prisma);

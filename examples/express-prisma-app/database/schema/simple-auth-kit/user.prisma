@@ -1,0 +1,63 @@
+// Accounts: identity, profile, and the per-user state authentication reads.
+
+model User {
+  id               BigInt    @id @default(autoincrement())
+  uuid             String    @unique @default(uuid())
+  email            String    @unique
+  firstName        String?   @map("first_name")
+  lastName         String?   @map("last_name")
+  displayName      String?   @map("display_name")
+  phone            String?   @unique
+  username         String?   @unique
+  photo            String?
+  lastLogin        DateTime? @map("last_login") @db.Timestamptz(6)
+  passwordHash     String?   @map("password_hash") // nullable: OAuth-only signup has no password
+  // Two independent reasons an account can't authenticate, tracked separately so an admin can see
+  // *why*: `blocked` is a security/moderation action (see `block()`/`unblock()`); `isActive` is a
+  // routine administrative on/off toggle (see `activate()`/`deactivate()`) — e.g. paused while an
+  // employee is on leave, with no implication of wrongdoing. Both deny login on their own; neither
+  // implies the other, and unblocking a blocked-but-inactive account still leaves it inactive.
+  blocked          Boolean   @default(false)
+  isActive         Boolean   @default(true) @map("is_active")
+  twoFactorEnabled Boolean   @default(false) @map("two_factor_enabled")
+  twoFactorSecret  String?   @map("two_factor_secret") // base32 TOTP secret; plaintext-at-rest
+  createdBy        BigInt?   @map("created_by")
+  updatedBy        BigInt?   @map("updated_by")
+  isDeleted        Boolean   @default(false) @map("is_deleted")
+  deletedAt        DateTime? @map("deleted_at") @db.Timestamptz(6)
+  deletedBy        BigInt?   @map("deleted_by")
+  deletedReason    String?   @map("deleted_reason") @db.VarChar(255)
+  createdAt        DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt        DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  roles                RoleUser[]
+  permissions          PermissionUser[]
+  sessions             Session[]             @relation("UserSessions")
+  oauthAccounts        OAuthAccount[]
+  passwordResetTokens  PasswordResetToken[]
+  twoFactorBackupCodes TwoFactorBackupCode[]
+
+  // Named relations: Session/Role/Permission each point at User multiple times, so Prisma needs
+  // an explicit name per back-reference.
+  revokedSessions Session[] @relation("UserRevokedSessions")
+  createdSessions Session[] @relation("SessionCreatedBy")
+  updatedSessions Session[] @relation("SessionUpdatedBy")
+  deletedSessions Session[] @relation("SessionDeletedBy")
+
+  createdByUser User?  @relation("UserCreatedBy", fields: [createdBy], references: [id], onDelete: SetNull)
+  usersCreated  User[] @relation("UserCreatedBy")
+  updatedByUser User?  @relation("UserUpdatedBy", fields: [updatedBy], references: [id], onDelete: SetNull)
+  usersUpdated  User[] @relation("UserUpdatedBy")
+  deletedByUser User?  @relation("UserDeletedBy", fields: [deletedBy], references: [id], onDelete: SetNull)
+  usersDeleted  User[] @relation("UserDeletedBy")
+
+  rolesCreated       Role[]       @relation("RoleCreatedBy")
+  rolesUpdated       Role[]       @relation("RoleUpdatedBy")
+  rolesDeleted       Role[]       @relation("RoleDeletedBy")
+  permissionsCreated Permission[] @relation("PermissionCreatedBy")
+  permissionsUpdated Permission[] @relation("PermissionUpdatedBy")
+  permissionsDeleted Permission[] @relation("PermissionDeletedBy")
+
+  @@index([isDeleted], map: "users_is_deleted_idx")
+  @@map("users")
+}

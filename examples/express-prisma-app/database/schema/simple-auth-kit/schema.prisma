@@ -1,0 +1,31 @@
+// Roles and permissions are global to this deployment: a user has one set of roles, and it
+// applies everywhere.
+//
+// Authorization is resolved from the database on every request — user → roles → role permissions,
+// unioned with the user's direct grants — and the access token carries no authorization at all.
+// That is what makes a grant or a revocation take effect on the caller's *next request* rather
+// than their next token. The cost is bounded: three indexed reads on join tables, constant in the
+// number of users.
+//
+// Table and column names are snake_case/plural at the database level and camelCase in TypeScript;
+// Prisma maps between them, so nothing in the application code spells a column name.
+// simple-auth-kit's schema is split by domain across the files in database/schema/simple-auth-kit/
+// (this one holds only the generator and datasource). Prisma's multi-file schema support merges
+// every .prisma file under database/schema/, subfolders included, into one logical schema — so a
+// consumer's own models go in their own file directly under database/schema/ (e.g. app.prisma),
+// which the CLI never touches: it only manages the files in this simple-auth-kit/ folder.
+//
+// `output` stays relative to *this file's own location*: "../../generated/prisma" (two levels up
+// from database/schema/simple-auth-kit/) lands at database/generated/prisma — true both for the registry's own
+// dev/typecheck loop (scripts/materialize.mjs keeps database/ a sibling of src/) and for a real
+// CLI install (prisma.config.ts + database/ move to the project root together, as one unit).
+// Source imports the generated client via the stable "@/database/*" alias rather than a relative
+// path, so nothing needs rewriting on install the way the old top-level generated/ did.
+generator client {
+  provider = "prisma-client"
+  output   = "../../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}

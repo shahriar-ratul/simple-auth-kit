@@ -32,7 +32,7 @@ export interface AuthzMiddlewareDeps {
  * The one lookup is `resolveAuthzContext`'s — anchored on the `[userId, workspaceId]` unique
  * index — cached per `[userId, workspaceId]` in `AuthzCache`, versioned by the `authz_version`
  * row this app bumps on every RBAC write — so a change made through this API applies on the very
- * next request — and expiring after `authzCacheTtlSeconds`, the backstop for direct database edits.
+ * next request — and expiring after `authzCache.ttlSeconds`, the backstop for direct database edits.
  *
  * The CASL ability is derived from what came back, in memory, so gating routes on abilities costs
  * exactly what gating them on permission slugs did.

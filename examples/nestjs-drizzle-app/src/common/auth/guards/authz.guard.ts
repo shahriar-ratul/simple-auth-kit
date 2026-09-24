@@ -30,7 +30,8 @@ export interface AuthzContext {
  *
  * The answer is cached per user in `AuthzCache`. Every authorization write the app makes bumps
  * `authz_version`, so such a change applies on the very next request; a direct SQL write applies
- * once the cached answer's TTL (`authzCacheTtlSeconds`) runs out.
+ * once the cached answer's TTL (`authzCache.ttlSeconds`) runs out. See `AuthzCacheConfig` for turning
+ * the cache or its per-request revalidation off.
  */
 @Injectable()
 export class AuthzGuard implements CanActivate {

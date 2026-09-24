@@ -11,7 +11,7 @@ import { createAuditLogRouter } from '@/modules/audit-log/routers/audit-log.rout
 import { AuditLogService } from '@/modules/audit-log/services/audit-log.service';
 import { AuditLogRepository } from '@/common/repositories/audit-log.repository';
 import { authCoreErrorMiddleware } from '@/infra/middleware/auth-core-error.middleware';
-import { AuthConfig, defaultAuthConfig } from '@/common/config/auth.config';
+import { type AuthConfig, type AuthConfigInput, resolveAuthConfig } from '@/common/config/auth.config';
 import { createAuthMiddleware } from '@/common/auth/middleware/auth.middleware';
 import { createAuthRouter } from '@/modules/auth/routers/auth.router';
 import { AuthService } from '@/modules/auth/services/auth.service';
@@ -28,7 +28,7 @@ import { OAuthRepository } from '@/modules/auth/repositories/oauth.repository';
 import { openApiSpec } from '@/infra/openapi/openapi-spec';
 import { PasswordResetRepository } from '@/modules/auth/repositories/password-reset.repository';
 import { InMemoryRateLimitStore } from '@/common/auth/cache/rate-limit.store';
-import { createAuthzCache } from '@/common/auth/cache/authz-cache';
+import { createAuthzCache, InMemoryAuthzCacheStore } from '@/common/auth/cache/authz-cache';
 import { readAuthzVersion } from '@/common/auth/cache/authz-version';
 import { RbacRepository } from '@/common/repositories/rbac.repository';
 import { requestLogger } from '@/infra/middleware/request-logger.middleware';
@@ -53,11 +53,11 @@ import { WorkspaceRepository } from '@/common/repositories/workspace.repository'
  * function, and the only thing this module split changes is which router/service file each route
  * lives in.
  */
-export function createAuthApp(config: Partial<AuthConfig> = {}): Express {
+export function createAuthApp(config: AuthConfigInput = {}): Express {
   const drizzleService = new DrizzleService();
   const db = drizzleService.db;
 
-  const resolvedConfig: AuthConfig = { ...defaultAuthConfig, ...config };
+  const resolvedConfig: AuthConfig = resolveAuthConfig(config);
   const auditLog = new AuditLogRepository(db);
   const sessions = new SessionRepository(db, auditLog, resolvedConfig);
   const keys = new KeyProviderService();
@@ -65,11 +65,11 @@ export function createAuthApp(config: Partial<AuthConfig> = {}): Express {
   // this library's source changes.
   const rateLimit: RateLimitDeps = resolvedConfig.rateLimitStore ?? new InMemoryRateLimitStore();
   const rbac = new RbacRepository(db);
-  // Versioned by the app's own RBAC writes, with a TTL backstop for direct DB edits — see
-  // authz-cache.ts.
+  // Configured by `authzCache` in the config — see auth.config.ts and authz-cache.ts.
   const authzCache = createAuthzCache<AuthzContext>({
+    ...resolvedConfig.authzCache,
+    store: resolvedConfig.authzCache.store ?? new InMemoryAuthzCacheStore(),
     readVersion: () => readAuthzVersion(db),
-    ttlSeconds: resolvedConfig.authzCacheTtlSeconds,
   });
   const workspaces = new WorkspaceRepository(db, rbac);
   const twoFactor = new TwoFactorRepository(db);

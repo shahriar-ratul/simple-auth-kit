@@ -3,7 +3,7 @@
 // calls `bumpAuthzVersion` (inside its transaction, where it has one), which makes every cached
 // authorization answer stale on the very next request — on every app instance, since the counter
 // lives in the shared database. Direct database edits don't bump it; the cache's TTL
-// (`authzCacheTtlSeconds`) bounds how long those can go unseen.
+// (`authzCache.ttlSeconds`) bounds how long those can go unseen.
 import type { PrismaClient } from '@/database/generated/prisma/client';
 
 /** The client or a transaction client — anything that can reach the `authz_version` table. */
