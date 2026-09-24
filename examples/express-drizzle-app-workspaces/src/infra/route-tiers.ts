@@ -23,13 +23,13 @@
 //   • the middleware each tier needs is attached *by* `route()`, from the tier itself, so a route
 //     cannot claim a tier and then not be behind it — the equivalent of the reference's
 //     two-sided "declared tier matches attached guards" check;
-//   • and every slug is checked against `PERMISSION_CATALOG` at registration, i.e. at startup, so
+//   • and every slug is checked against `PERMISSION_SLUGS` at registration, i.e. at startup, so
 //     even an untyped (plain-JS) caller fails loudly at boot rather than serving a route gated on
 //     a permission nothing can ever grant.
 import { Router } from 'express';
 import type { NextFunction, Request, RequestHandler, Response } from 'express';
 import { ABILITY_SUBJECT } from '@/common/auth/ability/ability';
-import { PERMISSION_CATALOG, type PermissionSlug } from '@/modules/auth/rbac.defaults';
+import { PERMISSION_SLUGS, type PermissionSlug } from '@/modules/auth/permission-slugs';
 import '@/infra/request-context';
 
 /** The subset of Express's routing verbs this library's routes use. */
@@ -54,7 +54,7 @@ export const authenticated = (): RouteTier => ({ kind: 'authenticated' });
  *
  * This is the half of authorization that has to be code. **A route declares what it demands; the
  * database decides who is granted it.** The argument is typed as `PermissionSlug`, the catalog in
- * `rbac.defaults.ts`, so a route cannot be gated on a slug nothing will ever grant. Which *users*
+ * `permission-slugs.ts`, so a route cannot be gated on a slug nothing will ever grant. Which *users*
  * hold the slug is entirely a matter of rows.
  */
 export const ability = (...abilities: PermissionSlug[]): RouteTier => {
@@ -152,9 +152,9 @@ function tierMiddleware(tier: RouteTier, middleware: TierMiddleware): RequestHan
 }
 
 function assertInCatalog(slug: string): void {
-  if (!Object.prototype.hasOwnProperty.call(PERMISSION_CATALOG, slug)) {
+  if (!(PERMISSION_SLUGS as string[]).includes(slug)) {
     throw new Error(
-      `"${slug}" is not in PERMISSION_CATALOG — add it to rbac.defaults.ts (the seeder provisions exactly that catalog)`,
+      `"${slug}" is not in PERMISSION_SLUGS — add it to permission-slugs.ts (and give it a row in database/seedData/permissions.ts)`,
     );
   }
 }

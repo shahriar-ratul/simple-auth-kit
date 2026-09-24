@@ -4,7 +4,7 @@ import { blockUser, deactivateUser } from '@/core/session-policy';
 import type { Revoker } from '@/core/types';
 import { PrismaService } from '@/modules/prisma/prisma.service';
 import type { AuthzContext } from '@/common/auth/guards/authz.guard';
-import { AuditLogRepository } from '@/modules/audit-log/repositories/audit-log.repository';
+import { AuditLogRepository } from '@/common/repositories/audit-log.repository';
 import {
   CountryInput,
   CountryListFilter,
@@ -32,9 +32,9 @@ import {
   MemberSummary,
   RbacRepository,
   toMemberSummary,
-} from '@/modules/auth/repositories/rbac.repository';
-import { SessionRepository } from '@/modules/auth/repositories/session.repository';
-import { WorkspaceRepository } from '@/modules/auth/repositories/workspace.repository';
+} from '@/common/repositories/rbac.repository';
+import { SessionRepository } from '@/common/repositories/session.repository';
+import { WorkspaceRepository } from '@/common/repositories/workspace.repository';
 import { toId, toIdOrNull } from '@/common/helpers/id.helper';
 
 /**
@@ -162,9 +162,6 @@ export class AdminService {
       data: { blocked: true, updatedBy: toIdOrNull(revoker?.userId) },
     });
     await blockUser(this.sessions, userId, revoker);
-    // Belt and braces: the block is already enforced on the authentication path, but drop the
-    // cache entry anyway so nothing about a blocked account is served from memory.
-    await this.rbac.invalidateMember(userId, ctx.workspaceId);
   }
 
   async unblock(ctx: AuthzContext, userId: string, revoker?: Revoker): Promise<void> {
@@ -186,7 +183,6 @@ export class AdminService {
       data: { isActive: false, updatedBy: toIdOrNull(revoker?.userId) },
     });
     await deactivateUser(this.sessions, userId, revoker);
-    await this.rbac.invalidateMember(userId, ctx.workspaceId);
   }
 
   async activate(ctx: AuthzContext, userId: string, revoker?: Revoker): Promise<void> {

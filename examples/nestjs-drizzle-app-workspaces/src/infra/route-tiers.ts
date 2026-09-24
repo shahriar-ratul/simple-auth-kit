@@ -19,7 +19,7 @@
 // declaring nothing at all, and would otherwise be an open route that looks closed in the source.
 import { RequestMethod, SetMetadata } from '@nestjs/common';
 import { GUARDS_METADATA, METHOD_METADATA, PATH_METADATA } from '@nestjs/common/constants.js';
-import type { PermissionSlug } from '@/modules/auth/rbac.defaults';
+import type { PermissionSlug } from '@/modules/auth/permission-slugs';
 
 export const ROUTE_TIER_KEY = 'routeTier';
 export const CHECK_ABILITY_KEY = 'checkAbility';
@@ -48,7 +48,7 @@ export const Authenticated = () => SetMetadata(ROUTE_TIER_KEY, 'authenticated' s
  *
  * This is the half of authorization that has to be code. **A route declares what it demands; the
  * database decides who is granted it.** The argument is typed as `PermissionSlug`, the catalog in
- * `rbac.defaults.ts`, so a route cannot be gated on a slug nothing will ever grant — "this route
+ * `permission-slugs.ts`, so a route cannot be gated on a slug nothing will ever grant — "this route
  * requires something that does not exist" stays a compile error rather than a 403 nobody can
  * explain. Which *users* hold the slug is entirely a matter of rows.
  */

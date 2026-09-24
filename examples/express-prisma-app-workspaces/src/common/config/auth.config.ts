@@ -1,5 +1,4 @@
 import type { RateLimitDeps } from '@/core/rate-limit';
-import type { PermissionCacheStore } from '@/common/auth/cache/permission-cache';
 
 export interface GoogleOAuthCredentials {
   clientId: string;
@@ -32,19 +31,6 @@ export interface AuthConfig {
     apple?: AppleOAuthCredentials;
   };
   /**
-   * How long a resolved permission set may sit in the cache. This is a safety net, not the
-   * invalidation mechanism: correctness comes from the version counters in permission-cache.ts,
-   * which make a stale entry unreachable the instant anything changes. Set to 0 to resolve from
-   * the database on every request — same answers, more queries.
-   */
-  permissionCacheTtlSeconds: number;
-  /**
-   * Where resolved permissions are cached. Defaults to an in-process `Map`, which is correct for
-   * a single instance; pass a Redis-backed implementation of `PermissionCacheStore` for several.
-   * Keys are namespaced `simpleauthkit:authz:*`.
-   */
-  permissionCacheStore?: PermissionCacheStore;
-  /**
    * Where rate-limit counters live. Defaults to an in-process `Map`, which is correct for a
    * single instance; pass a Redis-backed implementation of `RateLimitDeps` for several.
    */
@@ -55,7 +41,6 @@ export interface AuthConfig {
 
 export const defaultAuthConfig: AuthConfig = {
   accessTokenTtlSeconds: 900,
-  permissionCacheTtlSeconds: 300,
   refreshTokenTtlSeconds: 60 * 60 * 24 * 30,
   sessionTtlSeconds: 60 * 60 * 24 * 30,
   twoFactorIssuer: 'simple-auth-kit',

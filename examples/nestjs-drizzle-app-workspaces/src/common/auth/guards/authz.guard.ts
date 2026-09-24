@@ -1,7 +1,6 @@
 import { CanActivate, ExecutionContext, ForbiddenException, Inject, Injectable } from '@nestjs/common';
 import { defineAbilitiesFor } from '@/common/auth/ability/ability';
-import { PermissionCache } from '@/common/auth/cache/permission-cache';
-import { memberCacheKey, RbacRepository } from '@/modules/auth/repositories/rbac.repository';
+import { RbacRepository } from '@/common/repositories/rbac.repository';
 
 export const WORKSPACE_HEADER = 'x-workspace-id';
 
@@ -23,10 +22,8 @@ export interface AuthzContext {
  * named" differs.
  *
  * The one lookup is `resolveAuthzContext`'s — anchored on the `[userId, workspaceId]` unique
- * index — and it goes through `PermissionCache`, keyed on that same pair, so the steady-state
- * cost is a cache read. The *semantics* stay "read from the database": every write that could
- * change the answer bumps a version counter and the cached entry becomes unreachable. A
- * non-member is never cached, so being added to a workspace is effective immediately.
+ * index — and it reads the live database on every request. Nothing is cached, so a change made
+ * anywhere (the API, another service, a direct SQL write) applies on the very next request.
  *
  * The CASL ability is derived from what came back, in memory, so gating routes on abilities costs
  * exactly what gating them on permission slugs did.
@@ -34,7 +31,7 @@ export interface AuthzContext {
  * Idempotent: a route may legitimately sit behind both guards, and resolving twice would double
  * the hot path's query count for no gain.
  */
-async function resolve(rbac: RbacRepository, cache: PermissionCache, context: ExecutionContext): Promise<void> {
+async function resolve(rbac: RbacRepository, context: ExecutionContext): Promise<void> {
   const req = context.switchToHttp().getRequest();
   if (req.authz) return;
 
@@ -42,9 +39,7 @@ async function resolve(rbac: RbacRepository, cache: PermissionCache, context: Ex
   if (!req.auth || typeof workspaceId !== 'string' || workspaceId.length === 0) return;
 
   const userId = req.auth.sub as string;
-  const authz = await cache.resolve<AuthzContext>(memberCacheKey(userId, workspaceId), () =>
-    rbac.resolveAuthzContext(userId, workspaceId),
-  );
+  const authz = await rbac.resolveAuthzContext(userId, workspaceId);
   // Deliberately the same answer for "no such workspace" and "not your workspace": a caller
   // outside a workspace must not be able to probe whether it exists.
   if (!authz) throw new ForbiddenException('not a member of this workspace');
@@ -61,13 +56,10 @@ async function resolve(rbac: RbacRepository, cache: PermissionCache, context: Ex
  */
 @Injectable()
 export class AuthzGuard implements CanActivate {
-  constructor(
-    @Inject(RbacRepository) private readonly rbac: RbacRepository,
-    @Inject(PermissionCache) private readonly cache: PermissionCache,
-  ) {}
+  constructor(@Inject(RbacRepository) private readonly rbac: RbacRepository) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
-    await resolve(this.rbac, this.cache, context);
+    await resolve(this.rbac, context);
     return true;
   }
 }
@@ -75,13 +67,10 @@ export class AuthzGuard implements CanActivate {
 /** The same resolution, but the workspace is mandatory — every workspace-scoped route uses this. */
 @Injectable()
 export class WorkspaceGuard implements CanActivate {
-  constructor(
-    @Inject(RbacRepository) private readonly rbac: RbacRepository,
-    @Inject(PermissionCache) private readonly cache: PermissionCache,
-  ) {}
+  constructor(@Inject(RbacRepository) private readonly rbac: RbacRepository) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
-    await resolve(this.rbac, this.cache, context);
+    await resolve(this.rbac, context);
     const req = context.switchToHttp().getRequest();
     if (!req.authz) throw new ForbiddenException(`${WORKSPACE_HEADER} header is required`);
     return true;

@@ -1,8 +1,7 @@
 import type { NextFunction, Request, RequestHandler, Response } from 'express';
 import { defineAbilitiesFor } from '@/common/auth/ability/ability';
 import { HttpError } from '@/infra/errors/http-error';
-import type { PermissionCache } from '@/common/auth/cache/permission-cache';
-import { memberCacheKey, type RbacRepository } from '@/modules/auth/repositories/rbac.repository';
+import type { RbacRepository } from '@/common/repositories/rbac.repository';
 import '@/infra/request-context';
 
 export const WORKSPACE_HEADER = 'x-workspace-id';
@@ -22,7 +21,6 @@ export interface AuthzContext {
 
 export interface AuthzMiddlewareDeps {
   rbac: RbacRepository;
-  cache: PermissionCache;
 }
 
 /**
@@ -30,10 +28,8 @@ export interface AuthzMiddlewareDeps {
  * named" differs.
  *
  * The one lookup is `resolveAuthzContext`'s — anchored on the `[userId, workspaceId]` unique
- * index — and it goes through `PermissionCache`, keyed on that same pair, so the steady-state cost
- * is a cache read. The *semantics* stay "read from the database": every write that could change
- * the answer bumps a version counter and the cached entry becomes unreachable. A non-member is
- * never cached, so being added to a workspace is effective immediately.
+ * index — and it reads the live database on every request; there is no cache. A change made
+ * anywhere — through the admin API or straight in SQL — applies on the very next request.
  *
  * The CASL ability is derived from what came back, in memory, so gating routes on abilities costs
  * exactly what gating them on permission slugs did.
@@ -48,9 +44,7 @@ async function resolve(deps: AuthzMiddlewareDeps, req: Request): Promise<void> {
   if (!req.auth || typeof workspaceId !== 'string' || workspaceId.length === 0) return;
 
   const userId = req.auth.sub;
-  const authz = await deps.cache.resolve<AuthzContext>(memberCacheKey(userId, workspaceId), () =>
-    deps.rbac.resolveAuthzContext(userId, workspaceId),
-  );
+  const authz = await deps.rbac.resolveAuthzContext(userId, workspaceId);
   // Deliberately the same answer for "no such workspace" and "not your workspace": a caller
   // outside a workspace must not be able to probe whether it exists.
   if (!authz) throw new HttpError(403, 'not a member of this workspace');

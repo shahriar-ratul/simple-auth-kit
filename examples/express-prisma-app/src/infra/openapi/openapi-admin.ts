@@ -5,7 +5,7 @@
 // Administration is deployment-wide, so nothing below names a narrower scope: an admin here is
 // an admin of everything.
 //
-// Every path is gated on exactly one key from `rbac.defaults.ts` and there is no role-based
+// Every path is gated on exactly one key from `permission-slugs.ts` and there is no role-based
 // bypass, which is why the 403s say which permission was missing rather than "admin role
 // required": holding a role called "admin" that carries nothing gets the same answer as holding
 // no role at all.

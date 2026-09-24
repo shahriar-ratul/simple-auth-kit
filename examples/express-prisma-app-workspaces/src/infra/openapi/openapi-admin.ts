@@ -6,7 +6,7 @@
 // Administration is scoped to one workspace, so every path below takes the `X-Workspace-Id`
 // header: an admin here is an admin of the workspace they name and of nothing else.
 //
-// Every path is gated on exactly one key from `rbac.defaults.ts` and there is no role-based
+// Every path is gated on exactly one key from `permission-slugs.ts` and there is no role-based
 // bypass, which is why the 403s say which permission was missing rather than "admin role
 // required". A 403 is also the answer when the header names a workspace the caller does not
 // belong to, or none at all — deliberately the same answer, so the status cannot be used to

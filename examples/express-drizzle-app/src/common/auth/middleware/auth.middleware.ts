@@ -2,7 +2,7 @@ import type { NextFunction, Request, Response } from 'express';
 import { verifyAccessToken } from '@/core/token-service';
 import { KeyProviderService } from '@/common/config/key-provider';
 import '@/infra/request-context';
-import { SessionRepository } from '@/modules/auth/repositories/session.repository';
+import { SessionRepository } from '@/common/repositories/session.repository';
 
 /**
  * Authentication only — proves who the caller is and populates `req.auth`. Authorization

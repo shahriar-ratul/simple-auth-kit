@@ -30,7 +30,7 @@ import { AuthGuard } from '@/common/auth/guards/auth.guard';
 import { WORKSPACE_HEADER, WorkspaceGuard } from '@/common/auth/guards/authz.guard';
 import { CheckAbility } from '@/infra/route-tiers';
 import { DeleteReasonDto, OkResponseDto } from '@/common/dto/shared.dto';
-import { WorkspaceRepository } from '@/modules/auth/repositories/workspace.repository';
+import { WorkspaceRepository } from '@/common/repositories/workspace.repository';
 import { hashPassword } from '@/core/crypto';
 import {
   AssignRoleDto,
@@ -56,7 +56,7 @@ const optionalString = (value: unknown): string | undefined => (typeof value ===
  * and every handler passes the same resolved context down, so the query itself is scoped too.
  *
  * Each route says what it demands; the rows say who is granted it. The slugs below are checked at
- * compile time against `PERMISSION_CATALOG` in `rbac.defaults.ts`, while who holds them — and
+ * compile time against `PERMISSION_SLUGS` in `permission-slugs.ts`, while who holds them — and
  * whether the permission is active at all — is edited through this very controller and takes
  * effect on the next request. `GET /auth/me` returns the caller's slugs *for the workspace they
  * named*, and a console rebuilds the same ability from them with the same function the guard used.
