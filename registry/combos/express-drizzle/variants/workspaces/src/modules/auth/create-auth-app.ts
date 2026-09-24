@@ -9,7 +9,7 @@ import { createPermissionsRouter } from "@/modules/permissions/routers/permissio
 import { PermissionsService } from "@/modules/permissions/services/permissions.service";
 import { createAuditLogRouter } from "@/modules/audit-log/routers/audit-log.router";
 import { AuditLogService } from "@/modules/audit-log/services/audit-log.service";
-import { AuditLogRepository } from "@/modules/audit-log/repositories/audit-log.repository";
+import { AuditLogRepository } from "@/common/repositories/audit-log.repository";
 import { authCoreErrorMiddleware } from "@/infra/middleware/auth-core-error.middleware";
 import { AuthConfig, defaultAuthConfig } from "@/common/config/auth.config";
 import { createAuthMiddleware } from "@/common/auth/middleware/auth.middleware";
@@ -30,18 +30,14 @@ import {
 import { OAuthRepository } from "@/modules/auth/repositories/oauth.repository";
 import { openApiSpec } from "@/infra/openapi/openapi-spec";
 import { PasswordResetRepository } from "@/modules/auth/repositories/password-reset.repository";
-import {
-  InMemoryPermissionCacheStore,
-  PermissionCache,
-} from "@/common/auth/cache/permission-cache";
 import { InMemoryRateLimitStore } from "@/common/auth/cache/rate-limit.store";
-import { RbacRepository } from "@/modules/auth/repositories/rbac.repository";
+import { RbacRepository } from "@/common/repositories/rbac.repository";
 import { requestLogger } from "@/infra/middleware/request-logger.middleware";
 import { responseEnvelope } from "@/infra/middleware/response-envelope.middleware";
-import { SessionRepository } from "@/modules/auth/repositories/session.repository";
+import { SessionRepository } from "@/common/repositories/session.repository";
 import { TwoFactorRepository } from "@/modules/auth/repositories/two-factor.repository";
 import { createWorkspaceRouter } from "@/modules/auth/routers/workspace.router";
-import { WorkspaceRepository } from "@/modules/auth/repositories/workspace.repository";
+import { WorkspaceRepository } from "@/common/repositories/workspace.repository";
 
 /**
  * Factory wiring a Drizzle `NodePgDatabase` (from a `pg.Pool`) plus all the plain classes,
@@ -70,13 +66,7 @@ export function createAuthApp(config: Partial<AuthConfig> = {}): Express {
   // this library's source changes.
   const rateLimit: RateLimitDeps =
     resolvedConfig.rateLimitStore ?? new InMemoryRateLimitStore();
-  // The cache seam. Swap the store for a Redis-backed one by passing `permissionCacheStore` in
-  // `config` — nothing in this library's source changes. Keys are namespaced simpleauthkit:authz:*.
-  const permissionCache = new PermissionCache(
-    resolvedConfig.permissionCacheStore ?? new InMemoryPermissionCacheStore(),
-    resolvedConfig,
-  );
-  const rbac = new RbacRepository(db, permissionCache);
+  const rbac = new RbacRepository(db);
   const workspaces = new WorkspaceRepository(db, rbac);
   const twoFactor = new TwoFactorRepository(db);
   const oauth = new OAuthRepository(db);
@@ -100,19 +90,15 @@ export function createAuthApp(config: Partial<AuthConfig> = {}): Express {
   // Roles belong to a workspace membership, resolved from the database on the request that names
   // the workspace. `requireAuthz` tolerates a request that names none (GET /auth/me answers with
   // empty roles); `requireWorkspace` does not. See authz.middleware.ts.
-  const requireAuthz = createAuthzMiddleware({ rbac, cache: permissionCache });
-  const requireWorkspace = createWorkspaceMiddleware({
-    rbac,
-    cache: permissionCache,
-  });
+  const requireAuthz = createAuthzMiddleware({ rbac });
+  const requireWorkspace = createWorkspaceMiddleware({ rbac });
 
-  if (!resolvedConfig.permissionCacheStore || !resolvedConfig.rateLimitStore) {
+  if (!resolvedConfig.rateLimitStore) {
     log.warn(
       "auth",
-      "[simple-auth-kit] permissionCacheStore/rateLimitStore not overridden — using in-memory defaults. " +
-        "Fine for a single instance; silently inconsistent (stale grants, wrong rate-limit counts) " +
-        "across replicas once you run more than one. Override permissionCacheStore/rateLimitStore " +
-        "in createAuthApp's config before scaling out.",
+      "[simple-auth-kit] rateLimitStore not overridden — using the in-memory default. " +
+        "Fine for a single instance; silently wrong rate-limit counts across replicas once you " +
+        "run more than one. Override rateLimitStore in createAuthApp's config before scaling out.",
     );
   }
 

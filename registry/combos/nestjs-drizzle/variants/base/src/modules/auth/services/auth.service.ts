@@ -50,9 +50,9 @@ import type { Revoker } from "@/lib/auth/core/types";
 import {
   RbacRepository,
   UserSummary,
-} from "@/modules/auth/repositories/rbac.repository";
+} from "@/common/repositories/rbac.repository";
 import { sessions, users } from "@/database/schema";
-import { SessionRepository } from "@/modules/auth/repositories/session.repository";
+import { SessionRepository } from "@/common/repositories/session.repository";
 import { TwoFactorRepository } from "@/modules/auth/repositories/two-factor.repository";
 import { toId } from "@/common/helpers/id.helper";
 

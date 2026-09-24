@@ -5,8 +5,7 @@
 import "dotenv/config";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { PrismaClient } from "@/database/generated/prisma/client.js";
-import { POLICY_VERSION_KEY } from "../src/common/auth/cache/permission-cache.js";
-import { permissionCacheStore } from "./bootstrap.js";
+import { toId } from "../src/common/helpers/id.helper.js";
 import {
   renewingToken,
   type AdminSession,
@@ -393,7 +392,7 @@ export const hooks: VariantHooks = {
 
     await proveNewWorkspaceIsProvisioned(ctx);
     await proveWorkspaceHeaderCannotBeSkipped(ctx, alpha);
-    await proveTheCacheIsScopedAndReal(ctx, alpha, beta);
+    await proveGrantsAreScopedToTheirWorkspace(ctx, alpha, beta);
     await proveARawDatabaseEditChangesEnforcement(ctx, beta);
   },
 };
@@ -624,59 +623,38 @@ async function proveWorkspaceHeaderCannotBeSkipped(
   );
 }
 
-// The permission cache is keyed on the membership, not the user, so invalidating one workspace
-// must not flush another. Reads the very store the app resolves through, so "the second request
-// didn't touch the database" is a measurement rather than a claim.
-async function proveTheCacheIsScopedAndReal(
+// A grant made inside one workspace belongs to that membership: it shows up in that workspace
+// on the very next request and never in the same person's other workspaces.
+async function proveGrantsAreScopedToTheirWorkspace(
   ctx: ProofContext,
   alpha: { token: string; workspace: Workspace },
   beta: { token: string; userId: string; workspace: Workspace },
 ): Promise<void> {
-  const N = 8;
-  await ctx.call("GET", "/auth/me", {
-    token: alpha.token,
-    workspaceId: alpha.workspace.id,
-  }); // warm
-  const before = { ...permissionCacheStore.stats };
-  for (let i = 0; i < N; i += 1)
-    await ctx.call("GET", "/auth/me", {
-      token: alpha.token,
-      workspaceId: alpha.workspace.id,
-    });
-  const after = permissionCacheStore.stats;
-  ctx.assert(
-    after.misses === before.misses && after.hits === before.hits + N,
-    `${N} identical workspace-scoped requests resolve the membership 0 further times — all ${N} were cache hits (misses +${after.misses - before.misses}, hits +${after.hits - before.hits})`,
-  );
-
-  // A grant inside beta must invalidate beta's entry and leave alpha's alone — the cache
-  // subject is the (user, workspace) pair.
   await ctx.call("POST", `/admin/users/${beta.userId}/permissions`, {
     token: beta.token,
     workspaceId: beta.workspace.id,
-    body: { permission: "probe:cache" },
+    body: { permission: "probe:scope" },
   });
-  const beforeAlpha = { ...permissionCacheStore.stats };
   const alphaAfter = await ctx.call("GET", "/auth/me", {
     token: alpha.token,
     workspaceId: alpha.workspace.id,
   });
   ctx.assert(
-    permissionCacheStore.stats.misses === beforeAlpha.misses &&
-      alphaAfter.status === 200,
-    "a grant made in workspace B does not invalidate the caller's cached membership of workspace A",
+    alphaAfter.status === 200 &&
+      !(alphaAfter.body?.permissions ?? []).includes("probe:scope"),
+    "a grant made in workspace B does not show up in the caller's membership of workspace A",
   );
   const betaAfter = await ctx.call("GET", "/auth/me", {
     token: beta.token,
     workspaceId: beta.workspace.id,
   });
   ctx.assert(
-    (betaAfter.body?.permissions ?? []).includes("probe:cache"),
+    (betaAfter.body?.permissions ?? []).includes("probe:scope"),
     "…while workspace B sees the grant on its very next request",
   );
   await ctx.call(
     "POST",
-    `/admin/users/${beta.userId}/permissions/${encodeURIComponent("probe:cache")}/revoke`,
+    `/admin/users/${beta.userId}/permissions/${encodeURIComponent("probe:scope")}/revoke`,
     {
       token: beta.token,
       workspaceId: beta.workspace.id,
@@ -687,16 +665,17 @@ async function proveTheCacheIsScopedAndReal(
     workspaceId: beta.workspace.id,
   });
   ctx.assert(
-    !(betaRevoked.body?.permissions ?? []).includes("probe:cache"),
+    !(betaRevoked.body?.permissions ?? []).includes("probe:scope"),
     "…and loses it again on the request after the revoke",
   );
 }
 
-// Writes the row directly rather than through the admin API, ruling out any in-memory side
-// channel — a `psql` session would look exactly like this, bump included (permission-cache.ts).
+// Writes rows directly rather than through the admin API, with nothing telling the app it
+// happened — a `psql` session would look exactly like this. Authorization is read from the
+// database on every request, so each edit is enforced on the very next one.
 async function proveARawDatabaseEditChangesEnforcement(
   ctx: ProofContext,
-  beta: { token: string; workspace: Workspace },
+  beta: { token: string; userId: string; workspace: Workspace },
 ): Promise<void> {
   const opened = await ctx.call("GET", "/audit-log", {
     token: beta.token,
@@ -711,7 +690,6 @@ async function proveARawDatabaseEditChangesEnforcement(
     where: { slug: "audit-log:read" },
     data: { isActive: false },
   });
-  await permissionCacheStore.bump(POLICY_VERSION_KEY);
   const denied = await ctx.call("GET", "/audit-log", {
     token: beta.token,
     workspaceId: beta.workspace.id,
@@ -725,7 +703,6 @@ async function proveARawDatabaseEditChangesEnforcement(
     where: { slug: "audit-log:read" },
     data: { isActive: true },
   });
-  await permissionCacheStore.bump(POLICY_VERSION_KEY);
   const restored = await ctx.call("GET", "/audit-log", {
     token: beta.token,
     workspaceId: beta.workspace.id,
@@ -734,4 +711,64 @@ async function proveARawDatabaseEditChangesEnforcement(
     restored.status === 200,
     `…and reactivating it in the database opens the route again (got ${restored.status})`,
   );
+
+  const member = await prisma.workspaceMember.findUniqueOrThrow({
+    where: {
+      userId_workspaceId: {
+        userId: toId(beta.userId),
+        workspaceId: toId(beta.workspace.id),
+      },
+    },
+    select: { id: true },
+  });
+  const adminRole = await prisma.role.findFirstOrThrow({
+    where: { workspaceId: toId(beta.workspace.id), slug: "admin" },
+    select: { id: true },
+  });
+  const auditLogRead = await prisma.permission.findUniqueOrThrow({
+    where: { slug: "audit-log:read" },
+    select: { id: true },
+  });
+
+  // The membership's role assignment, deleted straight from the join table.
+  await prisma.roleMember.deleteMany({
+    where: { memberId: member.id, roleId: adminRole.id },
+  });
+  const afterRawRoleDelete = await ctx.call("GET", "/audit-log", {
+    token: beta.token,
+    workspaceId: beta.workspace.id,
+  });
+  ctx.assert(
+    afterRawRoleDelete.status === 403,
+    `a role assignment deleted by a raw database write is gone on the very next request, same token (got ${afterRawRoleDelete.status})`,
+  );
+
+  // A direct grant inserted and then deleted the same way.
+  await prisma.permissionMember.create({
+    data: { memberId: member.id, permissionId: auditLogRead.id },
+  });
+  const viaGrant = await ctx.call("GET", "/audit-log", {
+    token: beta.token,
+    workspaceId: beta.workspace.id,
+  });
+  ctx.assert(
+    viaGrant.status === 200,
+    `a direct grant inserted by a raw database write opens the route on the very next request (got ${viaGrant.status})`,
+  );
+  await prisma.permissionMember.deleteMany({
+    where: { memberId: member.id, permissionId: auditLogRead.id },
+  });
+  const afterRawGrantDelete = await ctx.call("GET", "/audit-log", {
+    token: beta.token,
+    workspaceId: beta.workspace.id,
+  });
+  ctx.assert(
+    afterRawGrantDelete.status === 403,
+    `a direct grant deleted by a raw database write is gone on the very next request, same token (got ${afterRawGrantDelete.status})`,
+  );
+
+  // Put the admin role back so nothing after this section inherits a stripped membership.
+  await prisma.roleMember.create({
+    data: { memberId: member.id, roleId: adminRole.id },
+  });
 }

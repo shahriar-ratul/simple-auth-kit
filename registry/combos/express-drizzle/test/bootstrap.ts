@@ -1,18 +1,10 @@
 import "dotenv/config";
 import type { Server } from "node:http";
 import { createAuthApp } from "../src/modules/auth/create-auth-app.js";
-import { InMemoryPermissionCacheStore } from "../src/common/auth/cache/permission-cache.js";
 
 // No mailer is wired up for the proof, so this stands in for one — prove-cycle.ts reads the
 // raw token back out of here the same way a test inbox would, to exercise the reset flow.
 export const capturedResetTokens = new Map<string, string>();
-
-/**
- * The very store the app resolves permissions through. Exposed so `prove-cycle.ts` can assert
- * that N identical authorized requests cause one database resolution rather than N — a cache
- * nobody can prove is working is a bug surface, not an optimisation.
- */
-export const permissionCacheStore = new InMemoryPermissionCacheStore();
 
 export async function bootstrap(
   port: number,
@@ -25,7 +17,6 @@ export async function bootstrap(
     // short enough to stay realistic. See `renewingToken` in test/harness.ts for the other
     // half of the fix.
     accessTokenTtlSeconds: 300,
-    permissionCacheStore,
     sendPasswordResetEmail: async (email, token) => {
       capturedResetTokens.set(email, token);
     },

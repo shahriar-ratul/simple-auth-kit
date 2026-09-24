@@ -73,7 +73,8 @@ template. Nine steps, repository → UI:
 1. **Prisma model** in `variants/base/database/schema/simple-auth-kit.prisma` — copy the standard column set from
    an existing model (id/uuid, `isActive`, `createdBy`/`updatedBy`, soft-delete columns,
    timestamps). Then `npm run migrate -- base --name add_<domain>`.
-2. **Repository** `variants/base/src/modules/auth/repositories/<domain>.repository.ts` — list
+2. **Repository** `variants/base/src/modules/<module>/repositories/<domain>.repository.ts` (or
+   `src/common/repositories/` if more than one module will use it) — list
    (search/page/limit/`activeOnly`), get, create, update, soft-delete, `setActive`. Shape rows
    through a `to<Domain>Summary()` that forwards **every safe column** (BigInt ids → strings,
    Dates → ISO). The list must map rows through it too — returning raw Prisma rows crashes JSON

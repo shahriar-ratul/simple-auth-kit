@@ -7,7 +7,6 @@ import { AuditLogModule } from "../src/modules/audit-log/audit-log.module.js";
 import { AuthCoreErrorFilter } from "../src/infra/filters/auth-core-error.filter.js";
 import { AuthModule } from "../src/modules/auth/auth.module.js";
 import { CoreAuthModule } from "../src/common/auth/core-auth.module.js";
-import { InMemoryPermissionCacheStore } from "../src/common/auth/cache/permission-cache.js";
 import { PermissionModule } from "../src/modules/permissions/permissions.module.js";
 import { RequestLoggerInterceptor } from "../src/infra/interceptor/request-logger.interceptor.js";
 import { ResponseInterceptor } from "../src/infra/interceptor/response.interceptor.js";
@@ -17,13 +16,6 @@ import { RoleModule } from "../src/modules/roles/roles.module.js";
 // No mailer is wired up for the proof, so this stands in for one — prove-cycle.ts reads the
 // raw token back out of here the same way a test inbox would, to exercise the reset flow.
 export const capturedResetTokens = new Map<string, string>();
-
-/**
- * The very store the app resolves permissions through. Exposed so `prove-cycle.ts` can assert
- * that N identical authorized requests cause one database resolution rather than N — a cache
- * nobody can prove is working is a bug surface, not an optimisation.
- */
-export const permissionCacheStore = new InMemoryPermissionCacheStore();
 
 /**
  * The app module is built *inside* `bootstrap()`, not at import time.
@@ -50,7 +42,6 @@ export async function bootstrap(port: number) {
         // short enough to stay realistic. See `renewingToken` in test/harness.ts for the other
         // half of the fix.
         accessTokenTtlSeconds: 300,
-        permissionCacheStore,
         sendPasswordResetEmail: async (email: string, token: string) => {
           capturedResetTokens.set(email, token);
         },

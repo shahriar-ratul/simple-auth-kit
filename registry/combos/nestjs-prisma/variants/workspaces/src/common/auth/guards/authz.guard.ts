@@ -6,11 +6,7 @@ import {
   Injectable,
 } from "@nestjs/common";
 import { defineAbilitiesFor } from "@/common/auth/ability/ability";
-import { PermissionCache } from "@/common/auth/cache/permission-cache";
-import {
-  memberCacheKey,
-  RbacRepository,
-} from "@/modules/auth/repositories/rbac.repository";
+import { RbacRepository } from "@/common/repositories/rbac.repository";
 
 export const WORKSPACE_HEADER = "x-workspace-id";
 
@@ -25,13 +21,12 @@ export interface AuthzContext {
 }
 
 // Extracted so both guards below resolve identically; only their behavior on "no workspace
-// named" differs. Goes through `PermissionCache`, keyed on `[userId, workspaceId]`, so the
-// steady-state cost is a cache read. A non-member is never cached, so being added to a
-// workspace is effective immediately. Idempotent: a route may sit behind both guards, and
-// resolving twice would double the hot path's query count for no gain.
+// named" differs. Read from the database on every request, with no cache in between, so a grant,
+// a revocation, or a membership change — even one written straight to the tables — is enforced
+// on the very next request. Idempotent: a route may sit behind both guards, and resolving twice
+// would double the hot path's query count for no gain.
 async function resolve(
   rbac: RbacRepository,
-  cache: PermissionCache,
   context: ExecutionContext,
 ): Promise<void> {
   const req = context.switchToHttp().getRequest();
@@ -42,10 +37,7 @@ async function resolve(
     return;
 
   const userId = req.auth.sub as string;
-  const authz = await cache.resolve<AuthzContext>(
-    memberCacheKey(userId, workspaceId),
-    () => rbac.resolveAuthzContext(userId, workspaceId),
-  );
+  const authz = await rbac.resolveAuthzContext(userId, workspaceId);
   // Same answer for "no such workspace" and "not your workspace" — a caller outside a workspace
   // must not be able to probe whether it exists.
   if (!authz) throw new ForbiddenException("not a member of this workspace");
@@ -58,13 +50,10 @@ async function resolve(
 // workspace is named). Must run after `AuthGuard`.
 @Injectable()
 export class AuthzGuard implements CanActivate {
-  constructor(
-    @Inject(RbacRepository) private readonly rbac: RbacRepository,
-    @Inject(PermissionCache) private readonly cache: PermissionCache,
-  ) {}
+  constructor(@Inject(RbacRepository) private readonly rbac: RbacRepository) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
-    await resolve(this.rbac, this.cache, context);
+    await resolve(this.rbac, context);
     return true;
   }
 }
@@ -72,13 +61,10 @@ export class AuthzGuard implements CanActivate {
 // The same resolution, but the workspace is mandatory — every workspace-scoped route uses this.
 @Injectable()
 export class WorkspaceGuard implements CanActivate {
-  constructor(
-    @Inject(RbacRepository) private readonly rbac: RbacRepository,
-    @Inject(PermissionCache) private readonly cache: PermissionCache,
-  ) {}
+  constructor(@Inject(RbacRepository) private readonly rbac: RbacRepository) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
-    await resolve(this.rbac, this.cache, context);
+    await resolve(this.rbac, context);
     const req = context.switchToHttp().getRequest();
     if (!req.authz)
       throw new ForbiddenException(`${WORKSPACE_HEADER} header is required`);

@@ -2,7 +2,7 @@ import {
   PermissionInput,
   PermissionSummary,
   RbacRepository,
-} from "@/modules/auth/repositories/rbac.repository";
+} from "@/common/repositories/rbac.repository";
 
 /** Thin wrapper over RbacRepository's permission-catalog methods — see the note on AdminService for why RbacRepository itself isn't split. */
 export class PermissionService {

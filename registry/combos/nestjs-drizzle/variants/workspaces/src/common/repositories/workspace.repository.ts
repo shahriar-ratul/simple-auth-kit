@@ -1,0 +1,392 @@
+import {
+  ConflictException,
+  Inject,
+  Injectable,
+  NotFoundException,
+} from "@nestjs/common";
+import { and, asc, eq, inArray } from "drizzle-orm";
+import { DRIZZLE_DB, type Database } from "@/common/config/db";
+import { PERMISSION_SLUGS } from "@/modules/auth/permission-slugs";
+import {
+  permissionRole,
+  permissions,
+  roleMember,
+  roles,
+  users,
+  workspaceMembers,
+  workspaces,
+} from "@/database/schema";
+import { toId, toIdOrNull } from "@/common/helpers/id.helper";
+
+export interface WorkspaceSummary {
+  id: string;
+  name: string;
+  createdAt: string;
+  /** The calling user's role slugs in this workspace. */
+  roles: string[];
+}
+
+export interface MembershipSummary {
+  memberId: string;
+  userId: string;
+  email: string;
+  roles: string[];
+  createdAt: string;
+}
+
+/**
+ * The roles every new workspace starts with, so its creator can administer it from the first
+ * request. Built from the database, never from seed data: `admin` carries every permission this
+ * build's routes are gated on (`PERMISSION_SLUGS`) that exists and is active in the permission
+ * table when the workspace is created. Permissions a deployment invented at runtime are left out,
+ * so one workspace's custom permissions never leak into another's admin role. `member` (the
+ * new-membership default) carries none. The creator holds both. On a database that was never
+ * seeded this still works; `admin` just carries nothing until those permissions exist.
+ */
+const WORKSPACE_ROLES = [
+  {
+    slug: "admin",
+    displayName: "Administrator",
+    description:
+      "Carries every built-in permission that was active when this workspace was created.",
+    isDefault: false,
+    order: 0,
+    carriesEveryPermission: true,
+  },
+  {
+    slug: "member",
+    displayName: "Member",
+    description:
+      "The default for a new membership. Carries no administrative permission.",
+    isDefault: true,
+    order: 1,
+    carriesEveryPermission: false,
+  },
+] as const;
+
+@Injectable()
+export class WorkspaceRepository {
+  constructor(@Inject(DRIZZLE_DB) private readonly db: Database) {}
+
+  /**
+   * Creates a workspace, its roles (`WORKSPACE_ROLES`), and its creator's membership holding
+   * them — all in one transaction, so a workspace is never left without an administrator. `Role`
+   * is unique per `[workspaceId, slug]`, so a new workspace genuinely has no role rows until this
+   * step writes them.
+   */
+  async create(userId: string, name: string): Promise<WorkspaceSummary> {
+    const userIdBig = toId(userId);
+    const workspace = await this.db.transaction(async (tx) => {
+      const [created] = await tx
+        .insert(workspaces)
+        .values({ name, createdBy: userIdBig, updatedBy: userIdBig })
+        .returning();
+      const active = await tx
+        .select({ id: permissions.id })
+        .from(permissions)
+        .where(
+          and(
+            inArray(permissions.slug, PERMISSION_SLUGS),
+            eq(permissions.isActive, true),
+            eq(permissions.isDeleted, false),
+          ),
+        );
+      const roleIds: bigint[] = [];
+      for (const role of WORKSPACE_ROLES) {
+        const [row] = await tx
+          .insert(roles)
+          .values({
+            workspaceId: created.id,
+            slug: role.slug,
+            name: role.displayName,
+            displayName: role.displayName,
+            description: role.description,
+            isDefault: role.isDefault,
+            order: role.order,
+            createdBy: userIdBig,
+            updatedBy: userIdBig,
+          })
+          .returning({ id: roles.id });
+        roleIds.push(row.id);
+        if (role.carriesEveryPermission && active.length) {
+          await tx
+            .insert(permissionRole)
+            .values(
+              active.map((p) => ({ permissionId: p.id, roleId: row.id })),
+            );
+        }
+      }
+      const [member] = await tx
+        .insert(workspaceMembers)
+        .values({ workspaceId: created.id, userId: userIdBig })
+        .returning({ id: workspaceMembers.id });
+      await tx
+        .insert(roleMember)
+        .values(roleIds.map((roleId) => ({ memberId: member.id, roleId })));
+      return created;
+    });
+    return {
+      id: workspace.id.toString(),
+      name: workspace.name,
+      createdAt: workspace.createdAt.toISOString(),
+      roles: WORKSPACE_ROLES.map((role) => role.slug).sort(),
+    };
+  }
+
+  async listForUser(userId: string): Promise<WorkspaceSummary[]> {
+    const memberships = await this.db
+      .select({
+        memberId: workspaceMembers.id,
+        memberCreatedAt: workspaceMembers.createdAt,
+        id: workspaces.id,
+        name: workspaces.name,
+        createdAt: workspaces.createdAt,
+      })
+      .from(workspaceMembers)
+      .innerJoin(
+        workspaces,
+        and(
+          eq(workspaces.id, workspaceMembers.workspaceId),
+          eq(workspaces.isDeleted, false),
+        ),
+      )
+      .where(eq(workspaceMembers.userId, toId(userId)))
+      .orderBy(asc(workspaceMembers.createdAt));
+
+    const rolesByMember = await this.rolesByMember(
+      memberships.map((m) => m.memberId),
+    );
+    return memberships.map((m) => ({
+      id: m.id.toString(),
+      name: m.name,
+      createdAt: m.createdAt.toISOString(),
+      roles: (rolesByMember.get(m.memberId.toString()) ?? []).sort(),
+    }));
+  }
+
+  async listMembers(workspaceId: string): Promise<MembershipSummary[]> {
+    const rows = await this.db
+      .select({
+        memberId: workspaceMembers.id,
+        userId: workspaceMembers.userId,
+        createdAt: workspaceMembers.createdAt,
+        email: users.email,
+      })
+      .from(workspaceMembers)
+      .innerJoin(
+        users,
+        and(eq(users.id, workspaceMembers.userId), eq(users.isDeleted, false)),
+      )
+      .where(eq(workspaceMembers.workspaceId, toId(workspaceId)))
+      .orderBy(asc(workspaceMembers.createdAt));
+
+    const rolesByMember = await this.rolesByMember(rows.map((r) => r.memberId));
+    return rows.map((row) => ({
+      memberId: row.memberId.toString(),
+      userId: row.userId.toString(),
+      email: row.email,
+      roles: (rolesByMember.get(row.memberId.toString()) ?? []).sort(),
+      createdAt: row.createdAt.toISOString(),
+    }));
+  }
+
+  /**
+   * Resolves the roles a new membership should hold, shared by `addMember` and `createMember`.
+   * With no roles named, whichever of this workspace's roles are flagged `isDefault` — not a slug
+   * spelled in code. Named slugs are validated against this workspace: naming one that doesn't
+   * exist here is rejected rather than silently granting nothing.
+   */
+  private async resolveMemberRoles(
+    workspaceIdBig: bigint,
+    roleSlugs?: string[],
+  ): Promise<{ id: bigint; slug: string }[]> {
+    const granted = await this.db
+      .select({ id: roles.id, slug: roles.slug })
+      .from(roles)
+      .where(
+        roleSlugs
+          ? and(
+              eq(roles.workspaceId, workspaceIdBig),
+              inArray(roles.slug, roleSlugs),
+            )
+          : and(
+              eq(roles.workspaceId, workspaceIdBig),
+              eq(roles.isDefault, true),
+              eq(roles.isActive, true),
+            ),
+      );
+    const unknown = (roleSlugs ?? []).filter(
+      (slug) => !granted.some((role) => role.slug === slug),
+    );
+    if (unknown.length)
+      throw new NotFoundException(
+        `role(s) not defined in this workspace: ${unknown.join(", ")}`,
+      );
+    return granted;
+  }
+
+  /**
+   * Adds an existing user by email — there is no invite/email flow in this library, that is the
+   * consuming app's job. With no roles named, the new membership gets whichever of this
+   * workspace's roles are flagged `isDefault`, not a slug spelled in code.
+   */
+  async addMember(
+    workspaceId: string,
+    email: string,
+    roleSlugs?: string[],
+  ): Promise<MembershipSummary> {
+    const workspaceIdBig = toId(workspaceId);
+    const [user] = await this.db
+      .select({ id: users.id, email: users.email })
+      .from(users)
+      .where(eq(users.email, email))
+      .limit(1);
+    if (!user) throw new NotFoundException("no user with that email");
+
+    const [existing] = await this.db
+      .select({ id: workspaceMembers.id })
+      .from(workspaceMembers)
+      .where(
+        and(
+          eq(workspaceMembers.userId, user.id),
+          eq(workspaceMembers.workspaceId, workspaceIdBig),
+        ),
+      )
+      .limit(1);
+    if (existing)
+      throw new ConflictException("already a member of this workspace");
+
+    const granted = await this.resolveMemberRoles(workspaceIdBig, roleSlugs);
+
+    const member = await this.db.transaction(async (tx) => {
+      const [created] = await tx
+        .insert(workspaceMembers)
+        .values({ workspaceId: workspaceIdBig, userId: user.id })
+        .returning();
+      if (granted.length)
+        await tx
+          .insert(roleMember)
+          .values(
+            granted.map((role) => ({ memberId: created.id, roleId: role.id })),
+          );
+      return created;
+    });
+
+    return {
+      memberId: member.id.toString(),
+      userId: user.id.toString(),
+      email: user.email,
+      roles: granted.map((role) => role.slug).sort(),
+      createdAt: member.createdAt.toISOString(),
+    };
+  }
+
+  /**
+   * An administrator provisioning a brand-new account and adding it to this workspace in one
+   * step — as distinct from `addMember`, which only ever attaches an account that already
+   * exists. No invite/email flow in this library either way: the password is usable immediately.
+   */
+  async createMember(
+    workspaceId: string,
+    input: {
+      email: string;
+      passwordHash: string;
+      firstName?: string;
+      lastName?: string;
+      displayName?: string;
+      phone?: string;
+      username?: string;
+      roles?: string[];
+    },
+    actorUserId: string | null,
+  ): Promise<MembershipSummary> {
+    const workspaceIdBig = toId(workspaceId);
+    const [existing] = await this.db
+      .select({ id: users.id })
+      .from(users)
+      .where(eq(users.email, input.email))
+      .limit(1);
+    if (existing) throw new ConflictException("email already registered");
+
+    const granted = await this.resolveMemberRoles(workspaceIdBig, input.roles);
+    const [user] = await this.db
+      .insert(users)
+      .values({
+        email: input.email,
+        passwordHash: input.passwordHash,
+        firstName: input.firstName,
+        lastName: input.lastName,
+        displayName: input.displayName,
+        phone: input.phone,
+        username: input.username,
+        createdBy: toIdOrNull(actorUserId),
+      })
+      .returning();
+
+    const member = await this.db.transaction(async (tx) => {
+      const [created] = await tx
+        .insert(workspaceMembers)
+        .values({ workspaceId: workspaceIdBig, userId: user.id })
+        .returning();
+      if (granted.length)
+        await tx
+          .insert(roleMember)
+          .values(
+            granted.map((role) => ({ memberId: created.id, roleId: role.id })),
+          );
+      return created;
+    });
+
+    return {
+      memberId: member.id.toString(),
+      userId: user.id.toString(),
+      email: user.email,
+      roles: granted.map((role) => role.slug).sort(),
+      createdAt: member.createdAt.toISOString(),
+    };
+  }
+
+  async removeMember(workspaceId: string, memberId: string): Promise<void> {
+    const workspaceIdBig = toId(workspaceId);
+    const memberIdBig = toId(memberId);
+    const [member] = await this.db
+      .select({
+        id: workspaceMembers.id,
+        userId: workspaceMembers.userId,
+        workspaceId: workspaceMembers.workspaceId,
+      })
+      .from(workspaceMembers)
+      .where(eq(workspaceMembers.id, memberIdBig))
+      .limit(1);
+    if (!member || member.workspaceId !== workspaceIdBig)
+      throw new NotFoundException("member not found in this workspace");
+
+    // Role assignments and direct grants belong to the membership, so they go with it — that is
+    // the point of hanging them off the member row. `onDelete: "cascade"` on both join tables is
+    // what makes that a database guarantee rather than two deletes someone has to remember.
+    await this.db
+      .delete(workspaceMembers)
+      .where(eq(workspaceMembers.id, memberIdBig));
+    // Authorization is read live from the database, so the removed member's very next request
+    // resolves to "not a member".
+  }
+
+  /** One read for a page's role assignments rather than one per membership. */
+  private async rolesByMember(
+    memberIds: bigint[],
+  ): Promise<Map<string, string[]>> {
+    if (!memberIds.length) return new Map();
+    const rows = await this.db
+      .select({ memberId: roleMember.memberId, slug: roles.slug })
+      .from(roleMember)
+      .innerJoin(roles, eq(roles.id, roleMember.roleId))
+      .where(inArray(roleMember.memberId, memberIds));
+
+    const byMember = new Map<string, string[]>();
+    for (const row of rows) {
+      const key = row.memberId.toString();
+      byMember.set(key, [...(byMember.get(key) ?? []), row.slug]);
+    }
+    return byMember;
+  }
+}

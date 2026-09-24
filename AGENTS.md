@@ -52,9 +52,9 @@ exactly what the CLI emits.
   `verifyAccessToken`, sets `req.auth`. Never touches `req.authz`/`req.ability`.
 - `AuthzGuard` (variant-specific) — resolves `req.authz = {roles, permissions}` from the
   database (`base`: by `userId`; `workspaces`: by `(userId, X-Workspace-Id)` membership, also
-  sets `workspaceId`/`memberId`), behind `PermissionCache` (version-key invalidation,
-  single-flight on miss, negative results never cached; Redis-swappable via a DI token, in-memory
-  by default). Then builds `req.ability` from the flat CASL slugs.
+  sets `workspaceId`/`memberId`), read live on every request — there is no permission cache, so
+  a revoke made anywhere (API or direct SQL) applies on the very next request. Then builds
+  `req.ability` from the flat CASL slugs.
 - `AbilityGuard` (shared) — reads `@CheckAbility` metadata and enforces `req.ability`; only reads,
   never resolves.
 - **CASL flat-slug pattern**: the permission slug _is_ the CASL action, subject is the empty
@@ -188,6 +188,10 @@ express-prisma, express-drizzle` order); `admin-nextjs` `3000`/`3010`; `admin-re
   `@CheckAbility(...)` on every controller method — omission fails the app at boot. Express:
   `router.route(method, path, tier, ...handlers)` where `tier` is a required positional argument.
   Never add a route without one of these.
+- **Repository placement**: a repository used by only its own module lives in
+  `modules/<module>/repositories/`; one used by more than one module (`session`, `rbac`,
+  `audit-log`, `workspace`) lives in `src/common/repositories/`. Never import a repository out of
+  another module's folder — move it to `common/repositories/` instead.
 - **Self-lockout guards are inlined at the call site**, not a generic policy layer — e.g.
   `if (userId === req.auth!.sub) throw new ForbiddenException(...)` on self-delete/self-role-revoke/
   self-block. Only operations that could strand a deployment without an admin are refused;
@@ -215,7 +219,7 @@ express-prisma, express-drizzle` order); `admin-nextjs` `3000`/`3010`; `admin-re
   lockout-trap explanation, "adding a combo" recipe).
 - `registry/core/types.ts` — every domain type and the `AuthCoreError` hierarchy.
 - `registry/combos/nestjs-prisma/shared/src/{request-context.ts,auth.guard.ts,ability.ts,
-ability.guard.ts,route-tiers.ts,permission-cache.ts,response.interceptor.ts,
+ability.guard.ts,route-tiers.ts,response.interceptor.ts,
 auth-core-error.filter.ts}` — the reference implementation of the authn/authz seam; read these
   first to understand the pattern before touching any other combo.
 - `registry/combos/nestjs-prisma/variants/{base,workspaces}/src/{authz.guard.ts,permission-slugs.ts,

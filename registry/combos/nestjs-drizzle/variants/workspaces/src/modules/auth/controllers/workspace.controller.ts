@@ -38,8 +38,8 @@ import {
   SetMemberRolesDto,
   WorkspaceSummaryDto,
 } from "@/modules/auth/dto/workspace.dto";
-import { RbacRepository } from "@/modules/auth/repositories/rbac.repository";
-import { WorkspaceRepository } from "@/modules/auth/repositories/workspace.repository";
+import { RbacRepository } from "@/common/repositories/rbac.repository";
+import { WorkspaceRepository } from "@/common/repositories/workspace.repository";
 
 function requireString(value: unknown, field: string): string {
   if (typeof value !== "string" || value.length === 0)

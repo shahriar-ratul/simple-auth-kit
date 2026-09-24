@@ -5,14 +5,18 @@
 // carries the security property this whole model rests on: a role held in one workspace grants
 // nothing in another.
 import "dotenv/config";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/node-postgres";
 import { Pool } from "pg";
 import type { Database } from "../src/common/config/db.js";
 import * as schema from "@/database/schema.js";
-import { permissions } from "@/database/schema.js";
-import { POLICY_VERSION_KEY } from "../src/common/auth/cache/permission-cache.js";
-import { permissionCacheStore } from "./bootstrap.js";
+import {
+  permissionMember,
+  permissions,
+  roleMember,
+  roles,
+  workspaceMembers,
+} from "@/database/schema.js";
 import {
   renewingToken,
   type AdminSession,
@@ -406,7 +410,7 @@ export const hooks: VariantHooks = {
 
     await proveNewWorkspaceIsProvisioned(ctx);
     await proveWorkspaceHeaderCannotBeSkipped(ctx, alpha);
-    await proveTheCacheIsScopedAndReal(ctx, alpha, beta);
+    await proveGrantsAreScopedPerWorkspace(ctx, alpha, beta);
     await proveARawDatabaseEditChangesEnforcement(ctx, beta);
   },
 };
@@ -653,61 +657,40 @@ async function proveWorkspaceHeaderCannotBeSkipped(
 }
 
 /**
- * The permission cache is keyed on the *membership*, not the user, so invalidating one workspace
- * must not flush another — and a cache nobody can prove is working is a bug surface. These
- * assertions read the very store the app resolves through (`test/bootstrap.ts` hands it to
- * `AuthModule.forRoot`), so "the second request did not touch the database" is a measurement.
+ * Authorization belongs to the *membership*, and it is read live from the database on every
+ * request: a grant made inside one workspace lands there on the very next request and is never
+ * visible from another workspace the same person belongs to.
  */
-async function proveTheCacheIsScopedAndReal(
+async function proveGrantsAreScopedPerWorkspace(
   ctx: ProofContext,
   alpha: { token: string; workspace: Workspace },
   beta: { token: string; userId: string; workspace: Workspace },
 ): Promise<void> {
-  const N = 8;
-  await ctx.call("GET", "/auth/me", {
-    token: alpha.token,
-    workspaceId: alpha.workspace.id,
-  }); // warm
-  const before = { ...permissionCacheStore.stats };
-  for (let i = 0; i < N; i += 1)
-    await ctx.call("GET", "/auth/me", {
-      token: alpha.token,
-      workspaceId: alpha.workspace.id,
-    });
-  const after = permissionCacheStore.stats;
-  ctx.assert(
-    after.misses === before.misses && after.hits === before.hits + N,
-    `${N} identical workspace-scoped requests resolve the membership 0 further times — all ${N} were cache hits (misses +${after.misses - before.misses}, hits +${after.hits - before.hits})`,
-  );
-
-  // A grant inside beta must invalidate beta's entry and leave alpha's alone: the cache subject is
-  // the (user, workspace) pair, so one workspace's churn cannot cost another workspace its cache.
   await ctx.call("POST", `/admin/users/${beta.userId}/permissions`, {
     token: beta.token,
     workspaceId: beta.workspace.id,
-    body: { permission: "probe:cache" },
+    body: { permission: "probe:scoped" },
   });
-  const beforeAlpha = { ...permissionCacheStore.stats };
   const alphaAfter = await ctx.call("GET", "/auth/me", {
     token: alpha.token,
     workspaceId: alpha.workspace.id,
   });
   ctx.assert(
-    permissionCacheStore.stats.misses === beforeAlpha.misses &&
-      alphaAfter.status === 200,
-    "a grant made in workspace B does not invalidate the caller's cached membership of workspace A",
+    alphaAfter.status === 200 &&
+      !(alphaAfter.body?.permissions ?? []).includes("probe:scoped"),
+    "a grant made in workspace B leaves the caller's membership of workspace A untouched",
   );
   const betaAfter = await ctx.call("GET", "/auth/me", {
     token: beta.token,
     workspaceId: beta.workspace.id,
   });
   ctx.assert(
-    (betaAfter.body?.permissions ?? []).includes("probe:cache"),
+    (betaAfter.body?.permissions ?? []).includes("probe:scoped"),
     "…while workspace B sees the grant on its very next request",
   );
   await ctx.call(
     "POST",
-    `/admin/users/${beta.userId}/permissions/${encodeURIComponent("probe:cache")}/revoke`,
+    `/admin/users/${beta.userId}/permissions/${encodeURIComponent("probe:scoped")}/revoke`,
     {
       token: beta.token,
       workspaceId: beta.workspace.id,
@@ -718,7 +701,7 @@ async function proveTheCacheIsScopedAndReal(
     workspaceId: beta.workspace.id,
   });
   ctx.assert(
-    !(betaRevoked.body?.permissions ?? []).includes("probe:cache"),
+    !(betaRevoked.body?.permissions ?? []).includes("probe:scoped"),
     "…and loses it again on the request after the revoke",
   );
 }
@@ -726,8 +709,8 @@ async function proveTheCacheIsScopedAndReal(
 /**
  * The admin API already proves that editing the catalog changes enforcement, but it is the API
  * doing the writing — this rules out any possibility that it is also doing something in memory.
- * A `psql` session would look exactly like this, bump included: an out-of-band writer is outside
- * the invalidation protocol and says so by bumping the policy counter (see permission-cache.ts).
+ * A `psql` session would look exactly like this — with nothing to invalidate, because
+ * authorization is read from the live database on every request.
  */
 async function proveARawDatabaseEditChangesEnforcement(
   ctx: ProofContext,
@@ -748,7 +731,6 @@ async function proveARawDatabaseEditChangesEnforcement(
       .set({ isActive: false })
       .where(eq(permissions.slug, "audit-log:read")),
   );
-  await permissionCacheStore.bump(POLICY_VERSION_KEY);
   const denied = await ctx.call("GET", "/audit-log", {
     token: beta.token,
     workspaceId: beta.workspace.id,
@@ -764,7 +746,6 @@ async function proveARawDatabaseEditChangesEnforcement(
       .set({ isActive: true })
       .where(eq(permissions.slug, "audit-log:read")),
   );
-  await permissionCacheStore.bump(POLICY_VERSION_KEY);
   const restored = await ctx.call("GET", "/audit-log", {
     token: beta.token,
     workspaceId: beta.workspace.id,
@@ -772,5 +753,108 @@ async function proveARawDatabaseEditChangesEnforcement(
   ctx.assert(
     restored.status === 200,
     `…and reactivating it in the database opens the route again (got ${restored.status})`,
+  );
+
+  // --- a revoke written straight to the database lands on the very next request ---
+  const email = ctx.uniqueEmail("rawrevoke");
+  const tokens = await ctx.signup(email, "rawrevoke-pw-12345");
+  const userId = (
+    await ctx.call("GET", "/auth/me", { token: tokens.accessToken })
+  ).body.sub as string;
+  await ctx.call("POST", "/workspaces/members", {
+    token: beta.token,
+    workspaceId: beta.workspace.id,
+    body: { email },
+  });
+  const as = { token: tokens.accessToken, workspaceId: beta.workspace.id };
+  const memberId = await withDb(async (db) => {
+    const [row] = await db
+      .select({ id: workspaceMembers.id })
+      .from(workspaceMembers)
+      .where(
+        and(
+          eq(workspaceMembers.userId, BigInt(userId)),
+          eq(workspaceMembers.workspaceId, BigInt(beta.workspace.id)),
+        ),
+      )
+      .limit(1);
+    return row.id;
+  });
+
+  await ctx.call("POST", `/admin/users/${userId}/permissions`, {
+    token: beta.token,
+    workspaceId: beta.workspace.id,
+    body: { permission: "audit-log:read" },
+  });
+  ctx.assert(
+    (await ctx.call("GET", "/audit-log", as)).status === 200,
+    "a direct grant to a member opens the audit log",
+  );
+  await withDb(async (db) => {
+    const [permission] = await db
+      .select({ id: permissions.id })
+      .from(permissions)
+      .where(eq(permissions.slug, "audit-log:read"))
+      .limit(1);
+    await db
+      .delete(permissionMember)
+      .where(
+        and(
+          eq(permissionMember.memberId, memberId),
+          eq(permissionMember.permissionId, permission.id),
+        ),
+      );
+  });
+  const grantDeleted = await ctx.call("GET", "/audit-log", as);
+  ctx.assert(
+    grantDeleted.status === 403,
+    `deleting a member's direct grant with raw SQL denies the very next request, on the same token (got ${grantDeleted.status})`,
+  );
+
+  const roleSlug = `raw-revoke-${Date.now()}`;
+  const role = await ctx.call("POST", "/roles", {
+    token: beta.token,
+    workspaceId: beta.workspace.id,
+    body: { slug: roleSlug },
+  });
+  await ctx.call(
+    "POST",
+    `/roles/${(role.body as { id: string }).id}/permissions`,
+    {
+      token: beta.token,
+      workspaceId: beta.workspace.id,
+      body: { permission: "audit-log:read" },
+    },
+  );
+  await ctx.call("POST", `/admin/users/${userId}/roles`, {
+    token: beta.token,
+    workspaceId: beta.workspace.id,
+    body: { role: roleSlug },
+  });
+  ctx.assert(
+    (await ctx.call("GET", "/audit-log", as)).status === 200,
+    "a role carrying audit-log:read opens the audit log for the member",
+  );
+  await withDb(async (db) => {
+    const [row] = await db
+      .select({ id: roles.id })
+      .from(roles)
+      .where(
+        and(
+          eq(roles.slug, roleSlug),
+          eq(roles.workspaceId, BigInt(beta.workspace.id)),
+        ),
+      )
+      .limit(1);
+    await db
+      .delete(roleMember)
+      .where(
+        and(eq(roleMember.memberId, memberId), eq(roleMember.roleId, row.id)),
+      );
+  });
+  const roleDeleted = await ctx.call("GET", "/audit-log", as);
+  ctx.assert(
+    roleDeleted.status === 403,
+    `deleting a member's role assignment with raw SQL denies the very next request, on the same token (got ${roleDeleted.status})`,
   );
 }

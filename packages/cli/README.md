@@ -78,7 +78,8 @@ own multi-file schema support: the CLI's own models live in
 `database/schema/simple-auth-kit.prisma`, and Prisma automatically merges every other `.prisma`
 file you add alongside it. Add your own models in a sibling file (e.g.
 `database/schema/app.prisma`) — the CLI only ever tracks its own file by exact name, so `update`
-never touches yours, `--force` included. `database/` also holds `migrations/`, `seed.ts`, and
+never touches yours, `--force` included. `database/` also holds `migrations/`, `seed.ts` + `seedData/` (seed-only data the app never
+imports — edit or delete it freely), and
 the generated Prisma client (`database/generated/prisma/`), all reachable from your own source
 via the `"@/database/*": ["./database/*"]` tsconfig alias the CLI asks you to add.
 

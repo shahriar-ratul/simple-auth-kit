@@ -1,4 +1,3 @@
-import type { PermissionCacheStore } from "@/common/auth/cache/permission-cache";
 import type { RateLimitDeps } from "@/lib/auth/core/rate-limit";
 
 export const AUTH_CONFIG = Symbol("AUTH_CONFIG");
@@ -38,12 +37,6 @@ export interface AuthConfig {
   };
   /** Wire your own mailer here — if unset, requestPasswordReset() just returns the token without emailing it. */
   sendPasswordResetEmail?: (email: string, token: string) => Promise<void>;
-  // Safety net, not the invalidation mechanism — correctness comes from the version counters in
-  // permission-cache.ts. Set to 0 to resolve from the database on every request.
-  permissionCacheTtlSeconds: number;
-  // Defaults to an in-process Map; pass a Redis-backed PermissionCacheStore for multiple
-  // instances. Keys are namespaced `simpleauthkit:authz:*`.
-  permissionCacheStore?: PermissionCacheStore;
   // Defaults to an in-process Map; pass a Redis-backed RateLimitDeps for multiple instances.
   rateLimitStore?: RateLimitDeps;
   // Enforced by a globally registered ThrottlerGuard, per client IP, all buckets at once.
@@ -62,7 +55,6 @@ export const defaultThrottleBuckets: ThrottleBucket[] = [
 
 export const defaultAuthConfig: AuthConfig = {
   accessTokenTtlSeconds: 900,
-  permissionCacheTtlSeconds: 300,
   throttle: defaultThrottleBuckets,
   refreshTokenTtlSeconds: 60 * 60 * 24 * 30,
   sessionTtlSeconds: 60 * 60 * 24 * 30,

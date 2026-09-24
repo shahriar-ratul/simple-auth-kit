@@ -5,8 +5,7 @@ import {
   Injectable,
 } from "@nestjs/common";
 import { defineAbilitiesFor } from "@/common/auth/ability/ability";
-import { PermissionCache } from "@/common/auth/cache/permission-cache";
-import { RbacRepository } from "@/modules/auth/repositories/rbac.repository";
+import { RbacRepository } from "@/common/repositories/rbac.repository";
 
 /**
  * Roles and permissions are global to this deployment: a user has one set, and it applies
@@ -33,26 +32,21 @@ export interface AuthzContext {
  * price of the alternative was a revocation that silently did not apply for up to an
  * access-token TTL.
  *
- * The resolution goes through `PermissionCache`, so the steady-state cost is a cache read rather
- * than a join, while the *semantics* stay "read from the database": every write that could change
- * this answer bumps a version counter, which makes the cached entry unreachable rather than
- * merely old. The subject is the user id, because in this variant a user's permissions are the
- * same everywhere.
+ * Nothing is cached: every request reads the live database, so a change made anywhere — through
+ * the API, another service, or a direct SQL write — applies on the very next request.
  */
 @Injectable()
 export class AuthzGuard implements CanActivate {
-  constructor(
-    @Inject(RbacRepository) private readonly rbac: RbacRepository,
-    @Inject(PermissionCache) private readonly cache: PermissionCache,
-  ) {}
+  constructor(@Inject(RbacRepository) private readonly rbac: RbacRepository) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const req = context.switchToHttp().getRequest();
     if (req.auth) {
       const userId = req.auth.sub as string;
-      req.authz = (await this.cache.resolve<AuthzContext>(userId, () =>
-        this.rbac.resolveAuthzContext(userId),
-      )) ?? { roles: [], permissions: [] };
+      req.authz = (await this.rbac.resolveAuthzContext(userId)) ?? {
+        roles: [],
+        permissions: [],
+      };
       req.ability = defineAbilitiesFor(req.authz.permissions);
     }
     return true;

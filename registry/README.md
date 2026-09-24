@@ -91,10 +91,15 @@ whatever `registry/core/*` is mounted as (always `core/`, at the project root th
 into — see below for why nothing here is also named `core/`):
 
 - **`common/`** — cross-cutting auth infrastructure used by every feature module: `common/auth/`
-  (the ability model, permission cache, rate-limit store, the plain authentication guard/middleware,
+  (the ability model, rate-limit store, the plain authentication guard/middleware,
   and each variant's own authorization guard/middleware), `common/config/` (generic — `auth.config`,
   `key-provider`, and for Drizzle combos the DB connection factory — not auth-namespaced, since a
-  consumer might reasonably add unrelated config here too), `common/helpers/`.
+  consumer might reasonably add unrelated config here too), `common/helpers/`, and
+  `common/repositories/` — every repository used by more than one module (`session`, `rbac`,
+  `audit-log`, and in `workspaces` `workspace`). A repository only its own module uses stays in
+  `modules/<module>/repositories/` (`oauth`, `password-reset`, `two-factor`, and the content-domain
+  repositories); once a second module needs one, it moves to `common/repositories/` rather than
+  being imported across module boundaries.
 - **`infra/`** — framework-wide, non-auth-specific plumbing: the response envelope/interceptor,
   the error/exception filter, `request-context`, `route-tiers`, the hand-authored or
   decorator-derived OpenAPI wiring. Named `infra/`, deliberately **not** `core/` — the CLI always
@@ -116,14 +121,14 @@ into — see below for why nothing here is also named `core/`):
   `docs/backend-api.md`.
 
 **`RbacRepository` is not split** across `modules/roles/`/`modules/permissions/` even though
-their controllers live in separate modules — it is the one class every request's authorization
-resolution goes through (`resolveAuthzContext`, cache invalidation, default-role assignment at
+their controllers live in separate modules — it lives in `common/repositories/` because it is the
+one class every request's authorization resolution goes through (`resolveAuthzContext`, default-role assignment at
 signup), and physically fragmenting it was judged too high a correctness risk for the
 organizational benefit. Every module that needs it (via the NestJS combos' `CoreAuthModule`, or a
 constructor/factory argument in the Express combos) shares the same instance.
 
 **NestJS combos only**: `common/auth/core-auth.module.ts` is a `@Global()` module centralizing
-`AUTH_CONFIG`, the DB client, `KeyProviderService`, `PermissionCache`, the rate-limit store,
+`AUTH_CONFIG`, the DB client, `KeyProviderService`, the rate-limit store,
 `RbacRepository`, and the three guards — exported so every feature module can inject them without
 redeclaring providers. Its `forRoot(config)` is the _only_ remaining dynamic-module config surface;
 everything that used to ship inside the old monolithic `AuthModule.forRoot()` — the global
@@ -140,22 +145,23 @@ router/module split applies there.
 `shared/src`: the identity/session/2FA machinery and everything both variants use unchanged —
 `common/config/auth.config.ts`, `modules/auth/controllers/auth.controller.ts`,
 `common/auth/guards/auth.guard.ts`, `common/auth/ability/{ability.ts,ability.guard.ts}`,
-`infra/route-tiers.ts`, `common/auth/cache/permission-cache.ts`, `infra/request-context.ts`,
+`infra/route-tiers.ts`, `infra/request-context.ts`,
 `infra/interceptor/response.interceptor.ts`, `common/helpers/{pagination.ts,id.helper.ts}`,
 `common/config/key-provider.ts`, `common/auth/cache/rate-limit.store.ts`,
-`infra/filters/auth-core-error.filter.ts`, the `session/two-factor/password-reset/oauth`
-repositories (`modules/auth/repositories/`), `modules/auth/dto/auth.dto.ts`.
+`infra/filters/auth-core-error.filter.ts`, `common/repositories/session.repository.ts`, the
+`two-factor/password-reset/oauth` repositories (`modules/auth/repositories/`),
+`modules/auth/dto/auth.dto.ts`.
 
 `variants/<variant>/src`: everything whose implementation depends on how authorization is
 scoped — `modules/auth/auth.module.ts`, `modules/auth/services/auth.service.ts`,
 `modules/admin/controllers/admin.controller.ts`, `common/auth/guards/authz.guard.ts`,
-`modules/auth/repositories/rbac.repository.ts`, `modules/auth/permission-slugs.ts`,
-`modules/audit-log/repositories/audit-log.repository.ts`, `database/seed.ts`, `database/seedData/**`,
+`common/repositories/rbac.repository.ts`, `modules/auth/permission-slugs.ts`,
+`common/repositories/audit-log.repository.ts`, `database/seed.ts`, `database/seedData/**`,
 `modules/admin/dto/admin.dto.ts`, and the content-domain repositories
 (`modules/admin/repositories/{country,language,customer}.repository.ts`, this combo only). Plus,
 in `base` only, `modules/auth/gateways/audit-log.gateway.ts` (the socket.io feed) and
 `infra/openapi/docs.ts`; in `workspaces` only, `modules/auth/controllers/workspace.controller.ts`,
-`modules/auth/repositories/workspace.repository.ts`, `modules/auth/dto/workspace.dto.ts`.
+`common/repositories/workspace.repository.ts`, `modules/auth/dto/workspace.dto.ts`.
 
 `permission-slugs.ts` and `database/seedData/` are per variant rather than shared because the
 slug lists differ by one (`members:manage` exists only where there are members to manage), and a
@@ -180,10 +186,11 @@ Authentication and authorization are separate request-scoped objects (`shared/sr
     `AuthzContext` also carries `workspaceId`/`memberId`, which is what scopes every admin
     query to one workspace without a second check.
 
-Both variants resolve through `PermissionCache` (version-key invalidation, single-flight), so
-the steady-state cost is a cache read while the semantics stay "read from the database": a
-grant or revocation lands on the caller's **next request**, not their next token, and
-`POST /auth/logout`'s denylist is the instant kill for a live access token.
+Both variants read the database on every authorized request — there is no permission cache.
+The database is the only source of truth, so a grant or revocation, whether made through the
+API or by a direct SQL write, lands on the caller's **next request**, not their next token, and
+`POST /auth/logout`'s denylist is the instant kill for a live access token. The cost is one
+resolution query per authorized request.
 
 `AuthzGuard` also builds `req.ability` — the CASL ability over the resolved permission slugs —
 which is what the shared `AbilityGuard` checks. `AbilityGuard` only ever reads what the
@@ -233,9 +240,9 @@ means porting that table, not re-deriving it.
 
 Roles and the permission catalog are seeded data, so a freshly migrated database has no
 `Permission` rows and no `Role` rows and authorization has nothing to check against. Every combo
-ships `variants/<variant>/src/seed.ts` to close that gap. It is **consumer-facing source**, not
-repo tooling: it is copied into the emitted project like any other file under `src/`, and the
-consumer runs it as `npm run seed`. `scripts/seed.mjs` runs the same file against this combo's
+ships `variants/<variant>/database/seed.ts` (plus its data in `database/seedData/`) to close that
+gap. It is **consumer-facing source**, not repo tooling: it is copied into the emitted project's
+`database/` folder, next to the schema and migrations, and the consumer runs it as `npm run seed`. `scripts/seed.mjs` runs the same file against this combo's
 own dev database, so what is exercised here is exactly what a consumer runs.
 
 **The contract every combo's seeder implements.** Mirroring it to another combo is a translation
@@ -302,7 +309,7 @@ and groups, the `admin`/`member` roles, which roles the seeded accounts get — 
 the variant hooks in `test/`. Every insert is `ON CONFLICT DO NOTHING` on the natural unique key,
 so it is idempotent _and_ safe to run concurrently, and nothing is ever deleted.
 
-Resolution at request time (`AuthzGuard` → `PermissionCache` → `RbacRepository`) unions role
+Resolution at request time (`AuthzGuard` → `RbacRepository`, live every request) unions role
 permissions with direct grants and dedupes; `AbilityGuard` then checks the route's slug against
 the resulting CASL ability. Fail-closed in both directions: no resolved context, or the slug
 absent from it, is a 403.
@@ -375,7 +382,7 @@ NOTHING`. Nothing under `src/` may import `database/seedData/`.
 6. Add `sharedDir`, `variantsDir` and `variants: ["base", "workspaces"]` to the combo's entry in
    `packages/cli/registry.json`, plus the `npm run seed` line in its `postInstall` notes — the CLI never
    edits a consumer's `package.json`, so the script has to be spelled out for them, and the path
-   it points at is `<installPath>/src/seed.ts`, i.e. `tsx src/lib/auth/src/seed.ts` by default
-   (a combo's `src/**` lands under the install directory's own `src/`, not directly in it).
+   it points at is `tsx database/seed.ts` (a combo's `database/` lands at the project root, not
+   under the install directory).
 7. `npm run typecheck && npm run prove-cycle` must pass for both variants, and `npm run seed`
    must be safe to run twice against the same database.

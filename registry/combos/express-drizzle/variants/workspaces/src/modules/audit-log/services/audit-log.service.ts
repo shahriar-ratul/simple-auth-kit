@@ -5,7 +5,7 @@ import {
   AuditLogListFilter,
   AuditLogRepository,
   toAuditLogEntry,
-} from "@/modules/audit-log/repositories/audit-log.repository";
+} from "@/common/repositories/audit-log.repository";
 
 export class AuditLogService {
   constructor(private readonly auditLog: AuditLogRepository) {}

@@ -33,7 +33,7 @@ import {
 } from "@/common/auth/guards/authz.guard";
 import { CheckAbility } from "@/infra/route-tiers";
 import { DeleteReasonDto, OkResponseDto } from "@/common/dto/shared.dto";
-import { WorkspaceRepository } from "@/modules/auth/repositories/workspace.repository";
+import { WorkspaceRepository } from "@/common/repositories/workspace.repository";
 import { hashPassword } from "@/lib/auth/core/crypto";
 import {
   AssignRoleDto,

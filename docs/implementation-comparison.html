@@ -124,6 +124,7 @@
       <span class="verdict-badge">1,700 prove-cycle assertions pass, 0 failures</span>
       <span class="verdict-badge warn">+1 unplanned regression found &amp; fixed</span>
       <span class="verdict-badge accent">No CI — by design; everything else, run for real</span>
+      <span class="verdict-badge warn">Update: permission cache later removed</span>
     </div>
     <h2>Every fix from the review landed in the actual repo, not just on paper.</h2>
     <p>
@@ -142,6 +143,7 @@
     </div>
   </div>
 
+  <p class="update-note" style="margin:12px 0;padding:10px 14px;border-left:3px solid currentColor;opacity:.9"><b>Update (2026-09-24):</b> since this comparison, the permission cache was removed — authorization is read live from the database on every request, so a revoke made through the API or directly in SQL applies on the next request. Seed data moved out of the application into <code class="inline">database/seedData/</code> (the app never imports it); only the route slug list stays in code, in <code class="inline">permission-slugs.ts</code>. Repositories used by more than one module now live in <code class="inline">src/common/repositories/</code>. Items below that mention <code class="inline">PermissionCache</code> or <code class="inline">rbac.defaults.ts</code> describe the code as it was when reviewed.</p>
   <section id="compare">
     <h2><span class="n">1</span>Before → After, per recommendation</h2>
 

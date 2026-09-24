@@ -25,5 +25,5 @@ export class InMemoryRateLimitStore implements RateLimitDeps {
   }
 }
 
-/** DI token for the store. Provide your own to `AuthModule.forRoot({ rateLimitStore })` — mirrors `PERMISSION_CACHE_STORE`. */
+/** DI token for the store. Provide your own to `CoreAuthModule.forRoot({ rateLimitStore })`. */
 export const RATE_LIMIT_STORE = Symbol("RATE_LIMIT_STORE");

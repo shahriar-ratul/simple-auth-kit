@@ -4,19 +4,22 @@
 // confer it. There is no scope to admit a user into — every user is already in range of the admin
 // endpoints.
 import "dotenv/config";
-import { eq, inArray } from "drizzle-orm";
+import { and, eq, inArray } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/node-postgres";
 import { Pool } from "pg";
 import type { Database } from "../src/common/config/db.js";
 import { toId } from "../src/common/helpers/id.helper.js";
-import { POLICY_VERSION_KEY } from "../src/common/auth/cache/permission-cache.js";
 import {
   provisionDefaultRoles,
   SEED_ADMIN_ROLES,
 } from "../database/seedData/index.js";
 import * as schema from "@/database/schema.js";
-import { permissions, roleUser, roles } from "@/database/schema.js";
-import { permissionCacheStore } from "./bootstrap.js";
+import {
+  permissionUser,
+  permissions,
+  roleUser,
+  roles,
+} from "@/database/schema.js";
 import {
   renewingToken,
   type AdminSession,
@@ -72,12 +75,8 @@ export const hooks: VariantHooks = {
       identifier: principal.email,
       password: principal.password,
     };
-    // Those writes went straight to the database, behind the running app's back, so nothing
-    // bumped a version counter and the caller's already-cached (empty) permissions would still be
-    // served. Bumping the policy counter is exactly what an out-of-band writer is supposed to do —
-    // see permission-cache.ts. Logging in would not have helped: nothing about authorization is
-    // in the token.
-    await permissionCacheStore.bump(POLICY_VERSION_KEY);
+    // Those writes went straight to the database, behind the running app's back. Nothing needs
+    // telling: authorization is read live from the database on every request.
     const login = await ctx.call("POST", "/auth/login", {
       body: { identifier: principal.email, password: principal.password },
     });
@@ -136,7 +135,7 @@ export const hooks: VariantHooks = {
     // baked into the access token at issue time, which made the check free but meant a revocation
     // did not apply until the caller's next token — a window bounded only by the access-token TTL,
     // documented as a sharp edge and asserted in both directions right here. Authorization is now
-    // resolved from the database (through a version-keyed cache) on the request that uses it, so
+    // resolved from the database on the request that uses it, so
     // the window is gone and the assertions that described it have been replaced by the ones that
     // describe what actually happens.
     const email = ctx.uniqueEmail("immediate");
@@ -192,54 +191,9 @@ export const hooks: VariantHooks = {
       `and the revocation lands on the very next request too, on the same token (got ${afterRevoke.status})`,
     );
 
-    await proveTheCacheIsReal(ctx, admin, tokens.accessToken);
     await proveARawDatabaseEditChangesEnforcement(ctx, admin);
   },
 };
-
-/**
- * A cache nobody can prove is working is a bug surface. These assertions read the very store the
- * app resolves through (`test/bootstrap.ts` hands it to `AuthModule.forRoot`), so "the second
- * request did not touch the database" is a measurement rather than a claim.
- */
-async function proveTheCacheIsReal(
-  ctx: ProofContext,
-  admin: AdminSession,
-  token: string,
-): Promise<void> {
-  const N = 8;
-  await ctx.call("GET", "/auth/me", { token }); // warm, so the measurement is of the steady state
-  const before = { ...permissionCacheStore.stats };
-  for (let i = 0; i < N; i += 1) await ctx.call("GET", "/auth/me", { token });
-  const after = permissionCacheStore.stats;
-
-  ctx.assert(
-    after.misses === before.misses && after.hits === before.hits + N,
-    `${N} identical authorized requests resolve permissions 0 further times — all ${N} were cache hits (misses +${after.misses - before.misses}, hits +${after.hits - before.hits})`,
-  );
-
-  const userId = (await ctx.call("GET", "/auth/me", { token })).body
-    .sub as string;
-  const beforeGrant = { ...permissionCacheStore.stats };
-  await ctx.call("POST", `/admin/users/${userId}/permissions`, {
-    token: await admin.freshToken(),
-    body: { permission: "probe:cache" },
-  });
-  const afterGrantCall = await ctx.call("GET", "/auth/me", { token });
-  ctx.assert(
-    permissionCacheStore.stats.misses > beforeGrant.misses,
-    "a grant bumps this user's version counter, so the next request misses the cache and re-resolves rather than serving a stale entry",
-  );
-  ctx.assert(
-    (afterGrantCall.body?.permissions ?? []).includes("probe:cache"),
-    "…and the freshly resolved answer contains the new permission",
-  );
-  await ctx.call(
-    "POST",
-    `/admin/users/${userId}/permissions/${encodeURIComponent("probe:cache")}/revoke`,
-    { token: await admin.freshToken() },
-  );
-}
 
 /**
  * The admin API already proves that editing the catalog changes enforcement, but it is the API
@@ -269,16 +223,14 @@ async function proveARawDatabaseEditChangesEnforcement(
   );
 
   const setActive = async (isActive: boolean) => {
-    // Written straight to the table, with no code change and no redeploy. The bump that follows is
-    // the out-of-band writer's half of the cache contract (permission-cache.ts) — without it the
-    // edit would still land, but only once the cached entry expired.
+    // Written straight to the table, with no code change, no redeploy, and nothing telling the
+    // app — authorization is read live from the database on every request.
     await withDb((db) =>
       db
         .update(permissions)
         .set({ isActive })
         .where(eq(permissions.slug, "audit-log:read")),
     );
-    await permissionCacheStore.bump(POLICY_VERSION_KEY);
   };
 
   await setActive(false);
@@ -297,5 +249,76 @@ async function proveARawDatabaseEditChangesEnforcement(
   ctx.assert(
     restored.status === 200,
     `…and reactivating it in the database opens the route again (got ${restored.status})`,
+  );
+
+  // Revocations, straight in the database with nothing telling the app: the very next request on
+  // the same token must already be denied.
+  const auditLogRead = async () =>
+    (
+      await withDb((db) =>
+        db
+          .select({ id: permissions.id })
+          .from(permissions)
+          .where(eq(permissions.slug, "audit-log:read")),
+      )
+    )[0]!.id;
+  await withDb(async (db) =>
+    db
+      .delete(permissionUser)
+      .where(
+        and(
+          eq(permissionUser.userId, toId(userId)),
+          eq(permissionUser.permissionId, await auditLogRead()),
+        ),
+      ),
+  );
+  const afterGrantDeleted = await ctx.call("GET", "/audit-log", {
+    token: tokens.accessToken,
+  });
+  ctx.assert(
+    afterGrantDeleted.status === 403,
+    `a direct grant deleted by a raw database write denies the very next request, same token (got ${afterGrantDeleted.status})`,
+  );
+
+  const roleSlug = `raw-revoke-${Date.now()}`;
+  const role = await ctx.call("POST", "/roles", {
+    token: await admin.freshToken(),
+    body: { slug: roleSlug },
+  });
+  await ctx.call(
+    "POST",
+    `/roles/${(role.body as { id: string }).id}/permissions`,
+    {
+      token: await admin.freshToken(),
+      body: { permission: "audit-log:read" },
+    },
+  );
+  await ctx.call("POST", `/admin/users/${userId}/roles`, {
+    token: await admin.freshToken(),
+    body: { role: roleSlug },
+  });
+  const viaRole = await ctx.call("GET", "/audit-log", {
+    token: tokens.accessToken,
+  });
+  ctx.assert(
+    viaRole.status === 200,
+    `a role carrying the permission opens the route (got ${viaRole.status})`,
+  );
+  await withDb((db) =>
+    db
+      .delete(roleUser)
+      .where(
+        and(
+          eq(roleUser.userId, toId(userId)),
+          eq(roleUser.roleId, toId((role.body as { id: string }).id)),
+        ),
+      ),
+  );
+  const afterRoleDeleted = await ctx.call("GET", "/audit-log", {
+    token: tokens.accessToken,
+  });
+  ctx.assert(
+    afterRoleDeleted.status === 403,
+    `a role assignment deleted by a raw database write denies the very next request, same token (got ${afterRoleDeleted.status})`,
   );
 }
