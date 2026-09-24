@@ -42,11 +42,11 @@ import type { Revoker } from "@/lib/auth/core/types";
 import { AUTH_CONFIG, AuthConfig } from "@/common/config/auth.config";
 import { PrismaService } from "@/modules/prisma/prisma.service";
 import { AuthTokenService } from "@/common/auth/token.service";
-import { OAuthRepository } from "@/modules/auth/repositories/oauth.repository";
-import { PasswordResetRepository } from "@/modules/auth/repositories/password-reset.repository";
+import { OAuthRepository } from "@/common/repositories/oauth.repository";
+import { PasswordResetRepository } from "@/common/repositories/password-reset.repository";
 import { RATE_LIMIT_STORE } from "@/common/auth/cache/rate-limit.store";
-import { SessionRepository } from "@/modules/auth/repositories/session.repository";
-import { TwoFactorRepository } from "@/modules/auth/repositories/two-factor.repository";
+import { SessionRepository } from "@/common/repositories/session.repository";
+import { TwoFactorRepository } from "@/common/repositories/two-factor.repository";
 import { toId } from "@/common/helpers/id.helper";
 
 export interface AuthTokens {

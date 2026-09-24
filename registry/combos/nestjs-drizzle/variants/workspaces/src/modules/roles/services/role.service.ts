@@ -3,7 +3,7 @@ import type { AuthzContext } from "@/common/auth/guards/authz.guard";
 import {
   RbacRepository,
   RoleSummary,
-} from "@/modules/auth/repositories/rbac.repository";
+} from "@/common/repositories/rbac.repository";
 
 /** Thin wrapper over RbacRepository's role-catalog methods — see the note on AdminController for why RbacRepository itself isn't split. */
 @Injectable()

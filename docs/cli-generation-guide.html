@@ -280,7 +280,7 @@ $ simple-auth-kit add &lt;combo&gt; [--workspaces] [--name &lt;AppName&gt;] [--f
       <ul class="steps">
         <li>Set <code class="inline">DATABASE_URL</code> and <code class="inline">AUTH_JWT_SECRET</code> in <code class="inline">.env</code> (<code class="inline">openssl rand -base64 32</code> for the secret)</li>
         <li><code class="inline">cd src/lib/auth &amp;&amp; npx prisma generate &amp;&amp; npx prisma migrate deploy</code> — resolves the root <code class="inline">.env</code> automatically regardless of cwd (see <a href="#gotcha-env">fix</a>)</li>
-        <li>Add <code class="inline">"seed": "tsx src/lib/auth/src/seed.ts"</code> to <code class="inline">package.json</code>, then <code class="inline">npm run seed</code></li>
+        <li>Add <code class="inline">"seed": "tsx database/seed.ts"</code> to <code class="inline">package.json</code>, then <code class="inline">npm run seed</code></li>
         <li>Import <code class="inline">AuthModule.forRoot({...})</code> into your root app module, then <code class="inline">npm run start</code></li>
       </ul>
     </div>

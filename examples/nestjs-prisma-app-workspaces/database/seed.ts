@@ -6,39 +6,36 @@
 // is deleted, and an existing admin keeps the password they already have.
 //
 // Roles seeded here belong to the seeded workspace only — `Role` is unique per
-// `[workspaceId, slug]`. A workspace created later through POST /workspaces provisions its own
-// from the same `rbac.defaults.ts` definition, so no workspace's roles can drift from what the
-// routes demand.
-import { PrismaPg } from "@prisma/adapter-pg";
-import { hashPassword } from "@/core/crypto.js";
-import { PrismaClient } from "@/database/generated/prisma/client.js";
+// `[workspaceId, slug]`, so there is no such thing as a role that exists in all of them. A
+// workspace created later through POST /workspaces builds its own roles from the database (see
+// `WorkspaceRepository.create`), not from this seed data. (1) and (3) are defined in
+// `database/seedData/`, which the app never imports: after seeding, the database is the only
+// source of truth.
+import { PrismaPg } from '@prisma/adapter-pg';
+import { hashPassword } from '@/core/crypto.js';
+import { PrismaClient } from '@/database/generated/prisma/client.js';
 import {
   DEFAULT_ROLES,
+  DEFAULT_WORKSPACE_NAME,
   PERMISSION_SLUGS,
   provisionDefaultRoles,
+  SEED_ADMIN_ROLES,
   SEED_SUPERADMIN_ROLES,
-  WORKSPACE_CREATOR_ROLES,
-} from "../src/modules/auth/rbac.defaults.js";
-
-const DEFAULT_WORKSPACE_NAME = "Default workspace";
+} from './seedData/index.js';
+import { bumpAuthzVersion } from '../src/common/auth/cache/authz-version.js';
 
 function requireEnv(name: string): string {
   const value = process.env[name];
-  if (!value)
-    throw new Error(
-      `${name} is not set — the seeder cannot reach the database without it`,
-    );
+  if (!value) throw new Error(`${name} is not set — the seeder cannot reach the database without it`);
   return value;
 }
 
 // Workspace names aren't unique in the schema, so re-running adopts the one it made last time.
-async function seedWorkspace(
-  prisma: PrismaClient,
-): Promise<{ id: bigint; name: string }> {
-  const name = process.env["SEED_WORKSPACE_NAME"] || DEFAULT_WORKSPACE_NAME;
+async function seedWorkspace(prisma: PrismaClient): Promise<{ id: bigint; name: string }> {
+  const name = process.env['SEED_WORKSPACE_NAME'] || DEFAULT_WORKSPACE_NAME;
   const existing = await prisma.workspace.findFirst({
     where: { name },
-    orderBy: { createdAt: "asc" },
+    orderBy: { createdAt: 'asc' },
   });
   if (existing) {
     console.log(`workspace: "${name}" already exists (${existing.id})`);
@@ -49,15 +46,12 @@ async function seedWorkspace(
   return created;
 }
 
-async function seedRbacDefaults(
-  prisma: PrismaClient,
-  workspaceId: bigint,
-): Promise<void> {
+async function seedRbacDefaults(prisma: PrismaClient, workspaceId: bigint): Promise<void> {
   await provisionDefaultRoles(prisma, workspaceId);
   console.log(`permissions: ${PERMISSION_SLUGS.length} slug(s) in the catalog`);
   for (const role of DEFAULT_ROLES)
     console.log(
-      `role "${role.slug}": ${role.permissions.length} permission(s)${role.isDefault ? " (new-member default)" : ""}`,
+      `role "${role.slug}": ${role.permissions.length} permission(s)${role.isDefault ? ' (new-member default)' : ''}`,
     );
 
   // Slugs in the database but not this build's catalog aren't an error — a deployment can
@@ -65,33 +59,26 @@ async function seedRbacDefaults(
   const rows = await prisma.permission.findMany({
     select: { slug: true, isActive: true },
   });
-  const unknown = rows.filter(
-    (row) => !(PERMISSION_SLUGS as string[]).includes(row.slug),
-  );
+  const unknown = rows.filter((row) => !(PERMISSION_SLUGS as string[]).includes(row.slug));
   if (unknown.length)
     console.log(
-      `permissions: ${unknown.length} slug(s) outside this build's catalog (no route names them): ${unknown.map((r) => r.slug).join(", ")}`,
+      `permissions: ${unknown.length} slug(s) outside this build's catalog (no route names them): ${unknown.map((r) => r.slug).join(', ')}`,
     );
   const inactive = rows.filter((row) => !row.isActive);
   if (inactive.length)
     console.log(
-      `permissions: ${inactive.length} deactivated, granting nothing: ${inactive.map((r) => r.slug).join(", ")}`,
+      `permissions: ${inactive.length} deactivated, granting nothing: ${inactive.map((r) => r.slug).join(', ')}`,
     );
 }
 
-async function seedAdminUser(
-  prisma: PrismaClient,
-  workspace: { id: bigint; name: string },
-): Promise<void> {
-  const email = process.env["SEED_ADMIN_EMAIL"];
-  const password = process.env["SEED_ADMIN_PASSWORD"];
+async function seedAdminUser(prisma: PrismaClient, workspace: { id: bigint; name: string }): Promise<void> {
+  const email = process.env['SEED_ADMIN_EMAIL'];
+  const password = process.env['SEED_ADMIN_PASSWORD'];
   if (!email || !password) {
     console.log(
       `admin: skipped — set SEED_ADMIN_EMAIL and SEED_ADMIN_PASSWORD to create one (there is no default password)`,
     );
-    console.log(
-      `admin: "${workspace.name}" has no members until you re-run with them set`,
-    );
+    console.log(`admin: "${workspace.name}" has no members until you re-run with them set`);
     return;
   }
 
@@ -102,11 +89,7 @@ async function seedAdminUser(
     (await prisma.user.create({
       data: { email, passwordHash: await hashPassword(password) },
     }));
-  console.log(
-    existing
-      ? `admin: ${email} already exists — password left unchanged`
-      : `admin: created ${email}`,
-  );
+  console.log(existing ? `admin: ${email} already exists — password left unchanged` : `admin: created ${email}`);
 
   const membership = await prisma.workspaceMember.upsert({
     where: {
@@ -116,31 +99,26 @@ async function seedAdminUser(
     update: {},
   });
   const roles = await prisma.role.findMany({
-    where: { workspaceId: workspace.id, slug: { in: WORKSPACE_CREATOR_ROLES } },
+    where: { workspaceId: workspace.id, slug: { in: SEED_ADMIN_ROLES } },
     select: { id: true, slug: true },
   });
   await prisma.roleMember.createMany({
     data: roles.map((role) => ({ memberId: membership.id, roleId: role.id })),
     skipDuplicates: true,
   });
-  console.log(
-    `admin: member of "${workspace.name}" with roles ${roles.map((r) => r.slug).join(", ")}`,
-  );
+  console.log(`admin: member of "${workspace.name}" with roles ${roles.map((r) => r.slug).join(', ')}`);
 }
 
-async function seedSuperAdminUser(
-  prisma: PrismaClient,
-  workspace: { id: bigint; name: string },
-): Promise<void> {
-  const email = process.env["SEED_SUPERADMIN_EMAIL"];
-  const password = process.env["SEED_SUPERADMIN_PASSWORD"];
+async function seedSuperAdminUser(prisma: PrismaClient, workspace: { id: bigint; name: string }): Promise<void> {
+  const email = process.env['SEED_SUPERADMIN_EMAIL'];
+  const password = process.env['SEED_SUPERADMIN_PASSWORD'];
   if (!email || !password) {
     console.log(
       `super admin: skipped — set SEED_SUPERADMIN_EMAIL and SEED_SUPERADMIN_PASSWORD to create one (there is no default password)`,
     );
     return;
   }
-  const username = process.env["SEED_SUPERADMIN_USERNAME"] || undefined;
+  const username = process.env['SEED_SUPERADMIN_USERNAME'] || undefined;
 
   // Rewriting the password here would silently reset one the user may have already changed.
   const existing = await prisma.user.findUnique({ where: { email } });
@@ -152,7 +130,7 @@ async function seedSuperAdminUser(
   console.log(
     existing
       ? `super admin: ${email} already exists — password left unchanged`
-      : `super admin: created ${email}${username ? ` (username ${username})` : ""}`,
+      : `super admin: created ${email}${username ? ` (username ${username})` : ''}`,
   );
 
   const membership = await prisma.workspaceMember.upsert({
@@ -170,9 +148,7 @@ async function seedSuperAdminUser(
     data: roles.map((role) => ({ memberId: membership.id, roleId: role.id })),
     skipDuplicates: true,
   });
-  console.log(
-    `super admin: member of "${workspace.name}" with roles ${roles.map((r) => r.slug).join(", ")}`,
-  );
+  console.log(`super admin: member of "${workspace.name}" with roles ${roles.map((r) => r.slug).join(', ')}`);
 }
 
 async function main(): Promise<void> {
@@ -183,14 +159,16 @@ async function main(): Promise<void> {
   }
 
   const prisma = new PrismaClient({
-    adapter: new PrismaPg({ connectionString: requireEnv("DATABASE_URL") }),
+    adapter: new PrismaPg({ connectionString: requireEnv('DATABASE_URL') }),
   });
   try {
     const workspace = await seedWorkspace(prisma);
     await seedRbacDefaults(prisma, workspace.id);
     await seedAdminUser(prisma, workspace);
     await seedSuperAdminUser(prisma, workspace);
-    console.log("seed complete.");
+    // Clear any running app's authz cache: the seeder writes behind the app's back.
+    await bumpAuthzVersion(prisma);
+    console.log('seed complete.');
   } finally {
     await prisma.$disconnect();
   }

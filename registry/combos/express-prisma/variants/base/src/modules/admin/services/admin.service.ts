@@ -1,4 +1,5 @@
 import { hashPassword } from "@/lib/auth/core/crypto";
+import { bumpAuthzVersion } from "@/common/auth/cache/authz-version";
 import { blockUser, deactivateUser } from "@/lib/auth/core/session-policy";
 import type { Revoker } from "@/lib/auth/core/types";
 import { PrismaClient } from "@/database/generated/prisma/client";
@@ -8,8 +9,8 @@ import {
   UserListFilter,
   UserListResult,
   UserSummary,
-} from "@/modules/auth/repositories/rbac.repository";
-import { SessionRepository } from "@/modules/auth/repositories/session.repository";
+} from "@/common/repositories/rbac.repository";
+import { SessionRepository } from "@/common/repositories/session.repository";
 import { toId, toIdOrNull } from "@/common/helpers/id.helper";
 
 /**
@@ -126,11 +127,7 @@ export class AdminService {
     });
     // The administrator, not the blocked user, is what lands in `sessions.revoked_by`.
     await blockUser(this.sessions, userId, revoker);
-    // Belt and braces. The block is enforced on the authentication path — login and refresh both
-    // refuse a blocked user, and AuthGuard never consults the permission cache — so a warm entry
-    // cannot defeat it. Dropping the entry anyway means nothing about a blocked account is being
-    // served from memory.
-    await this.rbac.invalidateUser(userId);
+    await bumpAuthzVersion(this.prisma);
   }
 
   async unblock(userId: string, revoker?: Revoker): Promise<void> {
@@ -138,6 +135,7 @@ export class AdminService {
       where: { id: toId(userId) },
       data: { blocked: false, updatedBy: toIdOrNull(revoker?.userId) },
     });
+    await bumpAuthzVersion(this.prisma);
   }
 
   /**
@@ -150,7 +148,7 @@ export class AdminService {
       data: { isActive: false, updatedBy: toIdOrNull(revoker?.userId) },
     });
     await deactivateUser(this.sessions, userId, revoker);
-    await this.rbac.invalidateUser(userId);
+    await bumpAuthzVersion(this.prisma);
   }
 
   async activate(userId: string, revoker?: Revoker): Promise<void> {
@@ -158,5 +156,6 @@ export class AdminService {
       where: { id: toId(userId) },
       data: { isActive: true, updatedBy: toIdOrNull(revoker?.userId) },
     });
+    await bumpAuthzVersion(this.prisma);
   }
 }

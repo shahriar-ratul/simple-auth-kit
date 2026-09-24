@@ -1,0 +1,24 @@
+// Roles and permissions are global to this deployment. Authorization is resolved from the
+// database on every request (user → roles → role permissions, unioned with direct grants), and
+// the access token carries no authorization — a grant or revocation takes effect on the next
+// request, not the next token.
+// simple-auth-kit's schema is split by domain across the files in database/schema/ (this one
+// holds only the generator and datasource). Prisma's multi-file schema support merges every
+// .prisma file under database/schema/ into one logical schema — so a consumer's own models go in
+// their own file there under a name the kit doesn't use (e.g. app.prisma), which the CLI never
+// touches: it only manages the files it installed, tracked by name in auth.lock.json.
+//
+// `output` stays relative to *this file's own location*: "../generated/prisma" (one level up
+// from database/schema/) lands at database/generated/prisma — true both for the registry's own
+// dev/typecheck loop (scripts/materialize.mjs keeps database/ a sibling of src/) and for a real
+// CLI install (prisma.config.ts + database/ move to the project root together, as one unit).
+// Source imports the generated client via the stable "@/database/*" alias rather than a relative
+// path, so nothing needs rewriting on install the way the old top-level generated/ did.
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}

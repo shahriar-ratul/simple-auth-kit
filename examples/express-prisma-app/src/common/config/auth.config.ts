@@ -1,5 +1,5 @@
 import type { RateLimitDeps } from '@/core/rate-limit';
-import type { PermissionCacheStore } from '@/common/auth/cache/permission-cache';
+import type { AuthzCacheStore } from '@/common/auth/cache/authz-cache';
 
 export interface GoogleOAuthCredentials {
   clientId: string;
@@ -15,6 +15,28 @@ export interface AppleOAuthCredentials {
   redirectUri: string;
 }
 
+export interface AuthzCacheConfig {
+  /** `false` turns caching off: authorization is resolved from the database on every request. */
+  enabled: boolean;
+  /**
+   * `true`: every request reads the `authz_version` row (one primary-key lookup) and re-resolves
+   * when it changed, so a change made through the app applies on the next request, on every
+   * server. `false`: skip that read and trust an entry until `ttlSeconds` — zero database reads
+   * on a hit, and changes apply within the TTL.
+   */
+  revalidate: boolean;
+  /**
+   * How long an entry lives. Also the bound on how long a direct database edit — which bumps no
+   * version — can go unseen.
+   */
+  ttlSeconds: number;
+  /**
+   * Where entries live. Defaults to in-process memory (`InMemoryAuthzCacheStore`); pass e.g. a
+   * Redis-backed `AuthzCacheStore` to share entries across servers.
+   */
+  store?: AuthzCacheStore;
+}
+
 export interface AuthConfig {
   accessTokenTtlSeconds: number;
   refreshTokenTtlSeconds: number;
@@ -25,25 +47,14 @@ export interface AuthConfig {
    * "log in again after N days" true regardless of activity. `rotateRefreshToken` enforces it.
    */
   sessionTtlSeconds: number;
+  /** How resolved authorization is cached. A partial object is merged over the defaults. */
+  authzCache: AuthzCacheConfig;
   /** App name shown inside authenticator apps next to the account (issuer part of the otpauth:// URI). */
   twoFactorIssuer: string;
   oauthProviders: {
     google?: GoogleOAuthCredentials;
     apple?: AppleOAuthCredentials;
   };
-  /**
-   * How long a resolved permission set may sit in the cache. This is a safety net, not the
-   * invalidation mechanism: correctness comes from the version counters in permission-cache.ts,
-   * which make a stale entry unreachable the instant anything changes. Set to 0 to resolve from
-   * the database on every request — same answers, more queries.
-   */
-  permissionCacheTtlSeconds: number;
-  /**
-   * Where resolved permissions are cached. Defaults to an in-process `Map`, which is correct for
-   * a single instance; pass a Redis-backed implementation of `PermissionCacheStore` for several.
-   * Keys are namespaced `simpleauthkit:authz:*`.
-   */
-  permissionCacheStore?: PermissionCacheStore;
   /**
    * Where rate-limit counters live. Defaults to an in-process `Map`, which is correct for a
    * single instance; pass a Redis-backed implementation of `RateLimitDeps` for several.
@@ -53,11 +64,16 @@ export interface AuthConfig {
   sendPasswordResetEmail?: (email: string, token: string) => Promise<void>;
 }
 
+/** What a consumer passes: any subset, including a partial `authzCache` (merged over its defaults). */
+export type AuthConfigInput = Partial<Omit<AuthConfig, 'authzCache'>> & {
+  authzCache?: Partial<AuthzCacheConfig>;
+};
+
 export const defaultAuthConfig: AuthConfig = {
   accessTokenTtlSeconds: 900,
-  permissionCacheTtlSeconds: 300,
   refreshTokenTtlSeconds: 60 * 60 * 24 * 30,
   sessionTtlSeconds: 60 * 60 * 24 * 30,
+  authzCache: { enabled: true, revalidate: true, ttlSeconds: 30 },
   twoFactorIssuer: 'simple-auth-kit',
   oauthProviders: {},
 };

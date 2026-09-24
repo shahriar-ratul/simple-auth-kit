@@ -14,6 +14,11 @@ import {
   defineAbilitiesFor,
 } from "../src/common/auth/ability/ability.js";
 import { ability, createTieredRouter } from "../src/infra/route-tiers.js";
+import {
+  type AuthzCacheStore,
+  createAuthzCache,
+  InMemoryAuthzCacheStore,
+} from "../src/common/auth/cache/authz-cache.js";
 import { bootstrap, capturedResetTokens } from "./bootstrap.js";
 import {
   adminRouteProbes,
@@ -113,6 +118,90 @@ function registerRouteGatedOnAnUndefinedSlug(): unknown {
   }
 }
 
+/**
+ * The authz cache's modes, exercised directly with a stub resolver and a stub version reader — no
+ * database, no HTTP. What the running app does with the defaults is proved by the variant hooks.
+ */
+async function proveAuthzCacheModes(): Promise<void> {
+  const counted = () => {
+    const counts = { resolves: 0, versionReads: 0 };
+    return {
+      counts,
+      resolve: async () => {
+        counts.resolves += 1;
+        return { roles: ["r"], permissions: ["p"] };
+      },
+      readVersion: async () => {
+        counts.versionReads += 1;
+        return 7;
+      },
+    };
+  };
+
+  const off = counted();
+  const disabled = createAuthzCache({
+    enabled: false,
+    revalidate: true,
+    ttlSeconds: 30,
+    store: new InMemoryAuthzCacheStore(),
+    readVersion: off.readVersion,
+  });
+  for (let i = 0; i < 3; i++) await disabled.get("u1", off.resolve);
+  assert(
+    off.counts.resolves === 3 && off.counts.versionReads === 0,
+    `enabled: false resolves on every call and never reads the version (resolved ${off.counts.resolves}, version reads ${off.counts.versionReads})`,
+  );
+
+  const trusting = counted();
+  const noRevalidate = createAuthzCache({
+    enabled: true,
+    revalidate: false,
+    ttlSeconds: 1,
+    store: new InMemoryAuthzCacheStore(),
+    readVersion: trusting.readVersion,
+  });
+  for (let i = 0; i < 3; i++) await noRevalidate.get("u1", trusting.resolve);
+  assert(
+    trusting.counts.resolves === 1 && trusting.counts.versionReads === 0,
+    `revalidate: false reuses the entry without reading the version (resolved ${trusting.counts.resolves}, version reads ${trusting.counts.versionReads})`,
+  );
+  await new Promise((resolve) => setTimeout(resolve, 1200));
+  await noRevalidate.get("u1", trusting.resolve);
+  assert(
+    trusting.counts.resolves === 2,
+    `…until ttlSeconds passes, then it resolves again (resolved ${trusting.counts.resolves})`,
+  );
+
+  const calls: string[] = [];
+  const backing = new Map<string, string>();
+  const customStore: AuthzCacheStore = {
+    async get(key) {
+      calls.push(`get ${key}`);
+      return backing.get(key);
+    },
+    async set(key, value, ttlSeconds) {
+      calls.push(`set ${key} ${ttlSeconds}`);
+      backing.set(key, value);
+    },
+  };
+  const plugged = counted();
+  const pluggable = createAuthzCache({
+    enabled: true,
+    revalidate: true,
+    ttlSeconds: 45,
+    store: customStore,
+    readVersion: plugged.readVersion,
+  });
+  await pluggable.get("u1", plugged.resolve);
+  await pluggable.get("u1", plugged.resolve);
+  assert(
+    calls.join(" | ") ===
+      "get simpleauthkit:authz:u1 | set simpleauthkit:authz:u1 45 | get simpleauthkit:authz:u1" &&
+      plugged.counts.resolves === 1,
+    `a custom store receives the cache's get/set calls and serves the second call (calls: ${calls.join(" | ")})`,
+  );
+}
+
 async function main() {
   console.log(
     "0. fail-closed at startup: a route gated on a permission nothing can grant stops the app from booting",
@@ -122,11 +211,11 @@ async function main() {
     bootError instanceof Error ? bootError.message : String(bootError);
   assert(
     bootError !== undefined,
-    "registering a route gated on a slug outside PERMISSION_CATALOG throws at registration, not at request time",
+    "registering a route gated on a slug outside PERMISSION_SLUGS throws at registration, not at request time",
   );
   assert(
     bootMessage.includes("no:such-permission") &&
-      bootMessage.includes("PERMISSION_CATALOG"),
+      bootMessage.includes("PERMISSION_SLUGS"),
     `…and the error names the offending permission (got: ${bootMessage.split("\n")[0]})`,
   );
 
@@ -1683,6 +1772,11 @@ async function main() {
     } finally {
       delete process.env["METRICS_TOKEN"];
     }
+
+    console.log(
+      "13b. authz cache modes: disabled, no revalidation, pluggable store",
+    );
+    await proveAuthzCacheModes();
 
     console.log(`14. ${hooks.variant}-specific properties`);
     await hooks.proveVariantProperties(ctx, admin);

@@ -1,0 +1,130 @@
+// Roles, permissions and who holds them — what `resolveAuthzContext` reads — plus the
+// `authz_version` counter the authorization cache keys on.
+
+/// `slug` is the identifier grants/revocations key off, so renaming `name`/`displayName` never
+/// breaks one. `isDefault` is what a newly signed-up user is given. `isActive: false` suspends a
+/// role without deleting it; `isDeleted` removes it from every listing outright.
+model Role {
+  id            BigInt    @id @default(autoincrement())
+  uuid          String    @unique @default(uuid())
+  slug          String    @unique @db.VarChar(255)
+  name          String    @db.VarChar(255)
+  displayName   String    @map("display_name") @db.VarChar(255)
+  description   String?
+  isDefault     Boolean   @default(false) @map("is_default")
+  order         Int       @default(0)
+  isActive      Boolean   @default(true) @map("is_active")
+  createdBy     BigInt?   @map("created_by")
+  updatedBy     BigInt?   @map("updated_by")
+  isDeleted     Boolean   @default(false) @map("is_deleted")
+  deletedAt     DateTime? @map("deleted_at") @db.Timestamptz(6)
+  deletedBy     BigInt?   @map("deleted_by")
+  deletedReason String?   @map("deleted_reason") @db.VarChar(255)
+  createdAt     DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt     DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  users       RoleUser[]
+  permissions PermissionRole[]
+
+  createdByUser User? @relation("RoleCreatedBy", fields: [createdBy], references: [id], onDelete: SetNull)
+  updatedByUser User? @relation("RoleUpdatedBy", fields: [updatedBy], references: [id], onDelete: SetNull)
+  deletedByUser User? @relation("RoleDeletedBy", fields: [deletedBy], references: [id], onDelete: SetNull)
+
+  @@index([isDefault], map: "roles_is_default_idx")
+  @@index([isActive, order], map: "roles_active_order_idx")
+  @@index([isDeleted], map: "roles_is_deleted_idx")
+  @@map("roles")
+}
+
+/// One capability, identified by its `slug` (`users:read`, `roles:assign`) — the same string
+/// used in `@CheckAbility` and `ability.can`. `group`/`groupOrder`/`order` back the admin
+/// console's permission matrix. `isActive: false` switches a capability off deployment-wide
+/// without unpicking every role that grants it; `isDeleted` removes it from every listing.
+model Permission {
+  id            BigInt    @id @default(autoincrement())
+  uuid          String    @unique @default(uuid())
+  slug          String    @unique @db.VarChar(255)
+  name          String    @db.VarChar(255)
+  displayName   String    @map("display_name") @db.VarChar(255)
+  description   String?
+  group         String    @default("General") @db.VarChar(255)
+  groupOrder    Int       @default(0) @map("group_order")
+  order         Int       @default(0)
+  isActive      Boolean   @default(true) @map("is_active")
+  createdBy     BigInt?   @map("created_by")
+  updatedBy     BigInt?   @map("updated_by")
+  isDeleted     Boolean   @default(false) @map("is_deleted")
+  deletedAt     DateTime? @map("deleted_at") @db.Timestamptz(6)
+  deletedBy     BigInt?   @map("deleted_by")
+  deletedReason String?   @map("deleted_reason") @db.VarChar(255)
+  createdAt     DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt     DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  roles PermissionRole[]
+  users PermissionUser[]
+
+  createdByUser User? @relation("PermissionCreatedBy", fields: [createdBy], references: [id], onDelete: SetNull)
+  updatedByUser User? @relation("PermissionUpdatedBy", fields: [updatedBy], references: [id], onDelete: SetNull)
+  deletedByUser User? @relation("PermissionDeletedBy", fields: [deletedBy], references: [id], onDelete: SetNull)
+
+  @@index([isActive], map: "permissions_is_active_idx")
+  @@index([group, groupOrder, order], map: "permissions_group_order_idx")
+  @@index([isDeleted], map: "permissions_is_deleted_idx")
+  @@map("permissions")
+}
+
+/// Which roles a user holds.
+model RoleUser {
+  userId    BigInt   @map("user_id")
+  roleId    BigInt   @map("role_id")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role Role @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  @@id([userId, roleId])
+  @@index([roleId], map: "role_user_role_id_idx")
+  @@map("role_user")
+}
+
+/// What each role carries.
+model PermissionRole {
+  permissionId BigInt   @map("permission_id")
+  roleId       BigInt   @map("role_id")
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt    DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  permission Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+  role       Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  @@id([permissionId, roleId])
+  @@index([roleId], map: "permission_role_role_id_idx")
+  @@map("permission_role")
+}
+
+/// Direct per-user permission grants, additive to whatever the user's roles already carry.
+model PermissionUser {
+  userId       BigInt   @map("user_id")
+  permissionId BigInt   @map("permission_id")
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt    DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  permission Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@id([userId, permissionId])
+  @@index([permissionId], map: "permission_user_permission_id_idx")
+  @@map("permission_user")
+}
+
+/// Authorization cache version: at most one row (id = 1), created on first bump. Every app write
+/// that changes what authorization resolves to increments it (`bumpAuthzVersion`), so the
+/// authorization cache knows a cached answer is stale on the very next request. Direct
+/// database edits don't bump it; the cache's TTL (`authzCache.ttlSeconds`) bounds those instead.
+model AuthzVersion {
+  id      Int    @id @db.SmallInt
+  version BigInt @default(0)
+
+  @@map("authz_version")
+}

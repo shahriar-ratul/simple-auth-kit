@@ -3,7 +3,7 @@ import { hashPassword } from "@/lib/auth/core/crypto";
 import { AdminService } from "@/modules/admin/services/admin.service";
 import { HttpError } from "@/infra/errors/http-error";
 import { ability, createTieredRouter } from "@/infra/route-tiers";
-import { WorkspaceRepository } from "@/modules/auth/repositories/workspace.repository";
+import { WorkspaceRepository } from "@/common/repositories/workspace.repository";
 import "@/infra/request-context";
 
 function requireString(value: unknown, field: string): string {

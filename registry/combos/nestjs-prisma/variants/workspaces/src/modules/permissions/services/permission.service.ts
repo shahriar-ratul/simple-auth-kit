@@ -3,7 +3,7 @@ import {
   PermissionInput,
   PermissionSummary,
   RbacRepository,
-} from "@/modules/auth/repositories/rbac.repository";
+} from "@/common/repositories/rbac.repository";
 
 /** Thin wrapper over RbacRepository's permission-catalog methods — see the note on AdminController for why RbacRepository itself isn't split. The catalog is global, so no workspace context is needed here. */
 @Injectable()

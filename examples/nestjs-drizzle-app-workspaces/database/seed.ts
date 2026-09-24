@@ -23,48 +23,36 @@
 //
 // Roles seeded here belong to the seeded workspace only — `Role` is unique per
 // `[workspaceId, slug]`, so there is no such thing as a role that exists in all of them. A
-// workspace created later through POST /workspaces provisions its own from the same definition:
-// (1) and (3) both live in `rbac.defaults.ts`, which is also what types `@CheckAbility` on the
-// routes. The seeder is a caller of that definition, not its owner, so the roles a workspace
-// gets, whichever path created it, and the permissions the routes demand cannot drift apart.
-import { and, asc, eq, inArray, notInArray } from "drizzle-orm";
-import { drizzle } from "drizzle-orm/node-postgres";
-import { Pool } from "pg";
-import { hashPassword } from "@/core/crypto.js";
-import type { Database } from "../src/common/config/db.js";
+// workspace created later through POST /workspaces builds its own roles from the database (see
+// `WorkspaceRepository.create`), not from this seed data. (1) and (3) are defined in
+// `database/seedData/`, which the app never imports: after seeding, the database is the only
+// source of truth.
+import { and, asc, eq, inArray, notInArray } from 'drizzle-orm';
+import { drizzle } from 'drizzle-orm/node-postgres';
+import { Pool } from 'pg';
+import { hashPassword } from '@/core/crypto.js';
+import type { Database } from '../src/common/config/db.js';
 import {
   DEFAULT_ROLES,
+  DEFAULT_WORKSPACE_NAME,
   PERMISSION_SLUGS,
-  SEED_SUPERADMIN_ROLES,
-  WORKSPACE_CREATOR_ROLES,
   provisionDefaultRoles,
-} from "../src/modules/auth/rbac.defaults.js";
-import * as schema from "./schema.js";
-import {
-  permissions,
-  roleMember,
-  roles,
-  users,
-  workspaceMembers,
-  workspaces,
-} from "./schema.js";
-
-const DEFAULT_WORKSPACE_NAME = "Default workspace";
+  SEED_ADMIN_ROLES,
+  SEED_SUPERADMIN_ROLES,
+} from './seedData/index.js';
+import * as schema from './schema.js';
+import { permissions, roleMember, roles, users, workspaceMembers, workspaces } from './schema.js';
+import { bumpAuthzVersion } from '../src/common/auth/cache/authz-version.js';
 
 function requireEnv(name: string): string {
   const value = process.env[name];
-  if (!value)
-    throw new Error(
-      `${name} is not set — the seeder cannot reach the database without it`,
-    );
+  if (!value) throw new Error(`${name} is not set — the seeder cannot reach the database without it`);
   return value;
 }
 
 /** Workspace names are not unique in the schema, so re-running adopts the one it made last time rather than making another. */
-async function seedWorkspace(
-  db: Database,
-): Promise<{ id: bigint; name: string }> {
-  const name = process.env["SEED_WORKSPACE_NAME"] || DEFAULT_WORKSPACE_NAME;
+async function seedWorkspace(db: Database): Promise<{ id: bigint; name: string }> {
+  const name = process.env['SEED_WORKSPACE_NAME'] || DEFAULT_WORKSPACE_NAME;
   const [existing] = await db
     .select()
     .from(workspaces)
@@ -80,16 +68,13 @@ async function seedWorkspace(
   return created;
 }
 
-/** The catalog and this workspace's roles come from rbac.defaults.ts; this only reports what it wrote. */
-async function seedRbacDefaults(
-  db: Database,
-  workspaceId: bigint,
-): Promise<void> {
+/** The catalog and this workspace's roles come from `database/seedData/`; this only reports what it wrote. */
+async function seedRbacDefaults(db: Database, workspaceId: bigint): Promise<void> {
   await provisionDefaultRoles(db, workspaceId);
   console.log(`permissions: ${PERMISSION_SLUGS.length} slug(s) in the catalog`);
   for (const role of DEFAULT_ROLES)
     console.log(
-      `role "${role.slug}": ${role.permissions.length} permission(s)${role.isDefault ? " (new-member default)" : ""}`,
+      `role "${role.slug}": ${role.permissions.length} permission(s)${role.isDefault ? ' (new-member default)' : ''}`,
     );
 
   // Slugs that exist in the database but not in this build's catalog. They are not an error —
@@ -102,41 +87,29 @@ async function seedRbacDefaults(
     .where(notInArray(permissions.slug, PERMISSION_SLUGS));
   if (unknown.length)
     console.log(
-      `permissions: ${unknown.length} slug(s) outside this build's catalog (no route names them): ${unknown.map((r) => r.slug).join(", ")}`,
+      `permissions: ${unknown.length} slug(s) outside this build's catalog (no route names them): ${unknown.map((r) => r.slug).join(', ')}`,
     );
-  const inactive = await db
-    .select({ slug: permissions.slug })
-    .from(permissions)
-    .where(eq(permissions.isActive, false));
+  const inactive = await db.select({ slug: permissions.slug }).from(permissions).where(eq(permissions.isActive, false));
   if (inactive.length)
     console.log(
-      `permissions: ${inactive.length} deactivated, granting nothing: ${inactive.map((r) => r.slug).join(", ")}`,
+      `permissions: ${inactive.length} deactivated, granting nothing: ${inactive.map((r) => r.slug).join(', ')}`,
     );
 }
 
 /** The user is the authentication principal; the membership below is the authorization one. */
-async function seedAdminUser(
-  db: Database,
-  workspace: { id: bigint; name: string },
-): Promise<void> {
-  const email = process.env["SEED_ADMIN_EMAIL"];
-  const password = process.env["SEED_ADMIN_PASSWORD"];
+async function seedAdminUser(db: Database, workspace: { id: bigint; name: string }): Promise<void> {
+  const email = process.env['SEED_ADMIN_EMAIL'];
+  const password = process.env['SEED_ADMIN_PASSWORD'];
   if (!email || !password) {
     console.log(
       `admin: skipped — set SEED_ADMIN_EMAIL and SEED_ADMIN_PASSWORD to create one (there is no default password)`,
     );
-    console.log(
-      `admin: "${workspace.name}" has no members until you re-run with them set`,
-    );
+    console.log(`admin: "${workspace.name}" has no members until you re-run with them set`);
     return;
   }
 
   // Their password may have been changed since; rewriting it here would silently reset it.
-  const [existing] = await db
-    .select({ id: users.id })
-    .from(users)
-    .where(eq(users.email, email))
-    .limit(1);
+  const [existing] = await db.select({ id: users.id }).from(users).where(eq(users.email, email)).limit(1);
   const user =
     existing ??
     (
@@ -145,21 +118,12 @@ async function seedAdminUser(
         .values({ email, passwordHash: await hashPassword(password) })
         .returning({ id: users.id })
     )[0];
-  console.log(
-    existing
-      ? `admin: ${email} already exists — password left unchanged`
-      : `admin: created ${email}`,
-  );
+  console.log(existing ? `admin: ${email} already exists — password left unchanged` : `admin: created ${email}`);
 
   const [existingMembership] = await db
     .select({ id: workspaceMembers.id })
     .from(workspaceMembers)
-    .where(
-      and(
-        eq(workspaceMembers.userId, user.id),
-        eq(workspaceMembers.workspaceId, workspace.id),
-      ),
-    )
+    .where(and(eq(workspaceMembers.userId, user.id), eq(workspaceMembers.workspaceId, workspace.id)))
     .limit(1);
   const membership =
     existingMembership ??
@@ -173,12 +137,7 @@ async function seedAdminUser(
   const adminRoles = await db
     .select({ id: roles.id, slug: roles.slug })
     .from(roles)
-    .where(
-      and(
-        eq(roles.workspaceId, workspace.id),
-        inArray(roles.slug, WORKSPACE_CREATOR_ROLES),
-      ),
-    );
+    .where(and(eq(roles.workspaceId, workspace.id), inArray(roles.slug, SEED_ADMIN_ROLES)));
   if (adminRoles.length) {
     await db
       .insert(roleMember)
@@ -192,35 +151,24 @@ async function seedAdminUser(
         target: [roleMember.memberId, roleMember.roleId],
       });
   }
-  console.log(
-    `admin: member of "${workspace.name}" with roles ${adminRoles.map((r) => r.slug).join(", ")}`,
-  );
+  console.log(`admin: member of "${workspace.name}" with roles ${adminRoles.map((r) => r.slug).join(', ')}`);
 }
 
 /** The user is the authentication principal; the membership below is the authorization one. */
-async function seedSuperAdminUser(
-  db: Database,
-  workspace: { id: bigint; name: string },
-): Promise<void> {
-  const email = process.env["SEED_SUPERADMIN_EMAIL"];
-  const password = process.env["SEED_SUPERADMIN_PASSWORD"];
+async function seedSuperAdminUser(db: Database, workspace: { id: bigint; name: string }): Promise<void> {
+  const email = process.env['SEED_SUPERADMIN_EMAIL'];
+  const password = process.env['SEED_SUPERADMIN_PASSWORD'];
   if (!email || !password) {
     console.log(
-      "super admin: skipped — set SEED_SUPERADMIN_EMAIL and SEED_SUPERADMIN_PASSWORD to create one (there is no default password)",
+      'super admin: skipped — set SEED_SUPERADMIN_EMAIL and SEED_SUPERADMIN_PASSWORD to create one (there is no default password)',
     );
-    console.log(
-      `super admin: "${workspace.name}" has no members until you re-run with them set`,
-    );
+    console.log(`super admin: "${workspace.name}" has no members until you re-run with them set`);
     return;
   }
-  const username = process.env["SEED_SUPERADMIN_USERNAME"] || undefined;
+  const username = process.env['SEED_SUPERADMIN_USERNAME'] || undefined;
 
   // Their password may have been changed since; rewriting it here would silently reset it.
-  const [existing] = await db
-    .select({ id: users.id })
-    .from(users)
-    .where(eq(users.email, email))
-    .limit(1);
+  const [existing] = await db.select({ id: users.id }).from(users).where(eq(users.email, email)).limit(1);
   const user =
     existing ??
     (
@@ -232,18 +180,13 @@ async function seedSuperAdminUser(
   console.log(
     existing
       ? `super admin: ${email} already exists — password left unchanged`
-      : `super admin: created ${email}${username ? ` (username ${username})` : ""}`,
+      : `super admin: created ${email}${username ? ` (username ${username})` : ''}`,
   );
 
   const [existingMembership] = await db
     .select({ id: workspaceMembers.id })
     .from(workspaceMembers)
-    .where(
-      and(
-        eq(workspaceMembers.userId, user.id),
-        eq(workspaceMembers.workspaceId, workspace.id),
-      ),
-    )
+    .where(and(eq(workspaceMembers.userId, user.id), eq(workspaceMembers.workspaceId, workspace.id)))
     .limit(1);
   const membership =
     existingMembership ??
@@ -257,12 +200,7 @@ async function seedSuperAdminUser(
   const superAdminRoles = await db
     .select({ id: roles.id, slug: roles.slug })
     .from(roles)
-    .where(
-      and(
-        eq(roles.workspaceId, workspace.id),
-        inArray(roles.slug, SEED_SUPERADMIN_ROLES),
-      ),
-    );
+    .where(and(eq(roles.workspaceId, workspace.id), inArray(roles.slug, SEED_SUPERADMIN_ROLES)));
   if (superAdminRoles.length) {
     await db
       .insert(roleMember)
@@ -276,9 +214,7 @@ async function seedSuperAdminUser(
         target: [roleMember.memberId, roleMember.roleId],
       });
   }
-  console.log(
-    `super admin: member of "${workspace.name}" with roles ${superAdminRoles.map((r) => r.slug).join(", ")}`,
-  );
+  console.log(`super admin: member of "${workspace.name}" with roles ${superAdminRoles.map((r) => r.slug).join(', ')}`);
 }
 
 async function main(): Promise<void> {
@@ -290,14 +226,16 @@ async function main(): Promise<void> {
     // No .env here — the environment is expected to carry the variables itself (docker, CI, ...).
   }
 
-  const pool = new Pool({ connectionString: requireEnv("DATABASE_URL") });
+  const pool = new Pool({ connectionString: requireEnv('DATABASE_URL') });
   try {
     const db: Database = drizzle(pool, { schema });
     const workspace = await seedWorkspace(db);
     await seedRbacDefaults(db, workspace.id);
     await seedAdminUser(db, workspace);
     await seedSuperAdminUser(db, workspace);
-    console.log("seed complete.");
+    // Clear any running app's authz cache: the seeder writes behind the app's back.
+    await bumpAuthzVersion(db);
+    console.log('seed complete.');
   } finally {
     await pool.end();
   }

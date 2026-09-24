@@ -7,7 +7,7 @@ import {
 } from "@nestjs/common";
 import { AuthTokenService } from "@/common/auth/token.service";
 import "@/infra/request-context";
-import { SessionRepository } from "@/modules/auth/repositories/session.repository";
+import { SessionRepository } from "@/common/repositories/session.repository";
 
 // Authentication only — proves who the caller is and populates `req.auth`. Pair with
 // `AuthzGuard` on any route that checks roles or permissions.

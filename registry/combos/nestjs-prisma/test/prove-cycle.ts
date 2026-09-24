@@ -16,6 +16,7 @@ import {
   defineAbilitiesFor,
 } from "../src/common/auth/ability/ability.js";
 import { AuthController } from "../src/modules/auth/controllers/auth.controller.js";
+import { proveAuthzCacheModes } from "./authz-cache-modes.js";
 import { bootstrap, capturedResetTokens } from "./bootstrap.js";
 import {
   adminRouteProbes,
@@ -1728,6 +1729,9 @@ async function main() {
 
     console.log(`14. ${hooks.variant}-specific properties`);
     await hooks.proveVariantProperties(ctx, admin);
+
+    console.log("\nauthz cache modes (AuthzCache constructed directly)");
+    await proveAuthzCacheModes(assert);
   } finally {
     await app.close();
   }

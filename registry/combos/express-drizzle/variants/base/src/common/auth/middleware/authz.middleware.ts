@@ -1,7 +1,7 @@
 import type { NextFunction, Request, RequestHandler, Response } from "express";
 import { defineAbilitiesFor } from "@/common/auth/ability/ability";
-import type { PermissionCache } from "@/common/auth/cache/permission-cache";
-import type { RbacRepository } from "@/modules/auth/repositories/rbac.repository";
+import type { AuthzCache } from "@/common/auth/cache/authz-cache";
+import type { RbacRepository } from "@/common/repositories/rbac.repository";
 import "@/infra/request-context";
 
 /**
@@ -16,7 +16,7 @@ export interface AuthzContext {
 
 export interface AuthzMiddlewareDeps {
   rbac: RbacRepository;
-  cache: PermissionCache;
+  cache: AuthzCache<AuthzContext>;
 }
 
 /**
@@ -33,11 +33,9 @@ export interface AuthzMiddlewareDeps {
  * or a revocation land on the caller's next *request* rather than their next token. The price of
  * the alternative was a revocation that silently did not apply for up to an access-token TTL.
  *
- * The resolution goes through `PermissionCache`, so the steady-state cost is a cache read rather
- * than a join, while the *semantics* stay "read from the database": every write that could change
- * this answer bumps a version counter, which makes the cached entry unreachable rather than merely
- * old. The subject is the user id, because in this variant a user's permissions are the same
- * everywhere.
+ * Resolved through `AuthzCache`, versioned by the `authz_version` row this app bumps on
+ * every RBAC write — so a change made through this API applies on the very next request — and
+ * expiring after `authzCache.ttlSeconds`, the backstop for direct database edits.
  *
  * Replaces the reference combo's `AuthzGuard`.
  */
@@ -53,9 +51,12 @@ export function createAuthzMiddleware(
     try {
       if (req.auth) {
         const userId = req.auth.sub;
-        req.authz = (await cache.resolve<AuthzContext>(userId, () =>
+        req.authz = (await cache.get(userId, () =>
           rbac.resolveAuthzContext(userId),
-        )) ?? { roles: [], permissions: [] };
+        )) ?? {
+          roles: [],
+          permissions: [],
+        };
         req.ability = defineAbilitiesFor(req.authz.permissions);
       }
       next();

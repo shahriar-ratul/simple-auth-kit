@@ -70,10 +70,12 @@ If an app's typecheck can't see a method you just added, it's one of two stalene
 The countries/languages/customers modules all followed this shape; `country.*` is the cleanest
 template. Nine steps, repository → UI:
 
-1. **Prisma model** in `variants/base/database/schema/simple-auth-kit.prisma` — copy the standard column set from
+1. **Prisma model** in `variants/base/database/schema/<domain>.prisma` (e.g.
+   `content.prisma`) — copy the standard column set from
    an existing model (id/uuid, `isActive`, `createdBy`/`updatedBy`, soft-delete columns,
    timestamps). Then `npm run migrate -- base --name add_<domain>`.
-2. **Repository** `variants/base/src/modules/auth/repositories/<domain>.repository.ts` — list
+2. **Repository** `variants/base/src/common/repositories/<domain>.repository.ts` (every repository
+   lives there) — list
    (search/page/limit/`activeOnly`), get, create, update, soft-delete, `setActive`. Shape rows
    through a `to<Domain>Summary()` that forwards **every safe column** (BigInt ids → strings,
    Dates → ISO). The list must map rows through it too — returning raw Prisma rows crashes JSON
@@ -83,8 +85,9 @@ template. Nine steps, repository → UI:
 4. **Service methods** in `services/auth.service.ts`, **routes** in
    `controllers/admin.controller.ts` (GET list/one, POST create, PATCH update, DELETE
    soft-delete, POST `/:id/activate|deactivate`), each with `@CheckAbility("<domain>:...")`.
-5. **Slugs** in `rbac.defaults.ts` — `<domain>:read`, `:manage`, `:status`. That's all the
-   seeder needs; the `admin` role spreads the whole catalog.
+5. **Slugs** in `src/modules/auth/permission-slugs.ts` — `<domain>:read`, `:manage`, `:status` —
+   plus one seed row each in `database/seedData/permissions.ts` (a missing row is a compile
+   error). The seeded `admin` role carries every slug.
 6. **Provider registration** in `auth.module.ts`.
 7. **prove-cycle**: run it — the startup route-tier check alone will catch an unguarded route.
 8. **auth-client**: types (full row) + methods following the `listRoles` pattern

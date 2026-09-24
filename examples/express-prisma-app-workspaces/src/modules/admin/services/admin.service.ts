@@ -1,18 +1,19 @@
 import { hashPassword } from '@/core/crypto';
+import { bumpAuthzVersion } from '@/common/auth/cache/authz-version';
 import { blockUser, deactivateUser } from '@/core/session-policy';
 import type { Revoker } from '@/core/types';
 import { PrismaClient } from '@/database/generated/prisma/client';
 import type { AuthzContext } from '@/common/auth/middleware/authz.middleware';
-import { AuditLogRepository } from '@/modules/audit-log/repositories/audit-log.repository';
+import { AuditLogRepository } from '@/common/repositories/audit-log.repository';
 import {
   MemberListFilter,
   MemberListResult,
   MemberSummary,
   RbacRepository,
   toMemberSummary,
-} from '@/modules/auth/repositories/rbac.repository';
-import { SessionRepository } from '@/modules/auth/repositories/session.repository';
-import { WorkspaceRepository } from '@/modules/auth/repositories/workspace.repository';
+} from '@/common/repositories/rbac.repository';
+import { SessionRepository } from '@/common/repositories/session.repository';
+import { WorkspaceRepository } from '@/common/repositories/workspace.repository';
 import { toId, toIdOrNull } from '@/common/helpers/id.helper';
 
 /**
@@ -143,11 +144,7 @@ export class AdminService {
     });
     // The administrator, not the blocked user, is what lands in `sessions.revoked_by`.
     await blockUser(this.sessions, userId, revoker);
-    // Belt and braces. The block is enforced on the authentication path — login and refresh both
-    // refuse a blocked user, and AuthGuard never consults the permission cache — so a warm entry
-    // cannot defeat it. Dropping the entry anyway means nothing about a blocked account is being
-    // served from memory.
-    await this.rbac.invalidateMember(userId, ctx.workspaceId);
+    await bumpAuthzVersion(this.prisma);
   }
 
   async unblock(ctx: AuthzContext, userId: string, revoker?: Revoker): Promise<void> {
@@ -156,6 +153,7 @@ export class AdminService {
       where: { id: toId(userId) },
       data: { blocked: false, updatedBy: toIdOrNull(revoker?.userId) },
     });
+    await bumpAuthzVersion(this.prisma);
   }
 
   /**
@@ -169,7 +167,7 @@ export class AdminService {
       data: { isActive: false, updatedBy: toIdOrNull(revoker?.userId) },
     });
     await deactivateUser(this.sessions, userId, revoker);
-    await this.rbac.invalidateMember(userId, ctx.workspaceId);
+    await bumpAuthzVersion(this.prisma);
   }
 
   async activate(ctx: AuthzContext, userId: string, revoker?: Revoker): Promise<void> {
@@ -178,5 +176,6 @@ export class AdminService {
       where: { id: toId(userId) },
       data: { isActive: true, updatedBy: toIdOrNull(revoker?.userId) },
     });
+    await bumpAuthzVersion(this.prisma);
   }
 }

@@ -76,15 +76,16 @@ There is **no multi-tenancy** (removed permanently; true isolation is a separate
 - **CASL** with **flat permission slugs**: the slug is the CASL action, subject is the empty
   string — `can("users:read", "")`. No subject taxonomy, no conditions.
 - **Permissions live in the database**, resolved per request (user → roles → role permissions,
-  plus direct grants, deduped) behind an injected cache (`permission-cache.ts`) with version-key
-  invalidation and single-flight. Real join tables: `RoleUser`, `PermissionRole`,
-  `PermissionUser`. A grant or revocation lands on the caller's **next request**, not their
-  next token.
+  plus direct grants, deduped), cached in memory by `AuthzCache` (`common/auth/cache/`): every authorization write the app makes bumps the single `authz_version` row through the ORM (inside the same transaction when there is one), so API-driven grants and revokes apply on the very next request on every instance; a change written straight to the database applies once the entry's TTL (`authzCache.ttlSeconds`, default 30) runs out. `authzCache.enabled`/`revalidate` turn the cache or the per-request version check off; `authzCache.store` swaps in-memory for e.g. Redis (never a dependency). Real join tables: `RoleUser`,
+  `PermissionRole`, `PermissionUser`. A grant or revocation made through the API lands on the
+  caller's **next request**, not their next token.
 - **Never in the JWT.** The access token carries identity and session only.
-- **The catalog is code**: `rbac.defaults.ts` defines `PERMISSION_CATALOG` (18 slugs in the
-  reference combo's base variant, +`members:manage` in workspaces; 9/10 in the other combos,
-  which have no content domains) and `PermissionSlug = keyof typeof PERMISSION_CATALOG` —
-  `@CheckAbility` takes that type, so a route cannot demand a slug the catalog doesn't define.
+- **Only the slug list is code**: `permission-slugs.ts` defines `PERMISSION_SLUGS` (18 slugs in
+  the reference combo's base variant, +`members:manage` in workspaces; 9/10 in the other combos,
+  which have no content domains) and `PermissionSlug` — `@CheckAbility` takes that type, so a
+  route cannot demand a slug the list doesn't define. Everything else (permission names, roles,
+  grants) is data in the database; `database/seedData/` is an optional starting point the app
+  never imports.
 - **Three route tiers, enforced at startup**: `@Public()`, authenticated-only, or
   `@CheckAbility("slug")`. A route carrying none of them fails the boot, naming itself — a new
   route cannot ship open by omission.
@@ -139,7 +140,7 @@ only, no login capability, no roles.
   policy, tokens, 2FA).
 - Each combo — `prove-cycle`: boots a temporary instance and black-box-tests the full flow
   (signup, login, 2FA, RBAC enforcement, OAuth-shaped flows, password reset, audit log,
-  cache behavior; cross-workspace isolation on the workspaces variant). 300+ assertions across
+  authz cache hits, API revokes on the next request and direct-DB revokes after the TTL; cross-workspace isolation on the workspaces variant). 300+ assertions across
   both variants in the reference combo.
 - `packages/auth-client` — 36 tests (mocked fetch).
 - `apps/dev-portal` — replays every combo's migrations into a throwaway database and diffs the

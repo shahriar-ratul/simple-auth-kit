@@ -5,7 +5,7 @@ import {
   AuditLogListFilter,
   AuditLogRepository,
   toAuditLogEntry,
-} from "@/modules/audit-log/repositories/audit-log.repository";
+} from "@/common/repositories/audit-log.repository";
 
 /** Pinned to the caller's workspace — the filter argument cannot widen it. */
 export class AuditLogService {

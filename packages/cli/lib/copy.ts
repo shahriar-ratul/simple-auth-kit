@@ -268,7 +268,13 @@ export async function pruneRemovedFiles(
     }
     if (!opts.dryRun) {
       await rm(join(destRoot, rel), { force: true });
-      await removeEmptyParents(dirname(join(destRoot, rel)), destRoot);
+      // A key like "../database/schema/x.prisma" lives above destRoot (at the project root), so
+      // the walk has to be allowed up to where it lives, not stop at destRoot.
+      const ups = rel.split("/").findIndex((segment) => segment !== "..");
+      await removeEmptyParents(
+        dirname(join(destRoot, rel)),
+        resolve(destRoot, ...Array<string>(Math.max(ups, 0)).fill("..")),
+      );
     }
     removed.push(rel);
   }
