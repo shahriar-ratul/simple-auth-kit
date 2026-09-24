@@ -5,10 +5,10 @@ import { defineConfig, env } from "prisma/config";
 // database/) — Prisma's own convention, so `npx prisma generate`/`migrate deploy` need no `cd`
 // and find it automatically.
 export default defineConfig({
-  // A folder, not a file — Prisma's multi-file schema support merges every .prisma file under
-  // it, subfolders included. simple-auth-kit's own schema is split by domain in
-  // database/schema/simple-auth-kit/; a consumer's own models go in their own file directly under
-  // database/schema/, which the CLI never touches.
+  // A folder, not a file — Prisma's multi-file schema support merges every .prisma file in it.
+  // simple-auth-kit's own schema is split by domain there (schema, user, rbac, auth, audit-log, …);
+  // a consumer's own models go in their own file alongside, under a name the kit doesn't use
+  // (e.g. app.prisma), which the CLI never touches.
   schema: "./database/schema",
   migrations: {
     path: "./database/migrations",
