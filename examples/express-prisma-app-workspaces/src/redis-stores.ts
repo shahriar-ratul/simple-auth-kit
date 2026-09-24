@@ -11,7 +11,7 @@
 //   AUTHZ_CACHE_ENABLED=false         turn the permission cache off entirely, whatever the store —
 //                                     every request reads permissions from the database
 //
-// Run Redis locally with: docker run -d -p 6379:6379 redis:7
+// Run Redis locally with: docker compose up -d redis (this app's docker-compose.yml)
 import Redis from 'ioredis';
 import type { AuthzCacheStore } from '@/common/auth/cache/authz-cache';
 import type { RateLimitDeps } from '@/core/rate-limit';

@@ -47,7 +47,7 @@ server's memory. `src/redis-stores.ts` (this app's own file; the kit never depen
 Redis in, one use at a time:
 
 ```bash
-docker run -d -p 6379:6379 redis:7
+docker compose up -d redis           # or: docker run -d -p 6379:6379 redis:7
 
 REDIS_URL=redis://localhost:6379   # where Redis is — on its own it changes nothing
 REDIS_AUTHZ_CACHE=true             # permission-cache entries in Redis, shared by every server
