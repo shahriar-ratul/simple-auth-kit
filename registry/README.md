@@ -56,13 +56,13 @@ registry/
     │   └── src/**
     ├── variants/
     │   ├── base/              ← COPIED FOR `add <combo>`
-    │   │   ├── .env.example
     │   │   ├── database/schema/**  (Prisma: .prisma files) or database/schema.ts (Drizzle)
     │   │   ├── database/migrations/**
     │   │   ├── database/seed.ts
     │   │   ├── root/**        project-root files that differ per variant, copied over
     │   │                      shared/root/ — e.g. monitoring/prometheus/prometheus.yml,
-    │   │                      whose scrape target is this variant's own app port
+    │   │                      whose scrape target is this variant's own app port, and
+    │   │                      .env.example (the variant's env template)
     │   │   ├── src/**
     │   │   └── test/variant-hooks.ts
     │   └── workspaces/        ← COPIED FOR `add <combo> --workspaces`
@@ -160,7 +160,8 @@ in `base` only, `modules/auth/gateways/audit-log.gateway.ts` (the socket.io feed
 (`members:manage` exists only where there are members to manage), and a file must not branch on
 its variant. See "Enforcement" below — it is the file the whole authorization story hangs off.
 
-`variants/<variant>/.env.example`: not shared. The workspace variant's seeder reads one variable
+`variants/<variant>/root/.env.example`: not shared (and under `root/`, so it lands beside the
+`.env` it documents rather than inside `src/`). The workspace variant's seeder reads one variable
 the base variant has no concept of (`SEED_WORKSPACE_NAME`), and an emitted project must not
 document a variable it will never read — that is the same "a consumer cannot tell the other
 variant exists" rule the byte-identical test enforces everywhere else.

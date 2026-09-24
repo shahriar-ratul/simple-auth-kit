@@ -54,7 +54,7 @@
     "modules/permissions/services/permission.service.ts": "7ff9d92075baf07eb82519624908c39df0c20022e04562b1fc933634d8717d4b",
     "modules/roles/routers/roles.router.ts": "b5d074924d51e4abb54eacd11a4294baab7eeac97a12cc683e579141d418b3bc",
     "modules/roles/services/role.service.ts": "50e306f3bdc83fd400095ce9b4d8b0f042721a8463937b5fc3be62b3f43f7132",
-    ".env.example": "0de8fad54e850cd8c55e2162a2d82bb83b755b82f43eb9af9dca37f6f5845731",
+    "../.env.example": "0de8fad54e850cd8c55e2162a2d82bb83b755b82f43eb9af9dca37f6f5845731",
     "../prisma.config.ts": "23c3206f8c2c2496b35329e3401dc1e5f6ccc72705970694bd31fb672e1177cf",
     "../database/migrations/20260810165456_init/migration.sql": "7f53bf2c9fe62cbece9dcb4061f9f780eb2766c6cb05f354c2ed255137be0e17",
     "../database/migrations/20260811151048_add_is_active_field/migration.sql": "4470e24d54ae588313e63a93d2c7691bab4895bf7b49bbeebcf3a96d4bcfe717",

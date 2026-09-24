@@ -59,7 +59,7 @@
     "modules/permissions/services/permissions.service.ts": "de16fa19416e93b2392dd6351ec685df32dbfab528b8da2942cca23e06b94ddc",
     "modules/roles/routers/roles.router.ts": "269fac0115a3b2f1b4e78129595181188de08de770c7f025813a94704422204b",
     "modules/roles/services/roles.service.ts": "f5823546edb2dc40e70afe546b818bdc91d4b55351ce653ce9f61d679d3b063a",
-    ".env.example": "7b43f6bf36cca5486ce42c2690879998cfd7c2b9df51ff65623d6c3ea0d33f3c",
+    "../.env.example": "7b43f6bf36cca5486ce42c2690879998cfd7c2b9df51ff65623d6c3ea0d33f3c",
     "../drizzle.config.ts": "2399b4aad7b2632db7c7af4e9bfe922700d9a4e8fa7daaea31773bc81a9564ce",
     "../database/migrations/0000_init.sql": "5227591837913498b86ef79ad2bc9afef72b8f077fb583cf6b4639738d49399e",
     "../database/migrations/0001_add_is_active_field.sql": "dcba7ba62356487f1e273cc5a0d0b0b16fcec06692754218135021f0babcdeba",

@@ -74,7 +74,7 @@
     "modules/permissions/services/permission.service.ts": "052007b961d1576d905b26cc8a5382aa9213ec5d01b9e7caa0aadcc529b14cf0",
     "modules/roles/controllers/role.controller.ts": "7e66d8493fe2e2cab5c21b3be8bc34371f30700770cd82c0b4fb716c36f314b0",
     "modules/roles/services/role.service.ts": "2fade62bd96e9b89a5ca1c6774bef5f9df01f1f5a81861d954b28c59ecf53cf9",
-    ".env.example": "bacf51d2ffc4b9324488b8ab316b50c92b2164bf87d092ad51d4accb7fbaa531",
+    "../.env.example": "bacf51d2ffc4b9324488b8ab316b50c92b2164bf87d092ad51d4accb7fbaa531",
     "../prisma.config.ts": "23c3206f8c2c2496b35329e3401dc1e5f6ccc72705970694bd31fb672e1177cf",
     "../database/migrations/20260810084938_init/migration.sql": "49f5e4dfcccbc7d96add69114bfb7ce7e4cfb396a66af3d93dc1d3f888717a65",
     "../database/migrations/20260810123450_add_profile_audit_soft_delete/migration.sql": "c283a9e6c116d5fdf13095cb57fa39c5eac757a7c179535feb3178c10344a9b7",

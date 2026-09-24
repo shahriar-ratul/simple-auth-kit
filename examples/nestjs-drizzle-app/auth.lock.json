@@ -66,7 +66,7 @@
     "modules/permissions/services/permission.service.ts": "83e0d6b838c783eb7913b6a362cee8850aa6f663be0708d238b21238bec932fd",
     "modules/roles/controllers/role.controller.ts": "c21d2a079f624453f11838d5f82cec9412b3f570fcccd32373f60ec58db6a607",
     "modules/roles/services/role.service.ts": "39ccaa3636eca737b4ec4586a4dbec0eb49f02eda7896cb3497792767b81b864",
-    ".env.example": "fc6af150f44524cce1237afa1d28609702b5ca93603baa06821ea2d0edef6e7e",
+    "../.env.example": "fc6af150f44524cce1237afa1d28609702b5ca93603baa06821ea2d0edef6e7e",
     "../drizzle.config.ts": "2399b4aad7b2632db7c7af4e9bfe922700d9a4e8fa7daaea31773bc81a9564ce",
     "../database/migrations/0000_init.sql": "684bf36980d83f4581e59369f4754e239fa5dec49849ebb952885580121ed593",
     "../database/migrations/0001_add_is_active_field.sql": "dcba7ba62356487f1e273cc5a0d0b0b16fcec06692754218135021f0babcdeba",
