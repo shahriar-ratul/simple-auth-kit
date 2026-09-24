@@ -5,7 +5,7 @@
 ## Project Overview
 
 **simple-auth-kit** is a shadcn-style auth library: source of truth lives in `registry/`, and a CLI
-(`simple-auth-kit add <combo>`) *copies* it into a consumer's repo. Nothing is ever installed as an
+(`simple-auth-kit add <combo>`) _copies_ it into a consumer's repo. Nothing is ever installed as an
 npm dependency — zero `@simple-auth-kit/*` trace in a consumer's `package.json`. Three kinds of
 installable product — `api` backend combos (merge into an existing project), `admin` consoles,
 `mobile` apps (scaffold a whole new app) — each shipped in a **base** and a **workspaces**
@@ -30,23 +30,24 @@ convention for everything under `registry/`.
    (`plan/brief.md` decision 1 rejects that shape as "the leaky lowest-common-denominator
    abstraction that made Lucia unmaintainable").
 2. `registry/combos/<combo>/shared/src/` — framework-flavored but variant-agnostic: the
-   authn/authz seam, response envelope, error mapping, repositories that *structurally* implement
+   authn/authz seam, response envelope, error mapping, repositories that _structurally_ implement
    core's `*Deps` interfaces (e.g. `SessionRepository implements SessionStoreDeps`).
 3. `registry/combos/<combo>/variants/{base,workspaces}/src/` — everything whose shape depends on
    how authorization is scoped: `AuthzGuard`'s concrete resolution, `RbacRepository`,
    `rbac.defaults.ts` (permission catalog), `seed.ts`, admin routes, the composition root
    (`auth.module.ts` / `create-auth-app.ts`).
 
-**The rule for where a file goes** (`registry/README.md`, verbatim): *"write both variants, then
+**The rule for where a file goes** (`registry/README.md`, verbatim): _"write both variants, then
 hoist every file that comes out byte-identical into `shared/`. Anything that differs — even by
 one line — stays in both `variants/*` directories. There is no third category and no conditional
-code: a file must not branch on which variant it is in."* Composition = `shared/` copied first,
+code: a file must not branch on which variant it is in."_ Composition = `shared/` copied first,
 then `variants/<variant>/` copied over it — done identically by `packages/cli/lib/copy.ts` (real installs)
 and each combo's `scripts/materialize.mjs` (dev/typecheck/prove-cycle), so what a combo proves is
 exactly what the CLI emits.
 
 **The authn/authz seam** (`shared/src/request-context.ts` declares `req.auth` / `req.authz` /
 `req.ability` on the framework's request type):
+
 - `AuthGuard` (shared) — authentication only. Verifies the Bearer token via core's
   `verifyAccessToken`, sets `req.auth`. Never touches `req.authz`/`req.ability`.
 - `AuthzGuard` (variant-specific) — resolves `req.authz = {roles, permissions}` from the
@@ -56,7 +57,7 @@ exactly what the CLI emits.
   by default). Then builds `req.ability` from the flat CASL slugs.
 - `AbilityGuard` (shared) — reads `@CheckAbility` metadata and enforces `req.ability`; only reads,
   never resolves.
-- **CASL flat-slug pattern**: the permission slug *is* the CASL action, subject is the empty
+- **CASL flat-slug pattern**: the permission slug _is_ the CASL action, subject is the empty
   string — `can("users:read", "")`. No subject taxonomy, no conditions
   (`shared/src/ability.ts`).
 - **Three route tiers**, and a route declaring none of them **fails at boot**, naming itself:
@@ -98,17 +99,17 @@ returned by `GET /auth/me`, mirroring `ability.ts`'s server-side pattern.
 
 ## Key Directories
 
-| Path | Purpose |
-|---|---|
-| `registry/core/` | Framework/ORM-free auth logic: sessions, JWTs, 2FA, OAuth, password reset, RBAC union. |
-| `registry/combos/{nestjs-prisma,nestjs-drizzle,express-prisma,express-drizzle}/` | Backend combos; each has `shared/`, `variants/{base,workspaces}/`, `test/`, `scripts/`, `.variant/` (gitignored build output). `nestjs-prisma` is the reference. |
-| `registry/admin-apps/{nextjs,react}/`, `registry/mobile-apps/{expo,bare-rn}/` | Scaffold-mode source templates for the 4 client apps; no `prove-cycle` equivalent (verified by generate+typecheck+build only). |
-| `packages/cli/` | `simple-auth-kit.ts` entrypoint, `lib/copy.ts` (manifest-driven copy/prune), `registry.json` (the manifest: core/variants/combos, install mode, post-install steps). |
-| `packages/auth-client/` | One `AuthClient` class shared by all 4 consumer apps; consumed from its compiled `dist/`. |
-| `apps/` | The 8 runnable client apps (`admin-{nextjs,react}[-workspaces]`, `mobile-{expo,bare-rn}[-workspaces]`) + `dev-portal` (host-run control panel). Mirrors `registry/{admin,mobile}-apps/*` 1:1. |
-| `examples/` | 8 CLI-materialized backend snapshots (`<combo>-app[-workspaces]`), **not** part of the pnpm workspace — plain npm, models a real consumer. |
-| `docs/` | Narrative deep-dives: architecture, CLI, backend API, admin console, dev loop, getting started. |
-| `plan/` | `brief.md` (decision log — architectural law) and `plan.md` (a single closed/executed implementation plan; not a live backlog). |
+| Path                                                                             | Purpose                                                                                                                                                                                       |
+| -------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `registry/core/`                                                                 | Framework/ORM-free auth logic: sessions, JWTs, 2FA, OAuth, password reset, RBAC union.                                                                                                        |
+| `registry/combos/{nestjs-prisma,nestjs-drizzle,express-prisma,express-drizzle}/` | Backend combos; each has `shared/`, `variants/{base,workspaces}/`, `test/`, `scripts/`, `.variant/` (gitignored build output). `nestjs-prisma` is the reference.                              |
+| `registry/admin-apps/{nextjs,react}/`, `registry/mobile-apps/{expo,bare-rn}/`    | Scaffold-mode source templates for the 4 client apps; no `prove-cycle` equivalent (verified by generate+typecheck+build only).                                                                |
+| `packages/cli/`                                                                  | `simple-auth-kit.ts` entrypoint, `lib/copy.ts` (manifest-driven copy/prune), `registry.json` (the manifest: core/variants/combos, install mode, post-install steps).                          |
+| `packages/auth-client/`                                                          | One `AuthClient` class shared by all 4 consumer apps; consumed from its compiled `dist/`.                                                                                                     |
+| `apps/`                                                                          | The 8 runnable client apps (`admin-{nextjs,react}[-workspaces]`, `mobile-{expo,bare-rn}[-workspaces]`) + `dev-portal` (host-run control panel). Mirrors `registry/{admin,mobile}-apps/*` 1:1. |
+| `examples/`                                                                      | 8 CLI-materialized backend snapshots (`<combo>-app[-workspaces]`), **not** part of the pnpm workspace — plain npm, models a real consumer.                                                    |
+| `docs/`                                                                          | Narrative deep-dives: architecture, CLI, backend API, admin console, dev loop, getting started.                                                                                               |
+| `plan/`                                                                          | `brief.md` (decision log — architectural law) and `plan.md` (a single closed/executed implementation plan; not a live backlog).                                                               |
 
 ## Development Commands
 
@@ -151,8 +152,8 @@ npm run seed && npm run start                # -> :3001, Swagger /docs, Scalar /
 cd packages/cli && npx tsx simple-auth-kit.ts add <combo> [--workspaces] --force --into ../../examples/<app>
 ```
 
-Apps: `npm run dev` in `apps/admin-*`/`apps/mobile-expo*` (`typecheck`; Next.js apps also declare
-`build`/`lint`, see **Runtime/Tooling Preferences** for the `lint` caveat). `npm run start` /
+Apps: `npm run dev` in `apps/admin-*`/`apps/mobile-expo*` (`typecheck`, `lint`; Next.js apps also declare
+`build`). `npm run start` /
 `ios` / `android` in `apps/mobile-*`. `npm run build` on a console is the real merge gate — it
 prerenders every page and catches what dev mode tolerates.
 
@@ -193,7 +194,7 @@ express-prisma, express-drizzle` order); `admin-nextjs` `3000`/`3010`; `admin-re
   core pattern to imitate).
 - **Combos are hand-maintained per file, not generated from one template** — semantically
   identical logic (e.g. `ability.ts`) differs in wording/comments across combos. The
-  byte-identical rule applies *within* one combo's `base` vs `workspaces`, never *across* combos.
+  byte-identical rule applies _within_ one combo's `base` vs `workspaces`, never _across_ combos.
 - **Operational secrets vs. config** (`docker-compose.yml`, per repo policy): credentials
   (`AUTH_SECRET`, `AUTH_JWT_SECRET_*`) are sourced only via `${VAR:?set VAR in .env}`, never a
   literal; topology fully determined by the compose file itself (ports, service DNS names,
@@ -209,16 +210,16 @@ express-prisma, express-drizzle` order); `admin-nextjs` `3000`/`3010`; `admin-re
   lockout-trap explanation, "adding a combo" recipe).
 - `registry/core/types.ts` — every domain type and the `AuthCoreError` hierarchy.
 - `registry/combos/nestjs-prisma/shared/src/{request-context.ts,auth.guard.ts,ability.ts,
-  ability.guard.ts,route-tiers.ts,permission-cache.ts,response.interceptor.ts,
-  auth-core-error.filter.ts}` — the reference implementation of the authn/authz seam; read these
+ability.guard.ts,route-tiers.ts,permission-cache.ts,response.interceptor.ts,
+auth-core-error.filter.ts}` — the reference implementation of the authn/authz seam; read these
   first to understand the pattern before touching any other combo.
 - `registry/combos/nestjs-prisma/variants/{base,workspaces}/src/{authz.guard.ts,rbac.defaults.ts,
-  seed.ts,auth.module.ts}` — variant-specific resolution, the permission catalog, the seeder, and
+seed.ts,auth.module.ts}` — variant-specific resolution, the permission catalog, the seeder, and
   the composition root (`AuthModule.forRoot` runs the boot-time tier check before any DB/port
   allocation).
 - `packages/cli/simple-auth-kit.ts`, `packages/cli/lib/copy.ts`, `packages/cli/registry.json` — CLI entrypoint, manifest-driven
   copy/prune, and the manifest schema (`core`, `variants`, `combos{dir, sharedDir, variantsDir,
-  variants[], peerDependencies[], postInstall[], kind?, installMode?}`; `kind`/`installMode`
+variants[], peerDependencies[], postInstall[], kind?, installMode?}`; `kind`/`installMode`
   default to `"api"`/`"merge"` by omission — only the 4 admin/mobile combos declare them
   explicitly as `"scaffold"`).
 - `packages/auth-client/src/auth-client.ts`, `types.ts` — the one HTTP client and its
@@ -248,17 +249,16 @@ express-prisma, express-drizzle` order); `admin-nextjs` `3000`/`3010`; `admin-re
 - **`packages/auth-client` is consumed from `dist/`.** After changing it:
   `npm run typecheck && npm test && npm run build`. If an app can't see a new method, it's a
   stale `dist/` or a cached `tsconfig.tsbuildinfo` (delete it).
-- **No repo-wide linter/formatter.** The 4 mobile apps each have a real ESLint 9 flat-config
-  toolchain: `apps/mobile-bare-rn[-workspaces]` uses `@react-native/eslint-config/flat` (sourced
-  from `registry/mobile-apps/bare-rn/shared/eslint.config.js`) + Prettier 3; `apps/mobile-expo[-workspaces]`
-  uses `eslint-config-expo/flat`, version-matched to the pinned Expo SDK the same way
-  `@react-native/eslint-config` is version-matched to the pinned `react-native` (sourced from
-  `registry/mobile-apps/expo/shared/eslint.config.js`) + Prettier 3. Run `npm run lint` in either
-  app. No admin console or other package has a wired-up linter. A `biome-ignore-all` comment
+- **Linting is oxlint everywhere — no ESLint anywhere.** Each lintable unit has its own
+  `.oxlintrc.json` (sourced from `registry/**/shared/.oxlintrc.json`, or
+  `registry/combos/<combo>/shared/root/.oxlintrc.json` for consumer backends) + Prettier 3 for
+  formatting; `pnpm lint` from root runs every package's `lint`. Apps and consumer backends lint
+  type-aware (`oxlint --type-aware`, backed by `oxlint-tsgolint`); the combo dev packages run
+  `oxlint shared variants` _syntactically only_ — raw `shared/`+`variants/` sources aren't a TS
+  project until materialized, so type-aware rules would see error-typed `any` everywhere.
+  Existing `eslint-disable` comments are honored by oxlint as-is. A `biome-ignore-all` comment
   survives in 5 copies of one shadcn-generated `multi-selector.tsx` — harmless, Biome isn't
   installed anywhere.
-  **Known gap**: `apps/admin-nextjs[-workspaces]` declare `"lint": "next lint"` with no `eslint`
-  dependency or config anywhere in the app — don't rely on that script; it isn't wired up.
 - **Combo dev loops need Postgres at `localhost:55432`** directly (passwordless `postgres`
   superuser), independent of the `docker-compose.yml` network — `prove-cycle`/`migrate`/`seed`
   scripts all assume this fixed local port, not the compose-internal `postgres` hostname.
@@ -291,7 +291,7 @@ Three tiers, **no CI configured anywhere** (no `.github/workflows`, no other `*.
    both variants" figure in `docs/development.md`. All 4 combos share this structure near-verbatim
    (verified express-prisma/express-drizzle/nestjs-drizzle). Run via
    `node scripts/prove-cycle.mjs [variant...]` (`npm run prove-cycle`) — materializes, migrates,
-   seeds (a proof *dependency*, not a convenience — without a default role the first assertion
+   seeds (a proof _dependency_, not a convenience — without a default role the first assertion
    fails), then executes against real Postgres. **Not wired into `pnpm -r test`.**
    - **Caveat**: each combo's own `package.json` `"test"` script is
      `vitest run --passWithNoTests` — a no-op decoy (no `*.test.ts` files exist under
@@ -302,8 +302,16 @@ Three tiers, **no CI configured anywhere** (no `.github/workflows`, no other `*.
    they're generated from have no automated behavioral tests. Verification is a documented manual
    production build + real browser/device walkthrough (per repo policy: "console = production
    build + a real browser walkthrough"). `apps/mobile-bare-rn[-workspaces]` is the one app with a
-   `test` script (`jest`), but it's the stock React Native CLI template smoke test — asserts
-   nothing about auth.
+   `test` script (`vitest run`, no Jest): 4 tests on the AsyncStorage `TokenStorage` contract,
+   with the native module `vi.mock()`ed — plain Node, no React Native runtime, so no screen
+   rendering. `react-native` itself still depends on `@react-native/jest-preset`, so the bare-rn
+   template pins `test-exclude`/`glob`, and the Expo template pins `xcode`'s `uuid` and
+   `@expo/metro-config`'s `lightningcss` (`1.30.1` — newer breaks NativeWind 5's CSS pipeline)
+   (package.json `overrides` for npm/bun, the template's own `pnpm-workspace.yaml` for pnpm,
+   mirrored in the root `pnpm-workspace.yaml` for the in-repo apps) so installs carry no
+   deprecated `glob@7`/`inflight`/`uuid@7`. Styling differs deliberately: bare-rn is Expo-free
+   (NativeWind 4 + Tailwind 3 on `@react-native/metro-config`), while Expo uses NativeWind 5 +
+   Tailwind 4, whose `react-native-css` engine needs `@expo/metro-config`.
 
 No coverage thresholds are configured anywhere. Before landing a combo change: run that combo's
 `npm run typecheck` and `npm run prove-cycle` (both variants) — this is the actual gate, not

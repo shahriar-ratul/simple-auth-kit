@@ -9,7 +9,7 @@
     "build": "next build",
     "start": "next start -p 3000",
     "typecheck": "tsc --noEmit",
-    "lint": "eslint .",
+    "lint": "oxlint --type-aware",
     "prepare": "husky"
   },
   "dependencies": {
@@ -56,10 +56,10 @@
     "@types/node": "^26.2.0",
     "@types/react": "^19.2.9",
     "@types/react-dom": "^19.2.4",
-    "eslint": "^9.39.5",
-    "eslint-config-next": "^16.3.5",
     "husky": "^9.1.7",
     "lint-staged": "^17.5.1",
+    "oxlint": "^1.85.0",
+    "oxlint-tsgolint": "^7.0.2002",
     "prettier": "^3.9.6",
     "tailwindcss": "^4.3.3",
     "typescript": "^6.0.3"

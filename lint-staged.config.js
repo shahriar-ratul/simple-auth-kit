@@ -3,14 +3,17 @@ import { resolve, relative } from "node:path";
 const quote = (p) => `"${p}"`;
 
 // The 4 backend combos are real pnpm workspace members — registry/combos/<combo>/ has its own
-// node_modules (pnpm installs each workspace member's own deps there), so eslint.config.js at
-// the combo root can resolve its own `typescript-eslint` import directly. Invoke the local
-// node_modules/.bin/eslint directly rather than `npx eslint` — with a dozen-plus of these tasks
+// node_modules (pnpm installs each workspace member's own deps there), so the combo's own
+// oxlint binary picks up .oxlintrc.json at the combo root. Invoke the local
+// node_modules/.bin/oxlint directly rather than `npx oxlint` — with a dozen-plus of these tasks
 // running in parallel, npx's own resolution/locking becomes real contention (observed hangs and
 // spawn failures under load); a direct binary path has none of that overhead.
+// Syntactic only (no --type-aware): combo sources under shared/ + variants/ aren't a TS project on
+// their own — `@/...` imports resolve only once materialized into .variant/ — so type-aware
+// rules would see error-typed `any` everywhere. Consumer projects get the type-aware pass.
 function comboTask(combo) {
   const dir = resolve(`registry/combos/${combo}`);
-  const bin = resolve(dir, "node_modules/.bin/eslint");
+  const bin = resolve(dir, "node_modules/.bin/oxlint");
   return (files) => {
     const rel = files
       .map((f) => relative(dir, f))
@@ -21,7 +24,7 @@ function comboTask(combo) {
 }
 
 // Admin/mobile app templates (registry/{admin,mobile}-apps/*) have no node_modules of their own
-// next to shared/eslint.config.js — unlike combos, scaffold-mode apps ship a real package.json
+// next to shared/.oxlintrc.json — unlike combos, scaffold-mode apps ship a real package.json
 // per variant instead of a combo-root one, so there's nothing to `pnpm install` into at the
 // registry template path itself. The only installed, runnable copy of that config during
 // monorepo dev is the apps/* mirror (kept in sync via `simple-auth-kit update`). A file only
@@ -38,8 +41,8 @@ function appTask(variantDirs) {
         .map((f) => relative(dir, f))
         .map(quote)
         .join(" ");
-      const bin = resolve(dir, "node_modules/.bin/eslint");
-      commands.push(`sh -c 'cd ${dir} && ${bin} --fix ${rel}'`);
+      const bin = resolve(dir, "node_modules/.bin/oxlint");
+      commands.push(`sh -c 'cd ${dir} && ${bin} --type-aware --fix ${rel}'`);
     }
     return commands;
   };
@@ -69,7 +72,7 @@ export default {
 
   // Generic Prettier fallback: every other staged text file, repo-wide. Prettier resolves its
   // own nearest config per file (root's .prettierrc.json, or a closer one like the mobile apps'
-  // own shared/.prettierrc.js), so this never fights the eslint tasks above (lint vs format).
+  // own shared/.prettierrc.js), so this never fights the oxlint tasks above (lint vs format).
   "**/*.{ts,tsx,js,jsx,mjs,cjs,json,md,mdx,yml,yaml,css,scss}": (files) =>
     `prettier --write ${files.map(quote).join(" ")}`,
 };

@@ -50,7 +50,7 @@ registry/
     │   ├── .gitignore
     │   ├── prisma.config.ts   (Prisma combos only) / drizzle.config.ts (Drizzle combos only)
     │   ├── root/**            lands at the consumer's PROJECT root, not under src/ —
-    │   │                      tsconfig/eslint/husky wiring, docker-compose.yml, and
+    │   │                      tsconfig/oxlint/husky wiring, docker-compose.yml, and
     │   │                      monitoring/ (Grafana + Prometheus + node_exporter, in both
     │   │                      docker compose and Kubernetes form)
     │   └── src/**
