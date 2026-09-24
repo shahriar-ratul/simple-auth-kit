@@ -1,3 +1,4 @@
+import { isUtf8 } from "node:buffer";
 import { createHash } from "node:crypto";
 import {
   mkdir,
@@ -108,13 +109,16 @@ export interface CopyResult {
   updated: string[];
 }
 
-export const sha256 = (content: string) =>
+export const sha256 = (content: string | Buffer) =>
   createHash("sha256").update(content).digest("hex");
 export const toPosix = (path: string) => path.split(sep).join("/");
 
-async function readIfExists(path: string): Promise<string | null> {
+// Raw bytes, never decoded: the registry ships binaries too (app icons, splash images), and a
+// UTF-8 round-trip corrupts them. sha256 over the bytes equals sha256 over the old decoded string
+// for every text file, so manifests recorded before this stay valid.
+async function readIfExists(path: string): Promise<Buffer | null> {
   try {
-    return await readFile(path, "utf8");
+    return await readFile(path);
   } catch {
     return null;
   }
@@ -136,14 +140,16 @@ export async function copyOneFile(
     return;
   }
 
-  let content = await readFile(srcPath, "utf8");
+  let content = await readFile(srcPath);
   if (destPath.endsWith(".ts") || destPath.endsWith(".tsx")) {
+    let text = content.toString("utf8");
     if (opts.aliasFrom && opts.aliasTo !== undefined) {
-      content = content.split(opts.aliasFrom).join(opts.aliasTo);
+      text = text.split(opts.aliasFrom).join(opts.aliasTo);
     }
     for (const { from, to } of opts.extraRewrites ?? []) {
-      content = content.split(from).join(to);
+      text = text.split(from).join(to);
     }
+    content = Buffer.from(text, "utf8");
   }
 
   const existing = await readIfExists(destPath);
@@ -170,14 +176,17 @@ export async function copyOneFile(
   result.manifest[rel] = newHash;
   opts.collectDiffs?.push({
     path: rel,
-    oldContent: existing,
-    newContent: content,
+    oldContent: existing && asDiffText(existing),
+    newContent: asDiffText(content),
   });
   if (opts.dryRun) return;
 
   await mkdir(dirname(destPath), { recursive: true });
-  await writeFile(destPath, content, "utf8");
+  await writeFile(destPath, content);
 }
+
+const asDiffText = (content: Buffer) =>
+  isUtf8(content) ? content.toString("utf8") : "(binary file)\n";
 
 /** Recursively copies srcDir into destDir, rewriting the placeholder core import alias in .ts files. */
 export async function copyDir(
