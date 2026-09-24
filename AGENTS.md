@@ -188,10 +188,8 @@ express-prisma, express-drizzle` order); `admin-nextjs` `3000`/`3010`; `admin-re
   `@CheckAbility(...)` on every controller method — omission fails the app at boot. Express:
   `router.route(method, path, tier, ...handlers)` where `tier` is a required positional argument.
   Never add a route without one of these.
-- **Repository placement**: a repository used by only its own module lives in
-  `modules/<module>/repositories/`; one used by more than one module (`session`, `rbac`,
-  `audit-log`, `workspace`) lives in `src/common/repositories/`. Never import a repository out of
-  another module's folder — move it to `common/repositories/` instead.
+- **Repository placement**: every repository lives in `src/common/repositories/` — one place,
+  none under `modules/<module>/`. A new repository goes there too.
 - **Self-lockout guards are inlined at the call site**, not a generic policy layer — e.g.
   `if (userId === req.auth!.sub) throw new ForbiddenException(...)` on self-delete/self-role-revoke/
   self-block. Only operations that could strand a deployment without an admin are refused;

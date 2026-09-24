@@ -31,9 +31,9 @@ import {
   metricsEndpoint,
   warnIfMetricsUnprotected,
 } from "@/infra/metrics/metrics";
-import { OAuthRepository } from "@/modules/auth/repositories/oauth.repository";
+import { OAuthRepository } from "@/common/repositories/oauth.repository";
 import { openApiSpec } from "@/infra/openapi/openapi-spec";
-import { PasswordResetRepository } from "@/modules/auth/repositories/password-reset.repository";
+import { PasswordResetRepository } from "@/common/repositories/password-reset.repository";
 import { InMemoryRateLimitStore } from "@/common/auth/cache/rate-limit.store";
 import {
   createAuthzCache,
@@ -44,7 +44,7 @@ import { RbacRepository } from "@/common/repositories/rbac.repository";
 import { requestLogger } from "@/infra/middleware/request-logger.middleware";
 import { responseEnvelope } from "@/infra/middleware/response-envelope.middleware";
 import { SessionRepository } from "@/common/repositories/session.repository";
-import { TwoFactorRepository } from "@/modules/auth/repositories/two-factor.repository";
+import { TwoFactorRepository } from "@/common/repositories/two-factor.repository";
 
 /**
  * Factory wiring a Drizzle `NodePgDatabase` (from a `pg.Pool`) plus all the plain classes,

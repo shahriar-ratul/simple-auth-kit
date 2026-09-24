@@ -11,21 +11,21 @@ import {
   CountryListResult,
   CountryRepository,
   CountrySummary,
-} from '@/modules/admin/repositories/country.repository';
+} from '@/common/repositories/country.repository';
 import {
   CustomerInput,
   CustomerListFilter,
   CustomerListResult,
   CustomerRepository,
   CustomerSummary,
-} from '@/modules/admin/repositories/customer.repository';
+} from '@/common/repositories/customer.repository';
 import {
   LanguageInput,
   LanguageListFilter,
   LanguageListResult,
   LanguageRepository,
   LanguageSummary,
-} from '@/modules/admin/repositories/language.repository';
+} from '@/common/repositories/language.repository';
 import {
   MemberListFilter,
   MemberListResult,

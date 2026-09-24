@@ -95,11 +95,10 @@ into — see below for why nothing here is also named `core/`):
   and each variant's own authorization guard/middleware), `common/config/` (generic — `auth.config`,
   `key-provider`, and for Drizzle combos the DB connection factory — not auth-namespaced, since a
   consumer might reasonably add unrelated config here too), `common/helpers/`, and
-  `common/repositories/` — every repository used by more than one module (`session`, `rbac`,
-  `audit-log`, and in `workspaces` `workspace`). A repository only its own module uses stays in
-  `modules/<module>/repositories/` (`oauth`, `password-reset`, `two-factor`, and the content-domain
-  repositories); once a second module needs one, it moves to `common/repositories/` rather than
-  being imported across module boundaries.
+  `common/repositories/` — **every** repository, in one place (`session`, `oauth`,
+  `password-reset`, `two-factor`, `rbac`, `audit-log`, `workspace` in the workspaces variant, and
+  the content-domain repositories in `nestjs-prisma`). Feature modules hold no `repositories/`
+  folder; they import what they need from `@/common/repositories/`.
 - **`infra/`** — framework-wide, non-auth-specific plumbing: the response envelope/interceptor,
   the error/exception filter, `request-context`, `route-tiers`, the hand-authored or
   decorator-derived OpenAPI wiring. Named `infra/`, deliberately **not** `core/` — the CLI always
@@ -107,7 +106,7 @@ into — see below for why nothing here is also named `core/`):
   token-service, rbac union, …) to `<installDir>/core` regardless of `--path`, so a same-named
   grouping inside the combo's own source would collide with it in a real install.
 - **`modules/`** — one subfolder per feature module, each with its own routes/controllers, DTOs,
-  services, and repositories: `modules/auth/` (identity/session: signup, login, refresh, 2FA,
+  and services (repositories live in `common/repositories/`): `modules/auth/` (identity/session: signup, login, refresh, 2FA,
   password reset, `/api/v1/auth/me`, self-profile update — plus, on the workspaces variant,
   workspace membership itself), `modules/admin/` (user CRUD, block/unblock/deactivate/activate,
   the user-scoped role/permission _assignment_ endpoints, and — nestjs-prisma only — the
@@ -148,8 +147,8 @@ router/module split applies there.
 `infra/route-tiers.ts`, `infra/request-context.ts`,
 `infra/interceptor/response.interceptor.ts`, `common/helpers/{pagination.ts,id.helper.ts}`,
 `common/config/key-provider.ts`, `common/auth/cache/rate-limit.store.ts`,
-`infra/filters/auth-core-error.filter.ts`, `common/repositories/session.repository.ts`, the
-`two-factor/password-reset/oauth` repositories (`modules/auth/repositories/`),
+`infra/filters/auth-core-error.filter.ts`, the `session/two-factor/password-reset/oauth`
+repositories (`common/repositories/`),
 `modules/auth/dto/auth.dto.ts`.
 
 `variants/<variant>/src`: everything whose implementation depends on how authorization is
@@ -158,7 +157,7 @@ scoped — `modules/auth/auth.module.ts`, `modules/auth/services/auth.service.ts
 `common/repositories/rbac.repository.ts`, `modules/auth/permission-slugs.ts`,
 `common/repositories/audit-log.repository.ts`, `database/seed.ts`, `database/seedData/**`,
 `modules/admin/dto/admin.dto.ts`, and the content-domain repositories
-(`modules/admin/repositories/{country,language,customer}.repository.ts`, this combo only). Plus,
+(`common/repositories/{country,language,customer}.repository.ts`, this combo only). Plus,
 in `base` only, `modules/auth/gateways/audit-log.gateway.ts` (the socket.io feed) and
 `infra/openapi/docs.ts`; in `workspaces` only, `modules/auth/controllers/workspace.controller.ts`,
 `common/repositories/workspace.repository.ts`, `modules/auth/dto/workspace.dto.ts`.

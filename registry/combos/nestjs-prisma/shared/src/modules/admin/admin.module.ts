@@ -2,9 +2,9 @@ import { Module } from "@nestjs/common";
 import { AdminController } from "@/modules/admin/controllers/admin.controller";
 import { AdminService } from "@/modules/admin/services/admin.service";
 import { AuditLogModule } from "@/modules/audit-log/audit-log.module";
-import { CountryRepository } from "@/modules/admin/repositories/country.repository";
-import { CustomerRepository } from "@/modules/admin/repositories/customer.repository";
-import { LanguageRepository } from "@/modules/admin/repositories/language.repository";
+import { CountryRepository } from "@/common/repositories/country.repository";
+import { CustomerRepository } from "@/common/repositories/customer.repository";
+import { LanguageRepository } from "@/common/repositories/language.repository";
 
 // Plain feature module — no forRoot(). Relies on CoreAuthModule already being imported
 // (it's @Global()) for RbacRepository/SessionRepository/PrismaService/the guards/AUTH_CONFIG —
