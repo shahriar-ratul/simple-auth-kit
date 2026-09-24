@@ -120,7 +120,7 @@ pnpm install
 pnpm -r typecheck                 # == make typecheck; pnpm -r --if-present run typecheck
 pnpm -r test                      # vitest: registry/core (56), packages/auth-client (36) — see Testing & QA
 pnpm portal                       # dev portal -> http://127.0.0.1:8080
-docker compose up --build         # postgres + 8 backends + 4 consoles (make help for all Makefile targets)
+docker compose up --build         # postgres + redis (rate limiter) + 8 backends + 4 consoles (make help for all Makefile targets)
 ```
 
 ```bash

@@ -16,6 +16,17 @@ services:
       timeout: 5s
       retries: 10
 
+  redis:
+    image: redis:7
+    # Login rate-limit counters for the 8 backends (REDIS_RATE_LIMIT below), so a limit holds no
+    # matter which replica answers. Not published to the host, like postgres; each backend uses
+    # its own Redis database number so their counters never collide.
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
   # --- base variant (roles/permissions global to the deployment), ports 3001-3004 ---
 
   nestjs-prisma-app:
@@ -27,6 +38,9 @@ services:
       # host's localhost:55432 — dotenv (used by this app and by Prisma) never overwrites
       # an already-set process env var, so this wins.
       DATABASE_URL: postgresql://postgres@postgres:5432/example_nestjs_prisma?schema=public
+      # Rate limiter only: the permission cache stays in memory (REDIS_AUTHZ_CACHE unset).
+      REDIS_URL: redis://redis:6379/0
+      REDIS_RATE_LIMIT: "true"
       PORT: "3001"
       # From the repo-root .env (copy .env.example and fill in with `openssl rand -base64 32`).
       AUTH_JWT_SECRET: ${AUTH_JWT_SECRET_NESTJS_PRISMA:?set AUTH_JWT_SECRET_NESTJS_PRISMA in .env}
@@ -41,6 +55,8 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+      redis:
+        condition: service_healthy
 
   nestjs-drizzle-app:
     build:
@@ -48,6 +64,9 @@ services:
       dockerfile: examples/nestjs-drizzle-app/Dockerfile
     environment:
       DATABASE_URL: postgresql://postgres@postgres:5432/example_nestjs_drizzle?schema=public
+      # Rate limiter only: the permission cache stays in memory (REDIS_AUTHZ_CACHE unset).
+      REDIS_URL: redis://redis:6379/1
+      REDIS_RATE_LIMIT: "true"
       PORT: "3002"
       AUTH_JWT_SECRET: ${AUTH_JWT_SECRET_NESTJS_DRIZZLE:?set AUTH_JWT_SECRET_NESTJS_DRIZZLE in .env}
     ports:
@@ -57,6 +76,8 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+      redis:
+        condition: service_healthy
 
   express-prisma-app:
     build:
@@ -64,6 +85,9 @@ services:
       dockerfile: examples/express-prisma-app/Dockerfile
     environment:
       DATABASE_URL: postgresql://postgres@postgres:5432/example_express_prisma?schema=public
+      # Rate limiter only: the permission cache stays in memory (REDIS_AUTHZ_CACHE unset).
+      REDIS_URL: redis://redis:6379/2
+      REDIS_RATE_LIMIT: "true"
       PORT: "3003"
       AUTH_JWT_SECRET: ${AUTH_JWT_SECRET_EXPRESS_PRISMA:?set AUTH_JWT_SECRET_EXPRESS_PRISMA in .env}
     ports:
@@ -73,6 +97,8 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+      redis:
+        condition: service_healthy
 
   express-drizzle-app:
     build:
@@ -80,6 +106,9 @@ services:
       dockerfile: examples/express-drizzle-app/Dockerfile
     environment:
       DATABASE_URL: postgresql://postgres@postgres:5432/example_express_drizzle?schema=public
+      # Rate limiter only: the permission cache stays in memory (REDIS_AUTHZ_CACHE unset).
+      REDIS_URL: redis://redis:6379/3
+      REDIS_RATE_LIMIT: "true"
       PORT: "3004"
       AUTH_JWT_SECRET: ${AUTH_JWT_SECRET_EXPRESS_DRIZZLE:?set AUTH_JWT_SECRET_EXPRESS_DRIZZLE in .env}
     ports:
@@ -88,6 +117,8 @@ services:
       - ./logs/express-drizzle-app:/app/logs
     depends_on:
       postgres:
+        condition: service_healthy
+      redis:
         condition: service_healthy
 
   # --- workspaces variant (users belong to workspaces, X-Workspace-Id header), ports 3005-3008 ---
@@ -98,6 +129,9 @@ services:
       dockerfile: examples/nestjs-prisma-app-workspaces/Dockerfile
     environment:
       DATABASE_URL: postgresql://postgres@postgres:5432/example_nestjs_prisma_workspaces?schema=public
+      # Rate limiter only: the permission cache stays in memory (REDIS_AUTHZ_CACHE unset).
+      REDIS_URL: redis://redis:6379/4
+      REDIS_RATE_LIMIT: "true"
       PORT: "3005"
       AUTH_JWT_SECRET: ${AUTH_JWT_SECRET_NESTJS_PRISMA_WORKSPACES:?set AUTH_JWT_SECRET_NESTJS_PRISMA_WORKSPACES in .env}
     ports:
@@ -107,6 +141,8 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+      redis:
+        condition: service_healthy
 
   nestjs-drizzle-app-workspaces:
     build:
@@ -114,6 +150,9 @@ services:
       dockerfile: examples/nestjs-drizzle-app-workspaces/Dockerfile
     environment:
       DATABASE_URL: postgresql://postgres@postgres:5432/example_nestjs_drizzle_workspaces?schema=public
+      # Rate limiter only: the permission cache stays in memory (REDIS_AUTHZ_CACHE unset).
+      REDIS_URL: redis://redis:6379/5
+      REDIS_RATE_LIMIT: "true"
       PORT: "3006"
       AUTH_JWT_SECRET: ${AUTH_JWT_SECRET_NESTJS_DRIZZLE_WORKSPACES:?set AUTH_JWT_SECRET_NESTJS_DRIZZLE_WORKSPACES in .env}
     ports:
@@ -123,6 +162,8 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+      redis:
+        condition: service_healthy
 
   express-prisma-app-workspaces:
     build:
@@ -130,6 +171,9 @@ services:
       dockerfile: examples/express-prisma-app-workspaces/Dockerfile
     environment:
       DATABASE_URL: postgresql://postgres@postgres:5432/example_express_prisma_workspaces?schema=public
+      # Rate limiter only: the permission cache stays in memory (REDIS_AUTHZ_CACHE unset).
+      REDIS_URL: redis://redis:6379/6
+      REDIS_RATE_LIMIT: "true"
       PORT: "3007"
       AUTH_JWT_SECRET: ${AUTH_JWT_SECRET_EXPRESS_PRISMA_WORKSPACES:?set AUTH_JWT_SECRET_EXPRESS_PRISMA_WORKSPACES in .env}
     ports:
@@ -139,6 +183,8 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+      redis:
+        condition: service_healthy
 
   express-drizzle-app-workspaces:
     build:
@@ -146,6 +192,9 @@ services:
       dockerfile: examples/express-drizzle-app-workspaces/Dockerfile
     environment:
       DATABASE_URL: postgresql://postgres@postgres:5432/example_express_drizzle_workspaces?schema=public
+      # Rate limiter only: the permission cache stays in memory (REDIS_AUTHZ_CACHE unset).
+      REDIS_URL: redis://redis:6379/7
+      REDIS_RATE_LIMIT: "true"
       PORT: "3008"
       AUTH_JWT_SECRET: ${AUTH_JWT_SECRET_EXPRESS_DRIZZLE_WORKSPACES:?set AUTH_JWT_SECRET_EXPRESS_DRIZZLE_WORKSPACES in .env}
     ports:
@@ -154,6 +203,8 @@ services:
       - ./logs/express-drizzle-app-workspaces:/app/logs
     depends_on:
       postgres:
+        condition: service_healthy
+      redis:
         condition: service_healthy
 
   # The dev portal is deliberately NOT a service here. It starts and stops these
