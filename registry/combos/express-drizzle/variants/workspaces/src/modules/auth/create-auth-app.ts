@@ -36,11 +36,11 @@ import { OAuthRepository } from "@/common/repositories/oauth.repository";
 import { openApiSpec } from "@/infra/openapi/openapi-spec";
 import { PasswordResetRepository } from "@/common/repositories/password-reset.repository";
 import { InMemoryRateLimitStore } from "@/common/auth/cache/rate-limit.store";
+import { createAuthzCache } from "@/common/auth/cache/authz-cache";
 import {
-  createAuthzCache,
-  InMemoryAuthzCacheStore,
-} from "@/common/auth/cache/authz-cache";
-import { readAuthzVersion } from "@/common/auth/cache/authz-version";
+  bumpAuthzVersion,
+  readAuthzVersion,
+} from "@/common/auth/cache/authz-version";
 import { RbacRepository } from "@/common/repositories/rbac.repository";
 import { requestLogger } from "@/infra/middleware/request-logger.middleware";
 import { responseEnvelope } from "@/infra/middleware/response-envelope.middleware";
@@ -77,11 +77,12 @@ export function createAuthApp(config: AuthConfigInput = {}): Express {
   const rateLimit: RateLimitDeps =
     resolvedConfig.rateLimitStore ?? new InMemoryRateLimitStore();
   const rbac = new RbacRepository(db);
-  // Configured by `authzCache` in the config — see auth.config.ts and authz-cache.ts.
+  // Configured by `authzCache` in the config — see auth.config.ts and authz-cache.ts. No store
+  // configured means no cache: authorization resolves from the database on every request.
   const authzCache = createAuthzCache<AuthzContext>({
     ...resolvedConfig.authzCache,
-    store: resolvedConfig.authzCache.store ?? new InMemoryAuthzCacheStore(),
     readVersion: () => readAuthzVersion(db),
+    bumpVersion: () => bumpAuthzVersion(db),
   });
   const workspaces = new WorkspaceRepository(db, rbac);
   const twoFactor = new TwoFactorRepository(db);
@@ -141,6 +142,7 @@ export function createAuthApp(config: AuthConfigInput = {}): Express {
     "/api/v1/admin",
     createAdminRouter({
       admin: adminService,
+      authzCache,
       workspaces,
       authentication: requireAuth,
       workspaceScope: requireWorkspace,

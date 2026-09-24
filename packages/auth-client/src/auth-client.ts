@@ -3,6 +3,8 @@ import {
   AuditLogListResult,
   AuthApiError,
   AuthTokens,
+  AuthzCacheClearResult,
+  AuthzCacheStatus,
   CountryListFilter,
   CountryListResult,
   CountrySummary,
@@ -578,6 +580,33 @@ export class AuthClient {
     return this.scopedRequest<AuditLogListResult>(
       "GET",
       `/api/v1/audit-log${queryString(filter)}`,
+      undefined,
+      scope,
+    );
+  }
+
+  // ---- authorization cache (requires `authz-cache:manage`) ----
+
+  /** The authorization cache's config, stats and (when the store can list) its entries. */
+  async getAuthzCache(scope?: WorkspaceScope): Promise<AuthzCacheStatus> {
+    return this.scopedRequest<AuthzCacheStatus>(
+      "GET",
+      "/api/v1/admin/authz-cache",
+      undefined,
+      scope,
+    );
+  }
+
+  /**
+   * Invalidates every cached authorization: bumps `authz_version`, so every server re-resolves
+   * on its next request, and deletes the stored entries.
+   */
+  async clearAuthzCache(
+    scope?: WorkspaceScope,
+  ): Promise<AuthzCacheClearResult> {
+    return this.scopedRequest<AuthzCacheClearResult>(
+      "POST",
+      "/api/v1/admin/authz-cache/clear",
       undefined,
       scope,
     );

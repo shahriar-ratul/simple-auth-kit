@@ -195,6 +195,7 @@ export const hooks: VariantHooks = {
     );
 
     await proveARawDatabaseEditChangesEnforcement(ctx, admin);
+    await proveTheAuthzCacheAdminEndpoints(ctx, admin);
   },
 };
 
@@ -368,5 +369,81 @@ async function proveARawDatabaseEditChangesEnforcement(
   ctx.assert(
     afterRoleDeleted.status === 403,
     `a role assignment deleted by a raw database write denies the next request after the cache TTL, same token (got ${afterRoleDeleted.status})`,
+  );
+}
+
+/**
+ * `GET /admin/authz-cache` and `POST /admin/authz-cache/clear`: gated on `authz-cache:manage`,
+ * listing the cached entries with their roles and permissions, and clearing them — bump first, so
+ * every server's entries are invalidated, then delete what the store holds.
+ */
+async function proveTheAuthzCacheAdminEndpoints(
+  ctx: ProofContext,
+  admin: AdminSession,
+): Promise<void> {
+  const email = ctx.uniqueEmail("cacheadmin");
+  const user = await ctx.signup(email, "cacheadmin-pw-12345");
+  const userId = (
+    await ctx.call("GET", "/auth/me", { token: user.accessToken })
+  ).body.sub as string;
+
+  const plainGet = await ctx.call("GET", "/admin/authz-cache", {
+    token: user.accessToken,
+  });
+  const plainClear = await ctx.call("POST", "/admin/authz-cache/clear", {
+    token: user.accessToken,
+  });
+  ctx.assert(
+    plainGet.status === 403 && plainClear.status === 403,
+    `an ordinary user is refused both authz-cache endpoints (got ${plainGet.status}, ${plainClear.status})`,
+  );
+
+  await ctx.call("POST", `/admin/users/${userId}/permissions`, {
+    token: await admin.freshToken(),
+    body: { permission: "audit-log:read" },
+  });
+  const authorized = await ctx.call("GET", "/audit-log", {
+    token: user.accessToken,
+  });
+  const inspected = await ctx.call("GET", "/admin/authz-cache", {
+    token: await admin.freshToken(),
+  });
+  const entry = (inspected.body?.entries ?? []).find(
+    (e: { userId: string }) => e.userId === userId,
+  );
+  ctx.assert(
+    authorized.status === 200 &&
+      inspected.status === 200 &&
+      inspected.body.active === true &&
+      entry?.key === `simpleauthkit:authz:${userId}` &&
+      entry.permissions.includes("audit-log:read") &&
+      Array.isArray(entry.roles),
+    `the admin sees the cache active, with an entry for a user who just made an authorized request, carrying their permissions (entry: ${JSON.stringify(entry)})`,
+  );
+
+  const cleared = await ctx.call("POST", "/admin/authz-cache/clear", {
+    token: await admin.freshToken(),
+  });
+  ctx.assert(
+    cleared.status === 201 &&
+      cleared.body.version === String(Number(inspected.body.version) + 1) &&
+      cleared.body.removed >= 1,
+    `clearing bumps the version by one and deletes the stored entries (got ${JSON.stringify(cleared.body)}, version was ${inspected.body.version})`,
+  );
+
+  const afterClear = await ctx.call("GET", "/admin/authz-cache", {
+    token: await admin.freshToken(),
+  });
+  ctx.assert(
+    !(afterClear.body?.entries ?? []).some(
+      (e: { userId: string }) => e.userId === userId,
+    ),
+    "…after which the user's entry is gone",
+  );
+  const before = authzCache!.stats.resolutions;
+  await ctx.call("GET", "/audit-log", { token: user.accessToken });
+  ctx.assert(
+    authzCache!.stats.resolutions - before === 1,
+    `…and their next authorized request re-resolves (resolved ${authzCache!.stats.resolutions - before} time(s))`,
   );
 }

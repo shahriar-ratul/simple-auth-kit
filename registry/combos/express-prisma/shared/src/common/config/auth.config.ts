@@ -16,7 +16,10 @@ export interface AppleOAuthCredentials {
 }
 
 export interface AuthzCacheConfig {
-  /** `false` turns caching off: authorization is resolved from the database on every request. */
+  /**
+   * `false` turns caching off: authorization is resolved from the database on every request.
+   * Caching is active only when this is `true` *and* a `store` is supplied.
+   */
   enabled: boolean;
   /**
    * `true`: every request reads the `authz_version` row (one primary-key lookup) and re-resolves
@@ -31,8 +34,10 @@ export interface AuthzCacheConfig {
    */
   ttlSeconds: number;
   /**
-   * Where entries live. Defaults to in-process memory (`InMemoryAuthzCacheStore`); pass e.g. a
-   * Redis-backed `AuthzCacheStore` to share entries across servers.
+   * Where entries live — e.g. a Redis-backed `AuthzCacheStore`, shared by every server. No store
+   * = no cache: there is no in-memory fallback, so without one authorization is resolved from
+   * the database on every request. Implement the optional `list`/`clear` to let the admin
+   * endpoint (`/admin/authz-cache`) show and delete entries.
    */
   store?: AuthzCacheStore;
 }
@@ -47,7 +52,7 @@ export interface AuthConfig {
    * "log in again after N days" true regardless of activity. `rotateRefreshToken` enforces it.
    */
   sessionTtlSeconds: number;
-  /** How resolved authorization is cached. A partial object is merged over the defaults. */
+  /** How resolved authorization is cached (off until a `store` is supplied). A partial object is merged over the defaults. */
   authzCache: AuthzCacheConfig;
   /** App name shown inside authenticator apps next to the account (issuer part of the otpauth:// URI). */
   twoFactorIssuer: string;

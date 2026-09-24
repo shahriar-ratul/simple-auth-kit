@@ -1,5 +1,6 @@
 import { Module } from "@nestjs/common";
 import { AdminController } from "@/modules/admin/controllers/admin.controller";
+import { AuthzCacheController } from "@/modules/admin/controllers/authz-cache.controller";
 import { AdminService } from "@/modules/admin/services/admin.service";
 import { AuditLogModule } from "@/modules/audit-log/audit-log.module";
 
@@ -11,7 +12,7 @@ import { AuditLogModule } from "@/modules/audit-log/audit-log.module";
 // permission-grant audit events it owns (assign/revoke role, grant/revoke permission).
 @Module({
   imports: [AuditLogModule],
-  controllers: [AdminController],
+  controllers: [AdminController, AuthzCacheController],
   providers: [AdminService],
 })
 export class AdminModule {}

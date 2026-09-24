@@ -29,7 +29,7 @@ async function resolve(rbac: RbacRepository, cache: AuthzCache, context: Executi
   if (!req.auth || typeof workspaceId !== 'string' || workspaceId.length === 0) return;
 
   const userId = req.auth.sub as string;
-  const authz = await cache.get(`${userId}:${workspaceId}`, () => rbac.resolveAuthzContext(userId, workspaceId));
+  const authz = await cache.get(`${workspaceId}:${userId}`, () => rbac.resolveAuthzContext(userId, workspaceId));
   // Same answer for "no such workspace" and "not your workspace" — a caller outside a workspace
   // must not be able to probe whether it exists.
   if (!authz) throw new ForbiddenException('not a member of this workspace');

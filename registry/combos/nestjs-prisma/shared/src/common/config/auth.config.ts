@@ -24,6 +24,10 @@ export interface ThrottleBucket {
   limit: number;
 }
 
+/**
+ * Caching of resolved authorization. No store = no cache: there is no in-memory fallback, so
+ * unless a `store` is supplied (and `enabled` is true) every request resolves from the database.
+ */
 export interface AuthzCacheConfig {
   /** `false`: no caching — authorization is resolved from the database on every request. */
   enabled: boolean;
@@ -40,8 +44,9 @@ export interface AuthzCacheConfig {
    */
   ttlSeconds: number;
   /**
-   * Where entries live. Defaults to in-process memory; pass e.g. a Redis-backed store to share
-   * entries across servers.
+   * Where entries live — e.g. a Redis-backed store, shared by every server. Required for caching:
+   * with no store there is no cache (there is no in-memory fallback). Implement the optional
+   * `list`/`clear` to let `GET /api/v1/admin/authz-cache` show entries and `.../clear` delete them.
    */
   store?: AuthzCacheStore;
 }

@@ -1,6 +1,9 @@
 import type { NextFunction, Request, RequestHandler, Response } from "express";
 import { defineAbilitiesFor } from "@/common/auth/ability/ability";
-import type { AuthzCache } from "@/common/auth/cache/authz-cache";
+import {
+  type AuthzCache,
+  authzCacheKey,
+} from "@/common/auth/cache/authz-cache";
 import type { RbacRepository } from "@/common/repositories/rbac.repository";
 import "@/infra/request-context";
 
@@ -51,7 +54,7 @@ export function createAuthzMiddleware(
     try {
       if (req.auth) {
         const userId = req.auth.sub;
-        req.authz = (await cache.get(userId, () =>
+        req.authz = (await cache.get(authzCacheKey(userId), () =>
           rbac.resolveAuthzContext(userId),
         )) ?? {
           roles: [],

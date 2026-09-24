@@ -156,7 +156,12 @@ export function createAuthApp(options: CreateAuthAppOptions = {}): Express {
   // mount did.
   app.use(
     "/api/v1/admin",
-    createAdminRouter({ admin: adminService, authentication, workspaceScope }),
+    createAdminRouter({
+      admin: adminService,
+      authzCache,
+      authentication,
+      workspaceScope,
+    }),
   );
   app.use(
     "/api/v1/roles",

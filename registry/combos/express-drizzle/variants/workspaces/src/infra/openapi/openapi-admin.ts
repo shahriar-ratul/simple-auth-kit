@@ -34,6 +34,78 @@ export const adminSpec: OpenApiFragment = {
   scopeParameters: workspaceSpec.scopeParameters,
 
   schemas: {
+    AuthzCacheEntry: {
+      type: "object",
+      properties: {
+        key: { type: "string", example: "simpleauthkit:authz:1:42" },
+        userId: { type: "string" },
+        workspaceId: { type: "string" },
+        version: {
+          type: "string",
+          nullable: true,
+          description:
+            "The `authz_version` the entry was resolved at (null when cached without revalidation).",
+        },
+        stale: {
+          type: "boolean",
+          description:
+            "The entry's version differs from the current one — it will re-resolve on next use.",
+        },
+        ttlSeconds: { type: "integer", nullable: true },
+        roles: { type: "array", items: { type: "string" } },
+        permissions: { type: "array", items: { type: "string" } },
+      },
+    },
+    AuthzCacheInspection: {
+      type: "object",
+      properties: {
+        active: {
+          type: "boolean",
+          description:
+            "Caching is on: `enabled` and a store is configured. There is no in-memory fallback.",
+        },
+        enabled: { type: "boolean" },
+        revalidate: { type: "boolean" },
+        ttlSeconds: { type: "integer" },
+        hasStore: { type: "boolean" },
+        canList: {
+          type: "boolean",
+          description:
+            "The store implements `list`, so `entries` is populated.",
+        },
+        version: {
+          type: "string",
+          description: "The current `authz_version`.",
+        },
+        stats: {
+          type: "object",
+          description: "Since this server process started.",
+          properties: {
+            resolutions: { type: "integer" },
+            hits: { type: "integer" },
+          },
+        },
+        entries: {
+          type: "array",
+          nullable: true,
+          description:
+            "This workspace's cached entries; null when the store can't list.",
+          items: { $ref: "#/components/schemas/AuthzCacheEntry" },
+        },
+      },
+    },
+    AuthzCacheClearResult: {
+      type: "object",
+      properties: {
+        version: { type: "string", description: "The new `authz_version`." },
+        removed: {
+          type: "integer",
+          nullable: true,
+          description:
+            "Entries deleted from the store; null when the store can't clear.",
+        },
+      },
+    },
     PermissionSummary: {
       type: "object",
       properties: {
@@ -1134,6 +1206,50 @@ export const adminSpec: OpenApiFragment = {
             "the request named no workspace you belong to",
           ),
           "404": errorResponse("The user is not a member of this workspace"),
+        },
+      },
+    },
+    "/admin/authz-cache": {
+      get: {
+        tags: ["auth"],
+        summary:
+          "[admin] Inspect the authorization cache (this workspace's entries only)",
+        description: requiresPermission("authz-cache:manage"),
+        security: [{ bearerAuth: [] }],
+        parameters: [adminHeaderParameter],
+        responses: {
+          "200": {
+            description: "OK",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/AuthzCacheInspection" },
+              },
+            },
+          },
+          "401": errorResponse("Missing or invalid access token"),
+          "403": missingPermission("authz-cache:manage"),
+        },
+      },
+    },
+    "/admin/authz-cache/clear": {
+      post: {
+        tags: ["auth"],
+        summary:
+          "[admin] Clear the authorization cache (this workspace's entries only)",
+        description: `${requiresPermission("authz-cache:manage")} Bumps \`authz_version\` first — invalidating every cached entry on every server — then deletes the stored entries when the store supports it.`,
+        security: [{ bearerAuth: [] }],
+        parameters: [adminHeaderParameter],
+        responses: {
+          "201": {
+            description: "Created",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/AuthzCacheClearResult" },
+              },
+            },
+          },
+          "401": errorResponse("Missing or invalid access token"),
+          "403": missingPermission("authz-cache:manage"),
         },
       },
     },

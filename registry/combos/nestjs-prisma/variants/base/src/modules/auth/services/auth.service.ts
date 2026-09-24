@@ -52,6 +52,7 @@ import {
 import { SessionRepository } from "@/common/repositories/session.repository";
 import { TwoFactorRepository } from "@/common/repositories/two-factor.repository";
 import { toId } from "@/common/helpers/id.helper";
+import { AuthzCache } from "@/common/auth/cache/authz-cache";
 
 export interface AuthTokens {
   accessToken: string;
@@ -87,6 +88,7 @@ export interface SelfProfile {
 export class AuthService {
   constructor(
     @Inject(PrismaService) private readonly prisma: PrismaService,
+    @Inject(AuthzCache) private readonly cache: AuthzCache,
     @Inject(SessionRepository) private readonly sessions: SessionRepository,
     @Inject(AuthTokenService) private readonly tokens: AuthTokenService,
     @Inject(RATE_LIMIT_STORE) private readonly rateLimit: RateLimitDeps,
@@ -272,6 +274,7 @@ export class AuthService {
       where: { id: idBig },
       data: { twoFactorEnabled: true },
     });
+    await this.cache.invalidateProfile(idBig);
     await this.sessions.appendAuditEvent({
       type: "two_factor_enabled",
       userId,
@@ -297,6 +300,7 @@ export class AuthService {
       where: { id: idBig },
       data: { twoFactorEnabled: false, twoFactorSecret: null },
     });
+    await this.cache.invalidateProfile(idBig);
     await this.twoFactor.clearBackupCodes(idBig);
     await this.sessions.appendAuditEvent({
       type: "two_factor_disabled",

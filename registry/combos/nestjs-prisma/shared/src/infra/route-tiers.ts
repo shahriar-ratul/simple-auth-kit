@@ -4,6 +4,11 @@
 // route declaring none of the three — so an ungated admin route can't ship silently. The check
 // also verifies the guards actually attached match the declared tier, so a route marked
 // @Authenticated() with no AuthGuard can't masquerade as gated.
+//
+// A `@CheckAbility` argument may itself be an array — an OR-group, satisfied if the caller holds
+// *any* one slug in it — so `@CheckAbility('a', ['b', 'c'])` reads as a AND (b OR c). Top-level
+// arguments still AND together; this only adds OR *within* one argument, it never changes what a
+// bare `@CheckAbility('a', 'b')` call means.
 import { RequestMethod, SetMetadata } from "@nestjs/common";
 import {
   GUARDS_METADATA,
@@ -26,12 +31,15 @@ export const Authenticated = () =>
   SetMetadata(ROUTE_TIER_KEY, "authenticated" satisfies RouteTier);
 
 // Requires AuthGuard, then the variant's authorization guard, then AbilityGuard. All named
-// slugs must be held — the guard ANDs them. The argument is typed as `PermissionSlug` (the
-// catalog in permission-slugs.ts) so a route can't be gated on a slug nothing will ever grant.
-export const CheckAbility = (...abilities: PermissionSlug[]) =>
+// slugs must be held — the guard ANDs them, except within an array argument, which is an
+// OR-group. The argument is typed as `PermissionSlug` (the catalog in permission-slugs.ts) so a
+// route can't be gated on a slug nothing will ever grant.
+export const CheckAbility = (
+  ...abilities: (PermissionSlug | PermissionSlug[])[]
+) =>
   applyBoth(
     SetMetadata(ROUTE_TIER_KEY, "ability" satisfies RouteTier),
-    SetMetadata(CHECK_ABILITY_KEY, abilities as string[]),
+    SetMetadata(CHECK_ABILITY_KEY, abilities as (string | string[])[]),
   );
 
 /** `applyDecorators` from @nestjs/common, minus its class-decorator branch — these two are method decorators. */

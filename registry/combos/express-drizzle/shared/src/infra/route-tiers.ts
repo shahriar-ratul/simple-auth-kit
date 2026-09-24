@@ -8,7 +8,9 @@
 //                                 listing your own workspaces and seeing who else is in one you
 //                                 belong to.
 //   3. ability(...slugs)        — the administrative surface. Every named slug must be in the
-//                                 caller's ability or the request is refused.
+//                                 caller's ability or the request is refused. An argument may
+//                                 itself be an array — an OR-group, satisfied by any one slug in
+//                                 it — so top-level arguments AND while one array argument ORs.
 //
 // The reference combo says this with decorators and then walks the route table at startup: a
 // handler carrying none of the three markers fails the boot, by name. Plain Express has no
@@ -45,7 +47,7 @@ export type TieredMethod = "get" | "post" | "put" | "patch" | "delete";
 export type RouteTier =
   | { kind: "public" }
   | { kind: "authenticated" }
-  | { kind: "ability"; abilities: PermissionSlug[] };
+  | { kind: "ability"; abilities: (PermissionSlug | PermissionSlug[])[] };
 
 /** Tier 1: reachable with no token at all. Carries no middleware, which is exactly why it has to be said out loud. */
 export const publicRoute = (): RouteTier => ({ kind: "public" });
@@ -55,19 +57,25 @@ export const authenticated = (): RouteTier => ({ kind: "authenticated" });
 
 /**
  * Tier 3: `ability("users:block")`. Several slugs may be named, and **all** of them must be held —
- * the check ANDs them.
+ * the check ANDs them — except an argument that is itself an array, which is an OR-group: any one
+ * slug in it suffices. So `ability('a', ['b', 'c'])` reads as a AND (b OR c); a plain
+ * `ability('a', 'b')` call means exactly what it always has.
  *
  * This is the half of authorization that has to be code. **A route declares what it demands; the
  * database decides who is granted it.** The argument is typed as `PermissionSlug`, the catalog in
  * `permission-slugs.ts`, so a route cannot be gated on a slug nothing will ever grant. Which *users*
  * hold the slug is entirely a matter of rows.
  */
-export const ability = (...abilities: PermissionSlug[]): RouteTier => {
+export const ability = (
+  ...abilities: (PermissionSlug | PermissionSlug[])[]
+): RouteTier => {
   if (!abilities.length)
     throw new Error(
       "ability() names no permission — use authenticated() if any logged-in caller may call the route",
     );
-  for (const slug of abilities) assertInCatalog(slug);
+  for (const entry of abilities)
+    for (const slug of Array.isArray(entry) ? entry : [entry])
+      assertInCatalog(slug);
   return { kind: "ability", abilities };
 };
 
@@ -80,7 +88,9 @@ export const ability = (...abilities: PermissionSlug[]): RouteTier => {
  * the same function from the same slugs, which is what makes server enforcement and client UI
  * incapable of disagreeing.
  */
-export function requireAbility(abilities: PermissionSlug[]): RequestHandler {
+export function requireAbility(
+  abilities: (PermissionSlug | PermissionSlug[])[],
+): RequestHandler {
   return function abilityMiddleware(
     req: Request,
     res: Response,
@@ -95,12 +105,21 @@ export function requireAbility(abilities: PermissionSlug[]): RequestHandler {
       });
       return;
     }
-    for (const slug of abilities) {
-      if (!req.ability.can(slug, ABILITY_SUBJECT)) {
+    for (const entry of abilities) {
+      if (Array.isArray(entry)) {
+        if (!entry.some((slug) => req.ability!.can(slug, ABILITY_SUBJECT))) {
+          res.status(403).json({
+            statusCode: 403,
+            code: "FORBIDDEN",
+            message: `missing permission: any of [${entry.join(", ")}]`,
+          });
+          return;
+        }
+      } else if (!req.ability.can(entry, ABILITY_SUBJECT)) {
         res.status(403).json({
           statusCode: 403,
           code: "FORBIDDEN",
-          message: `missing permission: ${slug}`,
+          message: `missing permission: ${entry}`,
         });
         return;
       }

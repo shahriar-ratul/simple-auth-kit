@@ -35,6 +35,7 @@ import {
 import { SessionRepository } from '@/common/repositories/session.repository';
 import { toId, toIdOrNull } from '@/common/helpers/id.helper';
 import { bumpAuthzVersion } from '@/common/auth/cache/authz-version';
+import { AuthzCache } from '@/common/auth/cache/authz-cache';
 
 /**
  * User management, block/unblock/deactivate/activate, user-scoped role/permission assignment,
@@ -45,6 +46,7 @@ import { bumpAuthzVersion } from '@/common/auth/cache/authz-version';
 export class AdminService {
   constructor(
     @Inject(PrismaService) private readonly prisma: PrismaService,
+    @Inject(AuthzCache) private readonly cache: AuthzCache,
     @Inject(SessionRepository) private readonly sessions: SessionRepository,
     @Inject(AuditLogRepository) private readonly auditLog: AuditLogRepository,
     @Inject(RbacRepository) private readonly rbac: RbacRepository,
@@ -147,6 +149,7 @@ export class AdminService {
       where: { id: toId(userId) },
       data: { blocked: true, updatedBy: toIdOrNull(revoker?.userId) },
     });
+    await this.cache.invalidateProfile(toId(userId));
     await bumpAuthzVersion(this.prisma);
     await blockUser(this.sessions, userId, revoker);
   }
@@ -156,6 +159,7 @@ export class AdminService {
       where: { id: toId(userId) },
       data: { blocked: false, updatedBy: toIdOrNull(revoker?.userId) },
     });
+    await this.cache.invalidateProfile(toId(userId));
   }
 
   /**
@@ -167,6 +171,7 @@ export class AdminService {
       where: { id: toId(userId) },
       data: { isActive: false, updatedBy: toIdOrNull(revoker?.userId) },
     });
+    await this.cache.invalidateProfile(toId(userId));
     await bumpAuthzVersion(this.prisma);
     await deactivateUser(this.sessions, userId, revoker);
   }
@@ -176,6 +181,7 @@ export class AdminService {
       where: { id: toId(userId) },
       data: { isActive: true, updatedBy: toIdOrNull(revoker?.userId) },
     });
+    await this.cache.invalidateProfile(toId(userId));
   }
 
   // ---- countries ----

@@ -41,6 +41,7 @@ export const PERMISSIONS = {
   permissionsDefine: "permissions:define",
   permissionsGrant: "permissions:grant",
   auditLogRead: "audit-log:read",
+  authzCacheManage: "authz-cache:manage",
   customersRead: "customers:read",
   customersManage: "customers:manage",
   customersStatus: "customers:status",

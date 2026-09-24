@@ -2,6 +2,7 @@ import { DynamicModule, Global, Module } from '@nestjs/common';
 import { JwtModule } from '@nestjs/jwt';
 import { AbilityGuard } from '@/common/auth/ability/ability.guard';
 import { AdminController } from '@/modules/admin/controllers/admin.controller';
+import { AuthzCacheController } from '@/modules/admin/controllers/authz-cache.controller';
 import { AuditLogController } from '@/modules/audit-log/controllers/audit-log.controller';
 import { AUTH_CONFIG, AuthConfig, defaultAuthConfig, type AuthConfigInput } from '@/common/config/auth.config';
 import { AuthController } from '@/modules/auth/controllers/auth.controller';
@@ -23,7 +24,14 @@ import { log } from '@/infra/logger/logger';
 // Every controller this combo ships, across every feature module — the one array the boot-time
 // tier check walks. Built here (rather than each feature module registering itself) so there's
 // no circular import between this module and the feature modules it provides shared plumbing to.
-const TIERED_CONTROLLERS = [AuthController, AdminController, RoleController, PermissionController, AuditLogController];
+const TIERED_CONTROLLERS = [
+  AuthController,
+  AdminController,
+  AuthzCacheController,
+  RoleController,
+  PermissionController,
+  AuditLogController,
+];
 
 // The one remaining `forRoot()`: AUTH_CONFIG, the rate-limit store override, and OAuth
 // credentials genuinely need consumer-supplied config. Everything else a consumer's own app used

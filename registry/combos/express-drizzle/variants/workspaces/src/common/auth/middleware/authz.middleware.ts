@@ -1,7 +1,10 @@
 import type { NextFunction, Request, RequestHandler, Response } from "express";
 import { defineAbilitiesFor } from "@/common/auth/ability/ability";
 import { HttpError } from "@/infra/errors/http-error";
-import type { AuthzCache } from "@/common/auth/cache/authz-cache";
+import {
+  type AuthzCache,
+  authzCacheKey,
+} from "@/common/auth/cache/authz-cache";
 import type { RbacRepository } from "@/common/repositories/rbac.repository";
 import "@/infra/request-context";
 
@@ -48,7 +51,7 @@ async function resolve(deps: AuthzMiddlewareDeps, req: Request): Promise<void> {
     return;
 
   const userId = req.auth.sub;
-  const authz = await deps.cache.get(`${userId}:${workspaceId}`, () =>
+  const authz = await deps.cache.get(authzCacheKey(userId, workspaceId), () =>
     deps.rbac.resolveAuthzContext(userId, workspaceId),
   );
   // Deliberately the same answer for "no such workspace" and "not your workspace": a caller

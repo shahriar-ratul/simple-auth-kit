@@ -5,6 +5,7 @@ import { AuthzCache } from "../src/common/auth/cache/authz-cache.js";
 import { defaultAuthConfig } from "../src/common/config/auth.config.js";
 import { RbacRepository } from "../src/common/repositories/rbac.repository.js";
 import { createAuthApp } from "../src/modules/auth/create-auth-app.js";
+import { MapAuthzCacheStore } from "./map-authz-cache-store.js";
 
 /**
  * The app's authorization cache, handed in from here so the proof can read its `stats` and show
@@ -19,13 +20,20 @@ export function waitOutAuthzCache(): Promise<void> {
     setTimeout(resolve, AUTHZ_CACHE_TTL_SECONDS * 1000 + 200),
   );
 }
+/** The cache store the proof runs against — the kit ships none; see map-authz-cache-store.ts. */
+export const authzCacheStore = new MapAuthzCacheStore();
+
 export const authzCache = new AuthzCache(
   new RbacRepository(
     new PrismaClient({
       adapter: new PrismaPg({ connectionString: process.env["DATABASE_URL"] }),
     }),
   ),
-  { ...defaultAuthConfig.authzCache, ttlSeconds: AUTHZ_CACHE_TTL_SECONDS },
+  {
+    ...defaultAuthConfig.authzCache,
+    ttlSeconds: AUTHZ_CACHE_TTL_SECONDS,
+    store: authzCacheStore,
+  },
 );
 
 // No mailer is wired up for the proof, so this stands in for one — prove-cycle.ts reads the
@@ -53,7 +61,10 @@ export async function bootstrap(
       // short enough to stay realistic. See `renewingToken` in test/harness.ts for the other
       // half of the fix.
       accessTokenTtlSeconds: 300,
-      authzCache: { ttlSeconds: AUTHZ_CACHE_TTL_SECONDS },
+      authzCache: {
+        ttlSeconds: AUTHZ_CACHE_TTL_SECONDS,
+        store: authzCacheStore,
+      },
       sendPasswordResetEmail: async (email, token) => {
         capturedResetTokens.set(email, token);
       },

@@ -28,6 +28,9 @@ import { CHECK_ABILITY_KEY } from "@/infra/route-tiers";
  * enough" means a new route ships open by omission; here "authenticated is enough" has its own
  * marker (`@Authenticated()`), and a route that says neither does not survive startup — see
  * `assertEveryRouteDeclaresATier`. This check stays as the runtime backstop.
+ *
+ * Each `@CheckAbility` entry is either a single slug (required outright) or an array of slugs
+ * (an OR-group — any one of them suffices). Entries still AND together.
  */
 @Injectable()
 export class AbilityGuard implements CanActivate {
@@ -36,10 +39,9 @@ export class AbilityGuard implements CanActivate {
   constructor(@Inject(Reflector) private readonly reflector: Reflector) {}
 
   canActivate(context: ExecutionContext): boolean {
-    const required = this.reflector.getAllAndOverride<string[] | undefined>(
-      CHECK_ABILITY_KEY,
-      [context.getHandler(), context.getClass()],
-    );
+    const required = this.reflector.getAllAndOverride<
+      (string | string[])[] | undefined
+    >(CHECK_ABILITY_KEY, [context.getHandler(), context.getClass()]);
     if (!required?.length) {
       throw new Error(
         `${context.getClass().name}.${context.getHandler().name} is guarded by AbilityGuard but declares no @CheckAbility`,
@@ -51,8 +53,14 @@ export class AbilityGuard implements CanActivate {
       throw new ForbiddenException("no authorization context for this request");
 
     for (const permission of required) {
-      if (!ability.can(permission, ABILITY_SUBJECT))
+      if (Array.isArray(permission)) {
+        if (!permission.some((p) => ability.can(p, ABILITY_SUBJECT)))
+          throw new ForbiddenException(
+            `missing permission: any of [${permission.join(", ")}]`,
+          );
+      } else if (!ability.can(permission, ABILITY_SUBJECT)) {
         throw new ForbiddenException(`missing permission: ${permission}`);
+      }
     }
     return true;
   }

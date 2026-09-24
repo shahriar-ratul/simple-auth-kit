@@ -2,6 +2,7 @@ import { Link, NavLink, useLocation } from "react-router-dom";
 import {
   ChevronRightIcon,
   ContactIcon,
+  DatabaseZapIcon,
   GlobeIcon,
   LanguagesIcon,
   LayoutDashboardIcon,
@@ -10,9 +11,18 @@ import {
   UserPlusIcon,
   UsersIcon,
 } from "lucide-react";
-import { canAny, PERMISSIONS, useAbility, type PermissionKey } from "@/lib/ability";
+import {
+  canAny,
+  PERMISSIONS,
+  useAbility,
+  type PermissionKey,
+} from "@/lib/ability";
 import { NavUser } from "@/components/nav-user";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
 import {
   Sidebar,
   SidebarContent,
@@ -42,7 +52,11 @@ type NavItem = {
   label: string;
   icon: typeof UsersIcon;
   requires?: readonly PermissionKey[];
-  children?: Array<{ to: string; label: string; requires?: readonly PermissionKey[] }>;
+  children?: Array<{
+    to: string;
+    label: string;
+    requires?: readonly PermissionKey[];
+  }>;
 };
 
 const NAV_ITEMS: NavItem[] = [
@@ -54,25 +68,57 @@ const NAV_ITEMS: NavItem[] = [
     requires: [PERMISSIONS.usersRead],
     children: [
       { to: "/users", label: "All users", requires: [PERMISSIONS.usersRead] },
-      { to: "/users/new", label: "Add user", requires: [PERMISSIONS.usersManage] },
+      {
+        to: "/users/new",
+        label: "Add user",
+        requires: [PERMISSIONS.usersManage],
+      },
     ],
   },
   {
     to: "/roles",
     label: "Roles & permissions",
     icon: ShieldCheckIcon,
-    requires: [PERMISSIONS.rolesManage, PERMISSIONS.rolesAssign, PERMISSIONS.permissionsGrant],
+    requires: [
+      PERMISSIONS.rolesManage,
+      PERMISSIONS.rolesAssign,
+      PERMISSIONS.permissionsGrant,
+    ],
   },
-  { to: "/permissions", label: "Permissions", icon: ShieldCheckIcon, requires: [PERMISSIONS.permissionsRead] },
-  { to: "/audit-log", label: "Audit log", icon: ScrollTextIcon, requires: [PERMISSIONS.auditLogRead] },
+  {
+    to: "/permissions",
+    label: "Permissions",
+    icon: ShieldCheckIcon,
+    requires: [PERMISSIONS.permissionsRead],
+  },
+  {
+    to: "/audit-log",
+    label: "Audit log",
+    icon: ScrollTextIcon,
+    requires: [PERMISSIONS.auditLogRead],
+  },
+  {
+    to: "/authz-cache",
+    label: "Cache",
+    icon: DatabaseZapIcon,
+    requires: [PERMISSIONS.authzCacheManage],
+  },
   {
     to: "/customers",
     label: "Customers",
     icon: ContactIcon,
     requires: [PERMISSIONS.customersRead],
     children: [
-      { to: "/customers", label: "All customers", requires: [PERMISSIONS.customersRead] },
-      { to: "/customers/new", label: "Add customer", requires: [PERMISSIONS.customersManage] },
+      {
+        to: "/customers",
+        label: "All customers",
+        requires: [PERMISSIONS.customersRead],
+      },
+      {
+        to: "/customers/new",
+        label: "Add customer",
+        requires: [PERMISSIONS.customersManage],
+      },
     ],
   },
   {
@@ -81,8 +127,16 @@ const NAV_ITEMS: NavItem[] = [
     icon: GlobeIcon,
     requires: [PERMISSIONS.countriesRead],
     children: [
-      { to: "/countries", label: "All countries", requires: [PERMISSIONS.countriesRead] },
-      { to: "/countries/new", label: "Add country", requires: [PERMISSIONS.countriesManage] },
+      {
+        to: "/countries",
+        label: "All countries",
+        requires: [PERMISSIONS.countriesRead],
+      },
+      {
+        to: "/countries/new",
+        label: "Add country",
+        requires: [PERMISSIONS.countriesManage],
+      },
     ],
   },
   {
@@ -91,8 +145,16 @@ const NAV_ITEMS: NavItem[] = [
     icon: LanguagesIcon,
     requires: [PERMISSIONS.languagesRead],
     children: [
-      { to: "/languages", label: "All languages", requires: [PERMISSIONS.languagesRead] },
-      { to: "/languages/new", label: "Add language", requires: [PERMISSIONS.languagesManage] },
+      {
+        to: "/languages",
+        label: "All languages",
+        requires: [PERMISSIONS.languagesRead],
+      },
+      {
+        to: "/languages/new",
+        label: "Add language",
+        requires: [PERMISSIONS.languagesManage],
+      },
     ],
   },
 ];
@@ -101,10 +163,21 @@ export function AppSidebar() {
   const ability = useAbility();
   const location = useLocation();
 
-  const items = NAV_ITEMS.filter((item) => !item.requires || canAny(ability, item.requires))
-    .map((item) => ({ ...item, children: item.children?.filter((child) => !child.requires || canAny(ability, child.requires)) }))
+  const items = NAV_ITEMS.filter(
+    (item) => !item.requires || canAny(ability, item.requires),
+  )
+    .map((item) => ({
+      ...item,
+      children: item.children?.filter(
+        (child) => !child.requires || canAny(ability, child.requires),
+      ),
+    }))
     // A parent with every child hidden by permissions collapses to a plain link.
-    .map((item) => (item.children && item.children.length <= 1 ? { ...item, children: undefined } : item));
+    .map((item) =>
+      item.children && item.children.length <= 1
+        ? { ...item, children: undefined }
+        : item,
+    );
 
   return (
     <Sidebar collapsible="icon">
@@ -118,7 +191,9 @@ export function AppSidebar() {
                 </div>
                 <div className="grid flex-1 text-left text-sm leading-tight">
                   <span className="truncate font-medium">simple-auth-kit</span>
-                  <span className="truncate text-xs text-muted-foreground">admin console</span>
+                  <span className="truncate text-xs text-muted-foreground">
+                    admin console
+                  </span>
                 </div>
               </Link>
             </SidebarMenuButton>
@@ -132,10 +207,18 @@ export function AppSidebar() {
             <SidebarMenu>
               {items.map((item) =>
                 item.children ? (
-                  <Collapsible key={item.to} asChild defaultOpen={location.pathname.startsWith(item.to)} className="group/collapsible">
+                  <Collapsible
+                    key={item.to}
+                    asChild
+                    defaultOpen={location.pathname.startsWith(item.to)}
+                    className="group/collapsible"
+                  >
                     <SidebarMenuItem>
                       <CollapsibleTrigger asChild>
-                        <SidebarMenuButton tooltip={item.label} isActive={location.pathname === item.to}>
+                        <SidebarMenuButton
+                          tooltip={item.label}
+                          isActive={location.pathname === item.to}
+                        >
                           <item.icon />
                           <span>{item.label}</span>
                           <ChevronRightIcon className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
@@ -145,9 +228,14 @@ export function AppSidebar() {
                         <SidebarMenuSub>
                           {item.children.map((child) => (
                             <SidebarMenuSubItem key={child.to}>
-                              <SidebarMenuSubButton asChild isActive={location.pathname === child.to}>
+                              <SidebarMenuSubButton
+                                asChild
+                                isActive={location.pathname === child.to}
+                              >
                                 <Link to={child.to}>
-                                  {child.to === "/users/new" ? <UserPlusIcon /> : null}
+                                  {child.to === "/users/new" ? (
+                                    <UserPlusIcon />
+                                  ) : null}
                                   <span>{child.label}</span>
                                 </Link>
                               </SidebarMenuSubButton>
@@ -159,7 +247,11 @@ export function AppSidebar() {
                   </Collapsible>
                 ) : (
                   <SidebarMenuItem key={item.to}>
-                    <SidebarMenuButton asChild isActive={location.pathname === item.to} tooltip={item.label}>
+                    <SidebarMenuButton
+                      asChild
+                      isActive={location.pathname === item.to}
+                      tooltip={item.label}
+                    >
                       <NavLink to={item.to}>
                         <item.icon />
                         <span>{item.label}</span>

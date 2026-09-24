@@ -1,4 +1,5 @@
 import type { NextFunction, Request, RequestHandler, Response } from "express";
+import type { AuthzCache } from "@/common/auth/cache/authz-cache";
 import { AdminService } from "@/modules/admin/services/admin.service";
 import { HttpError } from "@/infra/errors/http-error";
 import { ability, createTieredRouter } from "@/infra/route-tiers";
@@ -15,6 +16,7 @@ const optionalString = (value: unknown): string | undefined =>
 
 export interface AdminRouterDeps {
   admin: AdminService;
+  authzCache: AuthzCache;
   authentication: RequestHandler;
   /** The mandatory workspace resolution — every route here acts inside one. See authz.middleware.ts. */
   workspaceScope: RequestHandler;
@@ -43,7 +45,7 @@ export interface AdminRouterDeps {
  * is a required argument rather than a decorator.
  */
 export function createAdminRouter(deps: AdminRouterDeps): RequestHandler {
-  const { admin, authentication, workspaceScope } = deps;
+  const { admin, authzCache, authentication, workspaceScope } = deps;
   const router = createTieredRouter({
     authentication,
     authorization: workspaceScope,
@@ -339,6 +341,33 @@ export function createAdminRouter(deps: AdminRouterDeps): RequestHandler {
           { userId: req.auth!.sub, ip: req.ip },
         );
         res.status(201).json({ ok: true });
+      } catch (err) {
+        next(err);
+      }
+    },
+  );
+
+  // The authorization cache — what it holds and a way to empty it. Scoped to this workspace: only its entries are listed or cleared.
+  router.route(
+    "get",
+    "/authz-cache",
+    ability("authz-cache:manage"),
+    async (req: Request, res: Response, next: NextFunction) => {
+      try {
+        res.status(200).json(await authzCache.inspect(req.authz!.workspaceId));
+      } catch (err) {
+        next(err);
+      }
+    },
+  );
+
+  router.route(
+    "post",
+    "/authz-cache/clear",
+    ability("authz-cache:manage"),
+    async (req: Request, res: Response, next: NextFunction) => {
+      try {
+        res.status(201).json(await authzCache.clear(req.authz!.workspaceId));
       } catch (err) {
         next(err);
       }

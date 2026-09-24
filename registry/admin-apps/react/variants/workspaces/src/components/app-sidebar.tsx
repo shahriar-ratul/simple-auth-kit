@@ -1,8 +1,23 @@
 import { observer } from "mobx-react-lite";
 import { NavLink, useLocation } from "react-router-dom";
-import { ChevronRightIcon, ContactIcon, GlobeIcon, LanguagesIcon, LayoutDashboardIcon, ScrollTextIcon, ShieldCheckIcon, UserPlusIcon, UsersIcon } from "lucide-react";
+import {
+  ChevronRightIcon,
+  ContactIcon,
+  DatabaseZapIcon,
+  GlobeIcon,
+  LanguagesIcon,
+  LayoutDashboardIcon,
+  ScrollTextIcon,
+  ShieldCheckIcon,
+  UserPlusIcon,
+  UsersIcon,
+} from "lucide-react";
 import { NavUser } from "@/components/nav-user";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
 import {
   Sidebar,
   SidebarContent,
@@ -19,7 +34,12 @@ import {
   SidebarMenuSubItem,
   SidebarRail,
 } from "@/components/ui/sidebar";
-import { canAny, PERMISSIONS, useAbility, type AppAbility } from "@/lib/ability";
+import {
+  canAny,
+  PERMISSIONS,
+  useAbility,
+  type AppAbility,
+} from "@/lib/ability";
 import { useWorkspaceStore } from "@/stores/store-context";
 
 /**
@@ -49,7 +69,11 @@ const LINKS: Array<{
     needsWorkspace: true,
     children: [
       { to: "/users", label: "All users", requires: [PERMISSIONS.usersRead] },
-      { to: "/users/new", label: "Add user", requires: [PERMISSIONS.usersManage] },
+      {
+        to: "/users/new",
+        label: "Add user",
+        requires: [PERMISSIONS.usersManage],
+      },
     ],
   },
   { to: "/members", label: "Members", icon: UsersIcon, needsWorkspace: true },
@@ -57,11 +81,34 @@ const LINKS: Array<{
     to: "/roles",
     label: "Roles & permissions",
     icon: ShieldCheckIcon,
-    requires: [PERMISSIONS.rolesManage, PERMISSIONS.rolesAssign, PERMISSIONS.permissionsGrant],
+    requires: [
+      PERMISSIONS.rolesManage,
+      PERMISSIONS.rolesAssign,
+      PERMISSIONS.permissionsGrant,
+    ],
     needsWorkspace: true,
   },
-  { to: "/permissions", label: "Permissions", icon: ShieldCheckIcon, requires: [PERMISSIONS.permissionsRead], needsWorkspace: true },
-  { to: "/audit-log", label: "Audit log", icon: ScrollTextIcon, requires: [PERMISSIONS.auditLogRead], needsWorkspace: true },
+  {
+    to: "/permissions",
+    label: "Permissions",
+    icon: ShieldCheckIcon,
+    requires: [PERMISSIONS.permissionsRead],
+    needsWorkspace: true,
+  },
+  {
+    to: "/audit-log",
+    label: "Audit log",
+    icon: ScrollTextIcon,
+    requires: [PERMISSIONS.auditLogRead],
+    needsWorkspace: true,
+  },
+  {
+    to: "/authz-cache",
+    label: "Cache",
+    icon: DatabaseZapIcon,
+    requires: [PERMISSIONS.authzCacheManage],
+    needsWorkspace: true,
+  },
   {
     to: "/customers",
     label: "Customers",
@@ -69,8 +116,16 @@ const LINKS: Array<{
     requires: [PERMISSIONS.customersRead],
     needsWorkspace: true,
     children: [
-      { to: "/customers", label: "All customers", requires: [PERMISSIONS.customersRead] },
-      { to: "/customers/new", label: "Add customer", requires: [PERMISSIONS.customersManage] },
+      {
+        to: "/customers",
+        label: "All customers",
+        requires: [PERMISSIONS.customersRead],
+      },
+      {
+        to: "/customers/new",
+        label: "Add customer",
+        requires: [PERMISSIONS.customersManage],
+      },
     ],
   },
   {
@@ -80,8 +135,16 @@ const LINKS: Array<{
     requires: [PERMISSIONS.countriesRead],
     needsWorkspace: true,
     children: [
-      { to: "/countries", label: "All countries", requires: [PERMISSIONS.countriesRead] },
-      { to: "/countries/new", label: "Add country", requires: [PERMISSIONS.countriesManage] },
+      {
+        to: "/countries",
+        label: "All countries",
+        requires: [PERMISSIONS.countriesRead],
+      },
+      {
+        to: "/countries/new",
+        label: "Add country",
+        requires: [PERMISSIONS.countriesManage],
+      },
     ],
   },
   {
@@ -91,17 +154,40 @@ const LINKS: Array<{
     requires: [PERMISSIONS.languagesRead],
     needsWorkspace: true,
     children: [
-      { to: "/languages", label: "All languages", requires: [PERMISSIONS.languagesRead] },
-      { to: "/languages/new", label: "Add language", requires: [PERMISSIONS.languagesManage] },
+      {
+        to: "/languages",
+        label: "All languages",
+        requires: [PERMISSIONS.languagesRead],
+      },
+      {
+        to: "/languages/new",
+        label: "Add language",
+        requires: [PERMISSIONS.languagesManage],
+      },
     ],
   },
 ];
 
 function visibleLinks(ability: AppAbility, hasWorkspace: boolean) {
-  return LINKS.filter((link) => (!link.needsWorkspace || hasWorkspace) && (!link.requires || canAny(ability, link.requires)))
-    .map((link) => ({ ...link, children: link.children?.filter((child) => !child.requires || canAny(ability, child.requires)) }))
-    // A parent with every child hidden by permissions collapses to a plain link.
-    .map((link) => (link.children && link.children.length <= 1 ? { ...link, children: undefined } : link));
+  return (
+    LINKS.filter(
+      (link) =>
+        (!link.needsWorkspace || hasWorkspace) &&
+        (!link.requires || canAny(ability, link.requires)),
+    )
+      .map((link) => ({
+        ...link,
+        children: link.children?.filter(
+          (child) => !child.requires || canAny(ability, child.requires),
+        ),
+      }))
+      // A parent with every child hidden by permissions collapses to a plain link.
+      .map((link) =>
+        link.children && link.children.length <= 1
+          ? { ...link, children: undefined }
+          : link,
+      )
+  );
 }
 
 export const AppSidebar = observer(function AppSidebar() {
@@ -123,7 +209,9 @@ export const AppSidebar = observer(function AppSidebar() {
                 </div>
                 <div className="grid flex-1 text-left text-sm leading-tight">
                   <span className="truncate font-medium">simple-auth-kit</span>
-                  <span className="truncate text-xs text-muted-foreground">admin console</span>
+                  <span className="truncate text-xs text-muted-foreground">
+                    admin console
+                  </span>
                 </div>
               </NavLink>
             </SidebarMenuButton>
@@ -137,10 +225,18 @@ export const AppSidebar = observer(function AppSidebar() {
             <SidebarMenu>
               {links.map((link) =>
                 link.children ? (
-                  <Collapsible key={link.to} asChild defaultOpen={location.pathname.startsWith(link.to)} className="group/collapsible">
+                  <Collapsible
+                    key={link.to}
+                    asChild
+                    defaultOpen={location.pathname.startsWith(link.to)}
+                    className="group/collapsible"
+                  >
                     <SidebarMenuItem>
                       <CollapsibleTrigger asChild>
-                        <SidebarMenuButton tooltip={link.label} isActive={location.pathname === link.to}>
+                        <SidebarMenuButton
+                          tooltip={link.label}
+                          isActive={location.pathname === link.to}
+                        >
                           <link.icon />
                           <span>{link.label}</span>
                           <ChevronRightIcon className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
@@ -150,9 +246,17 @@ export const AppSidebar = observer(function AppSidebar() {
                         <SidebarMenuSub>
                           {link.children.map((child) => (
                             <SidebarMenuSubItem key={child.to}>
-                              <SidebarMenuSubButton asChild isActive={location.pathname === child.to}>
-                                <NavLink to={child.to} end={child.to === "/users"}>
-                                  {child.to === "/users/new" ? <UserPlusIcon /> : null}
+                              <SidebarMenuSubButton
+                                asChild
+                                isActive={location.pathname === child.to}
+                              >
+                                <NavLink
+                                  to={child.to}
+                                  end={child.to === "/users"}
+                                >
+                                  {child.to === "/users/new" ? (
+                                    <UserPlusIcon />
+                                  ) : null}
                                   <span>{child.label}</span>
                                 </NavLink>
                               </SidebarMenuSubButton>
@@ -164,7 +268,11 @@ export const AppSidebar = observer(function AppSidebar() {
                   </Collapsible>
                 ) : (
                   <SidebarMenuItem key={link.to}>
-                    <SidebarMenuButton asChild isActive={location.pathname === link.to} tooltip={link.label}>
+                    <SidebarMenuButton
+                      asChild
+                      isActive={location.pathname === link.to}
+                      tooltip={link.label}
+                    >
                       <NavLink to={link.to}>
                         <link.icon />
                         <span>{link.label}</span>

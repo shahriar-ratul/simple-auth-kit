@@ -3,6 +3,7 @@ import {
   bumpAuthzVersion,
   readAuthzVersion,
 } from "@/common/auth/cache/authz-version";
+import type { ProfileSummary } from "@/common/auth/cache/authz-cache";
 import { Prisma, PrismaClient } from "@/database/generated/prisma/client";
 import { HttpError } from "@/infra/errors/http-error";
 import {
@@ -142,6 +143,29 @@ export class RbacRepository {
    */
   async readAuthzVersion(): Promise<bigint> {
     return readAuthzVersion(this.prisma);
+  }
+
+  /** Invalidates every cached authorization answer; returns the new version. */
+  async bumpAuthzVersion(): Promise<bigint> {
+    return (await bumpAuthzVersion(this.prisma)).version;
+  }
+
+  /** Batched profile lookup for the admin cache-inspection endpoint — one query for every user id not already cached. */
+  async readProfileSummaries(
+    userIds: string[],
+  ): Promise<Map<string, ProfileSummary>> {
+    if (!userIds.length) return new Map();
+    const rows = await this.prisma.user.findMany({
+      where: { id: { in: userIds.map((id) => toId(id)) } },
+      select: {
+        id: true,
+        email: true,
+        displayName: true,
+        firstName: true,
+        lastName: true,
+      },
+    });
+    return new Map(rows.map((row) => [row.id.toString(), row]));
   }
 
   /**

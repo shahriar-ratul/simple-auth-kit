@@ -4,7 +4,10 @@ import { Navigate, Route, Routes } from "react-router-dom";
 import { AbilityContext, abilityFor, PERMISSIONS } from "@/lib/ability";
 import { useAuthStore } from "@/stores/store-context";
 import { AppShell } from "@/components/layout/AppShell";
-import { RequireAuth, RequirePermission } from "@/components/layout/RequireAuth";
+import {
+  RequireAuth,
+  RequirePermission,
+} from "@/components/layout/RequireAuth";
 import { LoginPage } from "@/pages/LoginPage";
 import { DashboardPage } from "@/pages/DashboardPage";
 import { UsersPage } from "@/pages/UsersPage";
@@ -15,6 +18,7 @@ import { RoleDetailPage } from "@/pages/RoleDetailPage";
 import { PermissionsPage } from "@/pages/PermissionsPage";
 import { PermissionDetailPage } from "@/pages/PermissionDetailPage";
 import { AuditLogPage } from "@/pages/AuditLogPage";
+import { AuthzCachePage } from "@/pages/AuthzCachePage";
 import { AccountPage } from "@/pages/AccountPage";
 import { CustomersPage } from "@/pages/CustomersPage";
 import { AddCustomerPage } from "@/pages/AddCustomerPage";
@@ -48,50 +52,110 @@ export const App = observer(function App() {
             <Route path="/dashboard" element={<DashboardPage />} />
             <Route path="/account" element={<AccountPage />} />
 
-            <Route element={<RequirePermission anyOf={[PERMISSIONS.usersRead]} />}>
+            <Route
+              element={<RequirePermission anyOf={[PERMISSIONS.usersRead]} />}
+            >
               <Route path="/users" element={<UsersPage />} />
               <Route path="/users/:id" element={<UserDetailPage />} />
             </Route>
-            <Route element={<RequirePermission anyOf={[PERMISSIONS.usersManage]} />}>
+            <Route
+              element={<RequirePermission anyOf={[PERMISSIONS.usersManage]} />}
+            >
               <Route path="/users/new" element={<AddUserPage />} />
             </Route>
-            <Route element={<RequirePermission anyOf={[PERMISSIONS.rolesManage, PERMISSIONS.rolesAssign, PERMISSIONS.permissionsGrant]} />}>
+            <Route
+              element={
+                <RequirePermission
+                  anyOf={[
+                    PERMISSIONS.rolesManage,
+                    PERMISSIONS.rolesAssign,
+                    PERMISSIONS.permissionsGrant,
+                  ]}
+                />
+              }
+            >
               <Route path="/roles" element={<RolesPage />} />
               <Route path="/roles/:id" element={<RoleDetailPage />} />
             </Route>
-            <Route element={<RequirePermission anyOf={[PERMISSIONS.permissionsRead]} />}>
+            <Route
+              element={
+                <RequirePermission anyOf={[PERMISSIONS.permissionsRead]} />
+              }
+            >
               <Route path="/permissions" element={<PermissionsPage />} />
-              <Route path="/permissions/:id" element={<PermissionDetailPage />} />
+              <Route
+                path="/permissions/:id"
+                element={<PermissionDetailPage />}
+              />
             </Route>
-            <Route element={<RequirePermission anyOf={[PERMISSIONS.auditLogRead]} />}>
+            <Route
+              element={<RequirePermission anyOf={[PERMISSIONS.auditLogRead]} />}
+            >
               <Route path="/audit-log" element={<AuditLogPage />} />
             </Route>
+            <Route
+              element={
+                <RequirePermission anyOf={[PERMISSIONS.authzCacheManage]} />
+              }
+            >
+              <Route path="/authz-cache" element={<AuthzCachePage />} />
+            </Route>
 
-            <Route element={<RequirePermission anyOf={[PERMISSIONS.customersRead]} />}>
+            <Route
+              element={
+                <RequirePermission anyOf={[PERMISSIONS.customersRead]} />
+              }
+            >
               <Route path="/customers" element={<CustomersPage />} />
               <Route path="/customers/:id" element={<CustomerDetailPage />} />
             </Route>
-            <Route element={<RequirePermission anyOf={[PERMISSIONS.customersManage]} />}>
+            <Route
+              element={
+                <RequirePermission anyOf={[PERMISSIONS.customersManage]} />
+              }
+            >
               <Route path="/customers/new" element={<AddCustomerPage />} />
-              <Route path="/customers/:id/edit" element={<EditCustomerPage />} />
+              <Route
+                path="/customers/:id/edit"
+                element={<EditCustomerPage />}
+              />
             </Route>
 
-            <Route element={<RequirePermission anyOf={[PERMISSIONS.countriesRead]} />}>
+            <Route
+              element={
+                <RequirePermission anyOf={[PERMISSIONS.countriesRead]} />
+              }
+            >
               <Route path="/countries" element={<CountriesPage />} />
               <Route path="/countries/:id" element={<CountryDetailPage />} />
             </Route>
-            <Route element={<RequirePermission anyOf={[PERMISSIONS.countriesManage]} />}>
+            <Route
+              element={
+                <RequirePermission anyOf={[PERMISSIONS.countriesManage]} />
+              }
+            >
               <Route path="/countries/new" element={<AddCountryPage />} />
               <Route path="/countries/:id/edit" element={<EditCountryPage />} />
             </Route>
 
-            <Route element={<RequirePermission anyOf={[PERMISSIONS.languagesRead]} />}>
+            <Route
+              element={
+                <RequirePermission anyOf={[PERMISSIONS.languagesRead]} />
+              }
+            >
               <Route path="/languages" element={<LanguagesPage />} />
               <Route path="/languages/:id" element={<LanguageDetailPage />} />
             </Route>
-            <Route element={<RequirePermission anyOf={[PERMISSIONS.languagesManage]} />}>
+            <Route
+              element={
+                <RequirePermission anyOf={[PERMISSIONS.languagesManage]} />
+              }
+            >
               <Route path="/languages/new" element={<AddLanguagePage />} />
-              <Route path="/languages/:id/edit" element={<EditLanguagePage />} />
+              <Route
+                path="/languages/:id/edit"
+                element={<EditLanguagePage />}
+              />
             </Route>
           </Route>
         </Route>

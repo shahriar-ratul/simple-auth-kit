@@ -34,6 +34,50 @@ export const adminSpec: OpenApiFragment = {
   scopeParameters: workspaceSpec.scopeParameters,
 
   schemas: {
+    AuthzCacheEntry: {
+      type: "object",
+      properties: {
+        key: { type: "string" },
+        userId: { type: "string" },
+        workspaceId: { type: "string" },
+        version: { type: "string", nullable: true },
+        stale: { type: "boolean" },
+        ttlSeconds: { type: "integer", nullable: true },
+        roles: { type: "array", items: { type: "string" } },
+        permissions: { type: "array", items: { type: "string" } },
+      },
+    },
+    AuthzCacheInspection: {
+      type: "object",
+      properties: {
+        active: { type: "boolean" },
+        enabled: { type: "boolean" },
+        revalidate: { type: "boolean" },
+        ttlSeconds: { type: "integer" },
+        hasStore: { type: "boolean" },
+        canList: { type: "boolean" },
+        version: { type: "string" },
+        stats: {
+          type: "object",
+          properties: {
+            resolutions: { type: "integer" },
+            hits: { type: "integer" },
+          },
+        },
+        entries: {
+          type: "array",
+          nullable: true,
+          items: { $ref: "#/components/schemas/AuthzCacheEntry" },
+        },
+      },
+    },
+    AuthzCacheClearResult: {
+      type: "object",
+      properties: {
+        version: { type: "string" },
+        removed: { type: "integer", nullable: true },
+      },
+    },
     PermissionSummary: {
       type: "object",
       properties: {
@@ -1176,6 +1220,54 @@ export const adminSpec: OpenApiFragment = {
             "the request named no workspace you belong to",
           ),
           "404": errorResponse("The user is not a member of this workspace"),
+        },
+      },
+    },
+    "/admin/authz-cache": {
+      get: {
+        tags: ["auth"],
+        summary: "[admin] Inspect the authorization cache",
+        description: `${requiresPermission("authz-cache:manage")} Configuration, current authz_version, hit/resolution counts since process start, and — when the store can list — the cached entries. Lists only this workspace's entries.`,
+        security: [{ bearerAuth: [] }],
+        parameters: [adminHeaderParameter],
+        responses: {
+          "200": {
+            description: "OK",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/AuthzCacheInspection" },
+              },
+            },
+          },
+          "401": errorResponse("Missing or invalid access token"),
+          "403": missingPermission(
+            "authz-cache:manage",
+            "the request named no workspace you belong to",
+          ),
+        },
+      },
+    },
+    "/admin/authz-cache/clear": {
+      post: {
+        tags: ["auth"],
+        summary: "[admin] Clear the authorization cache",
+        description: `${requiresPermission("authz-cache:manage")} Bumps authz_version (invalidating every entry on every server), then deletes the stored entries when the store can. Deletes only this workspace's entries; the version bump invalidates every entry.`,
+        security: [{ bearerAuth: [] }],
+        parameters: [adminHeaderParameter],
+        responses: {
+          "201": {
+            description: "Created",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/AuthzCacheClearResult" },
+              },
+            },
+          },
+          "401": errorResponse("Missing or invalid access token"),
+          "403": missingPermission(
+            "authz-cache:manage",
+            "the request named no workspace you belong to",
+          ),
         },
       },
     },

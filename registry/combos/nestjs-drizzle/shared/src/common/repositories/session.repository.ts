@@ -142,7 +142,10 @@ export class SessionRepository implements SessionStoreDeps {
       );
   }
 
+  // Both go to `AuthConfig.denylistStore` when one is configured (e.g. Redis), else the table.
   async denylistJti(jti: string, ttlSeconds: number): Promise<void> {
+    if (this.config.denylistStore)
+      return this.config.denylistStore.add(jti, ttlSeconds);
     const expiresAt = new Date(Date.now() + ttlSeconds * 1000);
     await this.db
       .insert(denylistedAccessTokens)
@@ -154,6 +157,7 @@ export class SessionRepository implements SessionStoreDeps {
   }
 
   async isDenylisted(jti: string): Promise<boolean> {
+    if (this.config.denylistStore) return this.config.denylistStore.has(jti);
     const [row] = await this.db
       .select()
       .from(denylistedAccessTokens)

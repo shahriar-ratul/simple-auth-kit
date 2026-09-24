@@ -548,3 +548,51 @@ export class AuthApiError extends Error {
     this.name = "AuthApiError";
   }
 }
+
+/** One cached authorization, as `GET /api/v1/admin/authz-cache` reports it. */
+export interface AuthzCacheEntry {
+  /** The store key, e.g. `simpleauthkit:authz:42` (or `…:42:7` — user 42 in workspace 7). */
+  key: string;
+  userId: string;
+  /** Looked up for display (profile cache, else the database); null if the user is gone. */
+  email: string | null;
+  name: string | null;
+  /** Whether this user's profile is also cached (`simpleauthkit:profile:<userId>`). */
+  profileCached: boolean;
+  /** Workspaces backend variant only. */
+  workspaceId?: string;
+  /** The `authz_version` this entry was cached at; `stale` when it no longer matches. */
+  version: string | null;
+  stale: boolean;
+  /** Seconds until the store expires it; null when the store can't say. */
+  ttlSeconds: number | null;
+  roles: string[];
+  permissions: string[];
+}
+
+/** The authorization cache's configuration and contents (`GET /api/v1/admin/authz-cache`). */
+export interface AuthzCacheStatus {
+  /** True only when caching is enabled AND a store (e.g. Redis) is configured. */
+  active: boolean;
+  enabled: boolean;
+  revalidate: boolean;
+  ttlSeconds: number;
+  /** Whether a store is configured — there is no in-memory fallback. */
+  hasStore: boolean;
+  /** Whether the store can enumerate its entries (so `entries` is populated). */
+  canList: boolean;
+  /** The current `authz_version`. */
+  version: string;
+  /** Since this server started: full database resolutions vs. answers served from the store. */
+  stats: { resolutions: number; hits: number; profileHits: number };
+  /** Null when there is no store or it can't list; scoped to the active workspace there. */
+  entries: AuthzCacheEntry[] | null;
+}
+
+/** `POST /api/v1/admin/authz-cache/clear`. */
+export interface AuthzCacheClearResult {
+  /** The bumped `authz_version` — every server re-resolves on its next request. */
+  version: string;
+  /** Entries deleted from the store (null when the store can't delete). */
+  removed: number | null;
+}

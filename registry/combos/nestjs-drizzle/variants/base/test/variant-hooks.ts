@@ -31,8 +31,10 @@ import {
 import { authzCache, waitOutAuthzCache } from "./bootstrap.js";
 import {
   AuthzCache,
+  authzCacheKey,
   type AuthzCacheStore,
 } from "../src/common/auth/cache/authz-cache.js";
+import { MemoryAuthzCacheStore } from "./memory-authz-cache-store.js";
 import { bumpAuthzVersion } from "../src/common/auth/cache/authz-version.js";
 
 /** One short-lived pool per call, closed on the way out, so the proof process has no lingering handle to wait on. */
@@ -202,6 +204,7 @@ export const hooks: VariantHooks = {
 
     await proveARawDatabaseEditChangesEnforcement(ctx, admin);
     await proveAuthzIsCachedUntilTheDatabaseChanges(ctx, admin);
+    await proveAuthzCacheAdminEndpoints(ctx, admin);
   },
 };
 
@@ -413,8 +416,8 @@ async function proveAuthzIsCachedUntilTheDatabaseChanges(
 
 /**
  * `AuthConfig.authzCache` switches, exercised on `AuthzCache` directly with a stub resolver and a
- * stub version reader, so each mode is proved in isolation: caching off, revalidation off, and a
- * custom store (the seam a Redis-backed store plugs into).
+ * stub version reader, so each mode is proved in isolation: no store, caching off, revalidation
+ * off, and a custom store (the seam a Redis-backed store plugs into).
  */
 async function proveAuthzCacheIsConfigurable(ctx: ProofContext): Promise<void> {
   let versionReads = 0;
@@ -428,12 +431,35 @@ async function proveAuthzCacheIsConfigurable(ctx: ProofContext): Promise<void> {
     return { roles: [], permissions: ["audit-log:read"] };
   };
 
-  const off = new AuthzCache(
-    { enabled: false, revalidate: true, ttlSeconds: 30 },
+  const bump = async () => {};
+  const deps = {
     readVersion,
+    bumpVersion: bump,
+    loadIdentities: async () => new Map(),
+  };
+  const noStore = new AuthzCache(
+    { enabled: true, revalidate: true, ttlSeconds: 30 },
+    deps,
   );
-  await off.get("k", resolve);
-  await off.get("k", resolve);
+  await noStore.get(authzCacheKey("k"), resolve);
+  await noStore.get(authzCacheKey("k"), resolve);
+  ctx.assert(
+    resolves === 2 && versionReads === 0,
+    `with no authzCache.store there is no cache: every call resolves and authz_version is never read (resolves ${resolves}, version reads ${versionReads})`,
+  );
+
+  resolves = 0;
+  const off = new AuthzCache(
+    {
+      enabled: false,
+      revalidate: true,
+      ttlSeconds: 30,
+      store: new MemoryAuthzCacheStore(),
+    },
+    deps,
+  );
+  await off.get(authzCacheKey("k"), resolve);
+  await off.get(authzCacheKey("k"), resolve);
   ctx.assert(
     resolves === 2 && versionReads === 0,
     `authzCache.enabled = false resolves from the database on every call (resolves ${resolves}, version reads ${versionReads})`,
@@ -442,17 +468,22 @@ async function proveAuthzCacheIsConfigurable(ctx: ProofContext): Promise<void> {
   resolves = 0;
   versionReads = 0;
   const noRevalidate = new AuthzCache(
-    { enabled: true, revalidate: false, ttlSeconds: 1 },
-    readVersion,
+    {
+      enabled: true,
+      revalidate: false,
+      ttlSeconds: 1,
+      store: new MemoryAuthzCacheStore(),
+    },
+    deps,
   );
-  await noRevalidate.get("k", resolve);
-  await noRevalidate.get("k", resolve);
+  await noRevalidate.get(authzCacheKey("k"), resolve);
+  await noRevalidate.get(authzCacheKey("k"), resolve);
   ctx.assert(
     resolves === 1 && versionReads === 0,
     `authzCache.revalidate = false never reads authz_version and reuses the entry (resolves ${resolves}, version reads ${versionReads})`,
   );
   await waitOutAuthzCache();
-  await noRevalidate.get("k", resolve);
+  await noRevalidate.get(authzCacheKey("k"), resolve);
   ctx.assert(
     resolves === 2,
     `…until the entry's TTL runs out (resolves ${resolves})`,
@@ -473,14 +504,88 @@ async function proveAuthzCacheIsConfigurable(ctx: ProofContext): Promise<void> {
   };
   const custom = new AuthzCache(
     { enabled: true, revalidate: true, ttlSeconds: 7, store },
-    readVersion,
+    deps,
   );
-  await custom.get("u1", resolve);
-  await custom.get("u1", resolve);
+  await custom.get(authzCacheKey("u1"), resolve);
+  await custom.get(authzCacheKey("u1"), resolve);
   ctx.assert(
     resolves === 1 &&
       calls.filter((c) => c === "get simpleauthkit:authz:u1").length === 2 &&
       calls.includes("set simpleauthkit:authz:u1 7"),
     `a custom authzCache.store (e.g. Redis-backed) receives every get/set (${calls.join(", ")})`,
+  );
+}
+
+/**
+ * `GET/POST /admin/authz-cache`: gated on `authz-cache:manage`, lists what the cache holds, and
+ * clearing bumps the version (every server's entries go stale) and deletes the stored entries.
+ */
+async function proveAuthzCacheAdminEndpoints(
+  ctx: ProofContext,
+  admin: AdminSession,
+): Promise<void> {
+  const cache = authzCache!;
+  const email = ctx.uniqueEmail("cacheadmin");
+  const tokens = await ctx.signup(email, "cacheadmin-pw-12345");
+  const userId = (
+    await ctx.call("GET", "/auth/me", { token: tokens.accessToken })
+  ).body.sub as string;
+  const as = { token: tokens.accessToken };
+
+  const userGet = await ctx.call("GET", "/admin/authz-cache", as);
+  const userClear = await ctx.call("POST", "/admin/authz-cache/clear", as);
+  ctx.assert(
+    userGet.status === 403 && userClear.status === 403,
+    `an ordinary user is refused both authz-cache endpoints (got ${userGet.status}, ${userClear.status})`,
+  );
+
+  await ctx.call("POST", `/admin/users/${userId}/permissions`, {
+    token: await admin.freshToken(),
+    body: { permission: "audit-log:read" },
+  });
+  ctx.assert(
+    (await ctx.call("GET", "/audit-log", as)).status === 200,
+    "the user makes an authorized request, which caches their context",
+  );
+
+  const adminToken = await admin.freshToken();
+  const inspected = await ctx.call("GET", "/admin/authz-cache", {
+    token: adminToken,
+  });
+  const entry = (inspected.body?.entries ?? []).find(
+    (e: { userId: string }) => e.userId === userId,
+  );
+  ctx.assert(
+    inspected.status === 200 &&
+      inspected.body.active === true &&
+      entry?.permissions?.includes("audit-log:read") === true &&
+      Array.isArray(entry?.roles),
+    `the admin sees the cache active, with the user's entry and permissions (got ${inspected.status}, active=${inspected.body?.active}, entry=${JSON.stringify(entry)})`,
+  );
+
+  const before = Number(inspected.body.version);
+  const cleared = await ctx.call("POST", "/admin/authz-cache/clear", {
+    token: adminToken,
+  });
+  ctx.assert(
+    Number(cleared.body?.version) === before + 1 &&
+      (cleared.body?.removed ?? 0) >= 1,
+    `clearing bumps the version by one and removes entries (version ${before} -> ${cleared.body?.version}, removed ${cleared.body?.removed})`,
+  );
+
+  const after = await ctx.call("GET", "/admin/authz-cache", {
+    token: adminToken,
+  });
+  ctx.assert(
+    !(after.body?.entries ?? []).some(
+      (e: { userId: string }) => e.userId === userId,
+    ),
+    "after clearing, the user's entry is gone",
+  );
+  const resolutions = cache.stats.resolutions;
+  await ctx.call("GET", "/audit-log", as);
+  ctx.assert(
+    cache.stats.resolutions - resolutions === 1,
+    `…and their next authorized request re-resolves from the database (resolutions +${cache.stats.resolutions - resolutions})`,
   );
 }

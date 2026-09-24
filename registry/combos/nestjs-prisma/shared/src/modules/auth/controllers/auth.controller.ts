@@ -52,6 +52,7 @@ import {
   TwoFactorCodeDto,
   UpdateUserDto,
 } from "@/modules/auth/dto/auth.dto";
+import { AuthzCache } from "@/common/auth/cache/authz-cache";
 
 function requireString(value: unknown, field: string): string {
   if (typeof value !== "string" || value.length === 0)
@@ -72,6 +73,7 @@ export class AuthController {
   constructor(
     @Inject(AuthService) private readonly auth: AuthService,
     @Inject(AUTH_CONFIG) private readonly config: AuthConfig,
+    @Inject(AuthzCache) private readonly cache: AuthzCache,
   ) {}
 
   @Post("signup")
@@ -178,24 +180,31 @@ export class AuthController {
   @ApiResponse({ status: 200, type: CurrentUserDto })
   async me(@Req() req: Request) {
     const { sub, sessionId } = req.auth!;
-    const [{ twoFactorEnabled }, profile] = await Promise.all([
-      this.auth.getTwoFactorStatus(sub),
-      this.auth.getProfile(sub),
-    ]);
+    // Served from the authz cache's store when one is configured; every write that changes one
+    // of these fields invalidates it (see `AuthzCache.invalidateProfile`).
+    const profile = await this.cache.getProfile(sub, async () => {
+      const [{ twoFactorEnabled }, row] = await Promise.all([
+        this.auth.getTwoFactorStatus(sub),
+        this.auth.getProfile(sub),
+      ]);
+      return {
+        twoFactorEnabled,
+        email: row.email,
+        firstName: row.firstName,
+        lastName: row.lastName,
+        displayName: row.displayName,
+        phone: row.phone,
+        username: row.username,
+        photo: row.photo,
+      };
+    });
     // The same `req.authz` AbilityGuard's ability was built from — not re-resolved here.
     return {
       sub,
       sessionId,
       roles: req.authz?.roles ?? [],
       permissions: req.authz?.permissions ?? [],
-      twoFactorEnabled,
-      email: profile.email,
-      firstName: profile.firstName,
-      lastName: profile.lastName,
-      displayName: profile.displayName,
-      phone: profile.phone,
-      username: profile.username,
-      photo: profile.photo,
+      ...profile,
     };
   }
 

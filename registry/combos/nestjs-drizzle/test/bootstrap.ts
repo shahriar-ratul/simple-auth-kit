@@ -5,6 +5,7 @@ import { APP_FILTER, APP_INTERCEPTOR } from "@nestjs/core";
 import { AdminModule } from "../src/modules/admin/admin.module.js";
 import { AuditLogModule } from "../src/modules/audit-log/audit-log.module.js";
 import { AuthzCache } from "../src/common/auth/cache/authz-cache.js";
+import { MemoryAuthzCacheStore } from "./memory-authz-cache-store.js";
 import { AuthCoreErrorFilter } from "../src/infra/filters/auth-core-error.filter.js";
 import { AuthModule } from "../src/modules/auth/auth.module.js";
 import { CoreAuthModule } from "../src/common/auth/core-auth.module.js";
@@ -51,7 +52,9 @@ export async function bootstrap(port: number) {
         // half of the fix.
         accessTokenTtlSeconds: 300,
         // Short, so the proof can show a direct-database edit applying once cached contexts expire.
-        authzCache: { ttlSeconds: 1 },
+        // The kit ships no in-memory store (no store = no cache), so the proof supplies a
+        // test-only one standing in for Redis.
+        authzCache: { ttlSeconds: 1, store: new MemoryAuthzCacheStore() },
         sendPasswordResetEmail: async (email: string, token: string) => {
           capturedResetTokens.set(email, token);
         },
