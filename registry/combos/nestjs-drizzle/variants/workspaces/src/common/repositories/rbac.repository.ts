@@ -28,6 +28,7 @@ import {
   workspaceMembers,
 } from "@/database/schema";
 import { toId, toIdOrNull } from "@/common/helpers/id.helper";
+import { bumpAuthzVersion } from "@/common/auth/cache/authz-version";
 
 export interface MemberSummary {
   memberId: string;
@@ -473,6 +474,7 @@ export class RbacRepository {
       .update(users)
       .set({ ...changed, updatedBy: toIdOrNull(actorUserId) })
       .where(eq(users.id, toId(userId)));
+    await bumpAuthzVersion(this.db);
     return this.getMember(workspaceId, userId);
   }
 
@@ -498,6 +500,7 @@ export class RbacRepository {
         deletedReason: reason ?? null,
       })
       .where(eq(users.id, toId(userId)));
+    await bumpAuthzVersion(this.db);
   }
 
   // ---- the catalog itself ----
@@ -570,6 +573,7 @@ export class RbacRepository {
       })
       .returning(PERMISSION_COLUMNS);
 
+    await bumpAuthzVersion(this.db);
     return asPermissionSummary(permission);
   }
 
@@ -647,6 +651,7 @@ export class RbacRepository {
       .set({ ...changed, updatedBy: toIdOrNull(actorUserId) })
       .where(eq(roles.id, roleIdBig))
       .returning(ROLE_COLUMNS);
+    await bumpAuthzVersion(this.db);
     return asRoleSummary(role);
   }
 
@@ -679,6 +684,7 @@ export class RbacRepository {
         deletedReason: reason ?? null,
       })
       .where(eq(roles.id, roleIdBig));
+    await bumpAuthzVersion(this.db);
   }
 
   /**
@@ -710,6 +716,7 @@ export class RbacRepository {
       .onConflictDoNothing({
         target: [permissionRole.permissionId, permissionRole.roleId],
       });
+    await bumpAuthzVersion(this.db);
   }
 
   async assignRoleToMember(
@@ -725,6 +732,7 @@ export class RbacRepository {
       .onConflictDoNothing({
         target: [roleMember.memberId, roleMember.roleId],
       });
+    await bumpAuthzVersion(this.db);
   }
 
   async revokeRoleFromMember(
@@ -746,6 +754,7 @@ export class RbacRepository {
       .where(
         and(eq(roleMember.memberId, member.id), eq(roleMember.roleId, role.id)),
       );
+    await bumpAuthzVersion(this.db);
   }
 
   /** Replaces the whole set — the "set a member's roles" operation, as opposed to assign/revoke one at a time. */
@@ -799,6 +808,7 @@ export class RbacRepository {
             target: [roleMember.memberId, roleMember.roleId],
           });
       }
+      await bumpAuthzVersion(tx);
     });
     return { memberId, roles: found.map((role) => role.slug).sort() };
   }
@@ -837,6 +847,7 @@ export class RbacRepository {
       .onConflictDoNothing({
         target: [permissionMember.memberId, permissionMember.permissionId],
       });
+    await bumpAuthzVersion(this.db);
   }
 
   async revokePermissionFromMember(
@@ -859,6 +870,7 @@ export class RbacRepository {
           eq(permissionMember.permissionId, permission.id),
         ),
       );
+    await bumpAuthzVersion(this.db);
   }
 
   // Returns bigint directly: its one caller (assignRoleToMember) feeds the id straight into

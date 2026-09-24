@@ -275,8 +275,8 @@
   <div class="hero">
     <span class="verdict-badge">Verdict: sound, ship the fixes below</span>
     <span class="verdict-badge note">Update: no CI — enforcement moved local</span>
-    <span class="verdict-badge note">Update: permission cache removed — authz is live from the DB</span>
-    <p class="update-note" style="margin:12px 0;padding:10px 14px;border-left:3px solid currentColor;opacity:.9"><b>Update (2026-09-24):</b> since this review, the permission cache was removed — authorization is read live from the database on every request, so a revoke made through the API or directly in SQL applies on the next request. Seed data moved out of the application into <code class="inline">database/seedData/</code> (the app never imports it); only the route slug list stays in code, in <code class="inline">permission-slugs.ts</code>. Repositories used by more than one module now live in <code class="inline">src/common/repositories/</code>. Findings below that mention <code class="inline">PermissionCache</code> or <code class="inline">rbac.defaults.ts</code> describe the code as it was when reviewed.</p>
+    <span class="verdict-badge note">Update: permission cache reworked — ORM version row + TTL</span>
+    <p class="update-note" style="margin:12px 0;padding:10px 14px;border-left:3px solid currentColor;opacity:.9"><b>Update (2026-09-24):</b> since this review, the version-key permission cache was replaced: authorization is cached in memory and invalidated by an ORM-maintained <code class="inline">authz_version</code> row that every app write bumps (API changes apply on the next request, on every instance), with a TTL (<code class="inline">authzCacheTtlSeconds</code>, default 30) bounding changes written straight to the database. No triggers or hand-written SQL. Seed data moved out of the application into <code class="inline">database/seedData/</code> (the app never imports it); only the route slug list stays in code, in <code class="inline">permission-slugs.ts</code>. Repositories used by more than one module now live in <code class="inline">src/common/repositories/</code>. Findings below that mention <code class="inline">PermissionCache</code> or <code class="inline">rbac.defaults.ts</code> describe the code as it was when reviewed.</p>
     <h2>The hard decisions are correct. The gaps are all in enforcement, not design.</h2>
     <p>
       Deps-injection over interface abstraction, no-authz-in-JWT, fail-closed route tiers, live
@@ -326,7 +326,7 @@
         <div class="step">
           <div class="num">02</div>
           <div class="name">AuthzGuard</div>
-          <div class="note">Resolves roles/permissions live from the DB on every request (no cache) → sets <code class="inline">req.authz</code>, <code class="inline">req.ability</code>.</div>
+          <div class="note">Resolves roles/permissions from the DB, cached until the ORM-bumped <code class="inline">authz_version</code> changes or the TTL expires → sets <code class="inline">req.authz</code>, <code class="inline">req.ability</code>.</div>
         </div>
         <div class="sep">→</div>
         <div class="step">
@@ -364,12 +364,13 @@
       </div>
 
       <div class="card good">
-        <h3>Authorization is read live from the database <span class="update-flag">updated</span></h3>
-        <span class="file">registry/combos/nestjs-prisma/variants/{base,workspaces}/src/common/auth/guards/authz.guard.ts</span>
-        <pre><code><span class="comment">// No permission cache: every authorized request resolves roles + direct grants
-// from the database. The database is the only source of truth, so a revoke made
-// through the API or by a direct SQL write applies on the very next request.</span></code></pre>
-        <div class="why"><b>Why it matters:</b> the system's core promise is "a revocation lands on the caller's next request, not their next token." This review originally praised a version-key permission cache; it was later removed because out-of-band database writes (e.g. an operator revoking in SQL) bypassed its invalidation. <code class="inline">prove-cycle</code> now asserts that raw DB revocations, with no cache bump, 403 on the next request.</div>
+        <h3>Authorization cache: ORM version row + TTL <span class="update-flag">updated</span></h3>
+        <span class="file">registry/combos/nestjs-prisma/shared/src/common/auth/cache/{authz-cache,authz-version}.ts</span>
+        <pre><code><span class="comment">// Every authorization write the app makes bumps the single authz_version row
+// (through the ORM, inside the same transaction). A cached answer is used only
+// while that version is unchanged and it is younger than authzCacheTtlSeconds,
+// so API changes apply on the next request and direct DB edits after the TTL.</span></code></pre>
+        <div class="why"><b>Why it matters:</b> the system's core promise is "a revocation lands on the caller's next request, not their next token." This review originally praised a version-key permission cache; it was later reworked so the invalidation signal lives in the database (an <code class="inline">authz_version</code> row bumped through the ORM by every app write), which every instance sees. Direct SQL edits bypass that signal, so a TTL bounds them. <code class="inline">prove-cycle</code> asserts cache hits, API revokes on the next request, and direct-DB revokes after the TTL.</div>
       </div>
 
       <div class="card good">
@@ -384,7 +385,7 @@
       <div class="card good">
         <h3>No authorization in the JWT, applied consistently</h3>
         <span class="file">registry/core/token-service.ts</span>
-        <p style="margin-top:10px">Access-token signing omits roles/permissions keys entirely when the caller passes neither — not empty arrays, absent. Every downstream guard resolves from the database. The cost (a read on every authorized request) is paid deliberately, with no cache in between, so the database stays the only source of truth.</p>
+        <p style="margin-top:10px">Access-token signing omits roles/permissions keys entirely when the caller passes neither — not empty arrays, absent. Every downstream guard resolves from the database. The cost of resolving is paid only when the ORM-bumped version changes or the cache TTL expires; otherwise a request costs one single-row read.</p>
       </div>
 
     </div>

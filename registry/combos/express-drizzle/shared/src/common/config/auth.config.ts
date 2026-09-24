@@ -24,6 +24,12 @@ export interface AuthConfig {
    * "log in again after N days" true regardless of activity. `rotateRefreshToken` enforces it.
    */
   sessionTtlSeconds: number;
+  /**
+   * How long a cached authorization context may be served. Changes made through this app bump
+   * `authz_version` and apply on the very next request regardless; this is the backstop for
+   * writes made behind the app's back (a raw SQL session), which apply within this many seconds.
+   */
+  authzCacheTtlSeconds: number;
   /** App name shown inside authenticator apps next to the account (issuer part of the otpauth:// URI). */
   twoFactorIssuer: string;
   oauthProviders: {
@@ -43,6 +49,7 @@ export const defaultAuthConfig: AuthConfig = {
   accessTokenTtlSeconds: 900,
   refreshTokenTtlSeconds: 60 * 60 * 24 * 30,
   sessionTtlSeconds: 60 * 60 * 24 * 30,
+  authzCacheTtlSeconds: 30,
   twoFactorIssuer: "simple-auth-kit",
   oauthProviders: {},
 };

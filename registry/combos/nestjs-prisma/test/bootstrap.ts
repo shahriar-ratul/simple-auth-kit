@@ -7,6 +7,7 @@ import { AdminModule } from "../src/modules/admin/admin.module.js";
 import { AuditLogModule } from "../src/modules/audit-log/audit-log.module.js";
 import { AuthCoreErrorFilter } from "../src/infra/filters/auth-core-error.filter.js";
 import { AuthModule } from "../src/modules/auth/auth.module.js";
+import { AuthzCache } from "../src/common/auth/cache/authz-cache.js";
 import { CoreAuthModule } from "../src/common/auth/core-auth.module.js";
 import { PermissionModule } from "../src/modules/permissions/permissions.module.js";
 import { RequestLoggerInterceptor } from "../src/infra/interceptor/request-logger.interceptor.js";
@@ -17,6 +18,9 @@ import { RoleModule } from "../src/modules/roles/roles.module.js";
 // No mailer is wired up for the proof, so this stands in for one — prove-cycle.ts reads the
 // raw token back out of here the same way a test inbox would, to exercise the reset flow.
 export const capturedResetTokens = new Map<string, string>();
+
+/** Set by `bootstrap()` so the variant hooks can read `AuthzCache.stats`. */
+export const proofHandles: { authzCache?: AuthzCache } = {};
 
 /**
  * The app module is built *inside* `bootstrap()`, not at import time.
@@ -44,6 +48,9 @@ export async function bootstrap(port: number) {
         // short enough to stay realistic. See `renewingToken` in test/harness.ts for the other
         // half of the fix.
         accessTokenTtlSeconds: 300,
+        // One second, so the proof can show a raw database write (which bypasses the app's
+        // `authz_version` bump) being picked up once the cache TTL passes, without a long wait.
+        authzCacheTtlSeconds: 1,
         throttle,
         sendPasswordResetEmail: async (email, token) => {
           capturedResetTokens.set(email, token);
@@ -73,6 +80,7 @@ export async function bootstrap(port: number) {
   class AppModule {}
 
   const app = await NestFactory.create(AppModule, { logger: false });
+  proofHandles.authzCache = app.get(AuthzCache);
   // Every feature controller declares its own path as "v1/..." — "api" is set here, exactly as
   // a consumer's own main.ts does (see examples/nestjs-prisma-app/src/main.ts), so the proof
   // hits the same URLs a real deployment would.

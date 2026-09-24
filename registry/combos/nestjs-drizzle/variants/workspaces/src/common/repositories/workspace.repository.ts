@@ -17,6 +17,7 @@ import {
   workspaces,
 } from "@/database/schema";
 import { toId, toIdOrNull } from "@/common/helpers/id.helper";
+import { bumpAuthzVersion } from "@/common/auth/cache/authz-version";
 
 export interface WorkspaceSummary {
   id: string;
@@ -123,6 +124,7 @@ export class WorkspaceRepository {
       await tx
         .insert(roleMember)
         .values(roleIds.map((roleId) => ({ memberId: member.id, roleId })));
+      await bumpAuthzVersion(tx);
       return created;
     });
     return {
@@ -269,6 +271,7 @@ export class WorkspaceRepository {
           .values(
             granted.map((role) => ({ memberId: created.id, roleId: role.id })),
           );
+      await bumpAuthzVersion(tx);
       return created;
     });
 
@@ -334,6 +337,7 @@ export class WorkspaceRepository {
           .values(
             granted.map((role) => ({ memberId: created.id, roleId: role.id })),
           );
+      await bumpAuthzVersion(tx);
       return created;
     });
 
@@ -369,6 +373,7 @@ export class WorkspaceRepository {
       .where(eq(workspaceMembers.id, memberIdBig));
     // Authorization is read live from the database, so the removed member's very next request
     // resolves to "not a member".
+    await bumpAuthzVersion(this.db);
   }
 
   /** One read for a page's role assignments rather than one per membership. */

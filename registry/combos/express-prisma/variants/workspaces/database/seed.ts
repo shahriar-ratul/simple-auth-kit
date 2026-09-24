@@ -38,6 +38,7 @@ import {
   SEED_ADMIN_ROLES,
   SEED_SUPERADMIN_ROLES,
 } from "./seedData/index.js";
+import { bumpAuthzVersion } from "../src/common/auth/cache/authz-version.js";
 
 function requireEnv(name: string): string {
   const value = process.env[name];
@@ -214,6 +215,8 @@ async function main(): Promise<void> {
     await seedRbacDefaults(prisma, workspace.id);
     await seedAdminUser(prisma, workspace);
     await seedSuperAdminUser(prisma, workspace);
+    // Clear any running app's authz cache: the seeder writes behind the app's back.
+    await bumpAuthzVersion(prisma);
     console.log("seed complete.");
   } finally {
     await prisma.$disconnect();

@@ -34,6 +34,7 @@ import {
 } from "@/common/repositories/rbac.repository";
 import { SessionRepository } from "@/common/repositories/session.repository";
 import { toId, toIdOrNull } from "@/common/helpers/id.helper";
+import { bumpAuthzVersion } from "@/common/auth/cache/authz-version";
 
 /**
  * User management, block/unblock/deactivate/activate, user-scoped role/permission assignment,
@@ -157,6 +158,7 @@ export class AdminService {
       where: { id: toId(userId) },
       data: { blocked: true, updatedBy: toIdOrNull(revoker?.userId) },
     });
+    await bumpAuthzVersion(this.prisma);
     await blockUser(this.sessions, userId, revoker);
   }
 
@@ -176,6 +178,7 @@ export class AdminService {
       where: { id: toId(userId) },
       data: { isActive: false, updatedBy: toIdOrNull(revoker?.userId) },
     });
+    await bumpAuthzVersion(this.prisma);
     await deactivateUser(this.sessions, userId, revoker);
   }
 

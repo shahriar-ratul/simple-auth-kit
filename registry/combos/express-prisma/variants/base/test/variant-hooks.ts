@@ -11,6 +11,8 @@ import {
   provisionDefaultRoles,
   SEED_ADMIN_ROLES,
 } from "../database/seedData/index.js";
+import { bumpAuthzVersion } from "../src/common/auth/cache/authz-version.js";
+import { authzCache, waitOutAuthzCache } from "./bootstrap.js";
 import {
   renewingToken,
   type AdminSession,
@@ -56,9 +58,10 @@ export const hooks: VariantHooks = {
       identifier: principal.email,
       password: principal.password,
     };
-    // Those writes went straight to the database, behind the running app's back. Nothing needs
-    // telling: authorization is read from the live database on every request, and nothing about
-    // it is in the token.
+    // Those writes went straight to the database, behind the running app's back, so bump the
+    // authorization version the way an app write would — otherwise a cached (empty) answer for
+    // this user could outlive them by up to the cache TTL. Nothing about it is in the token.
+    await bumpAuthzVersion(prisma);
     const login = await ctx.call("POST", "/auth/login", {
       body: { identifier: principal.email, password: principal.password },
     });
@@ -117,8 +120,8 @@ export const hooks: VariantHooks = {
     // baked into the access token at issue time, which made the check free but meant a revocation
     // did not apply until the caller's next token — a window bounded only by the access-token TTL,
     // documented as a sharp edge and asserted in both directions right here. Authorization is now
-    // read from the live database on every request that uses it, so
-    // the window is gone and the assertions that described it have been replaced by the ones that
+    // read from the database (through a cache the database itself invalidates) on every request that
+    // uses it, so the window is gone and the assertions that described it have been replaced by the ones that
     // describe what actually happens.
     const email = ctx.uniqueEmail("immediate");
     const password = "immediate-pw-12345";
@@ -207,24 +210,39 @@ async function proveARawDatabaseEditChangesEnforcement(
     "a direct grant opens the audit log",
   );
 
-  // Written straight to the table, with no code change, no redeploy, and nothing telling the app:
-  // authorization is read live on every request, so the very next one sees it.
+  // The answer is cached, and the cache is real: identical requests are served without resolving
+  // again.
+  const N = 5;
+  const beforeRepeat = { ...authzCache.stats };
+  for (let i = 0; i < N; i += 1)
+    await ctx.call("GET", "/audit-log", { token: tokens.accessToken });
+  ctx.assert(
+    authzCache.stats.resolutions === beforeRepeat.resolutions &&
+      authzCache.stats.hits - beforeRepeat.hits === N,
+    `${N} identical authorized requests are all served from the authorization cache (resolutions +${authzCache.stats.resolutions - beforeRepeat.resolutions}, hits +${authzCache.stats.hits - beforeRepeat.hits})`,
+  );
+
+  // Written straight to the table, with no code change, no redeploy, and nothing telling the app.
+  // A direct database edit bumps no version, so it lands once the cached entry's TTL
+  // (`authzCacheTtlSeconds`, 1s here) runs out — never later.
   await prisma.permission.update({
     where: { slug: "audit-log:read" },
     data: { isActive: false },
   });
+  await waitOutAuthzCache();
   const denied = await ctx.call("GET", "/audit-log", {
     token: tokens.accessToken,
   });
   ctx.assert(
     denied.status === 403,
-    `a permission deactivated by a raw database write stops opening its route (got ${denied.status})`,
+    `a permission deactivated by a raw database write stops opening its route once the cache TTL has passed (got ${denied.status})`,
   );
 
   await prisma.permission.update({
     where: { slug: "audit-log:read" },
     data: { isActive: true },
   });
+  await waitOutAuthzCache();
   const restored = await ctx.call("GET", "/audit-log", {
     token: tokens.accessToken,
   });
@@ -233,19 +251,21 @@ async function proveARawDatabaseEditChangesEnforcement(
     `…and reactivating it in the database opens the route again (got ${restored.status})`,
   );
 
-  // Revoking in SQL is instant too, on the same token: first the direct grant...
+  // Revoking in SQL lands within the TTL too, on the same token: first the direct grant...
   await prisma.permissionUser.deleteMany({
     where: { userId: toId(userId), permission: { slug: "audit-log:read" } },
   });
+  await waitOutAuthzCache();
   const grantDeleted = await ctx.call("GET", "/audit-log", {
     token: tokens.accessToken,
   });
   ctx.assert(
     grantDeleted.status === 403,
-    `deleting a direct grant in the database closes the route on the very next request, same token (got ${grantDeleted.status})`,
+    `deleting a direct grant in the database closes the route once the cache TTL has passed, same token (got ${grantDeleted.status})`,
   );
 
-  // ...then a role assignment.
+  // ...then a role assignment. Assigned through the API, it applies on the very next request:
+  // the app bumps `authz_version` itself.
   await ctx.call("POST", `/admin/users/${userId}/roles`, {
     token: await admin.freshToken(),
     body: { role: "admin" },
@@ -255,16 +275,17 @@ async function proveARawDatabaseEditChangesEnforcement(
   });
   ctx.assert(
     viaRole.status === 200,
-    `a role assigned through the API opens the route (got ${viaRole.status})`,
+    `a role assigned through the API opens the route on the very next request (got ${viaRole.status})`,
   );
   await prisma.roleUser.deleteMany({
     where: { userId: toId(userId), role: { slug: "admin" } },
   });
+  await waitOutAuthzCache();
   const roleDeleted = await ctx.call("GET", "/audit-log", {
     token: tokens.accessToken,
   });
   ctx.assert(
     roleDeleted.status === 403,
-    `deleting a role assignment in the database closes the route on the very next request, same token (got ${roleDeleted.status})`,
+    `deleting a role assignment in the database closes the route once the cache TTL has passed, same token (got ${roleDeleted.status})`,
   );
 }

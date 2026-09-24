@@ -28,6 +28,8 @@ import {
   type ProofContext,
   type VariantHooks,
 } from "./harness.js";
+import { authzCache, waitOutAuthzCache } from "./bootstrap.js";
+import { bumpAuthzVersion } from "../src/common/auth/cache/authz-version.js";
 
 /** One short-lived pool per call, closed on the way out, so the proof process has no lingering handle to wait on. */
 async function withDb<T>(fn: (db: Database) => Promise<T>): Promise<T> {
@@ -69,6 +71,9 @@ export const hooks: VariantHooks = {
           })),
         )
         .onConflictDoNothing({ target: [roleUser.userId, roleUser.roleId] });
+      // Written behind the app's back, so bump the version the way the app's own writes do —
+      // otherwise an answer cached earlier (e.g. from /auth/me) would be served until the TTL.
+      await bumpAuthzVersion(db);
     });
 
     adminCredentials = {
@@ -192,6 +197,7 @@ export const hooks: VariantHooks = {
     );
 
     await proveARawDatabaseEditChangesEnforcement(ctx, admin);
+    await proveAuthzIsCachedUntilTheDatabaseChanges(ctx, admin);
   },
 };
 
@@ -223,14 +229,15 @@ async function proveARawDatabaseEditChangesEnforcement(
   );
 
   const setActive = async (isActive: boolean) => {
-    // Written straight to the table, with no code change, no redeploy, and nothing to invalidate:
-    // authorization is read from the live database on every request.
+    // Written straight to the table, with no code change and no redeploy. The app never sees
+    // this write, so it applies once the cached answer's TTL runs out.
     await withDb((db) =>
       db
         .update(permissions)
         .set({ isActive })
         .where(eq(permissions.slug, "audit-log:read")),
     );
+    await waitOutAuthzCache();
   };
 
   await setActive(false);
@@ -251,7 +258,7 @@ async function proveARawDatabaseEditChangesEnforcement(
     `…and reactivating it in the database opens the route again (got ${restored.status})`,
   );
 
-  // --- a revoke written straight to the database lands on the very next request ---
+  // --- a revoke written straight to the database lands once the cache TTL runs out ---
   const deleteGrant = async () =>
     withDb(async (db) => {
       const [permission] = await db
@@ -269,12 +276,13 @@ async function proveARawDatabaseEditChangesEnforcement(
         );
     });
   await deleteGrant();
+  await waitOutAuthzCache();
   const grantDeleted = await ctx.call("GET", "/audit-log", {
     token: tokens.accessToken,
   });
   ctx.assert(
     grantDeleted.status === 403,
-    `deleting a direct grant with raw SQL denies the very next request, on the same token (got ${grantDeleted.status})`,
+    `deleting a direct grant with raw SQL denies the next request after the cache TTL, on the same token (got ${grantDeleted.status})`,
   );
 
   const roleSlug = `raw-revoke-${Date.now()}`;
@@ -311,11 +319,88 @@ async function proveARawDatabaseEditChangesEnforcement(
         and(eq(roleUser.userId, toId(userId)), eq(roleUser.roleId, row.id)),
       );
   });
+  await waitOutAuthzCache();
   const roleDeleted = await ctx.call("GET", "/audit-log", {
     token: tokens.accessToken,
   });
   ctx.assert(
     roleDeleted.status === 403,
-    `deleting a role assignment with raw SQL denies the very next request, on the same token (got ${roleDeleted.status})`,
+    `deleting a role assignment with raw SQL denies the next request after the cache TTL, on the same token (got ${roleDeleted.status})`,
   );
+}
+
+/**
+ * Authorization is cached: repeated requests are answered from memory. A change made through the
+ * API bumps `authz_version`, so it applies on the very next request; a raw SQL write (which the
+ * app never sees) is served from the cache until the TTL runs out, then applies.
+ */
+async function proveAuthzIsCachedUntilTheDatabaseChanges(
+  ctx: ProofContext,
+  admin: AdminSession,
+): Promise<void> {
+  const cache = authzCache!;
+  const email = ctx.uniqueEmail("cached");
+  const tokens = await ctx.signup(email, "cached-pw-12345");
+  const userId = (
+    await ctx.call("GET", "/auth/me", { token: tokens.accessToken })
+  ).body.sub as string;
+  await ctx.call("POST", `/admin/users/${userId}/permissions`, {
+    token: await admin.freshToken(),
+    body: { permission: "audit-log:read" },
+  });
+  const as = { token: tokens.accessToken };
+
+  const before = cache.stats.resolutions;
+  for (let i = 0; i < 5; i++) await ctx.call("GET", "/audit-log", as);
+  ctx.assert(
+    cache.stats.resolutions - before === 1,
+    `5 identical authorized requests cause exactly one database resolution (got ${cache.stats.resolutions - before})`,
+  );
+
+  await ctx.call(
+    "POST",
+    `/admin/users/${userId}/permissions/audit-log:read/revoke`,
+    { token: await admin.freshToken() },
+  );
+  const revoked = await ctx.call("GET", "/audit-log", as);
+  ctx.assert(
+    revoked.status === 403,
+    `a revoke made through the API applies on the very next request (got ${revoked.status})`,
+  );
+  await ctx.call("POST", `/admin/users/${userId}/permissions`, {
+    token: await admin.freshToken(),
+    body: { permission: "audit-log:read" },
+  });
+  const regranted = await ctx.call("GET", "/audit-log", as);
+  ctx.assert(
+    regranted.status === 200,
+    `…and a grant made through the API applies on the very next request (got ${regranted.status})`,
+  );
+
+  await withDb((db) =>
+    db
+      .update(permissions)
+      .set({ isActive: false })
+      .where(eq(permissions.slug, "audit-log:read")),
+  );
+  const beforeTtl = cache.stats.resolutions;
+  const stillCached = await ctx.call("GET", "/audit-log", as);
+  ctx.assert(
+    stillCached.status === 200 && cache.stats.resolutions === beforeTtl,
+    `a raw SQL write is served from the cache until the TTL runs out (got ${stillCached.status}, resolutions +${cache.stats.resolutions - beforeTtl})`,
+  );
+  await waitOutAuthzCache();
+  const afterTtl = cache.stats.resolutions;
+  const denied = await ctx.call("GET", "/audit-log", as);
+  ctx.assert(
+    denied.status === 403 && cache.stats.resolutions - afterTtl === 1,
+    `…and applies on the next request after the TTL (got ${denied.status}, resolutions +${cache.stats.resolutions - afterTtl})`,
+  );
+  await withDb((db) =>
+    db
+      .update(permissions)
+      .set({ isActive: true })
+      .where(eq(permissions.slug, "audit-log:read")),
+  );
+  await waitOutAuthzCache();
 }

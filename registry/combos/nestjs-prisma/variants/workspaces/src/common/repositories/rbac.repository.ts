@@ -10,6 +10,7 @@ import {
   normalizePage,
   type Paginated,
 } from "@/common/helpers/pagination";
+import { bumpAuthzVersion } from "@/common/auth/cache/authz-version";
 
 const MEMBER_INCLUDE = {
   user: true,
@@ -322,6 +323,7 @@ export class RbacRepository {
         deletedReason: reason ?? null,
       },
     });
+    await bumpAuthzVersion(this.prisma);
   }
 
   async updateRole(
@@ -348,6 +350,7 @@ export class RbacRepository {
       data: { ...input, updatedBy: toIdOrNull(actorUserId) },
       select: { ...ROLE_SELECT, ...ROLE_PERMISSIONS_INCLUDE },
     });
+    await bumpAuthzVersion(this.prisma);
     return {
       ...role,
       id: role.id.toString(),
@@ -380,6 +383,7 @@ export class RbacRepository {
         deletedReason: reason ?? null,
       },
     });
+    await bumpAuthzVersion(this.prisma);
   }
 
   // The catalog is global, like the `Permission` table — what's scoped to a workspace is which
@@ -430,6 +434,7 @@ export class RbacRepository {
       update: shared,
       select: PERMISSION_SELECT,
     });
+    await bumpAuthzVersion(this.prisma);
     return { ...permission, id: permission.id.toString() };
   }
 
@@ -503,6 +508,7 @@ export class RbacRepository {
       create: { permissionId: permission.id, roleId: roleIdBig },
       update: {},
     });
+    await bumpAuthzVersion(this.prisma);
   }
 
   // Scoped by workspace, so an admin can't reach a role id belonging to a workspace they aren't in.
@@ -529,6 +535,7 @@ export class RbacRepository {
     await this.prisma.permissionRole.deleteMany({
       where: { roleId: roleIdBig, permissionId: permission.id },
     });
+    await bumpAuthzVersion(this.prisma);
   }
 
   async assignRoleToMember(
@@ -543,6 +550,7 @@ export class RbacRepository {
       create: { memberId: member.id, roleId: role.id },
       update: {},
     });
+    await bumpAuthzVersion(this.prisma);
   }
 
   async revokeRoleFromMember(
@@ -561,6 +569,7 @@ export class RbacRepository {
     await this.prisma.roleMember.deleteMany({
       where: { memberId: member.id, roleId: role.id },
     });
+    await bumpAuthzVersion(this.prisma);
   }
 
   // Replaces the whole set, as opposed to assign/revoke one at a time.
@@ -601,6 +610,7 @@ export class RbacRepository {
         data: roles.map((role) => ({ memberId: memberIdBig, roleId: role.id })),
         skipDuplicates: true,
       }),
+      bumpAuthzVersion(this.prisma),
     ]);
     return { memberId, roles: roles.map((role) => role.slug).sort() };
   }
@@ -638,6 +648,7 @@ export class RbacRepository {
       create: { memberId: member.id, permissionId: permission.id },
       update: {},
     });
+    await bumpAuthzVersion(this.prisma);
   }
 
   async revokePermissionFromMember(
@@ -654,6 +665,7 @@ export class RbacRepository {
     await this.prisma.permissionMember.deleteMany({
       where: { memberId: member.id, permissionId: permission.id },
     });
+    await bumpAuthzVersion(this.prisma);
   }
 
   // Returns bigint directly: its one caller (assignRoleToMember) feeds the id straight into

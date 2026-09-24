@@ -7,6 +7,7 @@
 import "dotenv/config";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { PrismaClient } from "@/database/generated/prisma/client.js";
+import { authzCache, waitOutAuthzCache } from "./bootstrap.js";
 import {
   renewingToken,
   type AdminSession,
@@ -641,7 +642,8 @@ async function proveWorkspaceHeaderCannotBeSkipped(
 }
 
 /**
- * Authorization is read live from the database on every request, scoped to the membership the
+ * Authorization is resolved from the database (through a cache the database itself invalidates),
+ * scoped to the membership the
  * request names: a grant made in one workspace shows up there on the very next request, never in
  * another workspace, and is gone again on the request after it is revoked.
  */
@@ -693,8 +695,9 @@ async function proveGrantsAreScopedAndLive(
 /**
  * The admin API already proves that editing the catalog changes enforcement, but it is the API
  * doing the writing — this rules out any possibility that it is also doing something in memory.
- * A `psql` session would look exactly like this: nothing tells the app about the write, and the
- * very next request still sees it, because authorization is read live on every request.
+ * A `psql` session would look exactly like this: nothing tells the app about the write and no
+ * authorization version is bumped, so it lands once the cached entry's TTL (`authzCacheTtlSeconds`,
+ * 1s here) runs out — never later.
  */
 async function proveARawDatabaseEditChangesEnforcement(
   ctx: ProofContext,
@@ -709,23 +712,40 @@ async function proveARawDatabaseEditChangesEnforcement(
     `the workspace admin can read the audit log to begin with (got ${opened.status})`,
   );
 
+  // The answer is cached per membership, and the cache is real: identical requests are served
+  // without resolving again.
+  const N = 5;
+  const beforeRepeat = { ...authzCache.stats };
+  for (let i = 0; i < N; i += 1)
+    await ctx.call("GET", "/audit-log", {
+      token: beta.token,
+      workspaceId: beta.workspace.id,
+    });
+  ctx.assert(
+    authzCache.stats.resolutions === beforeRepeat.resolutions &&
+      authzCache.stats.hits - beforeRepeat.hits === N,
+    `${N} identical authorized requests are all served from the authorization cache (resolutions +${authzCache.stats.resolutions - beforeRepeat.resolutions}, hits +${authzCache.stats.hits - beforeRepeat.hits})`,
+  );
+
   await prisma.permission.update({
     where: { slug: "audit-log:read" },
     data: { isActive: false },
   });
+  await waitOutAuthzCache();
   const denied = await ctx.call("GET", "/audit-log", {
     token: beta.token,
     workspaceId: beta.workspace.id,
   });
   ctx.assert(
     denied.status === 403,
-    `a permission deactivated by a raw database write stops opening its route (got ${denied.status})`,
+    `a permission deactivated by a raw database write stops opening its route once the cache TTL has passed (got ${denied.status})`,
   );
 
   await prisma.permission.update({
     where: { slug: "audit-log:read" },
     data: { isActive: true },
   });
+  await waitOutAuthzCache();
   const restored = await ctx.call("GET", "/audit-log", {
     token: beta.token,
     workspaceId: beta.workspace.id,
@@ -735,7 +755,7 @@ async function proveARawDatabaseEditChangesEnforcement(
     `…and reactivating it in the database opens the route again (got ${restored.status})`,
   );
 
-  // Revoking in SQL is instant too, on the same token. A fresh workspace creator, so the proof's
+  // Revoking in SQL lands within the TTL too, on the same token. A fresh workspace creator, so the proof's
   // own admin keeps its authority.
   const fresh = await newAdminWithWorkspace(ctx, "rawrevoke");
   const as = { token: fresh.token, workspaceId: fresh.workspace.id };
@@ -754,10 +774,11 @@ async function proveARawDatabaseEditChangesEnforcement(
   await prisma.roleMember.deleteMany({
     where: { memberId: member.id, role: { slug: "admin" } },
   });
+  await waitOutAuthzCache();
   const roleDeleted = await ctx.call("GET", "/audit-log", as);
   ctx.assert(
     roleDeleted.status === 403,
-    `deleting a role assignment in the database closes the route on the very next request, same token (got ${roleDeleted.status})`,
+    `deleting a role assignment in the database closes the route once the cache TTL has passed, same token (got ${roleDeleted.status})`,
   );
 
   const permission = await prisma.permission.findUniqueOrThrow({
@@ -766,17 +787,19 @@ async function proveARawDatabaseEditChangesEnforcement(
   await prisma.permissionMember.create({
     data: { memberId: member.id, permissionId: permission.id },
   });
+  await waitOutAuthzCache();
   const granted = await ctx.call("GET", "/audit-log", as);
   ctx.assert(
     granted.status === 200,
-    `a direct grant written in the database opens the route on the very next request (got ${granted.status})`,
+    `a direct grant written in the database opens the route once the cache TTL has passed (got ${granted.status})`,
   );
   await prisma.permissionMember.deleteMany({
     where: { memberId: member.id, permissionId: permission.id },
   });
+  await waitOutAuthzCache();
   const grantDeleted = await ctx.call("GET", "/audit-log", as);
   ctx.assert(
     grantDeleted.status === 403,
-    `deleting a direct grant in the database closes the route on the very next request, same token (got ${grantDeleted.status})`,
+    `deleting a direct grant in the database closes the route once the cache TTL has passed, same token (got ${grantDeleted.status})`,
   );
 }

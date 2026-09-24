@@ -433,3 +433,14 @@ model Customer {
   @@index([isDeleted], map: "customers_is_deleted_idx")
   @@map("customers")
 }
+
+/// One row (id = 1) holding a counter the app increments (`bumpAuthzVersion`) on every write it
+/// makes that changes resolved authorization. `AuthzCache` keeps each resolved authorization
+/// under the version it was read at, so an app-side change is seen on the very next request. A
+/// missing row reads as version 0; the first bump creates it.
+model AuthzVersion {
+  id      Int    @id @db.SmallInt
+  version BigInt @default(0)
+
+  @@map("authz_version")
+}

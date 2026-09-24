@@ -16,6 +16,8 @@ import {
   type ProofContext,
   type VariantHooks,
 } from "./harness.js";
+import { proofHandles } from "./bootstrap.js";
+import { bumpAuthzVersion } from "../src/common/auth/cache/authz-version.js";
 
 const prisma = new PrismaClient({
   adapter: new PrismaPg({ connectionString: process.env["DATABASE_URL"] }),
@@ -45,6 +47,9 @@ export const hooks: VariantHooks = {
       })),
       skipDuplicates: true,
     });
+    // Written behind the app's back, like admin tooling would; bump the version the same way the
+    // app's own write paths do so the grant is seen immediately rather than after the cache TTL.
+    await bumpAuthzVersion(prisma);
 
     adminCredentials = {
       identifier: principal.email,
@@ -157,6 +162,7 @@ export const hooks: VariantHooks = {
     );
 
     await proveARawDatabaseEditChangesEnforcement(ctx, admin);
+    await proveAuthzIsCachedUntilItChanges(ctx, admin);
   },
 };
 
@@ -185,24 +191,26 @@ async function proveARawDatabaseEditChangesEnforcement(
   );
 
   // Written straight to the table, with no code change, no redeploy, and nothing telling the app
-  // it happened: authorization is read from the database on every request, so the next request
-  // sees it.
+  // it happened: it doesn't bump `authz_version`, so the cached authorization stands until
+  // `authzCacheTtlSeconds` passes, and the request after that sees it.
   await prisma.permission.update({
     where: { slug: "audit-log:read" },
     data: { isActive: false },
   });
+  await pastAuthzCacheTtl();
   const denied = await ctx.call("GET", "/audit-log", {
     token: tokens.accessToken,
   });
   ctx.assert(
     denied.status === 403,
-    `a permission deactivated by a raw database write stops opening its route (got ${denied.status})`,
+    `a permission deactivated by a raw database write stops opening its route once the cache TTL passes (got ${denied.status})`,
   );
 
   await prisma.permission.update({
     where: { slug: "audit-log:read" },
     data: { isActive: true },
   });
+  await pastAuthzCacheTtl();
   const restored = await ctx.call("GET", "/audit-log", {
     token: tokens.accessToken,
   });
@@ -219,12 +227,13 @@ async function proveARawDatabaseEditChangesEnforcement(
   await prisma.permissionUser.deleteMany({
     where: { userId: toId(userId), permissionId: auditLogRead.id },
   });
+  await pastAuthzCacheTtl();
   const afterRawGrantDelete = await ctx.call("GET", "/audit-log", {
     token: tokens.accessToken,
   });
   ctx.assert(
     afterRawGrantDelete.status === 403,
-    `a direct grant deleted by a raw database write is gone on the very next request, same token (got ${afterRawGrantDelete.status})`,
+    `a direct grant deleted by a raw database write is enforced once the cache TTL passes, same token (got ${afterRawGrantDelete.status})`,
   );
 
   // Same for a role assignment: granted through the API, revoked by deleting the row.
@@ -242,11 +251,97 @@ async function proveARawDatabaseEditChangesEnforcement(
   await prisma.roleUser.deleteMany({
     where: { userId: toId(userId), role: { slug: "admin" } },
   });
+  await pastAuthzCacheTtl();
   const afterRawRoleDelete = await ctx.call("GET", "/audit-log", {
     token: tokens.accessToken,
   });
   ctx.assert(
     afterRawRoleDelete.status === 403,
-    `a role assignment deleted by a raw database write is gone on the very next request, same token (got ${afterRawRoleDelete.status})`,
+    `a role assignment deleted by a raw database write is enforced once the cache TTL passes, same token (got ${afterRawRoleDelete.status})`,
   );
 }
+
+// `AuthzCache`: identical requests cost one resolution between them; a change made through the
+// API bumps `authz_version` and is enforced on the very next request; a raw database write
+// bypasses the bump, so it is served from the cache until the TTL passes, then enforced.
+async function proveAuthzIsCachedUntilItChanges(
+  ctx: ProofContext,
+  admin: AdminSession,
+): Promise<void> {
+  const cache = proofHandles.authzCache!;
+  const email = ctx.uniqueEmail("cached");
+  const tokens = await ctx.signup(email, "cached-pw-12345");
+  const userId = (
+    await ctx.call("GET", "/auth/me", { token: tokens.accessToken })
+  ).body.sub as string;
+  await ctx.call("POST", `/admin/users/${userId}/permissions`, {
+    token: await admin.freshToken(),
+    body: { permission: "audit-log:read" },
+  });
+  const read = async () =>
+    (await ctx.call("GET", "/audit-log", { token: tokens.accessToken })).status;
+
+  await read();
+  const before = cache.stats.resolutions;
+  const statuses = [
+    await read(),
+    await read(),
+    await read(),
+    await read(),
+    await read(),
+  ];
+  ctx.assert(
+    statuses.every((s) => s === 200) && cache.stats.resolutions === before,
+    `5 identical authorized requests are served from the cache — no new resolution (got ${cache.stats.resolutions - before})`,
+  );
+
+  // Through the API: bumps authz_version, so the very next request re-resolves.
+  const define = async (isActive: boolean) =>
+    ctx.call("POST", "/permissions", {
+      token: await admin.freshToken(),
+      body: { slug: "audit-log:read", isActive },
+    });
+  await define(false);
+  const apiDenied = await read();
+  ctx.assert(
+    apiDenied === 403,
+    `a permission deactivated through the API is enforced on the very next request (got ${apiDenied})`,
+  );
+  await define(true);
+  ctx.assert(
+    (await read()) === 200,
+    "…and reactivating it through the API is seen on the very next request too",
+  );
+
+  // Straight to the table: no bump, so the cached answer stands until the TTL passes.
+  await read();
+  const beforeRaw = cache.stats.resolutions;
+  await prisma.permission.update({
+    where: { slug: "audit-log:read" },
+    data: { isActive: false },
+  });
+  const stillCached = await read();
+  ctx.assert(
+    stillCached === 200 && cache.stats.resolutions === beforeRaw,
+    `a raw database write is not seen before the cache TTL — the entry is still served (got ${stillCached})`,
+  );
+  await pastAuthzCacheTtl();
+  const rawDenied = await read();
+  ctx.assert(
+    rawDenied === 403 && cache.stats.resolutions === beforeRaw + 1,
+    `…and once the TTL passes the next request re-resolves and enforces it (got ${rawDenied})`,
+  );
+  await prisma.permission.update({
+    where: { slug: "audit-log:read" },
+    data: { isActive: true },
+  });
+  await pastAuthzCacheTtl();
+  ctx.assert(
+    (await read()) === 200,
+    "…and the reverse raw write is enforced after the TTL too",
+  );
+}
+
+/** Waits out `authzCacheTtlSeconds` (1s in the proof, see bootstrap.ts). */
+const pastAuthzCacheTtl = () =>
+  new Promise<void>((resolve) => setTimeout(resolve, 1_200));

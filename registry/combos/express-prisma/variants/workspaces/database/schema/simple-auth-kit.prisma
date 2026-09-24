@@ -390,3 +390,14 @@ model DenylistedAccessToken {
 
   @@map("denylisted_access_tokens")
 }
+
+/// Authorization cache version: at most one row (id = 1), created on first bump. Every app write
+/// that changes what authorization resolves to increments it (`bumpAuthzVersion`), so the
+/// in-memory authorization cache knows a cached answer is stale on the very next request. Direct
+/// database edits don't bump it; the cache's TTL (`authzCacheTtlSeconds`) bounds those instead.
+model AuthzVersion {
+  id      Int    @id @db.SmallInt
+  version BigInt @default(0)
+
+  @@map("authz_version")
+}

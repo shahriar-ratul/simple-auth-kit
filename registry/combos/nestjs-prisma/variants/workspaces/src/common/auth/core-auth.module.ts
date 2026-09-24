@@ -19,6 +19,7 @@ import {
   RATE_LIMIT_STORE,
 } from "@/common/auth/cache/rate-limit.store";
 import { PermissionController } from "@/modules/permissions/controllers/permission.controller";
+import { AuthzCache } from "@/common/auth/cache/authz-cache";
 import { RbacRepository } from "@/common/repositories/rbac.repository";
 import { RoleController } from "@/modules/roles/controllers/role.controller";
 import { WorkspaceController } from "@/modules/auth/controllers/workspace.controller";
@@ -100,6 +101,7 @@ export class CoreAuthModule {
           useValue: config.rateLimitStore ?? new InMemoryRateLimitStore(),
         },
         RbacRepository,
+        AuthzCache,
         WorkspaceRepository,
         SessionRepository,
         AuthGuard,
@@ -112,6 +114,7 @@ export class CoreAuthModule {
         AuthTokenService,
         RATE_LIMIT_STORE,
         RbacRepository,
+        AuthzCache,
         WorkspaceRepository,
         SessionRepository,
         AuthGuard,

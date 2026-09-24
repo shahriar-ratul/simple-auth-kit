@@ -5,6 +5,7 @@ import {
   Injectable,
 } from "@nestjs/common";
 import { defineAbilitiesFor } from "@/common/auth/ability/ability";
+import { AuthzCache } from "@/common/auth/cache/authz-cache";
 import { RbacRepository } from "@/common/repositories/rbac.repository";
 
 // Roles and permissions are global to this deployment — one set per user, resolved from the
@@ -17,17 +18,22 @@ export interface AuthzContext {
 // The seam between authentication and authorization: `AuthGuard` proves who the caller is, this
 // turns that into "what may this request do". Must run after `AuthGuard`. Nothing about
 // authorization is in the token — a grant or revocation lands on the caller's next request, not
-// their next token. Resolved from the database on every request, with no cache in between, so a
-// change written straight to the tables (even outside this app) is enforced on the next request.
+// their next token. Served from `AuthzCache`: a change made through this app is enforced on the
+// next request; one written straight to the database, within `authzCacheTtlSeconds`.
 @Injectable()
 export class AuthzGuard implements CanActivate {
-  constructor(@Inject(RbacRepository) private readonly rbac: RbacRepository) {}
+  constructor(
+    @Inject(RbacRepository) private readonly rbac: RbacRepository,
+    @Inject(AuthzCache) private readonly cache: AuthzCache,
+  ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const req = context.switchToHttp().getRequest();
     if (req.auth) {
       const userId = req.auth.sub as string;
-      req.authz = (await this.rbac.resolveAuthzContext(userId)) ?? {
+      req.authz = (await this.cache.get(userId, () =>
+        this.rbac.resolveAuthzContext(userId),
+      )) ?? {
         roles: [],
         permissions: [],
       };

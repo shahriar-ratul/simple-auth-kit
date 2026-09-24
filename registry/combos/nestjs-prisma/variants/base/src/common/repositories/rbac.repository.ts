@@ -14,6 +14,7 @@ import {
   normalizePage,
   type Paginated,
 } from "@/common/helpers/pagination";
+import { bumpAuthzVersion } from "@/common/auth/cache/authz-version";
 
 const USER_ROLES_INCLUDE = {
   roles: { select: { role: { select: { slug: true } } } },
@@ -294,6 +295,7 @@ export class RbacRepository {
           data: roles.map((role) => ({ userId: user.id, roleId: role.id })),
           skipDuplicates: true,
         });
+        await bumpAuthzVersion(this.prisma);
       }
     } else {
       await this.assignDefaultRoles(user.id);
@@ -369,6 +371,7 @@ export class RbacRepository {
         deletedReason: reason ?? null,
       },
     });
+    await bumpAuthzVersion(this.prisma);
   }
 
   async updateRole(
@@ -393,6 +396,7 @@ export class RbacRepository {
       data: { ...input, updatedBy: toIdOrNull(actorUserId) },
       select: { ...ROLE_SELECT, ...ROLE_PERMISSIONS_INCLUDE },
     });
+    await bumpAuthzVersion(this.prisma);
     // Renaming/deactivating changes what every holder resolves to.
     return {
       ...role,
@@ -424,6 +428,7 @@ export class RbacRepository {
         deletedReason: reason ?? null,
       },
     });
+    await bumpAuthzVersion(this.prisma);
   }
 
   /** `activeOnly` is what a permission picker (Create/Edit Role) passes — the admin management list itself wants everything, active or not. */
@@ -471,6 +476,7 @@ export class RbacRepository {
       update: shared,
       select: PERMISSION_SELECT,
     });
+    await bumpAuthzVersion(this.prisma);
     return { ...permission, id: permission.id.toString() };
   }
 
@@ -535,6 +541,7 @@ export class RbacRepository {
       create: { permissionId: permission.id, roleId: roleIdBig },
       update: {},
     });
+    await bumpAuthzVersion(this.prisma);
   }
 
   async detachPermissionFromRole(
@@ -557,6 +564,7 @@ export class RbacRepository {
     await this.prisma.permissionRole.deleteMany({
       where: { roleId: roleIdBig, permissionId: permission.id },
     });
+    await bumpAuthzVersion(this.prisma);
   }
 
   async assignRoleToUser(userId: string, roleSlug: string): Promise<void> {
@@ -576,6 +584,7 @@ export class RbacRepository {
       create: { userId: userIdBig, roleId: role.id },
       update: {},
     });
+    await bumpAuthzVersion(this.prisma);
   }
 
   async revokeRoleFromUser(userId: string, roleSlug: string): Promise<void> {
@@ -587,6 +596,7 @@ export class RbacRepository {
     await this.prisma.roleUser.deleteMany({
       where: { userId: toId(userId), roleId: role.id },
     });
+    await bumpAuthzVersion(this.prisma);
   }
 
   // The roles a brand-new user starts with — the rows flagged `isDefault`, not a string literal.
@@ -602,6 +612,7 @@ export class RbacRepository {
       data: defaults.map((role) => ({ userId, roleId: role.id })),
       skipDuplicates: true,
     });
+    await bumpAuthzVersion(this.prisma);
   }
 
   async hasAnyRole(userId: bigint): Promise<boolean> {
@@ -622,6 +633,7 @@ export class RbacRepository {
       create: { userId: userIdBig, permissionId: permission.id },
       update: {},
     });
+    await bumpAuthzVersion(this.prisma);
   }
 
   async revokePermissionFromUser(
@@ -636,6 +648,7 @@ export class RbacRepository {
     await this.prisma.permissionUser.deleteMany({
       where: { userId: toId(userId), permissionId: permission.id },
     });
+    await bumpAuthzVersion(this.prisma);
   }
 
   // Creates the row for a slug granted before anyone defined it; leaves an existing definition alone.

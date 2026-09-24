@@ -4,6 +4,7 @@ import { NestFactory } from "@nestjs/core";
 import { APP_FILTER, APP_INTERCEPTOR } from "@nestjs/core";
 import { AdminModule } from "../src/modules/admin/admin.module.js";
 import { AuditLogModule } from "../src/modules/audit-log/audit-log.module.js";
+import { AuthzCache } from "../src/common/auth/cache/authz-cache.js";
 import { AuthCoreErrorFilter } from "../src/infra/filters/auth-core-error.filter.js";
 import { AuthModule } from "../src/modules/auth/auth.module.js";
 import { CoreAuthModule } from "../src/common/auth/core-auth.module.js";
@@ -16,6 +17,13 @@ import { RoleModule } from "../src/modules/roles/roles.module.js";
 // No mailer is wired up for the proof, so this stands in for one — prove-cycle.ts reads the
 // raw token back out of here the same way a test inbox would, to exercise the reset flow.
 export const capturedResetTokens = new Map<string, string>();
+
+/** The running app's authorization cache, set by `bootstrap()` so the proof can read its stats. */
+export let authzCache: AuthzCache | undefined;
+
+/** Waits out the proof's 1-second authz cache TTL, so a direct database edit is visible. */
+export const waitOutAuthzCache = (): Promise<void> =>
+  new Promise((resolve) => setTimeout(resolve, 1200));
 
 /**
  * The app module is built *inside* `bootstrap()`, not at import time.
@@ -42,6 +50,8 @@ export async function bootstrap(port: number) {
         // short enough to stay realistic. See `renewingToken` in test/harness.ts for the other
         // half of the fix.
         accessTokenTtlSeconds: 300,
+        // Short, so the proof can show a direct-database edit applying once cached contexts expire.
+        authzCacheTtlSeconds: 1,
         sendPasswordResetEmail: async (email: string, token: string) => {
           capturedResetTokens.set(email, token);
         },
@@ -64,6 +74,7 @@ export async function bootstrap(port: number) {
   class AppModule {}
 
   const app = await NestFactory.create(AppModule, { logger: false });
+  authzCache = app.get(AuthzCache);
   // Every feature controller declares its own path as "v1/..." — "api" is set here, exactly as
   // a consumer's own main.ts does (see examples/nestjs-drizzle-app/src/main.ts), so the proof
   // hits the same URLs a real deployment would.

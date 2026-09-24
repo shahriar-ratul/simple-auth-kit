@@ -14,6 +14,7 @@ import {
 import { SessionRepository } from "@/common/repositories/session.repository";
 import { users } from "@/database/schema";
 import { toId, toIdOrNull } from "@/common/helpers/id.helper";
+import { bumpAuthzVersion } from "@/common/auth/cache/authz-version";
 
 /**
  * Member management, block/unblock/deactivate/activate, and user-scoped role/permission
@@ -147,6 +148,7 @@ export class AdminService {
       .update(users)
       .set({ blocked: true, updatedBy: toIdOrNull(revoker?.userId) })
       .where(eq(users.id, toId(userId)));
+    await bumpAuthzVersion(this.db);
     // The administrator, not the blocked user, is what lands in `sessions.revoked_by`.
     await blockUser(this.sessions, userId, revoker);
   }
@@ -161,6 +163,7 @@ export class AdminService {
       .update(users)
       .set({ blocked: false, updatedBy: toIdOrNull(revoker?.userId) })
       .where(eq(users.id, toId(userId)));
+    await bumpAuthzVersion(this.db);
   }
 
   /**
@@ -177,6 +180,7 @@ export class AdminService {
       .update(users)
       .set({ isActive: false, updatedBy: toIdOrNull(revoker?.userId) })
       .where(eq(users.id, toId(userId)));
+    await bumpAuthzVersion(this.db);
     await deactivateUser(this.sessions, userId, revoker);
   }
 
@@ -190,5 +194,6 @@ export class AdminService {
       .update(users)
       .set({ isActive: true, updatedBy: toIdOrNull(revoker?.userId) })
       .where(eq(users.id, toId(userId)));
+    await bumpAuthzVersion(this.db);
   }
 }

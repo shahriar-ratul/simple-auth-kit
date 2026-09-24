@@ -31,6 +31,7 @@ import {
   users,
 } from "@/database/schema";
 import { toId, toIdOrNull } from "@/common/helpers/id.helper";
+import { bumpAuthzVersion } from "@/common/auth/cache/authz-version";
 
 export interface UserSummary {
   id: string;
@@ -404,6 +405,7 @@ export class RbacRepository {
       await this.assignDefaultRoles(user.id);
     }
 
+    await bumpAuthzVersion(this.db);
     return this.getUser(user.id.toString());
   }
 
@@ -442,6 +444,7 @@ export class RbacRepository {
       .update(users)
       .set({ ...changed, updatedBy: toIdOrNull(actorUserId) })
       .where(eq(users.id, userIdBig));
+    await bumpAuthzVersion(this.db);
     return this.getUser(userId);
   }
 
@@ -472,6 +475,7 @@ export class RbacRepository {
         deletedReason: reason ?? null,
       })
       .where(eq(users.id, userIdBig));
+    await bumpAuthzVersion(this.db);
   }
 
   // ---- the catalog itself ----
@@ -540,6 +544,7 @@ export class RbacRepository {
       })
       .returning(PERMISSION_COLUMNS);
 
+    await bumpAuthzVersion(this.db);
     return asPermissionSummary(permission);
   }
 
@@ -607,6 +612,7 @@ export class RbacRepository {
       .set({ ...changed, updatedBy: toIdOrNull(actorUserId) })
       .where(eq(roles.id, roleIdBig))
       .returning(ROLE_COLUMNS);
+    await bumpAuthzVersion(this.db);
     return asRoleSummary(role);
   }
 
@@ -637,6 +643,7 @@ export class RbacRepository {
         deletedReason: reason ?? null,
       })
       .where(eq(roles.id, roleIdBig));
+    await bumpAuthzVersion(this.db);
   }
 
   /**
@@ -665,6 +672,7 @@ export class RbacRepository {
       .onConflictDoNothing({
         target: [permissionRole.permissionId, permissionRole.roleId],
       });
+    await bumpAuthzVersion(this.db);
   }
 
   async assignRoleToUser(userId: string, roleSlug: string): Promise<void> {
@@ -687,6 +695,7 @@ export class RbacRepository {
       .insert(roleUser)
       .values({ userId: userIdBig, roleId: role.id })
       .onConflictDoNothing({ target: [roleUser.userId, roleUser.roleId] });
+    await bumpAuthzVersion(this.db);
   }
 
   async revokeRoleFromUser(userId: string, roleSlug: string): Promise<void> {
@@ -700,6 +709,7 @@ export class RbacRepository {
     await this.db
       .delete(roleUser)
       .where(and(eq(roleUser.userId, userIdBig), eq(roleUser.roleId, role.id)));
+    await bumpAuthzVersion(this.db);
   }
 
   /**
@@ -726,6 +736,7 @@ export class RbacRepository {
       .insert(roleUser)
       .values(defaults.map((role) => ({ userId, roleId: role.id })))
       .onConflictDoNothing({ target: [roleUser.userId, roleUser.roleId] });
+    await bumpAuthzVersion(this.db);
   }
 
   async hasAnyRole(userId: bigint): Promise<boolean> {
@@ -749,6 +760,7 @@ export class RbacRepository {
       .onConflictDoNothing({
         target: [permissionUser.userId, permissionUser.permissionId],
       });
+    await bumpAuthzVersion(this.db);
   }
 
   async revokePermissionFromUser(
@@ -770,6 +782,7 @@ export class RbacRepository {
           eq(permissionUser.permissionId, permission.id),
         ),
       );
+    await bumpAuthzVersion(this.db);
   }
 
   /**

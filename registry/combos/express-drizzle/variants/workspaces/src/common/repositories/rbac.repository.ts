@@ -28,6 +28,7 @@ import {
 } from "@/database/schema";
 import { HttpError } from "@/infra/errors/http-error";
 import { toId, toIdOrNull } from "@/common/helpers/id.helper";
+import { bumpAuthzVersion } from "@/common/auth/cache/authz-version";
 
 /**
  * Every column the `users` table has (plus the membership's own `memberId`/`createdAt`), except
@@ -456,6 +457,7 @@ export class RbacRepository {
       .update(users)
       .set({ ...input, updatedBy: toIdOrNull(actorUserId) })
       .where(eq(users.id, toId(userId)));
+    await bumpAuthzVersion(this.db);
     return this.getMember(workspaceId, userId);
   }
 
@@ -481,6 +483,7 @@ export class RbacRepository {
         deletedReason: reason ?? null,
       })
       .where(eq(users.id, toId(userId)));
+    await bumpAuthzVersion(this.db);
   }
 
   async updateRole(
@@ -509,6 +512,7 @@ export class RbacRepository {
       .set({ ...input, updatedBy: toIdOrNull(actorUserId) })
       .where(eq(roles.id, roleIdBig))
       .returning(ROLE_COLUMNS);
+    await bumpAuthzVersion(this.db);
     return asRoleSummary(role);
   }
 
@@ -541,6 +545,7 @@ export class RbacRepository {
         deletedReason: reason ?? null,
       })
       .where(eq(roles.id, roleIdBig));
+    await bumpAuthzVersion(this.db);
   }
 
   // ---- the catalog itself ----
@@ -612,6 +617,7 @@ export class RbacRepository {
           : { slug: input.slug, updatedBy: actorId },
       })
       .returning(PERMISSION_COLUMNS);
+    await bumpAuthzVersion(this.db);
 
     // `isActive` can change here, and it changes what every holder resolves to, in every workspace.
     return asPermissionSummary(permission);
@@ -686,6 +692,7 @@ export class RbacRepository {
       .onConflictDoNothing({
         target: [permissionRole.permissionId, permissionRole.roleId],
       });
+    await bumpAuthzVersion(this.db);
   }
 
   async assignRoleToMember(
@@ -701,6 +708,7 @@ export class RbacRepository {
       .onConflictDoNothing({
         target: [roleMember.memberId, roleMember.roleId],
       });
+    await bumpAuthzVersion(this.db);
   }
 
   async revokeRoleFromMember(
@@ -722,6 +730,7 @@ export class RbacRepository {
       .where(
         and(eq(roleMember.memberId, member.id), eq(roleMember.roleId, role.id)),
       );
+    await bumpAuthzVersion(this.db);
   }
 
   /** Replaces the whole set — the "set a member's roles" operation, as opposed to assign/revoke one at a time. */
@@ -775,6 +784,7 @@ export class RbacRepository {
           .onConflictDoNothing({
             target: [roleMember.memberId, roleMember.roleId],
           });
+        await bumpAuthzVersion(tx);
       }
     });
     return { memberId, roles: found.map((role) => role.slug).sort() };
@@ -814,6 +824,7 @@ export class RbacRepository {
       .onConflictDoNothing({
         target: [permissionMember.memberId, permissionMember.permissionId],
       });
+    await bumpAuthzVersion(this.db);
   }
 
   async revokePermissionFromMember(
@@ -836,6 +847,7 @@ export class RbacRepository {
           eq(permissionMember.permissionId, permission.id),
         ),
       );
+    await bumpAuthzVersion(this.db);
   }
 
   // Returns bigint directly: its one caller (assignRoleToMember) feeds the id straight into
@@ -886,6 +898,7 @@ export class RbacRepository {
         updatedBy: actorId,
       })
       .returning({ id: permissions.id });
+    await bumpAuthzVersion(this.db);
     return created;
   }
 }

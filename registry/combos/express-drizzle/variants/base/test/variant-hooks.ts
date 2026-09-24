@@ -8,6 +8,7 @@ import { and, eq, inArray } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/node-postgres";
 import { Pool } from "pg";
 import type { Database } from "../src/common/config/db.js";
+import { bumpAuthzVersion } from "../src/common/auth/cache/authz-version.js";
 import { toId } from "../src/common/helpers/id.helper.js";
 import {
   provisionDefaultRoles,
@@ -20,6 +21,7 @@ import {
   roleUser,
   roles,
 } from "@/database/schema.js";
+import { authzCache } from "./bootstrap.js";
 import {
   renewingToken,
   type AdminSession,
@@ -69,14 +71,15 @@ export const hooks: VariantHooks = {
           })),
         )
         .onConflictDoNothing({ target: [roleUser.userId, roleUser.roleId] });
+      // Behind the running app's back, so bump the version the app's own writes would have —
+      // otherwise a context cached before this (e.g. from /auth/me) would be served until the TTL.
+      await bumpAuthzVersion(db);
     });
 
     adminCredentials = {
       identifier: principal.email,
       password: principal.password,
     };
-    // Those writes went straight to the database, behind the running app's back. Nothing needs
-    // telling: authorization is read live from the database on every request.
     const login = await ctx.call("POST", "/auth/login", {
       body: { identifier: principal.email, password: principal.password },
     });
@@ -196,9 +199,17 @@ export const hooks: VariantHooks = {
 };
 
 /**
+ * Writes made straight to the database don't bump `authz_version` — nothing in the app sees them —
+ * so they apply once any cached context expires. bootstrap.ts sets `authzCacheTtlSeconds` to 1.
+ */
+const waitForAuthzCacheTtl = () =>
+  new Promise<void>((resolve) => setTimeout(resolve, 1200));
+
+/**
  * The admin API already proves that editing the catalog changes enforcement, but it is the API
  * doing the writing — this rules out any possibility that it is also doing something in memory.
- * A `psql` session would look exactly like this.
+ * A `psql` session would look exactly like this: nothing tells the app, so each change applies
+ * once the cached context expires (`authzCacheTtlSeconds`).
  */
 async function proveARawDatabaseEditChangesEnforcement(
   ctx: ProofContext,
@@ -213,18 +224,30 @@ async function proveARawDatabaseEditChangesEnforcement(
     token: await admin.freshToken(),
     body: { permission: "audit-log:read" },
   });
+  // The authz cache: identical requests with nothing changed in between resolve once, and every
+  // one after that is a hit. Waiting out the TTL first means the first request must resolve,
+  // whatever an earlier section left cached.
+  const stats = authzCache!.stats;
+  await waitForAuthzCacheTtl();
+  const beforeRepeat = stats.resolutions;
+  const repeated = [];
+  for (let i = 0; i < 5; i++)
+    repeated.push(
+      (await ctx.call("GET", "/audit-log", { token: tokens.accessToken }))
+        .status,
+    );
   ctx.assert(
-    (
-      await ctx.call("GET", "/audit-log", {
-        token: tokens.accessToken,
-      })
-    ).status === 200,
+    repeated.every((status) => status === 200),
     "a direct grant opens the audit log",
+  );
+  ctx.assert(
+    stats.resolutions - beforeRepeat === 1,
+    `5 identical authorized requests resolve authorization exactly once — the rest are cache hits (resolved ${stats.resolutions - beforeRepeat} time(s))`,
   );
 
   const setActive = async (isActive: boolean) => {
     // Written straight to the table, with no code change, no redeploy, and nothing telling the
-    // app — authorization is read live from the database on every request.
+    // app — so it applies once the cached context expires.
     await withDb((db) =>
       db
         .update(permissions)
@@ -234,15 +257,17 @@ async function proveARawDatabaseEditChangesEnforcement(
   };
 
   await setActive(false);
+  await waitForAuthzCacheTtl();
   const denied = await ctx.call("GET", "/audit-log", {
     token: tokens.accessToken,
   });
   ctx.assert(
     denied.status === 403,
-    `a permission deactivated by a raw database write stops opening its route (got ${denied.status})`,
+    `a permission deactivated by a raw database write stops opening its route once the cache TTL passes (got ${denied.status})`,
   );
 
   await setActive(true);
+  await waitForAuthzCacheTtl();
   const restored = await ctx.call("GET", "/audit-log", {
     token: tokens.accessToken,
   });
@@ -251,8 +276,8 @@ async function proveARawDatabaseEditChangesEnforcement(
     `…and reactivating it in the database opens the route again (got ${restored.status})`,
   );
 
-  // Revocations, straight in the database with nothing telling the app: the very next request on
-  // the same token must already be denied.
+  // Revocations, straight in the database with nothing telling the app: once the cache TTL passes,
+  // the next request on the same token is denied.
   const auditLogRead = async () =>
     (
       await withDb((db) =>
@@ -272,12 +297,13 @@ async function proveARawDatabaseEditChangesEnforcement(
         ),
       ),
   );
+  await waitForAuthzCacheTtl();
   const afterGrantDeleted = await ctx.call("GET", "/audit-log", {
     token: tokens.accessToken,
   });
   ctx.assert(
     afterGrantDeleted.status === 403,
-    `a direct grant deleted by a raw database write denies the very next request, same token (got ${afterGrantDeleted.status})`,
+    `a direct grant deleted by a raw database write denies the next request after the cache TTL, same token (got ${afterGrantDeleted.status})`,
   );
 
   const roleSlug = `raw-revoke-${Date.now()}`;
@@ -304,6 +330,27 @@ async function proveARawDatabaseEditChangesEnforcement(
     viaRole.status === 200,
     `a role carrying the permission opens the route (got ${viaRole.status})`,
   );
+  await ctx.call("POST", `/admin/users/${userId}/roles/${roleSlug}/revoke`, {
+    token: await admin.freshToken(),
+  });
+  const apiRevoked = await ctx.call("GET", "/audit-log", {
+    token: tokens.accessToken,
+  });
+  ctx.assert(
+    apiRevoked.status === 403,
+    `a role revoked through the API denies the very next request, same token — the write bumped the authz version (got ${apiRevoked.status})`,
+  );
+  await ctx.call("POST", `/admin/users/${userId}/roles`, {
+    token: await admin.freshToken(),
+    body: { role: roleSlug },
+  });
+  const reassigned = await ctx.call("GET", "/audit-log", {
+    token: tokens.accessToken,
+  });
+  ctx.assert(
+    reassigned.status === 200,
+    `…and re-assigning it through the API opens the route on the very next request (got ${reassigned.status})`,
+  );
   await withDb((db) =>
     db
       .delete(roleUser)
@@ -314,11 +361,12 @@ async function proveARawDatabaseEditChangesEnforcement(
         ),
       ),
   );
+  await waitForAuthzCacheTtl();
   const afterRoleDeleted = await ctx.call("GET", "/audit-log", {
     token: tokens.accessToken,
   });
   ctx.assert(
     afterRoleDeleted.status === 403,
-    `a role assignment deleted by a raw database write denies the very next request, same token (got ${afterRoleDeleted.status})`,
+    `a role assignment deleted by a raw database write denies the next request after the cache TTL, same token (got ${afterRoleDeleted.status})`,
   );
 }

@@ -13,6 +13,7 @@ import {
 } from "@/database/schema";
 import { HttpError } from "@/infra/errors/http-error";
 import { toId } from "@/common/helpers/id.helper";
+import { bumpAuthzVersion } from "@/common/auth/cache/authz-version";
 
 export interface WorkspaceSummary {
   id: string;
@@ -121,6 +122,7 @@ export class WorkspaceRepository {
       await tx
         .insert(roleMember)
         .values(roleIds.map((roleId) => ({ memberId: member.id, roleId })));
+      await bumpAuthzVersion(tx);
       return created;
     });
     return {
@@ -268,6 +270,7 @@ export class WorkspaceRepository {
           .values(
             granted.map((role) => ({ memberId: created.id, roleId: role.id })),
           );
+      await bumpAuthzVersion(tx);
       return created;
     });
 
@@ -333,6 +336,7 @@ export class WorkspaceRepository {
           .values(
             granted.map((role) => ({ memberId: created.id, roleId: role.id })),
           );
+      await bumpAuthzVersion(tx);
       return { member: created, user };
     });
 
@@ -366,6 +370,7 @@ export class WorkspaceRepository {
     await this.db
       .delete(workspaceMembers)
       .where(eq(workspaceMembers.id, memberIdBig));
+    await bumpAuthzVersion(this.db);
   }
 
   /** One read for a page's role assignments rather than one per membership. */

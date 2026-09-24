@@ -16,6 +16,7 @@ import { createAuthMiddleware } from "@/common/auth/middleware/auth.middleware";
 import { createAuthRouter } from "@/modules/auth/routers/auth.router";
 import { AuthService } from "@/modules/auth/services/auth.service";
 import {
+  type AuthzContext,
   createAuthzMiddleware,
   createWorkspaceMiddleware,
 } from "@/common/auth/middleware/authz.middleware";
@@ -31,6 +32,8 @@ import { OAuthRepository } from "@/modules/auth/repositories/oauth.repository";
 import { openApiSpec } from "@/infra/openapi/openapi-spec";
 import { PasswordResetRepository } from "@/modules/auth/repositories/password-reset.repository";
 import { InMemoryRateLimitStore } from "@/common/auth/cache/rate-limit.store";
+import { createAuthzCache } from "@/common/auth/cache/authz-cache";
+import { readAuthzVersion } from "@/common/auth/cache/authz-version";
 import { RbacRepository } from "@/common/repositories/rbac.repository";
 import { requestLogger } from "@/infra/middleware/request-logger.middleware";
 import { responseEnvelope } from "@/infra/middleware/response-envelope.middleware";
@@ -67,6 +70,12 @@ export function createAuthApp(config: Partial<AuthConfig> = {}): Express {
   const rateLimit: RateLimitDeps =
     resolvedConfig.rateLimitStore ?? new InMemoryRateLimitStore();
   const rbac = new RbacRepository(db);
+  // Versioned by the app's own RBAC writes, with a TTL backstop for direct DB edits — see
+  // authz-cache.ts.
+  const authzCache = createAuthzCache<AuthzContext>({
+    readVersion: () => readAuthzVersion(db),
+    ttlSeconds: resolvedConfig.authzCacheTtlSeconds,
+  });
   const workspaces = new WorkspaceRepository(db, rbac);
   const twoFactor = new TwoFactorRepository(db);
   const oauth = new OAuthRepository(db);
@@ -90,8 +99,11 @@ export function createAuthApp(config: Partial<AuthConfig> = {}): Express {
   // Roles belong to a workspace membership, resolved from the database on the request that names
   // the workspace. `requireAuthz` tolerates a request that names none (GET /auth/me answers with
   // empty roles); `requireWorkspace` does not. See authz.middleware.ts.
-  const requireAuthz = createAuthzMiddleware({ rbac });
-  const requireWorkspace = createWorkspaceMiddleware({ rbac });
+  const requireAuthz = createAuthzMiddleware({ rbac, cache: authzCache });
+  const requireWorkspace = createWorkspaceMiddleware({
+    rbac,
+    cache: authzCache,
+  });
 
   if (!resolvedConfig.rateLimitStore) {
     log.warn(
@@ -180,6 +192,8 @@ export function createAuthApp(config: Partial<AuthConfig> = {}): Express {
   // left unreachable — a consumer closes it on SIGTERM/SIGINT with
   // `(app.locals["drizzle"] as DrizzleService).close()`.
   app.locals["drizzle"] = drizzleService;
+  // Read by the proof harness for its hit/resolution counters.
+  app.locals["authzCache"] = authzCache;
 
   return app;
 }

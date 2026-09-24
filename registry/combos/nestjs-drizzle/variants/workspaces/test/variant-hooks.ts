@@ -24,6 +24,7 @@ import {
   type ProofContext,
   type VariantHooks,
 } from "./harness.js";
+import { authzCache, waitOutAuthzCache } from "./bootstrap.js";
 
 /** One short-lived pool per call, closed on the way out, so the proof process has no lingering handle to wait on. */
 async function withDb<T>(fn: (db: Database) => Promise<T>): Promise<T> {
@@ -412,6 +413,7 @@ export const hooks: VariantHooks = {
     await proveWorkspaceHeaderCannotBeSkipped(ctx, alpha);
     await proveGrantsAreScopedPerWorkspace(ctx, alpha, beta);
     await proveARawDatabaseEditChangesEnforcement(ctx, beta);
+    await proveAuthzIsCachedUntilTheDatabaseChanges(ctx, beta);
   },
 };
 
@@ -709,8 +711,8 @@ async function proveGrantsAreScopedPerWorkspace(
 /**
  * The admin API already proves that editing the catalog changes enforcement, but it is the API
  * doing the writing — this rules out any possibility that it is also doing something in memory.
- * A `psql` session would look exactly like this — with nothing to invalidate, because
- * authorization is read from the live database on every request.
+ * A `psql` session would look exactly like this. The app never sees these writes, so each one
+ * applies once the cached answer's TTL runs out.
  */
 async function proveARawDatabaseEditChangesEnforcement(
   ctx: ProofContext,
@@ -731,6 +733,7 @@ async function proveARawDatabaseEditChangesEnforcement(
       .set({ isActive: false })
       .where(eq(permissions.slug, "audit-log:read")),
   );
+  await waitOutAuthzCache();
   const denied = await ctx.call("GET", "/audit-log", {
     token: beta.token,
     workspaceId: beta.workspace.id,
@@ -746,6 +749,7 @@ async function proveARawDatabaseEditChangesEnforcement(
       .set({ isActive: true })
       .where(eq(permissions.slug, "audit-log:read")),
   );
+  await waitOutAuthzCache();
   const restored = await ctx.call("GET", "/audit-log", {
     token: beta.token,
     workspaceId: beta.workspace.id,
@@ -755,7 +759,7 @@ async function proveARawDatabaseEditChangesEnforcement(
     `…and reactivating it in the database opens the route again (got ${restored.status})`,
   );
 
-  // --- a revoke written straight to the database lands on the very next request ---
+  // --- a revoke written straight to the database lands once the cache TTL runs out ---
   const email = ctx.uniqueEmail("rawrevoke");
   const tokens = await ctx.signup(email, "rawrevoke-pw-12345");
   const userId = (
@@ -805,10 +809,11 @@ async function proveARawDatabaseEditChangesEnforcement(
         ),
       );
   });
+  await waitOutAuthzCache();
   const grantDeleted = await ctx.call("GET", "/audit-log", as);
   ctx.assert(
     grantDeleted.status === 403,
-    `deleting a member's direct grant with raw SQL denies the very next request, on the same token (got ${grantDeleted.status})`,
+    `deleting a member's direct grant with raw SQL denies the next request after the cache TTL, on the same token (got ${grantDeleted.status})`,
   );
 
   const roleSlug = `raw-revoke-${Date.now()}`;
@@ -852,9 +857,60 @@ async function proveARawDatabaseEditChangesEnforcement(
         and(eq(roleMember.memberId, memberId), eq(roleMember.roleId, row.id)),
       );
   });
+  await waitOutAuthzCache();
   const roleDeleted = await ctx.call("GET", "/audit-log", as);
   ctx.assert(
     roleDeleted.status === 403,
-    `deleting a member's role assignment with raw SQL denies the very next request, on the same token (got ${roleDeleted.status})`,
+    `deleting a member's role assignment with raw SQL denies the next request after the cache TTL, on the same token (got ${roleDeleted.status})`,
   );
+}
+
+/**
+ * Authorization is cached per `[userId, workspaceId]`: repeated requests are answered from
+ * memory. A raw SQL write (which the app never sees) is served from the cache until the TTL runs
+ * out, then applies. (Changes made through the API bump `authz_version` and apply on the very
+ * next request — proved above.)
+ */
+async function proveAuthzIsCachedUntilTheDatabaseChanges(
+  ctx: ProofContext,
+  beta: { token: string; workspace: Workspace },
+): Promise<void> {
+  const cache = authzCache!;
+  const as = { token: beta.token, workspaceId: beta.workspace.id };
+
+  // Start from an expired entry, so the first request below is the one resolution.
+  await waitOutAuthzCache();
+  const before = cache.stats.resolutions;
+  for (let i = 0; i < 5; i++) await ctx.call("GET", "/audit-log", as);
+  ctx.assert(
+    cache.stats.resolutions - before === 1,
+    `5 identical authorized requests cause exactly one database resolution (got ${cache.stats.resolutions - before})`,
+  );
+
+  await withDb((db) =>
+    db
+      .update(permissions)
+      .set({ isActive: false })
+      .where(eq(permissions.slug, "audit-log:read")),
+  );
+  const beforeTtl = cache.stats.resolutions;
+  const stillCached = await ctx.call("GET", "/audit-log", as);
+  ctx.assert(
+    stillCached.status === 200 && cache.stats.resolutions === beforeTtl,
+    `a raw SQL write is served from the cache until the TTL runs out (got ${stillCached.status}, resolutions +${cache.stats.resolutions - beforeTtl})`,
+  );
+  await waitOutAuthzCache();
+  const afterTtl = cache.stats.resolutions;
+  const denied = await ctx.call("GET", "/audit-log", as);
+  ctx.assert(
+    denied.status === 403 && cache.stats.resolutions - afterTtl === 1,
+    `…and applies on the next request after the TTL (got ${denied.status}, resolutions +${cache.stats.resolutions - afterTtl})`,
+  );
+  await withDb((db) =>
+    db
+      .update(permissions)
+      .set({ isActive: true })
+      .where(eq(permissions.slug, "audit-log:read")),
+  );
+  await waitOutAuthzCache();
 }
