@@ -7,8 +7,7 @@
 import "dotenv/config";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { PrismaClient } from "@/database/generated/prisma/client.js";
-import { POLICY_VERSION_KEY } from "../src/common/auth/cache/permission-cache.js";
-import { permissionCacheStore } from "./bootstrap.js";
+import { authzCache, waitOutAuthzCache } from "./bootstrap.js";
 import {
   renewingToken,
   type AdminSession,
@@ -396,7 +395,7 @@ export const hooks: VariantHooks = {
 
     await proveNewWorkspaceIsProvisioned(ctx);
     await proveWorkspaceHeaderCannotBeSkipped(ctx, alpha);
-    await proveTheCacheIsScopedAndReal(ctx, alpha, beta);
+    await proveGrantsAreScopedAndLive(ctx, alpha, beta);
     await proveARawDatabaseEditChangesEnforcement(ctx, beta);
   },
 };
@@ -643,61 +642,41 @@ async function proveWorkspaceHeaderCannotBeSkipped(
 }
 
 /**
- * The permission cache is keyed on the *membership*, not the user, so invalidating one workspace
- * must not flush another — and a cache nobody can prove is working is a bug surface. These
- * assertions read the very store the app resolves through (`test/bootstrap.ts` hands it to
- * `AuthModule.forRoot`), so "the second request did not touch the database" is a measurement.
+ * Authorization is resolved from the database (through a cache the database itself invalidates),
+ * scoped to the membership the
+ * request names: a grant made in one workspace shows up there on the very next request, never in
+ * another workspace, and is gone again on the request after it is revoked.
  */
-async function proveTheCacheIsScopedAndReal(
+async function proveGrantsAreScopedAndLive(
   ctx: ProofContext,
   alpha: { token: string; workspace: Workspace },
   beta: { token: string; userId: string; workspace: Workspace },
 ): Promise<void> {
-  const N = 8;
-  await ctx.call("GET", "/auth/me", {
-    token: alpha.token,
-    workspaceId: alpha.workspace.id,
-  }); // warm
-  const before = { ...permissionCacheStore.stats };
-  for (let i = 0; i < N; i += 1)
-    await ctx.call("GET", "/auth/me", {
-      token: alpha.token,
-      workspaceId: alpha.workspace.id,
-    });
-  const after = permissionCacheStore.stats;
-  ctx.assert(
-    after.misses === before.misses && after.hits === before.hits + N,
-    `${N} identical workspace-scoped requests resolve the membership 0 further times — all ${N} were cache hits (misses +${after.misses - before.misses}, hits +${after.hits - before.hits})`,
-  );
-
-  // A grant inside beta must invalidate beta's entry and leave alpha's alone: the cache subject is
-  // the (user, workspace) pair, so one workspace's churn cannot cost another workspace its cache.
   await ctx.call("POST", `/admin/users/${beta.userId}/permissions`, {
     token: beta.token,
     workspaceId: beta.workspace.id,
-    body: { permission: "probe:cache" },
+    body: { permission: "probe:live" },
   });
-  const beforeAlpha = { ...permissionCacheStore.stats };
   const alphaAfter = await ctx.call("GET", "/auth/me", {
     token: alpha.token,
     workspaceId: alpha.workspace.id,
   });
   ctx.assert(
-    permissionCacheStore.stats.misses === beforeAlpha.misses &&
-      alphaAfter.status === 200,
-    "a grant made in workspace B does not invalidate the caller's cached membership of workspace A",
+    alphaAfter.status === 200 &&
+      !(alphaAfter.body?.permissions ?? []).includes("probe:live"),
+    "a grant made in workspace B does not show up in workspace A",
   );
   const betaAfter = await ctx.call("GET", "/auth/me", {
     token: beta.token,
     workspaceId: beta.workspace.id,
   });
   ctx.assert(
-    (betaAfter.body?.permissions ?? []).includes("probe:cache"),
+    (betaAfter.body?.permissions ?? []).includes("probe:live"),
     "…while workspace B sees the grant on its very next request",
   );
   await ctx.call(
     "POST",
-    `/admin/users/${beta.userId}/permissions/${encodeURIComponent("probe:cache")}/revoke`,
+    `/admin/users/${beta.userId}/permissions/${encodeURIComponent("probe:live")}/revoke`,
     {
       token: beta.token,
       workspaceId: beta.workspace.id,
@@ -708,7 +687,7 @@ async function proveTheCacheIsScopedAndReal(
     workspaceId: beta.workspace.id,
   });
   ctx.assert(
-    !(betaRevoked.body?.permissions ?? []).includes("probe:cache"),
+    !(betaRevoked.body?.permissions ?? []).includes("probe:live"),
     "…and loses it again on the request after the revoke",
   );
 }
@@ -716,8 +695,9 @@ async function proveTheCacheIsScopedAndReal(
 /**
  * The admin API already proves that editing the catalog changes enforcement, but it is the API
  * doing the writing — this rules out any possibility that it is also doing something in memory.
- * A `psql` session would look exactly like this, bump included: an out-of-band writer is outside
- * the invalidation protocol and says so by bumping the policy counter (see permission-cache.ts).
+ * A `psql` session would look exactly like this: nothing tells the app about the write and no
+ * authorization version is bumped, so it lands once the cached entry's TTL (`authzCache.ttlSeconds`,
+ * 1s here) runs out — never later.
  */
 async function proveARawDatabaseEditChangesEnforcement(
   ctx: ProofContext,
@@ -732,25 +712,40 @@ async function proveARawDatabaseEditChangesEnforcement(
     `the workspace admin can read the audit log to begin with (got ${opened.status})`,
   );
 
+  // The answer is cached per membership, and the cache is real: identical requests are served
+  // without resolving again.
+  const N = 5;
+  const beforeRepeat = { ...authzCache.stats };
+  for (let i = 0; i < N; i += 1)
+    await ctx.call("GET", "/audit-log", {
+      token: beta.token,
+      workspaceId: beta.workspace.id,
+    });
+  ctx.assert(
+    authzCache.stats.resolutions === beforeRepeat.resolutions &&
+      authzCache.stats.hits - beforeRepeat.hits === N,
+    `${N} identical authorized requests are all served from the authorization cache (resolutions +${authzCache.stats.resolutions - beforeRepeat.resolutions}, hits +${authzCache.stats.hits - beforeRepeat.hits})`,
+  );
+
   await prisma.permission.update({
     where: { slug: "audit-log:read" },
     data: { isActive: false },
   });
-  await permissionCacheStore.bump(POLICY_VERSION_KEY);
+  await waitOutAuthzCache();
   const denied = await ctx.call("GET", "/audit-log", {
     token: beta.token,
     workspaceId: beta.workspace.id,
   });
   ctx.assert(
     denied.status === 403,
-    `a permission deactivated by a raw database write stops opening its route (got ${denied.status})`,
+    `a permission deactivated by a raw database write stops opening its route once the cache TTL has passed (got ${denied.status})`,
   );
 
   await prisma.permission.update({
     where: { slug: "audit-log:read" },
     data: { isActive: true },
   });
-  await permissionCacheStore.bump(POLICY_VERSION_KEY);
+  await waitOutAuthzCache();
   const restored = await ctx.call("GET", "/audit-log", {
     token: beta.token,
     workspaceId: beta.workspace.id,
@@ -758,5 +753,53 @@ async function proveARawDatabaseEditChangesEnforcement(
   ctx.assert(
     restored.status === 200,
     `…and reactivating it in the database opens the route again (got ${restored.status})`,
+  );
+
+  // Revoking in SQL lands within the TTL too, on the same token. A fresh workspace creator, so the proof's
+  // own admin keeps its authority.
+  const fresh = await newAdminWithWorkspace(ctx, "rawrevoke");
+  const as = { token: fresh.token, workspaceId: fresh.workspace.id };
+  const member = await prisma.workspaceMember.findUniqueOrThrow({
+    where: {
+      userId_workspaceId: {
+        userId: BigInt(fresh.userId),
+        workspaceId: BigInt(fresh.workspace.id),
+      },
+    },
+  });
+  ctx.assert(
+    (await ctx.call("GET", "/audit-log", as)).status === 200,
+    "a workspace creator can read the audit log through their admin role",
+  );
+  await prisma.roleMember.deleteMany({
+    where: { memberId: member.id, role: { slug: "admin" } },
+  });
+  await waitOutAuthzCache();
+  const roleDeleted = await ctx.call("GET", "/audit-log", as);
+  ctx.assert(
+    roleDeleted.status === 403,
+    `deleting a role assignment in the database closes the route once the cache TTL has passed, same token (got ${roleDeleted.status})`,
+  );
+
+  const permission = await prisma.permission.findUniqueOrThrow({
+    where: { slug: "audit-log:read" },
+  });
+  await prisma.permissionMember.create({
+    data: { memberId: member.id, permissionId: permission.id },
+  });
+  await waitOutAuthzCache();
+  const granted = await ctx.call("GET", "/audit-log", as);
+  ctx.assert(
+    granted.status === 200,
+    `a direct grant written in the database opens the route once the cache TTL has passed (got ${granted.status})`,
+  );
+  await prisma.permissionMember.deleteMany({
+    where: { memberId: member.id, permissionId: permission.id },
+  });
+  await waitOutAuthzCache();
+  const grantDeleted = await ctx.call("GET", "/audit-log", as);
+  ctx.assert(
+    grantDeleted.status === 403,
+    `deleting a direct grant in the database closes the route once the cache TTL has passed, same token (got ${grantDeleted.status})`,
   );
 }

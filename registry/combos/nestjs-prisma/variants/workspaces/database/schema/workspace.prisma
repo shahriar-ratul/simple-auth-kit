@@ -1,0 +1,51 @@
+// Workspaces and memberships — the scope every role, grant and admin query is bound to.
+
+/// `isActive: false` suspends a workspace without deleting it — every membership and role
+/// inside it survives. `isDeleted` is the harder off-switch.
+model Workspace {
+  id            BigInt    @id @default(autoincrement())
+  uuid          String    @unique @default(uuid())
+  name          String
+  isActive      Boolean   @default(true) @map("is_active")
+  createdBy     BigInt?   @map("created_by")
+  updatedBy     BigInt?   @map("updated_by")
+  isDeleted     Boolean   @default(false) @map("is_deleted")
+  deletedAt     DateTime? @map("deleted_at") @db.Timestamptz(6)
+  deletedBy     BigInt?   @map("deleted_by")
+  deletedReason String?   @map("deleted_reason") @db.VarChar(255)
+  createdAt     DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt     DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  members   WorkspaceMember[]
+  roles     Role[]
+  countries Country[]
+  languages Language[]
+  customers Customer[]
+
+  createdByUser User? @relation("WorkspaceCreatedBy", fields: [createdBy], references: [id], onDelete: SetNull)
+  updatedByUser User? @relation("WorkspaceUpdatedBy", fields: [updatedBy], references: [id], onDelete: SetNull)
+  deletedByUser User? @relation("WorkspaceDeletedBy", fields: [deletedBy], references: [id], onDelete: SetNull)
+
+  @@index([isActive], map: "workspaces_is_active_idx")
+  @@index([isDeleted], map: "workspaces_is_deleted_idx")
+  @@map("workspaces")
+}
+
+/// The authorization principal. `[userId, workspaceId]` is unique, making the per-request
+/// membership lookup a single indexed read.
+model WorkspaceMember {
+  id          BigInt   @id @default(autoincrement())
+  uuid        String   @unique @default(uuid())
+  userId      BigInt   @map("user_id")
+  workspaceId BigInt   @map("workspace_id")
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  user        User               @relation(fields: [userId], references: [id])
+  workspace   Workspace          @relation(fields: [workspaceId], references: [id])
+  roles       RoleMember[]
+  permissions PermissionMember[]
+
+  @@unique([userId, workspaceId])
+  @@index([workspaceId], map: "workspace_members_workspace_id_idx")
+  @@map("workspace_members")
+}

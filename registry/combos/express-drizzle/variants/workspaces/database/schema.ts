@@ -25,6 +25,7 @@ import {
   jsonb,
   pgTable,
   primaryKey,
+  smallint,
   text,
   timestamp,
   uniqueIndex,
@@ -514,6 +515,17 @@ export const sessions = pgTable(
 
 /** Instant access-token revocation. Rows are only ever as old as the access-token
  * TTL (~15 min) — safe to move to Redis with a matching TTL without changing callers. */
+/**
+ * A single row (`id` = 1) whose `version` the app bumps on every write that changes a caller's
+ * resolved authorization (see `common/auth/cache/authz-version.ts`). The authz cache compares it
+ * on each request, so such a change applies on the very next request, on every instance. The row
+ * is created on the first bump; until then the version reads as 0.
+ */
+export const authzVersion = pgTable("authz_version", {
+  id: smallint("id").primaryKey(),
+  version: bigint("version", { mode: "number" }).notNull().default(0),
+});
+
 export const denylistedAccessTokens = pgTable("denylisted_access_tokens", {
   jti: text("jti").primaryKey(),
   expiresAt: timestamptz("expires_at").notNull(),

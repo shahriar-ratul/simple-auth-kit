@@ -3,7 +3,7 @@ import { hashPassword } from '@/core/crypto';
 import { blockUser, deactivateUser } from '@/core/session-policy';
 import type { Revoker } from '@/core/types';
 import { PrismaService } from '@/modules/prisma/prisma.service';
-import { AuditLogRepository } from '@/modules/audit-log/repositories/audit-log.repository';
+import { AuditLogRepository } from '@/common/repositories/audit-log.repository';
 import {
   CountryInput,
   CountryListFilter,
@@ -31,9 +31,10 @@ import {
   UserListFilter,
   UserListResult,
   UserSummary,
-} from '@/modules/auth/repositories/rbac.repository';
-import { SessionRepository } from '@/modules/auth/repositories/session.repository';
+} from '@/common/repositories/rbac.repository';
+import { SessionRepository } from '@/common/repositories/session.repository';
 import { toId, toIdOrNull } from '@/common/helpers/id.helper';
+import { bumpAuthzVersion } from '@/common/auth/cache/authz-version';
 
 /**
  * User management, block/unblock/deactivate/activate, user-scoped role/permission assignment,
@@ -146,10 +147,8 @@ export class AdminService {
       where: { id: toId(userId) },
       data: { blocked: true, updatedBy: toIdOrNull(revoker?.userId) },
     });
+    await bumpAuthzVersion(this.prisma);
     await blockUser(this.sessions, userId, revoker);
-    // Belt and braces: the block is already enforced on the authentication path, but drop the
-    // cache entry anyway so nothing about a blocked account is served from memory.
-    await this.rbac.invalidateUser(userId);
   }
 
   async unblock(userId: string, revoker?: Revoker): Promise<void> {
@@ -168,8 +167,8 @@ export class AdminService {
       where: { id: toId(userId) },
       data: { isActive: false, updatedBy: toIdOrNull(revoker?.userId) },
     });
+    await bumpAuthzVersion(this.prisma);
     await deactivateUser(this.sessions, userId, revoker);
-    await this.rbac.invalidateUser(userId);
   }
 
   async activate(userId: string, revoker?: Revoker): Promise<void> {

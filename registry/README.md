@@ -60,6 +60,7 @@ registry/
     │   │   ├── database/schema/**  (Prisma: .prisma files) or database/schema.ts (Drizzle)
     │   │   ├── database/migrations/**
     │   │   ├── database/seed.ts
+    │   │   ├── database/seedData/**  seed data only — never imported by src/
     │   │   ├── root/**        project-root files that differ per variant, copied over
     │   │                      shared/root/ — e.g. monitoring/prometheus/prometheus.yml,
     │   │                      whose scrape target is this variant's own app port
@@ -90,10 +91,15 @@ whatever `registry/core/*` is mounted as (always `core/`, at the project root th
 into — see below for why nothing here is also named `core/`):
 
 - **`common/`** — cross-cutting auth infrastructure used by every feature module: `common/auth/`
-  (the ability model, permission cache, rate-limit store, the plain authentication guard/middleware,
+  (the ability model, rate-limit store, the plain authentication guard/middleware,
   and each variant's own authorization guard/middleware), `common/config/` (generic — `auth.config`,
   `key-provider`, and for Drizzle combos the DB connection factory — not auth-namespaced, since a
-  consumer might reasonably add unrelated config here too), `common/helpers/`.
+  consumer might reasonably add unrelated config here too), `common/helpers/`, and
+  `common/repositories/` — every repository used by more than one module (`session`, `rbac`,
+  `audit-log`, and in `workspaces` `workspace`). A repository only its own module uses stays in
+  `modules/<module>/repositories/` (`oauth`, `password-reset`, `two-factor`, and the content-domain
+  repositories); once a second module needs one, it moves to `common/repositories/` rather than
+  being imported across module boundaries.
 - **`infra/`** — framework-wide, non-auth-specific plumbing: the response envelope/interceptor,
   the error/exception filter, `request-context`, `route-tiers`, the hand-authored or
   decorator-derived OpenAPI wiring. Named `infra/`, deliberately **not** `core/` — the CLI always
@@ -115,14 +121,14 @@ into — see below for why nothing here is also named `core/`):
   `docs/backend-api.md`.
 
 **`RbacRepository` is not split** across `modules/roles/`/`modules/permissions/` even though
-their controllers live in separate modules — it is the one class every request's authorization
-resolution goes through (`resolveAuthzContext`, cache invalidation, default-role assignment at
+their controllers live in separate modules — it lives in `common/repositories/` because it is the
+one class every request's authorization resolution goes through (`resolveAuthzContext`, default-role assignment at
 signup), and physically fragmenting it was judged too high a correctness risk for the
 organizational benefit. Every module that needs it (via the NestJS combos' `CoreAuthModule`, or a
 constructor/factory argument in the Express combos) shares the same instance.
 
 **NestJS combos only**: `common/auth/core-auth.module.ts` is a `@Global()` module centralizing
-`AUTH_CONFIG`, the DB client, `KeyProviderService`, `PermissionCache`, the rate-limit store,
+`AUTH_CONFIG`, the DB client, `KeyProviderService`, the rate-limit store,
 `RbacRepository`, and the three guards — exported so every feature module can inject them without
 redeclaring providers. Its `forRoot(config)` is the _only_ remaining dynamic-module config surface;
 everything that used to ship inside the old monolithic `AuthModule.forRoot()` — the global
@@ -139,26 +145,27 @@ router/module split applies there.
 `shared/src`: the identity/session/2FA machinery and everything both variants use unchanged —
 `common/config/auth.config.ts`, `modules/auth/controllers/auth.controller.ts`,
 `common/auth/guards/auth.guard.ts`, `common/auth/ability/{ability.ts,ability.guard.ts}`,
-`infra/route-tiers.ts`, `common/auth/cache/permission-cache.ts`, `infra/request-context.ts`,
+`infra/route-tiers.ts`, `infra/request-context.ts`,
 `infra/interceptor/response.interceptor.ts`, `common/helpers/{pagination.ts,id.helper.ts}`,
 `common/config/key-provider.ts`, `common/auth/cache/rate-limit.store.ts`,
-`infra/filters/auth-core-error.filter.ts`, the `session/two-factor/password-reset/oauth`
-repositories (`modules/auth/repositories/`), `modules/auth/dto/auth.dto.ts`.
+`infra/filters/auth-core-error.filter.ts`, `common/repositories/session.repository.ts`, the
+`two-factor/password-reset/oauth` repositories (`modules/auth/repositories/`),
+`modules/auth/dto/auth.dto.ts`.
 
 `variants/<variant>/src`: everything whose implementation depends on how authorization is
 scoped — `modules/auth/auth.module.ts`, `modules/auth/services/auth.service.ts`,
 `modules/admin/controllers/admin.controller.ts`, `common/auth/guards/authz.guard.ts`,
-`modules/auth/repositories/rbac.repository.ts`, `modules/auth/rbac.defaults.ts`,
-`modules/audit-log/repositories/audit-log.repository.ts`, `database/seed.ts`,
+`common/repositories/rbac.repository.ts`, `modules/auth/permission-slugs.ts`,
+`common/repositories/audit-log.repository.ts`, `database/seed.ts`, `database/seedData/**`,
 `modules/admin/dto/admin.dto.ts`, and the content-domain repositories
 (`modules/admin/repositories/{country,language,customer}.repository.ts`, this combo only). Plus,
 in `base` only, `modules/auth/gateways/audit-log.gateway.ts` (the socket.io feed) and
 `infra/openapi/docs.ts`; in `workspaces` only, `modules/auth/controllers/workspace.controller.ts`,
-`modules/auth/repositories/workspace.repository.ts`, `modules/auth/dto/workspace.dto.ts`.
+`common/repositories/workspace.repository.ts`, `modules/auth/dto/workspace.dto.ts`.
 
-`rbac.defaults.ts` is per variant rather than shared because the catalogs differ by one slug
-(`members:manage` exists only where there are members to manage), and a file must not branch on
-its variant. See "Enforcement" below — it is the file the whole authorization story hangs off.
+`permission-slugs.ts` and `database/seedData/` are per variant rather than shared because the
+slug lists differ by one (`members:manage` exists only where there are members to manage), and a
+file must not branch on its variant. See "Enforcement" below.
 
 `variants/<variant>/.env.example`: not shared. The workspace variant's seeder reads one variable
 the base variant has no concept of (`SEED_WORKSPACE_NAME`), and an emitted project must not
@@ -179,10 +186,54 @@ Authentication and authorization are separate request-scoped objects (`shared/sr
     `AuthzContext` also carries `workspaceId`/`memberId`, which is what scopes every admin
     query to one workspace without a second check.
 
-Both variants resolve through `PermissionCache` (version-key invalidation, single-flight), so
-the steady-state cost is a cache read while the semantics stay "read from the database": a
-grant or revocation lands on the caller's **next request**, not their next token, and
-`POST /auth/logout`'s denylist is the instant kill for a live access token.
+Both variants cache the resolved context in memory (`common/auth/cache/authz-cache.ts`), keyed
+by user (`base`) or `userId:workspaceId` (`workspaces`). Permission changes are rare and checks
+happen on every request, so a request normally costs one single-row read of `authz_version`
+instead of the multi-join resolution. An entry is used only while that version is unchanged and
+it is younger than `authzCache.ttlSeconds` (default 30):
+
+- every authorization write the app makes calls `bumpAuthzVersion` through the ORM (inside the
+  same transaction when there is one), so a grant or revocation made through the API lands on the
+  caller's **next request** — on every instance — not their next token;
+- a change written straight to the database (psql, another tool) doesn't bump it, so it lands
+  once the entry's TTL runs out; the seeder bumps the version when it finishes.
+
+There are no database triggers and no hand-written SQL: the `authz_version` table's migration is
+generated by the ORM. `POST /auth/logout`'s denylist remains the instant kill for a live access
+token.
+
+**Configuring it** — `authzCache` in the auth config (`CoreAuthModule.forRoot({...})` in the
+NestJS combos, `createAuthApp({...})` in the Express combos); every field is optional:
+
+```ts
+authzCache: {
+  enabled: true,    // false: no cache — authorization is resolved from the database every request
+  revalidate: true, // true: read `authz_version` each request, so app-side changes apply on the
+                    //   next request on every server; false: skip that read and trust entries
+                    //   until the TTL (zero database reads on a hit; changes apply within the TTL)
+  ttlSeconds: 30,
+  store: undefined, // where entries live — default: in-process memory (InMemoryAuthzCacheStore)
+}
+```
+
+Redis is never a dependency. The store is a two-method interface (`AuthzCacheStore`: `get(key)`
+and `set(key, value, ttlSeconds)`, string values), so sharing entries across servers is a few
+lines with whatever client you already use — e.g. `ioredis`:
+
+```ts
+import Redis from "ioredis";
+const redis = new Redis(process.env.REDIS_URL!);
+const store: AuthzCacheStore = {
+  get: async (key) => (await redis.get(key)) ?? undefined,
+  set: async (key, value, ttlSeconds) => {
+    await redis.set(key, value, "EX", ttlSeconds);
+  },
+};
+// authzCache: { store }
+```
+
+Without a shared store each server keeps its own entries; they stay correct across servers
+because the version they are checked against lives in the database.
 
 `AuthzGuard` also builds `req.ability` — the CASL ability over the resolved permission slugs —
 which is what the shared `AbilityGuard` checks. `AbilityGuard` only ever reads what the
@@ -232,9 +283,9 @@ means porting that table, not re-deriving it.
 
 Roles and the permission catalog are seeded data, so a freshly migrated database has no
 `Permission` rows and no `Role` rows and authorization has nothing to check against. Every combo
-ships `variants/<variant>/src/seed.ts` to close that gap. It is **consumer-facing source**, not
-repo tooling: it is copied into the emitted project like any other file under `src/`, and the
-consumer runs it as `npm run seed`. `scripts/seed.mjs` runs the same file against this combo's
+ships `variants/<variant>/database/seed.ts` (plus its data in `database/seedData/`) to close that
+gap. It is **consumer-facing source**, not repo tooling: it is copied into the emitted project's
+`database/` folder, next to the schema and migrations, and the consumer runs it as `npm run seed`. `scripts/seed.mjs` runs the same file against this combo's
 own dev database, so what is exercised here is exactly what a consumer runs.
 
 **The contract every combo's seeder implements.** Mirroring it to another combo is a translation
@@ -244,8 +295,9 @@ of these rules into that combo's ORM, not a redesign:
    (`Permission.slug`, `Role.slug` / `[workspaceId, slug]`, the join-table composite ids,
    `User.email`, `[userId, workspaceId]`). Nothing is ever deleted, so a re-run is additive: a
    permission attached to a seeded role by hand survives it.
-2. **The permission catalog comes from `rbac.defaults.ts`** (see "Enforcement"), one
-   `noun:verb` slug per capability the admin API actually exposes — not a speculative list.
+2. **The seed data lives in `database/seedData/`** (`permissions.ts`, `roles.ts`, `provision.ts`,
+   plus `workspace.ts` in the workspaces variant): one permission row per slug in
+   `permission-slugs.ts` (see "Enforcement"), not a speculative list.
 3. **Two default roles.** `admin` carries the whole catalog; `member` is the signup/new-membership
    default and carries the empty set, because every slug in the catalog is administrative. No
    guard checks for a role name — the names are load-bearing only as the default a new user or
@@ -266,9 +318,11 @@ of these rules into that combo's ORM, not a redesign:
    the working directory's `.env` via `process.loadEnvFile()` — which never overrides a variable
    the process was already given. No `dotenv` dependency is added to the consumer's project.
 
-The seeder does not own the catalog or the role definitions — `rbac.defaults.ts` does, and the
-seeder is one of its callers. See "Enforcement" below for why that matters and who the other
-callers are.
+**Seed data is not application code.** Nothing under `src/` imports `database/seedData/` or
+`database/seed.ts`: the app builds and runs with both deleted, and after seeding the database is
+the only source of truth for which permissions exist, which roles carry them, and who holds
+them. The dependency runs one way only — the seed data imports `PermissionSlug` from the app so
+it can't miss a slug a route is gated on.
 
 ## Enforcement
 
@@ -278,31 +332,27 @@ boot and a route carrying none of them **crashes the boot, naming itself** — a
 cannot ship open by omission. There is **no role-based bypass** anywhere in a combo: a role
 that carries no permissions confers no authority, whatever it is called.
 
-### `rbac.defaults.ts` — the one definition, and what mirrors it
+### `permission-slugs.ts` — the one piece of RBAC that is code
 
-`variants/<variant>/src/rbac.defaults.ts` is the single source of truth, and every other piece
-reads it rather than keeping a copy:
+`variants/<variant>/src/modules/auth/permission-slugs.ts` lists the slugs this build's routes are
+gated on, and nothing else — no display names, no roles, no grants:
 
-- **`PERMISSION_CATALOG`** — `noun:verb` slug → display name, description, group. One entry per
-  capability the admin API exposes: in the reference combo, 18 slugs in `base`, 19 in
-  `workspaces` (+`members:manage`); 9/10 in the other combos, which have no content domains.
-  The full slug list and the route → slug mapping live in `docs/backend-api.md`.
-- **`PermissionSlug`** = `keyof typeof PERMISSION_CATALOG`, and `@CheckAbility` takes **that
-  type, not `string`**. A route cannot demand a slug the catalog does not define, so "this
-  route requires something nothing can ever grant" is a compile error rather than a 403 nobody
-  can explain. Deployments may mint new slugs at runtime (`POST /permissions`
-  accepts any string), but those cannot gate a route this library ships.
-- **`DEFAULT_ROLES`** — `admin` carries the whole catalog, `member` carries nothing.
-- **`provisionDefaultRoles(db[, workspaceId])`** — writes catalog + default roles into a
-  database. `db` is typed structurally so it accepts either the client or a transaction
-  client. Every insert is `ON CONFLICT DO NOTHING` on the natural unique key, so it is
-  idempotent _and_ safe to run concurrently, and nothing is ever deleted.
+- **`PERMISSION_SLUGS`** — one `noun:verb` slug per capability the admin API exposes: in the
+  reference combo, 18 in `base`, 19 in `workspaces` (+`members:manage`); 9/10 in the other combos,
+  which have no content domains. The route → slug mapping lives in `docs/backend-api.md`.
+- **`PermissionSlug`** — the union of those slugs. `@CheckAbility` (Express: `ability(...)`) takes
+  **that type, not `string`**, so "this route requires something nothing can ever grant" is a
+  compile error rather than a 403 nobody can explain. Express also checks each slug against
+  `PERMISSION_SLUGS` at registration. Deployments may mint new slugs at runtime
+  (`POST /permissions` accepts any string), but those cannot gate a route this library ships.
 
-Its callers: `src/seed.ts` (both variants), `src/workspace.repository.ts` (workspaces only), and
-the variant hooks in `test/`. The seeder is a _caller_ of this definition, not its owner —
-which is what makes it impossible for what gets seeded and what the routes demand to drift.
+Everything else is data. `database/seedData/` holds a starting point — permission display names
+and groups, the `admin`/`member` roles, which roles the seeded accounts get — and
+`provisionDefaultRoles(db[, workspaceId])` writes it; its only callers are `database/seed.ts` and
+the variant hooks in `test/`. Every insert is `ON CONFLICT DO NOTHING` on the natural unique key,
+so it is idempotent _and_ safe to run concurrently, and nothing is ever deleted.
 
-Resolution at request time (`AuthzGuard` → `PermissionCache` → `RbacRepository`) unions role
+Resolution at request time (`AuthzGuard` → `AuthzCache` → `RbacRepository`) unions role
 permissions with direct grants and dedupes; `AbilityGuard` then checks the route's slug against
 the resulting CASL ability. Fail-closed in both directions: no resolved context, or the slug
 absent from it, is a 403.
@@ -326,11 +376,15 @@ locked out of the workspace they just made — permanently, since every route th
 is one of the gated ones. The seeder does not help: it only provisions the workspace _it_
 creates.
 
-`WorkspaceRepository.create` therefore calls `provisionDefaultRoles(tx, workspace.id)` **inside
-the same transaction** that creates the workspace and the creator's membership, so a workspace
-never exists without the roles that make it administrable. `prove-cycle` proves it end to end:
+`WorkspaceRepository.create` therefore creates the workspace's roles **inside the same
+transaction** that creates the workspace and the creator's membership, so a workspace never
+exists without the roles that make it administrable. It builds them from the database, not from
+seed data: `admin` carries every slug in `PERMISSION_SLUGS` that exists and is active in the
+permission table, and `member` (the new-membership default) carries nothing; the creator holds
+both. Permissions a deployment minted at runtime are deliberately left out, so one workspace's
+custom permissions never leak into another workspace's admin role. `prove-cycle` proves it end to end:
 create a brand-new workspace, then exercise the administrative capabilities inside it as the
-person who created it. Remove the provisioning call and that section fails immediately — as
+person who created it. Remove the role creation and that section fails immediately — as
 does most of the rest of the workspaces run, since the proof's own admin gets their authority
 from a workspace they create.
 
@@ -357,20 +411,21 @@ and running its own build/typecheck, not this file's proof harness).
 2. Write `variants/workspaces/` against the reference combo's schema and endpoint shapes.
 3. Copy `scripts/*.mjs` from `nestjs-prisma` — they are combo-agnostic apart from the Prisma/
    Drizzle migration command in `migrate.mjs`.
-4. Port `variants/<variant>/src/rbac.defaults.ts` first — the catalog, `PermissionSlug`,
-   `DEFAULT_ROLES` and `provisionDefaultRoles` — then `variants/<variant>/src/seed.ts` and the
-   `SEED_*` block of each variant's `.env.example`, following the contract in "The seeder" above.
-   Translating `provisionDefaultRoles` into that combo's ORM is the only real work; keep it
-   idempotent, transaction-client-friendly, and `ON CONFLICT DO NOTHING`.
+4. Port `variants/<variant>/src/modules/auth/permission-slugs.ts` first, then
+   `variants/<variant>/database/seedData/` (permissions, roles, `provisionDefaultRoles`), then
+   `database/seed.ts` and the `SEED_*` block of each variant's `root/.env.example`, following the
+   contract in "The seeder" above. Translating `provisionDefaultRoles` into that combo's ORM is
+   the only real work; keep it idempotent, transaction-client-friendly, and `ON CONFLICT DO
+NOTHING`. Nothing under `src/` may import `database/seedData/`.
 5. Put `@CheckAbility` on every admin route per the mapping in `docs/backend-api.md`, wire the
-   startup route-tier check, and — in the workspace variant — provision the default roles
-   inside the workspace-creation transaction. A combo that seeds a catalog it does not enforce
+   startup route-tier check, and — in the workspace variant — create the new workspace's roles
+   from the database inside the workspace-creation transaction. A combo that seeds a catalog it does not enforce
    is worse than one that does neither: the admin console hides UI the server would have
    allowed anyway.
 6. Add `sharedDir`, `variantsDir` and `variants: ["base", "workspaces"]` to the combo's entry in
    `packages/cli/registry.json`, plus the `npm run seed` line in its `postInstall` notes — the CLI never
    edits a consumer's `package.json`, so the script has to be spelled out for them, and the path
-   it points at is `<installPath>/src/seed.ts`, i.e. `tsx src/lib/auth/src/seed.ts` by default
-   (a combo's `src/**` lands under the install directory's own `src/`, not directly in it).
+   it points at is `tsx database/seed.ts` (a combo's `database/` lands at the project root, not
+   under the install directory).
 7. `npm run typecheck && npm run prove-cycle` must pass for both variants, and `npm run seed`
    must be safe to run twice against the same database.

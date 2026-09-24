@@ -2,7 +2,7 @@ import type { NextFunction, Request, Response } from "express";
 import { verifyAccessToken } from "@/lib/auth/core/token-service";
 import { KeyProviderService } from "@/common/config/key-provider";
 import "@/infra/request-context";
-import { SessionRepository } from "@/modules/auth/repositories/session.repository";
+import { SessionRepository } from "@/common/repositories/session.repository";
 
 export interface AuthMiddlewareDeps {
   keys: KeyProviderService;

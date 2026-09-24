@@ -6,11 +6,8 @@ import {
   Injectable,
 } from "@nestjs/common";
 import { defineAbilitiesFor } from "@/common/auth/ability/ability";
-import { PermissionCache } from "@/common/auth/cache/permission-cache";
-import {
-  memberCacheKey,
-  RbacRepository,
-} from "@/modules/auth/repositories/rbac.repository";
+import { AuthzCache } from "@/common/auth/cache/authz-cache";
+import { RbacRepository } from "@/common/repositories/rbac.repository";
 
 export const WORKSPACE_HEADER = "x-workspace-id";
 
@@ -32,10 +29,8 @@ export interface AuthzContext {
  * named" differs.
  *
  * The one lookup is `resolveAuthzContext`'s — anchored on the `[userId, workspaceId]` unique
- * index — and it goes through `PermissionCache`, keyed on that same pair, so the steady-state
- * cost is a cache read. The *semantics* stay "read from the database": every write that could
- * change the answer bumps a version counter and the cached entry becomes unreachable. A
- * non-member is never cached, so being added to a workspace is effective immediately.
+ * index — cached per `[userId, workspaceId]` in `AuthzCache` (see `authz-cache.ts`): app writes
+ * bump `authz_version` and apply on the next request; a direct SQL write applies after the TTL.
  *
  * The CASL ability is derived from what came back, in memory, so gating routes on abilities costs
  * exactly what gating them on permission slugs did.
@@ -45,7 +40,7 @@ export interface AuthzContext {
  */
 async function resolve(
   rbac: RbacRepository,
-  cache: PermissionCache,
+  cache: AuthzCache,
   context: ExecutionContext,
 ): Promise<void> {
   const req = context.switchToHttp().getRequest();
@@ -56,9 +51,8 @@ async function resolve(
     return;
 
   const userId = req.auth.sub as string;
-  const authz = await cache.resolve<AuthzContext>(
-    memberCacheKey(userId, workspaceId),
-    () => rbac.resolveAuthzContext(userId, workspaceId),
+  const authz = await cache.get(`${userId}:${workspaceId}`, () =>
+    rbac.resolveAuthzContext(userId, workspaceId),
   );
   // Deliberately the same answer for "no such workspace" and "not your workspace": a caller
   // outside a workspace must not be able to probe whether it exists.
@@ -78,7 +72,7 @@ async function resolve(
 export class AuthzGuard implements CanActivate {
   constructor(
     @Inject(RbacRepository) private readonly rbac: RbacRepository,
-    @Inject(PermissionCache) private readonly cache: PermissionCache,
+    @Inject(AuthzCache) private readonly cache: AuthzCache,
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
@@ -92,7 +86,7 @@ export class AuthzGuard implements CanActivate {
 export class WorkspaceGuard implements CanActivate {
   constructor(
     @Inject(RbacRepository) private readonly rbac: RbacRepository,
-    @Inject(PermissionCache) private readonly cache: PermissionCache,
+    @Inject(AuthzCache) private readonly cache: AuthzCache,
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {

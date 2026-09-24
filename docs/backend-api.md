@@ -190,9 +190,10 @@ The workspaces variant adds `members:manage` (19). The other 3 combos carry the 
 slugs (10 with `members:manage`) — their catalogs, like their route tables, have no content
 domains. The seeder maps the whole catalog to the
 `admin` role; `member` gets none. Slugs are defined in
-`variants/<variant>/src/rbac.defaults.ts` — `@CheckAbility` takes `PermissionSlug`
-(`keyof typeof PERMISSION_CATALOG`), so a route demanding an uncatalogued slug is a compile
-error, and adding one there is what makes the seeder provision it. Deployments may mint new
+`variants/<variant>/src/modules/auth/permission-slugs.ts` — `@CheckAbility` takes
+`PermissionSlug` (the union of `PERMISSION_SLUGS`), so a route demanding an unlisted slug is a
+compile error. Each slug's seed row (display name, group) lives in
+`variants/<variant>/database/seedData/permissions.ts`, which the app itself never imports. Deployments may mint new
 slugs at runtime (`POST /api/v1/permissions` accepts any string), but those can't gate a
 route this library ships.
 

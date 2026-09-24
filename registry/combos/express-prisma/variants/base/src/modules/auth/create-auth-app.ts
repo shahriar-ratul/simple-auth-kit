@@ -4,7 +4,7 @@ import { apiReference } from "@scalar/express-api-reference";
 import type { RateLimitDeps } from "@/lib/auth/core/rate-limit";
 import { AdminService } from "@/modules/admin/services/admin.service";
 import { createAdminRouter } from "@/modules/admin/routers/admin.router";
-import { AuditLogRepository } from "@/modules/audit-log/repositories/audit-log.repository";
+import { AuditLogRepository } from "@/common/repositories/audit-log.repository";
 import { AuditLogService } from "@/modules/audit-log/services/audit-log.service";
 import { createAuditLogRouter } from "@/modules/audit-log/routers/audit-log.router";
 import { PermissionService } from "@/modules/permissions/services/permission.service";
@@ -12,10 +12,15 @@ import { createPermissionRouter } from "@/modules/permissions/routers/permission
 import { RoleService } from "@/modules/roles/services/role.service";
 import { createRoleRouter } from "@/modules/roles/routers/roles.router";
 import { authCoreErrorMiddleware } from "@/infra/middleware/auth-core-error.middleware";
-import { AuthConfig, defaultAuthConfig } from "@/common/config/auth.config";
+import {
+  AuthConfig,
+  AuthConfigInput,
+  defaultAuthConfig,
+} from "@/common/config/auth.config";
 import { createAuthMiddleware } from "@/common/auth/middleware/auth.middleware";
 import { createAuthRouter } from "@/modules/auth/routers/auth.router";
 import { AuthService } from "@/modules/auth/services/auth.service";
+import { AuthzCache } from "@/common/auth/cache/authz-cache";
 import { createAuthzMiddleware } from "@/common/auth/middleware/authz.middleware";
 import { PrismaClient } from "@/database/generated/prisma/client";
 import { KeyProviderService } from "@/common/config/key-provider";
@@ -28,22 +33,20 @@ import {
 import { OAuthRepository } from "@/modules/auth/repositories/oauth.repository";
 import { openApiSpec } from "@/infra/openapi/openapi-spec";
 import { PasswordResetRepository } from "@/modules/auth/repositories/password-reset.repository";
-import {
-  InMemoryPermissionCacheStore,
-  PermissionCache,
-} from "@/common/auth/cache/permission-cache";
 import { InMemoryRateLimitStore } from "@/common/auth/cache/rate-limit.store";
-import { RbacRepository } from "@/modules/auth/repositories/rbac.repository";
+import { RbacRepository } from "@/common/repositories/rbac.repository";
 import { requestLogger } from "@/infra/middleware/request-logger.middleware";
 import { responseEnvelope } from "@/infra/middleware/response-envelope.middleware";
-import { SessionRepository } from "@/modules/auth/repositories/session.repository";
+import { SessionRepository } from "@/common/repositories/session.repository";
 import { TwoFactorRepository } from "@/modules/auth/repositories/two-factor.repository";
 
 export interface CreateAuthAppOptions {
   /** Overrides merged on top of `defaultAuthConfig`, same shape as the reference combo's `AuthModule.forRoot(config)`. */
-  config?: Partial<AuthConfig>;
+  config?: AuthConfigInput;
   /** Mount onto an existing Express app instead of creating a new one (e.g. to add your own business routes alongside). */
   app?: Express;
+  /** A prebuilt authorization cache — pass one to read its `stats` (the proof does); built from `config.authzCache` otherwise. */
+  authzCacheInstance?: AuthzCache;
 }
 
 /**
@@ -54,7 +57,15 @@ export interface CreateAuthAppOptions {
  * middleware, and mount everything on an Express app.
  */
 export function createAuthApp(options: CreateAuthAppOptions = {}): Express {
-  const config: AuthConfig = { ...defaultAuthConfig, ...options.config };
+  const config: AuthConfig = {
+    ...defaultAuthConfig,
+    ...options.config,
+    // Merged a level deeper, so `authzCache: { ttlSeconds: 5 }` keeps the other defaults.
+    authzCache: {
+      ...defaultAuthConfig.authzCache,
+      ...options.config?.authzCache,
+    },
+  };
 
   const adapter = new PrismaPg({
     connectionString: process.env["DATABASE_URL"],
@@ -68,13 +79,9 @@ export function createAuthApp(options: CreateAuthAppOptions = {}): Express {
   // this library's source changes.
   const rateLimit: RateLimitDeps =
     config.rateLimitStore ?? new InMemoryRateLimitStore();
-  // The cache seam. Swap the store for a Redis-backed one by passing `permissionCacheStore` in
-  // `config` — nothing in this library's source changes. Keys are namespaced simpleauthkit:authz:*.
-  const permissionCache = new PermissionCache(
-    config.permissionCacheStore ?? new InMemoryPermissionCacheStore(),
-    config,
-  );
-  const rbac = new RbacRepository(prisma, permissionCache);
+  const rbac = new RbacRepository(prisma);
+  const authzCache =
+    options.authzCacheInstance ?? new AuthzCache(rbac, config.authzCache);
   const twoFactor = new TwoFactorRepository(prisma);
   const oauth = new OAuthRepository(prisma);
   const passwordReset = new PasswordResetRepository(prisma);
@@ -97,15 +104,14 @@ export function createAuthApp(options: CreateAuthAppOptions = {}): Express {
   const authentication = createAuthMiddleware({ keys, sessions });
   // Roles are global here, but they are read from the database on the request that uses them —
   // the token carries none. See authz.middleware.ts.
-  const authorization = createAuthzMiddleware({ rbac, cache: permissionCache });
+  const authorization = createAuthzMiddleware({ rbac, cache: authzCache });
 
-  if (!config.permissionCacheStore || !config.rateLimitStore) {
+  if (!config.rateLimitStore) {
     log.warn(
       "auth",
-      "[simple-auth-kit] permissionCacheStore/rateLimitStore not overridden — using in-memory defaults. " +
-        "Fine for a single instance; silently inconsistent (stale grants, wrong rate-limit counts) " +
-        "across replicas once you run more than one. Override permissionCacheStore/rateLimitStore " +
-        "in createAuthApp's config before scaling out.",
+      "[simple-auth-kit] rateLimitStore not overridden — using the in-memory default. " +
+        "Fine for a single instance; wrong rate-limit counts across replicas once you run more " +
+        "than one. Override rateLimitStore in createAuthApp's config before scaling out.",
     );
   }
 

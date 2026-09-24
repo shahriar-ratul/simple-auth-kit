@@ -6,7 +6,7 @@
 // @Authenticated() with no AuthGuard can't masquerade as gated.
 import { RequestMethod, SetMetadata } from '@nestjs/common';
 import { GUARDS_METADATA, METHOD_METADATA, PATH_METADATA } from '@nestjs/common/constants.js';
-import type { PermissionSlug } from '@/modules/auth/rbac.defaults';
+import type { PermissionSlug } from '@/modules/auth/permission-slugs';
 
 export const ROUTE_TIER_KEY = 'routeTier';
 export const CHECK_ABILITY_KEY = 'checkAbility';
@@ -21,7 +21,7 @@ export const Authenticated = () => SetMetadata(ROUTE_TIER_KEY, 'authenticated' s
 
 // Requires AuthGuard, then the variant's authorization guard, then AbilityGuard. All named
 // slugs must be held — the guard ANDs them. The argument is typed as `PermissionSlug` (the
-// catalog in rbac.defaults.ts) so a route can't be gated on a slug nothing will ever grant.
+// catalog in permission-slugs.ts) so a route can't be gated on a slug nothing will ever grant.
 export const CheckAbility = (...abilities: PermissionSlug[]) =>
   applyBoth(
     SetMetadata(ROUTE_TIER_KEY, 'ability' satisfies RouteTier),

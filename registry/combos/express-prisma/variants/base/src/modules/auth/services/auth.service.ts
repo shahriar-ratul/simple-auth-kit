@@ -46,8 +46,8 @@ import { PasswordResetRepository } from "@/modules/auth/repositories/password-re
 import {
   RbacRepository,
   UserSummary,
-} from "@/modules/auth/repositories/rbac.repository";
-import { SessionRepository } from "@/modules/auth/repositories/session.repository";
+} from "@/common/repositories/rbac.repository";
+import { SessionRepository } from "@/common/repositories/session.repository";
 import { TwoFactorRepository } from "@/modules/auth/repositories/two-factor.repository";
 import { toId } from "@/common/helpers/id.helper";
 
@@ -121,7 +121,7 @@ export class AuthService {
       },
     });
     // The signup default is whichever roles are flagged `isDefault` in the database, not a name
-    // spelled in code — see rbac.defaults.ts.
+    // spelled in code — see permission-slugs.ts.
     await this.rbac.assignDefaultRoles(user.id);
     return this.issueSessionTokens(user, {
       userAgent: input.userAgent,

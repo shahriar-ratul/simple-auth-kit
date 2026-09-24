@@ -23,10 +23,10 @@
 //
 // Roles seeded here belong to the seeded workspace only — `Role` is unique per
 // `[workspaceId, slug]`, so there is no such thing as a role that exists in all of them. A
-// workspace created later through POST /workspaces provisions its own from the same definition:
-// (1) and (3) both live in `rbac.defaults.ts`, which is also what types `@CheckAbility` on the
-// routes. The seeder is a caller of that definition, not its owner, so the roles a workspace
-// gets, whichever path created it, and the permissions the routes demand cannot drift apart.
+// workspace created later through POST /workspaces builds its own roles from the database (see
+// `WorkspaceRepository.create`), not from this seed data. (1) and (3) are defined in
+// `database/seedData/`, which the app never imports: after seeding, the database is the only
+// source of truth.
 import { and, asc, eq, inArray, notInArray } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/node-postgres";
 import { Pool } from "pg";
@@ -34,11 +34,12 @@ import { hashPassword } from "@/lib/auth/core/crypto.js";
 import type { Database } from "../src/common/config/db.js";
 import {
   DEFAULT_ROLES,
+  DEFAULT_WORKSPACE_NAME,
   PERMISSION_SLUGS,
-  SEED_SUPERADMIN_ROLES,
-  WORKSPACE_CREATOR_ROLES,
   provisionDefaultRoles,
-} from "../src/modules/auth/rbac.defaults.js";
+  SEED_ADMIN_ROLES,
+  SEED_SUPERADMIN_ROLES,
+} from "./seedData/index.js";
 import * as schema from "./schema.js";
 import {
   permissions,
@@ -48,8 +49,7 @@ import {
   workspaceMembers,
   workspaces,
 } from "./schema.js";
-
-const DEFAULT_WORKSPACE_NAME = "Default workspace";
+import { bumpAuthzVersion } from "../src/common/auth/cache/authz-version.js";
 
 function requireEnv(name: string): string {
   const value = process.env[name];
@@ -80,7 +80,7 @@ async function seedWorkspace(
   return created;
 }
 
-/** The catalog and this workspace's roles come from rbac.defaults.ts; this only reports what it wrote. */
+/** The catalog and this workspace's roles come from `database/seedData/`; this only reports what it wrote. */
 async function seedRbacDefaults(
   db: Database,
   workspaceId: bigint,
@@ -176,7 +176,7 @@ async function seedAdminUser(
     .where(
       and(
         eq(roles.workspaceId, workspace.id),
-        inArray(roles.slug, WORKSPACE_CREATOR_ROLES),
+        inArray(roles.slug, SEED_ADMIN_ROLES),
       ),
     );
   if (adminRoles.length) {
@@ -294,6 +294,8 @@ async function main(): Promise<void> {
     await seedRbacDefaults(db, workspace.id);
     await seedAdminUser(db, workspace);
     await seedSuperAdminUser(db, workspace);
+    // Clear any running app's authz cache: the seeder writes behind the app's back.
+    await bumpAuthzVersion(db);
     console.log("seed complete.");
   } finally {
     await pool.end();

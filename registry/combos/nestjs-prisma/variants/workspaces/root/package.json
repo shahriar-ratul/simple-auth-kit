@@ -25,6 +25,7 @@
     "@nestjs/throttler": "^6.5.0",
     "@prisma/adapter-pg": "^7.9.1",
     "@prisma/client": "^7.9.1",
+    "@scalar/nestjs-api-reference": "^1.2.13",
     "argon2": "^0.45.1",
     "express": "^5.2.1",
     "jose": "^6.2.8",

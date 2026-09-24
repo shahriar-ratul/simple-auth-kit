@@ -9,13 +9,13 @@ import { createPermissionsRouter } from '@/modules/permissions/routers/permissio
 import { PermissionsService } from '@/modules/permissions/services/permissions.service';
 import { createAuditLogRouter } from '@/modules/audit-log/routers/audit-log.router';
 import { AuditLogService } from '@/modules/audit-log/services/audit-log.service';
-import { AuditLogRepository } from '@/modules/audit-log/repositories/audit-log.repository';
+import { AuditLogRepository } from '@/common/repositories/audit-log.repository';
 import { authCoreErrorMiddleware } from '@/infra/middleware/auth-core-error.middleware';
-import { AuthConfig, defaultAuthConfig } from '@/common/config/auth.config';
+import { type AuthConfig, type AuthConfigInput, resolveAuthConfig } from '@/common/config/auth.config';
 import { createAuthMiddleware } from '@/common/auth/middleware/auth.middleware';
 import { createAuthRouter } from '@/modules/auth/routers/auth.router';
 import { AuthService } from '@/modules/auth/services/auth.service';
-import { createAuthzMiddleware } from '@/common/auth/middleware/authz.middleware';
+import { type AuthzContext, createAuthzMiddleware } from '@/common/auth/middleware/authz.middleware';
 import { DrizzleService } from '@/modules/drizzle/drizzle.service';
 import { KeyProviderService } from '@/common/config/key-provider';
 import { log } from '@/infra/logger/logger';
@@ -23,12 +23,13 @@ import { metricsCollector, metricsEndpoint, warnIfMetricsUnprotected } from '@/i
 import { OAuthRepository } from '@/modules/auth/repositories/oauth.repository';
 import { openApiSpec } from '@/infra/openapi/openapi-spec';
 import { PasswordResetRepository } from '@/modules/auth/repositories/password-reset.repository';
-import { InMemoryPermissionCacheStore, PermissionCache } from '@/common/auth/cache/permission-cache';
 import { InMemoryRateLimitStore } from '@/common/auth/cache/rate-limit.store';
-import { RbacRepository } from '@/modules/auth/repositories/rbac.repository';
+import { createAuthzCache, InMemoryAuthzCacheStore } from '@/common/auth/cache/authz-cache';
+import { readAuthzVersion } from '@/common/auth/cache/authz-version';
+import { RbacRepository } from '@/common/repositories/rbac.repository';
 import { requestLogger } from '@/infra/middleware/request-logger.middleware';
 import { responseEnvelope } from '@/infra/middleware/response-envelope.middleware';
-import { SessionRepository } from '@/modules/auth/repositories/session.repository';
+import { SessionRepository } from '@/common/repositories/session.repository';
 import { TwoFactorRepository } from '@/modules/auth/repositories/two-factor.repository';
 
 /**
@@ -46,24 +47,24 @@ import { TwoFactorRepository } from '@/modules/auth/repositories/two-factor.repo
  * function, and the only thing this module split changes is which router/service file each route
  * lives in.
  */
-export function createAuthApp(config: Partial<AuthConfig> = {}): Express {
+export function createAuthApp(config: AuthConfigInput = {}): Express {
   const drizzleService = new DrizzleService();
   const db = drizzleService.db;
 
-  const resolvedConfig: AuthConfig = { ...defaultAuthConfig, ...config };
+  const resolvedConfig: AuthConfig = resolveAuthConfig(config);
   const auditLog = new AuditLogRepository(db);
   const sessions = new SessionRepository(db, auditLog, resolvedConfig);
   const keys = new KeyProviderService();
   // Swap the store for a Redis-backed one by passing `rateLimitStore` in `config` — nothing in
   // this library's source changes.
   const rateLimit: RateLimitDeps = resolvedConfig.rateLimitStore ?? new InMemoryRateLimitStore();
-  // The cache seam. Swap the store for a Redis-backed one by passing `permissionCacheStore` in
-  // `config` — nothing in this library's source changes. Keys are namespaced simpleauthkit:authz:*.
-  const permissionCache = new PermissionCache(
-    resolvedConfig.permissionCacheStore ?? new InMemoryPermissionCacheStore(),
-    resolvedConfig,
-  );
-  const rbac = new RbacRepository(db, permissionCache);
+  const rbac = new RbacRepository(db);
+  // Configured by `authzCache` in the config — see auth.config.ts and authz-cache.ts.
+  const authzCache = createAuthzCache<AuthzContext>({
+    ...resolvedConfig.authzCache,
+    store: resolvedConfig.authzCache.store ?? new InMemoryAuthzCacheStore(),
+    readVersion: () => readAuthzVersion(db),
+  });
   const twoFactor = new TwoFactorRepository(db);
   const oauth = new OAuthRepository(db);
   const passwordReset = new PasswordResetRepository(db);
@@ -86,15 +87,14 @@ export function createAuthApp(config: Partial<AuthConfig> = {}): Express {
   const requireAuth = createAuthMiddleware(keys, sessions);
   // Roles are global here, but they are read from the database on the request that uses them —
   // the token carries none. See authz.middleware.ts.
-  const requireAuthz = createAuthzMiddleware({ rbac, cache: permissionCache });
+  const requireAuthz = createAuthzMiddleware({ rbac, cache: authzCache });
 
-  if (!resolvedConfig.permissionCacheStore || !resolvedConfig.rateLimitStore) {
+  if (!resolvedConfig.rateLimitStore) {
     log.warn(
       'auth',
-      '[simple-auth-kit] permissionCacheStore/rateLimitStore not overridden — using in-memory defaults. ' +
-        'Fine for a single instance; silently inconsistent (stale grants, wrong rate-limit counts) ' +
-        'across replicas once you run more than one. Override permissionCacheStore/rateLimitStore ' +
-        "in createAuthApp's config before scaling out.",
+      '[simple-auth-kit] rateLimitStore not overridden — using the in-memory default. ' +
+        'Fine for a single instance; silently wrong rate-limit counts across replicas once you ' +
+        "run more than one. Override rateLimitStore in createAuthApp's config before scaling out.",
     );
   }
 
@@ -165,6 +165,8 @@ export function createAuthApp(config: Partial<AuthConfig> = {}): Express {
   // left unreachable — a consumer closes it on SIGTERM/SIGINT with
   // `(app.locals["drizzle"] as DrizzleService).close()`.
   app.locals['drizzle'] = drizzleService;
+  // Read by the proof harness for its hit/resolution counters.
+  app.locals['authzCache'] = authzCache;
 
   return app;
 }

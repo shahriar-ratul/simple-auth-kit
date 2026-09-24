@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common';
 import { AuditLogController } from '@/modules/audit-log/controllers/audit-log.controller';
-import { AuditLogRepository } from '@/modules/audit-log/repositories/audit-log.repository';
+import { AuditLogRepository } from '@/common/repositories/audit-log.repository';
 import { AuditLogService } from '@/modules/audit-log/services/audit-log.service';
 
 // Plain feature module — no forRoot(). Exports AuditLogRepository: SessionRepository

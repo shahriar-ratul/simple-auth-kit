@@ -48,8 +48,8 @@ import { RATE_LIMIT_STORE } from "@/common/auth/cache/rate-limit.store";
 import {
   RbacRepository,
   UserSummary,
-} from "@/modules/auth/repositories/rbac.repository";
-import { SessionRepository } from "@/modules/auth/repositories/session.repository";
+} from "@/common/repositories/rbac.repository";
+import { SessionRepository } from "@/common/repositories/session.repository";
 import { TwoFactorRepository } from "@/modules/auth/repositories/two-factor.repository";
 import { toId } from "@/common/helpers/id.helper";
 

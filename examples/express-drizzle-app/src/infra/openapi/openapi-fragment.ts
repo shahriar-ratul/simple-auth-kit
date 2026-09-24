@@ -2,9 +2,9 @@
 //
 // A leaf module on purpose: `openapi-spec.ts` assembles the document from its own identity
 // routes plus the fragment `openapi-admin.ts` contributes, and both of those import from here,
-// so nothing imports in a circle. (`rbac.defaults.ts` below is a leaf too — it imports only a
-// Prisma type — so naming the permission catalog here keeps that property.)
-import type { PermissionSlug } from '@/modules/auth/rbac.defaults';
+// so nothing imports in a circle. (`permission-slugs.ts` below is a leaf too — it imports nothing —
+// so naming the permission slugs here keeps that property.)
+import type { PermissionSlug } from '@/modules/auth/permission-slugs';
 
 /** One module's contribution to the assembled OpenAPI document — see openapi-spec.ts. */
 export interface OpenApiFragment {
@@ -36,7 +36,7 @@ export function errorResponse(description: string): Record<string, unknown> {
 // cannot disagree with the code; this one is written by hand and would happily go on describing
 // a rule that no longer exists. Typing both arguments as `PermissionSlug` recovers the half that
 // matters most: the document can only name permissions the catalog defines, so renaming a slug in
-// `rbac.defaults.ts` breaks the build here too rather than leaving the docs quietly wrong.
+// `permission-slugs.ts` breaks the build here too rather than leaving the docs quietly wrong.
 
 /** The operation-level note naming the permission a route is gated on. See route-tiers.ts. */
 export function requiresPermission(permission: PermissionSlug): string {

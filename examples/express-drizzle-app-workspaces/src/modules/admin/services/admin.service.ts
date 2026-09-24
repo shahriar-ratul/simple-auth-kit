@@ -3,17 +3,18 @@ import { blockUser, deactivateUser } from '@/core/session-policy';
 import type { Revoker } from '@/core/types';
 import type { AuthzContext } from '@/common/auth/middleware/authz.middleware';
 import type { Database } from '@/common/config/db';
-import { AuditLogRepository } from '@/modules/audit-log/repositories/audit-log.repository';
+import { AuditLogRepository } from '@/common/repositories/audit-log.repository';
 import {
   MemberListFilter,
   MemberListResult,
   MemberSummary,
   RbacRepository,
   toMemberSummary,
-} from '@/modules/auth/repositories/rbac.repository';
-import { SessionRepository } from '@/modules/auth/repositories/session.repository';
+} from '@/common/repositories/rbac.repository';
+import { SessionRepository } from '@/common/repositories/session.repository';
 import { users } from '@/database/schema';
 import { toId, toIdOrNull } from '@/common/helpers/id.helper';
+import { bumpAuthzVersion } from '@/common/auth/cache/authz-version';
 
 /**
  * Member management, block/unblock/deactivate/activate, and user-scoped role/permission
@@ -105,13 +106,9 @@ export class AdminService {
       .update(users)
       .set({ blocked: true, updatedBy: toIdOrNull(revoker?.userId) })
       .where(eq(users.id, toId(userId)));
+    await bumpAuthzVersion(this.db);
     // The administrator, not the blocked user, is what lands in `sessions.revoked_by`.
     await blockUser(this.sessions, userId, revoker);
-    // Belt and braces. The block is enforced on the authentication path — login and refresh both
-    // refuse a blocked user, and AuthGuard never consults the permission cache — so a warm entry
-    // cannot defeat it. Dropping the entry anyway means nothing about a blocked account is being
-    // served from memory.
-    await this.rbac.invalidateMember(userId, ctx.workspaceId);
   }
 
   async unblock(ctx: AuthzContext, userId: string, revoker?: Revoker): Promise<void> {
@@ -120,6 +117,7 @@ export class AdminService {
       .update(users)
       .set({ blocked: false, updatedBy: toIdOrNull(revoker?.userId) })
       .where(eq(users.id, toId(userId)));
+    await bumpAuthzVersion(this.db);
   }
 
   /**
@@ -132,8 +130,8 @@ export class AdminService {
       .update(users)
       .set({ isActive: false, updatedBy: toIdOrNull(revoker?.userId) })
       .where(eq(users.id, toId(userId)));
+    await bumpAuthzVersion(this.db);
     await deactivateUser(this.sessions, userId, revoker);
-    await this.rbac.invalidateMember(userId, ctx.workspaceId);
   }
 
   async activate(ctx: AuthzContext, userId: string, revoker?: Revoker): Promise<void> {
@@ -142,5 +140,6 @@ export class AdminService {
       .update(users)
       .set({ isActive: true, updatedBy: toIdOrNull(revoker?.userId) })
       .where(eq(users.id, toId(userId)));
+    await bumpAuthzVersion(this.db);
   }
 }

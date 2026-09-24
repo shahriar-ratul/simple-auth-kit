@@ -13,6 +13,10 @@ import {
   ABILITY_SUBJECT,
   defineAbilitiesFor,
 } from "../src/common/auth/ability/ability.js";
+import {
+  AuthzCache,
+  InMemoryAuthzCacheStore,
+} from "../src/common/auth/cache/authz-cache.js";
 import { ability, createTieredRouter } from "../src/infra/route-tiers.js";
 import { bootstrap, capturedResetTokens } from "./bootstrap.js";
 import {
@@ -126,11 +130,11 @@ async function main() {
     bootError instanceof Error ? bootError.message : String(bootError);
   assert(
     bootError !== undefined,
-    "registering a route gated on a slug outside PERMISSION_CATALOG throws at registration, not at request time",
+    "registering a route gated on a slug outside PERMISSION_SLUGS throws at registration, not at request time",
   );
   assert(
     bootMessage.includes("no:such-permission") &&
-      bootMessage.includes("PERMISSION_CATALOG"),
+      bootMessage.includes("PERMISSION_SLUGS"),
     `…and the error names the offending permission (got: ${bootMessage.split("\n")[0]})`,
   );
 
@@ -1688,6 +1692,11 @@ async function main() {
       delete process.env["METRICS_TOKEN"];
     }
 
+    console.log(
+      "13b. authorization cache configuration (AuthzCache, no server)",
+    );
+    await proveAuthzCacheConfiguration();
+
     console.log(`14. ${hooks.variant}-specific properties`);
     await hooks.proveVariantProperties(ctx, admin);
   } finally {
@@ -1699,6 +1708,100 @@ async function main() {
     process.exit(1);
   }
   console.log("\nAll assertions passed.");
+}
+
+/**
+ * `AuthConfig.authzCache` is a public surface, so each setting is proved against the class
+ * directly, with a stub resolver and a stub version source — no server, no database.
+ */
+async function proveAuthzCacheConfiguration(): Promise<void> {
+  const ctxValue = { roles: ["r"], permissions: ["p:read"] };
+  let versionReads = 0;
+  const source = {
+    readAuthzVersion: async () => {
+      versionReads += 1;
+      return 1n;
+    },
+  };
+  let resolves = 0;
+  const resolver = async () => {
+    resolves += 1;
+    return ctxValue;
+  };
+
+  const disabled = new AuthzCache(source, {
+    enabled: false,
+    revalidate: true,
+    ttlSeconds: 30,
+  });
+  for (let i = 0; i < 3; i += 1) await disabled.get("u1", resolver);
+  assert(
+    resolves === 3 && versionReads === 0 && disabled.stats.hits === 0,
+    `enabled: false resolves on every call and never reads the version (resolves ${resolves}, version reads ${versionReads})`,
+  );
+
+  resolves = 0;
+  versionReads = 0;
+  const trusting = new AuthzCache(source, {
+    enabled: true,
+    revalidate: false,
+    ttlSeconds: 1,
+  });
+  for (let i = 0; i < 3; i += 1) await trusting.get("u1", resolver);
+  assert(
+    resolves === 1 && versionReads === 0 && trusting.stats.hits === 2,
+    `revalidate: false reuses the entry without reading the version (resolves ${resolves}, version reads ${versionReads}, hits ${trusting.stats.hits})`,
+  );
+  await new Promise((r) => setTimeout(r, 1200));
+  await trusting.get("u1", resolver);
+  assert(
+    resolves === 2,
+    `…until ttlSeconds passes, then it resolves again (resolves ${resolves})`,
+  );
+
+  const calls: string[] = [];
+  const backing = new InMemoryAuthzCacheStore();
+  const customStore = {
+    get: async (key: string) => {
+      calls.push(`get ${key}`);
+      return backing.get(key);
+    },
+    set: async (key: string, value: string, ttlSeconds: number) => {
+      calls.push(`set ${key} ${ttlSeconds}`);
+      return backing.set(key, value, ttlSeconds);
+    },
+  };
+  resolves = 0;
+  const pluggable = new AuthzCache(source, {
+    enabled: true,
+    revalidate: true,
+    ttlSeconds: 7,
+    store: customStore,
+  });
+  await pluggable.get("u2", resolver);
+  await pluggable.get("u2", resolver);
+  assert(
+    calls.join("|") ===
+      "get simpleauthkit:authz:u2|set simpleauthkit:authz:u2 7|get simpleauthkit:authz:u2" &&
+      resolves === 1,
+    `a custom store receives the cache's get/set calls, namespaced and with the configured TTL (got ${calls.join(" | ")})`,
+  );
+
+  resolves = 0;
+  const neverCached = new AuthzCache(source, {
+    enabled: true,
+    revalidate: true,
+    ttlSeconds: 30,
+  });
+  await neverCached.get("u3", async () => {
+    resolves += 1;
+    return null;
+  });
+  await neverCached.get("u3", async () => {
+    resolves += 1;
+    return null;
+  });
+  assert(resolves === 2, "a null answer (not a member) is never cached");
 }
 
 main().catch((err) => {

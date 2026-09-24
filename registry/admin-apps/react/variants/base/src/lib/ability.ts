@@ -12,7 +12,7 @@ import { createContext, useContext } from "react";
 export type AppAbility = PureAbility<[string, "permission"]>;
 
 /**
- * The backend's permission catalog (`rbac.defaults.ts` in every combo), named here so a typo is
+ * The backend's permission catalog (`permission-slugs.ts` in every combo), named here so a typo is
  * a missing import rather than a silently-ungated button. Each key gates a real route: hiding
  * an action the caller can't perform and getting a 403 if they call it anyway are the same
  * rule, read from the same list.
@@ -54,7 +54,8 @@ export type PermissionKey = (typeof PERMISSIONS)[keyof typeof PERMISSIONS];
  */
 export function abilityFor(user: CurrentUser | null): AppAbility {
   const { can, build } = new AbilityBuilder<AppAbility>(PureAbility);
-  for (const permission of user?.permissions ?? []) can(permission, "permission");
+  for (const permission of user?.permissions ?? [])
+    can(permission, "permission");
   return build();
 }
 
@@ -67,6 +68,11 @@ export function useAbility(): AppAbility {
 }
 
 /** True when the ability carries at least one of `permissions` — the "can they open this page at all" question. */
-export function canAny(ability: AppAbility, permissions: readonly string[]): boolean {
-  return permissions.some((permission) => ability.can(permission, "permission"));
+export function canAny(
+  ability: AppAbility,
+  permissions: readonly string[],
+): boolean {
+  return permissions.some((permission) =>
+    ability.can(permission, "permission"),
+  );
 }

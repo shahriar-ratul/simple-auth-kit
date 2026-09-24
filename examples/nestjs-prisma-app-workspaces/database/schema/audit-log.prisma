@@ -1,0 +1,24 @@
+// The append-only audit log.
+
+/// Append-only event sink for `SessionStoreDeps.appendAuditEvent` (registry/core/session-policy.ts)
+/// plus the RBAC/2FA/OAuth/password-reset flows. `action` is the AuditEvent's discriminant and
+/// `info` the rest of its fields, so no schema change is needed when core adds event variants.
+/// The RBAC/User/Session tables also carry their own `createdBy`/`updatedBy`/`deletedBy` — a
+/// denormalized copy of the same fact, kept so a row-level "who touched this" read needs no join.
+model AuditLog {
+  id          BigInt   @id @default(autoincrement())
+  uuid        String   @unique @default(uuid())
+  workspaceId BigInt?  @map("workspace_id") // null for events outside any workspace (login, password reset, ...)
+  userId      BigInt?  @map("user_id") // who the event is about; null if not attributable to one user
+  name        String // human-readable label for `action`, e.g. "Role assigned"
+  action      String // AuditEvent discriminant, e.g. "role_assigned"
+  info        Json // the rest of the AuditEvent's fields
+  remarks     String? // free-text note
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@index([workspaceId, createdAt], map: "audit_logs_workspace_created_idx")
+  @@index([userId, createdAt], map: "audit_logs_user_created_idx")
+  @@index([createdAt], map: "audit_logs_created_idx")
+  @@map("audit_logs")
+}

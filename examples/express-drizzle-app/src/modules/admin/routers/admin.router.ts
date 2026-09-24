@@ -27,7 +27,7 @@ export interface AdminRouterDeps extends TierMiddleware {
  * catalog and the roles that carry it) is a prerequisite for this router doing anything.
  *
  * Each route says what it demands; the rows say who is granted it. The slugs below are checked at
- * compile time against `PERMISSION_CATALOG` in `rbac.defaults.ts`, while who holds them — and
+ * compile time against `PERMISSION_SLUGS` in `permission-slugs.ts`, while who holds them — and
  * whether the permission is active at all — is edited through this very router (plus the roles and
  * permissions routers) and takes effect on the next request. `GET /auth/me` returns the caller's
  * slugs, and a console rebuilds the same ability from them with the same function the middleware

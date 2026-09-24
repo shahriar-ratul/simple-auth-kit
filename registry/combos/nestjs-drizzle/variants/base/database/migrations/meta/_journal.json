@@ -29,6 +29,13 @@
       "when": 1790216797861,
       "tag": "0003_drop_user_name_unique",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1790228950062,
+      "tag": "0004_authz_version_cache",
+      "breakpoints": true
     }
   ]
 }

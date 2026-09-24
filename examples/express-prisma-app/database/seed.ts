@@ -17,36 +17,34 @@
 // an admin who already exists keeps the password they have now (the seeder never rewrites a
 // password it did not set).
 //
-// (1) and (2) are not defined here: they live in `rbac.defaults.ts`, which is also what types
-// `@CheckAbility` on the routes. The seeder is a caller of that definition, not its owner — so
-// what gets seeded and what the routes demand cannot drift apart.
-import { PrismaPg } from "@prisma/adapter-pg";
-import { hashPassword } from "@/core/crypto.js";
-import { PrismaClient } from "@/database/generated/prisma/client.js";
+// (1) and (2) are defined in `database/seedData/`, which the app never imports: after seeding,
+// the database is the only source of truth. The seed permissions are keyed by the app's
+// `PermissionSlug`, so every slug a route is gated on gets a row.
+import { PrismaPg } from '@prisma/adapter-pg';
+import { hashPassword } from '@/core/crypto.js';
+import { PrismaClient } from '@/database/generated/prisma/client.js';
 import {
   DEFAULT_ROLES,
   PERMISSION_SLUGS,
   provisionDefaultRoles,
   SEED_ADMIN_ROLES,
   SEED_SUPERADMIN_ROLES,
-} from "../src/modules/auth/rbac.defaults.js";
+} from './seedData/index.js';
+import { bumpAuthzVersion } from '../src/common/auth/cache/authz-version.js';
 
 function requireEnv(name: string): string {
   const value = process.env[name];
-  if (!value)
-    throw new Error(
-      `${name} is not set — the seeder cannot reach the database without it`,
-    );
+  if (!value) throw new Error(`${name} is not set — the seeder cannot reach the database without it`);
   return value;
 }
 
-/** The catalog and the roles come from rbac.defaults.ts; this only reports what it wrote. */
+/** The catalog and the roles come from `database/seedData/`; this only reports what it wrote. */
 async function seedRbacDefaults(prisma: PrismaClient): Promise<void> {
   await provisionDefaultRoles(prisma);
   console.log(`permissions: ${PERMISSION_SLUGS.length} slug(s) in the catalog`);
   for (const role of DEFAULT_ROLES)
     console.log(
-      `role "${role.slug}": ${role.permissions.length} permission(s)${role.isDefault ? " (signup default)" : ""}`,
+      `role "${role.slug}": ${role.permissions.length} permission(s)${role.isDefault ? ' (signup default)' : ''}`,
     );
 
   // Slugs that exist in the database but not in this build's catalog. They are not an error —
@@ -56,27 +54,25 @@ async function seedRbacDefaults(prisma: PrismaClient): Promise<void> {
   const rows = await prisma.permission.findMany({
     select: { slug: true, isActive: true },
   });
-  const unknown = rows.filter(
-    (row) => !(PERMISSION_SLUGS as string[]).includes(row.slug),
-  );
+  const unknown = rows.filter((row) => !(PERMISSION_SLUGS as string[]).includes(row.slug));
   if (unknown.length)
     console.log(
-      `permissions: ${unknown.length} slug(s) outside this build's catalog (no route names them): ${unknown.map((r) => r.slug).join(", ")}`,
+      `permissions: ${unknown.length} slug(s) outside this build's catalog (no route names them): ${unknown.map((r) => r.slug).join(', ')}`,
     );
   const inactive = rows.filter((row) => !row.isActive);
   if (inactive.length)
     console.log(
-      `permissions: ${inactive.length} deactivated, granting nothing: ${inactive.map((r) => r.slug).join(", ")}`,
+      `permissions: ${inactive.length} deactivated, granting nothing: ${inactive.map((r) => r.slug).join(', ')}`,
     );
 }
 
 /** Roles are global here, so administrative authority is a property of the user row itself. */
 async function seedAdminUser(prisma: PrismaClient): Promise<void> {
-  const email = process.env["SEED_ADMIN_EMAIL"];
-  const password = process.env["SEED_ADMIN_PASSWORD"];
+  const email = process.env['SEED_ADMIN_EMAIL'];
+  const password = process.env['SEED_ADMIN_PASSWORD'];
   if (!email || !password) {
     console.log(
-      "admin: skipped — set SEED_ADMIN_EMAIL and SEED_ADMIN_PASSWORD to create one (there is no default password)",
+      'admin: skipped — set SEED_ADMIN_EMAIL and SEED_ADMIN_PASSWORD to create one (there is no default password)',
     );
     return;
   }
@@ -89,11 +85,7 @@ async function seedAdminUser(prisma: PrismaClient): Promise<void> {
     (await prisma.user.create({
       data: { email, passwordHash: await hashPassword(password) },
     }));
-  console.log(
-    existing
-      ? `admin: ${email} already exists — password left unchanged`
-      : `admin: created ${email}`,
-  );
+  console.log(existing ? `admin: ${email} already exists — password left unchanged` : `admin: created ${email}`);
 
   const roles = await prisma.role.findMany({
     where: { slug: { in: SEED_ADMIN_ROLES } },
@@ -103,20 +95,20 @@ async function seedAdminUser(prisma: PrismaClient): Promise<void> {
     data: roles.map((role) => ({ userId: user.id, roleId: role.id })),
     skipDuplicates: true,
   });
-  console.log(`admin: holds roles ${roles.map((r) => r.slug).join(", ")}`);
+  console.log(`admin: holds roles ${roles.map((r) => r.slug).join(', ')}`);
 }
 
 /** Roles are global here; a second seeded account with the same full-catalog authority as admin. */
 async function seedSuperAdminUser(prisma: PrismaClient): Promise<void> {
-  const email = process.env["SEED_SUPERADMIN_EMAIL"];
-  const password = process.env["SEED_SUPERADMIN_PASSWORD"];
+  const email = process.env['SEED_SUPERADMIN_EMAIL'];
+  const password = process.env['SEED_SUPERADMIN_PASSWORD'];
   if (!email || !password) {
     console.log(
-      "super admin: skipped — set SEED_SUPERADMIN_EMAIL and SEED_SUPERADMIN_PASSWORD to create one (there is no default password)",
+      'super admin: skipped — set SEED_SUPERADMIN_EMAIL and SEED_SUPERADMIN_PASSWORD to create one (there is no default password)',
     );
     return;
   }
-  const username = process.env["SEED_SUPERADMIN_USERNAME"] || undefined;
+  const username = process.env['SEED_SUPERADMIN_USERNAME'] || undefined;
 
   // Their password may have been changed since; rewriting it here would silently reset it.
   const existing = await prisma.user.findUnique({ where: { email } });
@@ -129,7 +121,7 @@ async function seedSuperAdminUser(prisma: PrismaClient): Promise<void> {
   console.log(
     existing
       ? `super admin: ${email} already exists — password left unchanged`
-      : `super admin: created ${email}${username ? ` (username ${username})` : ""}`,
+      : `super admin: created ${email}${username ? ` (username ${username})` : ''}`,
   );
 
   const roles = await prisma.role.findMany({
@@ -140,9 +132,7 @@ async function seedSuperAdminUser(prisma: PrismaClient): Promise<void> {
     data: roles.map((role) => ({ userId: user.id, roleId: role.id })),
     skipDuplicates: true,
   });
-  console.log(
-    `super admin: holds roles ${roles.map((r) => r.slug).join(", ")}`,
-  );
+  console.log(`super admin: holds roles ${roles.map((r) => r.slug).join(', ')}`);
 }
 
 async function main(): Promise<void> {
@@ -155,13 +145,15 @@ async function main(): Promise<void> {
   }
 
   const prisma = new PrismaClient({
-    adapter: new PrismaPg({ connectionString: requireEnv("DATABASE_URL") }),
+    adapter: new PrismaPg({ connectionString: requireEnv('DATABASE_URL') }),
   });
   try {
     await seedRbacDefaults(prisma);
     await seedAdminUser(prisma);
     await seedSuperAdminUser(prisma);
-    console.log("seed complete.");
+    // Clear any running app's authz cache: the seeder writes behind the app's back.
+    await bumpAuthzVersion(prisma);
+    console.log('seed complete.');
   } finally {
     await prisma.$disconnect();
   }

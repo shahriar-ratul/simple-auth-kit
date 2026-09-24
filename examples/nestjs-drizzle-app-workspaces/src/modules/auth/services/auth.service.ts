@@ -43,7 +43,7 @@ import { PasswordResetRepository } from '@/modules/auth/repositories/password-re
 import { RATE_LIMIT_STORE } from '@/common/auth/cache/rate-limit.store';
 import type { Revoker } from '@/core/types';
 import { sessions, users } from '@/database/schema';
-import { SessionRepository } from '@/modules/auth/repositories/session.repository';
+import { SessionRepository } from '@/common/repositories/session.repository';
 import { TwoFactorRepository } from '@/modules/auth/repositories/two-factor.repository';
 import { toId } from '@/common/helpers/id.helper';
 

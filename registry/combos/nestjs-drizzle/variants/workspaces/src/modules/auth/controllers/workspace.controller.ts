@@ -38,8 +38,8 @@ import {
   SetMemberRolesDto,
   WorkspaceSummaryDto,
 } from "@/modules/auth/dto/workspace.dto";
-import { RbacRepository } from "@/modules/auth/repositories/rbac.repository";
-import { WorkspaceRepository } from "@/modules/auth/repositories/workspace.repository";
+import { RbacRepository } from "@/common/repositories/rbac.repository";
+import { WorkspaceRepository } from "@/common/repositories/workspace.repository";
 
 function requireString(value: unknown, field: string): string {
   if (typeof value !== "string" || value.length === 0)
@@ -75,7 +75,7 @@ const WORKSPACE_HEADER_DOC = {
  *   • `GET /workspaces/members` is gated on membership itself: `WorkspaceGuard` already proved
  *     the caller belongs to the workspace, and seeing who else is in a room you are in is not
  *     an administrative capability.
- * The three that mutate membership are permission-gated — see `rbac.defaults.ts` for the catalog.
+ * The three that mutate membership are permission-gated — see `permission-slugs.ts` for the catalog.
  */
 @ApiTags("workspaces")
 @Controller("v1/workspaces")

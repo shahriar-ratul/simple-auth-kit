@@ -17,9 +17,9 @@
 // an admin who already exists keeps the password they have now (the seeder never rewrites a
 // password it did not set).
 //
-// (1) and (2) are not defined here: they live in `rbac.defaults.ts`, which is also what types
-// `@CheckAbility` on the routes. The seeder is a caller of that definition, not its owner — so
-// what gets seeded and what the routes demand cannot drift apart.
+// (1) and (2) are defined in `database/seedData/`, which the app never imports: after seeding,
+// the database is the only source of truth. The seed permissions are keyed by the app's
+// `PermissionSlug`, so every slug a route is gated on gets a row.
 import { eq, inArray, notInArray } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/node-postgres";
 import { Pool } from "pg";
@@ -31,9 +31,10 @@ import {
   SEED_ADMIN_ROLES,
   SEED_SUPERADMIN_ROLES,
   provisionDefaultRoles,
-} from "../src/modules/auth/rbac.defaults.js";
+} from "./seedData/index.js";
 import * as schema from "./schema.js";
 import { permissions, roleUser, roles, users } from "./schema.js";
+import { bumpAuthzVersion } from "../src/common/auth/cache/authz-version.js";
 
 function requireEnv(name: string): string {
   const value = process.env[name];
@@ -44,7 +45,7 @@ function requireEnv(name: string): string {
   return value;
 }
 
-/** The catalog and the roles come from rbac.defaults.ts; this only reports what it wrote. */
+/** The catalog and the roles come from `database/seedData/`; this only reports what it wrote. */
 async function seedRbacDefaults(db: Database): Promise<void> {
   await provisionDefaultRoles(db);
   console.log(`permissions: ${PERMISSION_SLUGS.length} slug(s) in the catalog`);
@@ -185,6 +186,8 @@ async function main(): Promise<void> {
     await seedRbacDefaults(db);
     await seedAdminUser(db);
     await seedSuperAdminUser(db);
+    // Clear any running app's authz cache: the seeder writes behind the app's back.
+    await bumpAuthzVersion(db);
     console.log("seed complete.");
   } finally {
     await pool.end();

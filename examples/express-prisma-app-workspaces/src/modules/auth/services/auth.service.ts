@@ -38,7 +38,7 @@ import { PrismaClient } from '@/database/generated/prisma/client';
 import { KeyProviderService } from '@/common/config/key-provider';
 import { OAuthRepository } from '@/modules/auth/repositories/oauth.repository';
 import { PasswordResetRepository } from '@/modules/auth/repositories/password-reset.repository';
-import { SessionRepository } from '@/modules/auth/repositories/session.repository';
+import { SessionRepository } from '@/common/repositories/session.repository';
 import { TwoFactorRepository } from '@/modules/auth/repositories/two-factor.repository';
 import { toId } from '@/common/helpers/id.helper';
 

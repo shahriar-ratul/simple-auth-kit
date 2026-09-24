@@ -1,5 +1,5 @@
 import 'dotenv/config';
-import { join } from 'node:path';
+import { join, relative } from 'node:path';
 import { defineConfig } from 'drizzle-kit';
 
 // The CLI installs this file at the project root (<targetRoot>/drizzle.config.ts, alongside
@@ -8,7 +8,9 @@ import { defineConfig } from 'drizzle-kit';
 // `--path`), database/ is one of the ORM data directories the CLI always roots at the project
 // root next to this file (see packages/cli's ORM_LAYOUTS) — true both for a real consumer install
 // and for this combo's own materialize.mjs, so schemaDir needs no environment probing.
-const schemaDir = join(__dirname, 'database');
+// Handed to drizzle-kit relative to the working directory: it prefixes "./" to `out`, so an
+// absolute path turns into ".//Users/..." and `drizzle-kit generate` fails.
+const schemaDir = relative(process.cwd(), join(__dirname, 'database')) || '.';
 
 export default defineConfig({
   // schema.ts is the CLI-managed file — never edit it directly, it's overwritten on every

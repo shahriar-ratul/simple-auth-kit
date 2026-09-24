@@ -275,10 +275,12 @@
   <div class="hero">
     <span class="verdict-badge">Verdict: sound, ship the fixes below</span>
     <span class="verdict-badge note">Update: no CI — enforcement moved local</span>
+    <span class="verdict-badge note">Update: permission cache reworked — ORM version row + TTL</span>
+    <p class="update-note" style="margin:12px 0;padding:10px 14px;border-left:3px solid currentColor;opacity:.9"><b>Update (2026-09-24):</b> since this review, the version-key permission cache was replaced: authorization is cached in memory and invalidated by an ORM-maintained <code class="inline">authz_version</code> row that every app write bumps (API changes apply on the next request, on every instance), with a TTL (<code class="inline">authzCache.ttlSeconds</code>, default 30; configurable, and the store is pluggable — in-memory by default, Redis optional) bounding changes written straight to the database. No triggers or hand-written SQL. Seed data moved out of the application into <code class="inline">database/seedData/</code> (the app never imports it); only the route slug list stays in code, in <code class="inline">permission-slugs.ts</code>. Repositories used by more than one module now live in <code class="inline">src/common/repositories/</code>. Findings below that mention <code class="inline">PermissionCache</code> or <code class="inline">rbac.defaults.ts</code> describe the code as it was when reviewed.</p>
     <h2>The hard decisions are correct. The gaps are all in enforcement, not design.</h2>
     <p>
-      Deps-injection over interface abstraction, no-authz-in-JWT, fail-closed route tiers, version-key
-      cache invalidation, and session-family revocation on refresh reuse are all textbook-correct and
+      Deps-injection over interface abstraction, no-authz-in-JWT, fail-closed route tiers, live
+      per-request authorization, and session-family revocation on refresh reuse are all textbook-correct and
       consistently applied. Nothing here is architecturally wrong. What's missing is the mechanical
       backstop that keeps good design good under scale and time: nothing automatically runs the one
       test suite that actually proves correctness, one of two in-memory stores doesn't get the same
@@ -300,12 +302,12 @@
         <div class="arrow-down">↓ copied into, structurally implemented by</div>
         <div class="layer">
           <span class="tag">combo/shared</span>
-          <span class="desc">Framework-flavored, variant-agnostic. The seam lives here: <b>request-context</b>, <b>AuthGuard</b>, <b>ability.ts</b>, <b>AbilityGuard</b>, <b>route-tiers.ts</b>, <b>PermissionCache</b>, response envelope.</span>
+          <span class="desc">Framework-flavored, variant-agnostic. The seam lives here: <b>request-context</b>, <b>AuthGuard</b>, <b>ability.ts</b>, <b>AbilityGuard</b>, <b>route-tiers.ts</b>, response envelope.</span>
         </div>
         <div class="arrow-down">↓ overlaid last, wins on conflicts</div>
         <div class="layer">
           <span class="tag">combo/variants/{base,workspaces}</span>
-          <span class="desc">Everything whose shape depends on how authorization is scoped: <b>AuthzGuard</b> resolution, <b>rbac.defaults.ts</b> catalog, seeder, composition root.</span>
+          <span class="desc">Everything whose shape depends on how authorization is scoped: <b>AuthzGuard</b> resolution, <b>permission-slugs.ts</b> (route slug list), <b>database/seedData/</b> (seed only — never imported by the app), composition root.</span>
         </div>
         <div class="arrow-down">↓ same composition algorithm, two consumers</div>
         <div class="layer">
@@ -324,7 +326,7 @@
         <div class="step">
           <div class="num">02</div>
           <div class="name">AuthzGuard</div>
-          <div class="note">Resolves roles/permissions from DB behind <code class="inline">PermissionCache</code> → sets <code class="inline">req.authz</code>, <code class="inline">req.ability</code>.</div>
+          <div class="note">Resolves roles/permissions from the DB, cached until the ORM-bumped <code class="inline">authz_version</code> changes or the TTL expires → sets <code class="inline">req.authz</code>, <code class="inline">req.ability</code>.</div>
         </div>
         <div class="sep">→</div>
         <div class="step">
@@ -362,14 +364,13 @@
       </div>
 
       <div class="card good">
-        <h3>Permission cache: version-key invalidation, not TTL</h3>
-        <span class="file">registry/combos/nestjs-prisma/shared/src/permission-cache.ts</span>
-        <pre><code><span class="comment">// 1. Version-key invalidation, never eviction: a cache key embeds two generation
-//    counters, and bumping one makes every key built from the old value unreachable.
-// 2. Two counters: a subject counter per principal, a global policy counter.
-//    A single global counter would flush everyone on any one user's grant change.
-// 3. Negative results aren't cached — "not a member" is re-read every time.</span></code></pre>
-        <div class="why"><b>Why it matters:</b> the system's core promise is "a revocation lands on the caller's next request, not their next token." TTL-based caching breaks that promise for up to the TTL window; version-key invalidation doesn't. <code class="inline">stats</code> isn't decoration either — <code class="inline">prove-cycle</code> asserts N identical requests cause exactly one DB resolution.</div>
+        <h3>Authorization cache: ORM version row + TTL <span class="update-flag">updated</span></h3>
+        <span class="file">registry/combos/nestjs-prisma/shared/src/common/auth/cache/{authz-cache,authz-version}.ts</span>
+        <pre><code><span class="comment">// Every authorization write the app makes bumps the single authz_version row
+// (through the ORM, inside the same transaction). A cached answer is used only
+// while that version is unchanged and it is younger than authzCache.ttlSeconds,
+// so API changes apply on the next request and direct DB edits after the TTL.</span></code></pre>
+        <div class="why"><b>Why it matters:</b> the system's core promise is "a revocation lands on the caller's next request, not their next token." This review originally praised a version-key permission cache; it was later reworked so the invalidation signal lives in the database (an <code class="inline">authz_version</code> row bumped through the ORM by every app write), which every instance sees. Direct SQL edits bypass that signal, so a TTL bounds them. <code class="inline">prove-cycle</code> asserts cache hits, API revokes on the next request, and direct-DB revokes after the TTL.</div>
       </div>
 
       <div class="card good">
@@ -378,13 +379,13 @@
         <pre><code><span class="comment">// Same answer for "no such workspace" and "not your workspace" — a caller outside
 // a workspace must not be able to probe whether it exists.</span>
 <span class="kw">if</span> (!authz) <span class="kw">throw new</span> ForbiddenException(<span class="str">"not a member of this workspace"</span>);</code></pre>
-        <div class="why"><b>Why it matters:</b> this is the detail most multi-tenant implementations get wrong under time pressure — a 404 vs 403 split leaks workspace IDs to enumeration. It's collapsed to one error deliberately, cache-keyed on <code class="inline">[userId, workspaceId]</code> so membership changes are effective immediately.</div>
+        <div class="why"><b>Why it matters:</b> this is the detail most multi-tenant implementations get wrong under time pressure — a 404 vs 403 split leaks workspace IDs to enumeration. It's collapsed to one error deliberately, resolved live on <code class="inline">[userId, workspaceId]</code> every request, so membership changes are effective immediately.</div>
       </div>
 
       <div class="card good">
         <h3>No authorization in the JWT, applied consistently</h3>
         <span class="file">registry/core/token-service.ts</span>
-        <p style="margin-top:10px">Access-token signing omits roles/permissions keys entirely when the caller passes neither — not empty arrays, absent. Every downstream guard resolves from the database. The cost (a read on every authorized request) is paid deliberately and mitigated by the cache above, not hidden.</p>
+        <p style="margin-top:10px">Access-token signing omits roles/permissions keys entirely when the caller passes neither — not empty arrays, absent. Every downstream guard resolves from the database. The cost of resolving is paid only when the ORM-bumped version changes or the cache TTL expires; otherwise a request costs one single-row read.</p>
       </div>
 
     </div>
@@ -596,7 +597,7 @@
   Every claim above is grounded in a direct read of the file it cites — no assumption carried over from documentation without independent verification. This revision re-verified file counts by grep/glob rather than estimating from the first pass, and corrected two undercounts (rate-limit DI: 12→14; stale comments: narrowed scope, +1 file class discovered).
   <div class="files">
     registry/core/{session-policy,rbac,token-service,rate-limit}.ts<br>
-    registry/combos/nestjs-prisma/shared/src/{permission-cache,route-tiers,ability.guard,rate-limit.store}.ts<br>
+    registry/combos/nestjs-prisma/shared/src/{permission-cache (since removed),route-tiers,ability.guard,rate-limit.store}.ts<br>
     registry/combos/nestjs-prisma/variants/{base,workspaces}/src/{authz.guard,auth.module,auth.service}.ts<br>
     registry/combos/nestjs-prisma/test/prove-cycle.ts<br>
     registry/combos/{nestjs-drizzle,express-prisma,express-drizzle}/package.json · rate-limit.store.ts · create-auth-app.ts<br>

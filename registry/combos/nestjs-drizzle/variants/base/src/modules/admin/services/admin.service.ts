@@ -4,17 +4,18 @@ import { hashPassword } from "@/lib/auth/core/crypto";
 import { blockUser, deactivateUser } from "@/lib/auth/core/session-policy";
 import type { Revoker } from "@/lib/auth/core/types";
 import { DRIZZLE_DB, type Database } from "@/common/config/db";
-import { AuditLogRepository } from "@/modules/audit-log/repositories/audit-log.repository";
+import { AuditLogRepository } from "@/common/repositories/audit-log.repository";
 import {
   RbacRepository,
   toUserSummary,
   UserListFilter,
   UserListResult,
   UserSummary,
-} from "@/modules/auth/repositories/rbac.repository";
-import { SessionRepository } from "@/modules/auth/repositories/session.repository";
+} from "@/common/repositories/rbac.repository";
+import { SessionRepository } from "@/common/repositories/session.repository";
 import { users } from "@/database/schema";
 import { toId, toIdOrNull } from "@/common/helpers/id.helper";
+import { bumpAuthzVersion } from "@/common/auth/cache/authz-version";
 
 /**
  * User management, block/unblock/deactivate/activate, and user-scoped role/permission
@@ -135,9 +136,7 @@ export class AdminService {
       .set({ blocked: true, updatedBy: toIdOrNull(revoker?.userId) })
       .where(eq(users.id, toId(userId)));
     await blockUser(this.sessions, userId, revoker);
-    // Belt and braces: the block is already enforced on the authentication path, but drop the
-    // cache entry anyway so nothing about a blocked account is served from memory.
-    await this.rbac.invalidateUser(userId);
+    await bumpAuthzVersion(this.db);
   }
 
   async unblock(userId: string, revoker?: Revoker): Promise<void> {
@@ -145,6 +144,7 @@ export class AdminService {
       .update(users)
       .set({ blocked: false, updatedBy: toIdOrNull(revoker?.userId) })
       .where(eq(users.id, toId(userId)));
+    await bumpAuthzVersion(this.db);
   }
 
   /**
@@ -157,7 +157,7 @@ export class AdminService {
       .set({ isActive: false, updatedBy: toIdOrNull(revoker?.userId) })
       .where(eq(users.id, toId(userId)));
     await deactivateUser(this.sessions, userId, revoker);
-    await this.rbac.invalidateUser(userId);
+    await bumpAuthzVersion(this.db);
   }
 
   async activate(userId: string, revoker?: Revoker): Promise<void> {
@@ -165,5 +165,6 @@ export class AdminService {
       .update(users)
       .set({ isActive: true, updatedBy: toIdOrNull(revoker?.userId) })
       .where(eq(users.id, toId(userId)));
+    await bumpAuthzVersion(this.db);
   }
 }

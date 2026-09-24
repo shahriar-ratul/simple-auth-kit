@@ -1,7 +1,7 @@
 import type { NextFunction, Request, RequestHandler, Response } from 'express';
 import { defineAbilitiesFor } from '@/common/auth/ability/ability';
-import type { PermissionCache } from '@/common/auth/cache/permission-cache';
-import type { RbacRepository } from '@/modules/auth/repositories/rbac.repository';
+import type { AuthzCache } from '@/common/auth/cache/authz-cache';
+import type { RbacRepository } from '@/common/repositories/rbac.repository';
 import '@/infra/request-context';
 
 /**
@@ -16,7 +16,7 @@ export interface AuthzContext {
 
 export interface AuthzMiddlewareDeps {
   rbac: RbacRepository;
-  cache: PermissionCache;
+  cache: AuthzCache;
 }
 
 /**
@@ -33,11 +33,9 @@ export interface AuthzMiddlewareDeps {
  * or a revocation land on the caller's next *request* rather than their next token. The price of
  * the alternative was a revocation that silently did not apply for up to an access-token TTL.
  *
- * The resolution goes through `PermissionCache`, so the steady-state cost is a cache read rather
- * than a join, while the *semantics* stay "read from the database": every write that could change
- * this answer bumps a version counter, which makes the cached entry unreachable rather than merely
- * old. The subject is the user id, because in this variant a user's permissions are the same
- * everywhere.
+ * The answer is cached (`AuthzCache`). Every app write that changes authorization bumps
+ * `authz_version`, so a change made through the admin API applies on the very next request; a
+ * direct database edit applies once the entry's TTL (`authzCache.ttlSeconds`) runs out.
  *
  * Replaces the reference combo's `AuthzGuard`.
  */
@@ -47,7 +45,7 @@ export function createAuthzMiddleware(deps: AuthzMiddlewareDeps): RequestHandler
     try {
       if (req.auth) {
         const userId = req.auth.sub;
-        req.authz = (await cache.resolve<AuthzContext>(userId, () => rbac.resolveAuthzContext(userId))) ?? {
+        req.authz = (await cache.get(userId, () => rbac.resolveAuthzContext(userId))) ?? {
           roles: [],
           permissions: [],
         };
