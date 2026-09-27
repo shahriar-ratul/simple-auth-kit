@@ -71,6 +71,13 @@ export interface CopyOptions {
   forcePaths?: Set<string>;
   /** Paths (relative to destRoot, POSIX separators) this install must not write or delete. */
   ignore?: string[];
+  /**
+   * Write a file only when nothing exists at its destination, and never record it in the
+   * manifest — so it is never updated, reported as modified, or pruned afterwards. For a combo's
+   * `starter/` app shell (main.ts, app.module.ts, …): the consumer owns it from the moment it is
+   * written, and an existing project's own entry point is never touched.
+   */
+  createOnly?: boolean;
   /** Overrides the default skip-by-name set (see NEVER_COPY / SCAFFOLD_NEVER_COPY). */
   neverCopy?: Set<string>;
   /**
@@ -153,6 +160,19 @@ export async function copyOneFile(
   }
 
   const existing = await readIfExists(destPath);
+  if (opts.createOnly) {
+    if (existing !== null) return;
+    result.updated.push(rel);
+    opts.collectDiffs?.push({
+      path: rel,
+      oldContent: null,
+      newContent: asDiffText(content),
+    });
+    if (opts.dryRun) return;
+    await mkdir(dirname(destPath), { recursive: true });
+    await writeFile(destPath, content);
+    return;
+  }
   const recorded = opts.previous?.[rel];
   const forced = opts.force || opts.forcePaths?.has(rel);
   if (

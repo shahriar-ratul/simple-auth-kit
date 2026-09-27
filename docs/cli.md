@@ -86,6 +86,15 @@ import alias to the consumer's. The consumer's project keeps its own `package.js
 prints the combo's peer dependencies and post-install notes (including the `npm run seed`
 line) instead of editing it.
 
+A merge install also writes the combo's `starter/` application shell — `src/main.ts` (plus
+`app.module.ts`, `app.controller.ts`, `app.service.ts` for NestJS) and a root `.gitignore` — but
+**only where no such file exists yet**, and never records it in `auth.lock.json`. A fresh
+directory therefore gets a project that builds and starts; an existing project's own entry
+point is never touched; and no later `add`/`update` overwrites, reports or prunes the starter
+files — they are the consumer's from the moment they are written. Each combo's `npm run
+typecheck` compiles the starter against both variants, so an auth-layer change that would
+break it fails there first.
+
 **`scaffold`** (the 2 `admin` + 2 `mobile` combos): writes `shared/` + `variants/<variant>/`
 **directly into the target directory** as a complete standalone app — `package.json`,
 `src/`, configs, everything — then templates the package name from `--name`. For

@@ -11,6 +11,7 @@
 //
 // Unlike the Prisma combos there is nothing to code-generate afterwards: Drizzle's schema *is*
 // the TypeScript in `database/schema.ts`, so a composed tree is immediately typecheckable.
+import { existsSync } from "node:fs";
 import { cp, mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -116,6 +117,14 @@ export async function materialize(variant) {
   await cp(join(COMBO_ROOT, "shared"), dest, { recursive: true });
   await cp(join(COMBO_ROOT, "test"), join(dest, "test"), { recursive: true });
   await cp(join(COMBO_ROOT, "variants", variant), dest, { recursive: true });
+  // The starter app shell (main.ts, app.module.ts, …) the CLI writes into a project that has
+  // none — composed into src/ here too, so typecheck proves it still compiles against this
+  // variant's auth layer after every change.
+  for (const layer of ["shared", join("variants", variant)]) {
+    const starterSrc = join(COMBO_ROOT, layer, "starter", "src");
+    if (existsSync(starterSrc))
+      await cp(starterSrc, join(dest, "src"), { recursive: true });
+  }
 
   await writeFile(
     join(dest, "tsconfig.json"),

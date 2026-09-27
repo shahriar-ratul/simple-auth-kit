@@ -593,11 +593,11 @@ async function buildMergePlan(
     return null;
   })();
   const skipFromShared = orm
-    ? new Set([...NEVER_COPY, orm.configFile, "root"])
-    : new Set([...NEVER_COPY, "root"]);
+    ? new Set([...NEVER_COPY, orm.configFile, "root", "starter"])
+    : new Set([...NEVER_COPY, "root", "starter"]);
   const skipFromVariant = orm
-    ? new Set([...NEVER_COPY, orm.dataDir, "root"])
-    : new Set([...NEVER_COPY, "root"]);
+    ? new Set([...NEVER_COPY, orm.dataDir, "root", "starter"])
+    : new Set([...NEVER_COPY, "root", "starter"]);
 
   return {
     destRoot,
@@ -744,6 +744,34 @@ async function runMergeCopy(
       join(plan.variantDir, "root"),
       targetRoot,
       { ...copyOpts, neverCopy: SCAFFOLD_NEVER_COPY },
+      plan.destRoot,
+      result,
+    );
+  }
+
+  // shared/starter/ and variants/<variant>/starter/ hold the application shell (main.ts,
+  // app.module.ts, a root .gitignore) — what turns the auth layer into a project that starts.
+  // Laid out like the project itself: starter/src/ lands flat in destRoot next to the merged
+  // source, everything else at targetRoot. createOnly: written only where nothing exists yet and
+  // never tracked, so an existing project's own entry point is left alone and a fresh one is the
+  // consumer's to edit — no later install ever overwrites or prunes it.
+  for (const dir of [plan.sharedDir, plan.variantDir]) {
+    const starter = join(dir, "starter");
+    if (!(await pathExists(starter))) continue;
+    const starterOpts = { ...copyOpts, createOnly: true };
+    if (await pathExists(join(starter, "src"))) {
+      await copyDir(
+        join(starter, "src"),
+        plan.destRoot,
+        { ...starterOpts, neverCopy: NEVER_COPY },
+        plan.destRoot,
+        result,
+      );
+    }
+    await copyDir(
+      starter,
+      targetRoot,
+      { ...starterOpts, neverCopy: new Set([...NEVER_COPY, "src"]) },
       plan.destRoot,
       result,
     );
